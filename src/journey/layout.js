@@ -8,7 +8,6 @@ function createLabyrinthPageLayout() {
       <button class="btn btn-success" id="restart-game">Restart game</button>
     </div>
   </div>
-  
 
   <div class="row">
       <div class="col-md-6">
@@ -22,14 +21,8 @@ function createLabyrinthPageLayout() {
                     <button id="add-game-player-btn" class="btn btn-outline-primary form-buttons">Add Player</button>
                   </div>
               </div>
-              <div>
-                <div class="mb-3 mt-4" id="player-moves">
-                  <div>
-                    <label for="playerMoves" class="form-label">Enter Player's Move (1-5)</label>
-                    <input type="number" class="form-control" name="playerMove" min="1" max="5" disabled placeholder="Enter player's move">                
-                  </div>
-                </div>
-                <button type="button" class="btn btn-success" id="moveBtn" disabled>Move</button>
+              <div class="mt-4" id="player-moves">
+               
               </div>
           </form>
       </div>
@@ -50,20 +43,26 @@ function createLabyrinthPageLayout() {
 }
 
 function addEventListenersToLabyrinthPage() {
-  const playersMovesInputsArray = document.querySelectorAll(`[name="playerMove"]`);
-  const playersNamesInputsArray = document.querySelectorAll(`[name="playerName"]`);
+  const playersMovesInputsSelector = `[name="playerMove"]`;
+  const playersNamesInputsSelector = `[name="playerName"]`;
+  const deletePlayersButtonSelector = `[name="delete-game-player"]`;
   const startButton = document.getElementById("startBtn");
-  const moveButton = document.getElementById("moveBtn");
+  const moveButtonId = "moveBtn";
   const gameMap = document.getElementById("gameMap");
   const gameLog = document.getElementById("gameLog");
   const playerNamesContainer = document.getElementById("players-container");
   const addGamePlayer = document.getElementById("add-game-player-btn");
   const restartGameButton = document.getElementById("restart-game");
+  const playerMovesSection = document.getElementById("player-moves");
 
   restartGameButton.addEventListener("click", (event) => {
     event.preventDefault();
     state.labyrinth.game = {};
     enableOrDisablePlayersNamesSection(true);
+    gameLog.value = "";
+    gameMap.value = "";
+    removePlayerMovesSection();
+    playerNamesContainer.innerHTML = generateGamePlayerInput();
   });
 
   addGamePlayer.addEventListener("click", (event) => {
@@ -87,56 +86,75 @@ function addEventListenersToLabyrinthPage() {
     if (state.labyrinth.game instanceof Game) {
       state.labyrinth.game = null;
     }
-    const nameInputs = [...playersNamesInputsArray];
-    const moveInputs = [...playersMovesInputsArray];
+    const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
 
     if (!validateInputsNotEmpty(nameInputs)) {
       return;
     }
+    enableOrDisablePlayersNamesSection(false);
     const names = nameInputs.map((input) => input.value);
     state.labyrinth.game = new Game(names);
-    renderPlayersMovesInputs(names);
-    moveInputs.forEach((i) => (i.value = 1));
-    enableOrDisablePlayersNamesSection(false);
-    enableOrDisablePlayersMovesSection(true);
+    playerMovesSection.innerHTML = generatePlayerMovesSection(names);
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
   });
 
-  moveButton.addEventListener("click", (e) => {
-    const moveInputs = [...document.querySelectorAll(`[name="playerMove"]`)];
-    if (!validateMoveInputsValues(moveInputs) || state.labyrinth.game.isGameOver()) {
-      alert("The game is over ");
-      return;
-    }
-    const moves = moveInputs.map((input) => {
-      const player = state.labyrinth.game.players.find((p) => p.nickname === input.getAttribute("nickname"));
+  playerMovesSection.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (event.target.id === moveButtonId) {
+      const moveInputs = [...document.querySelectorAll(playersMovesInputsSelector)];
+      if (!validateMoveInputsValues(moveInputs) || state.labyrinth.game.isGameOver()) {
+        gameLog.value += "==================== Игра закончена! ====================\n";
+        gameLog.value += state.labyrinth.game.getGameResults();
+        document.getElementById(moveButtonId).setAttribute("disabled", "");
+        return;
+      }
 
-      return { player, dice: +input.value };
-    });
-    state.labyrinth.game.makeMoves(moves);
-    gameLog.value += Logger.gameComments[Game.moveIndex].join("\n") + "\n";
+      if (!validateMoveInputsValues(moveInputs)) {
+        return;
+      }
+
+      const moves = moveInputs.map((input) => {
+        const player = state.labyrinth.game.players.find((p) => p.nickname === input.getAttribute("nickname"));
+
+        return { player, dice: +input.value };
+      });
+      state.labyrinth.game.makeMoves(moves);
+      gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
+    }
   });
 
   function enableOrDisablePlayersNamesSection(enable) {
-    const nameInputs = [...playersNamesInputsArray];
+    const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
+    const deleteButtons = [...document.querySelectorAll(deletePlayersButtonSelector)];
     if (enable) {
       nameInputs.forEach((input) => input.removeAttribute("disabled"));
+      deleteButtons.forEach((btn) => btn.removeAttribute("disabled"));
       startButton.removeAttribute("disabled");
     } else {
       nameInputs.forEach((input) => input.setAttribute("disabled", ""));
+      deleteButtons.forEach((btn) => btn.setAttribute("disabled", ""));
       startButton.setAttribute("disabled", "");
     }
   }
 
-  function enableOrDisablePlayersMovesSection(enable) {
-    const moveInputs = [...playersMovesInputsArray];
-    if (enable) {
-      moveInputs.forEach((input) => input.removeAttribute("disabled"));
-      moveButton.removeAttribute("disabled");
-    } else {
-      moveInputs.forEach((input) => input.setAttribute("disabled", ""));
-      moveButton.setAttribute("disabled", "");
-    }
+  function removePlayerMovesSection() {
+    playerMovesSection.innerHTML = "";
+  }
+
+  function generatePlayerMovesSection(playerNames = []) {
+    return `
+    <div id="player-moves-inputs" class="mb-3">
+      ${playerNames.map((p) => generatePlayerMoveInput(p)).join("")}
+    </div>
+    <button type="button" class="btn btn-success" id="moveBtn">Move</button>`;
+  }
+
+  function generatePlayerMoveInput(playerName) {
+    return `
+    <div class="col-md-11">
+    <label for="playerMoves" class="form-label">Ход ${playerName}</label>
+    <input type="number" class="form-control" name="playerMove" nickname="${playerName}" min="1" max="5" placeholder="Введите ход цифрой 1-5">           
+    </div>`;
   }
 }
 
@@ -146,24 +164,6 @@ function validateInputsNotEmpty(inputs) {
 
 function validateMoveInputsValues(moveInputs) {
   return moveInputs.every((el) => +el.value > 0 && +el.value < 6);
-}
-
-function renderPlayersMovesInputs(players) {
-  const playersMovesSection = document.querySelector(`#player-moves`);
-  playersMovesSection.innerHTML = generatePlayerMovesInputs(players);
-}
-
-function generatePlayerMovesInputs(players) {
-  return players
-    .map(
-      (p) =>
-        `<div>
-      <label for="playerMoves" class="form-label">Ход ${p}</label>
-      <input type="number" class="form-control" name="playerMove" nickname="${p}" min="1" max="5" placeholder="Введите ход цифрой 1-5">
-    </div>
-    `
-    )
-    .join("");
 }
 
 function generateGamePlayerInput() {

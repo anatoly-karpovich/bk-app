@@ -5,7 +5,7 @@ class Game {
 
   constructor(players = [], gameMap = GameMap, moveController = MoveController, logger = Logger) {
     Game.logger = new logger();
-    this.moveIndex = 0;
+    Game.moveIndex = 0;
     if (!players.length) throw new Error("No players");
     this.players = players.map((nickName) => new Player(nickName));
     Game.jackpot.isObtained = false;
@@ -52,6 +52,13 @@ class Game {
 
   isGameOver() {
     return this.players.every((p) => p.getCurrentPosition() === configuration.finishPosition);
+  }
+
+  getGameResults() {
+    if (!this.isGameOver()) {
+      return;
+    }
+    return this.players.map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`).join("\n");
   }
 }
 
