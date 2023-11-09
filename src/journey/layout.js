@@ -3,7 +3,10 @@ function createLabyrinthPageLayout() {
   <div class="container mt-4">
   <div class="d-flex justify-content-between mb-5">
     <h1>Labyrinth Game</h1>
-    <button class="btn btn-primary">Restart game</button>
+    <div>
+      <button type="button" class="btn btn-primary me-2" id="startBtn">Start</button>
+      <button class="btn btn-success" id="restart-game">Restart game</button>
+    </div>
   </div>
   
 
@@ -12,11 +15,13 @@ function createLabyrinthPageLayout() {
           <form id="playersForm">
               <div class="mb-3" id="player-names">
                 <h3>Enter Players' Names</h3>
-                <div>
-                  <input type="text" class="form-control" name="playerName" placeholder="Enter player name">                
-                </div>
+                  <div id="players-container">
+                    ${generateGamePlayerInput()}
+                  </div>
+                  <div>
+                    <button id="add-game-player-btn" class="btn btn-outline-primary form-buttons">Add Player</button>
+                  </div>
               </div>
-              <button type="button" class="btn btn-primary" id="startBtn">Start</button>
               <div>
                 <div class="mb-3 mt-4" id="player-moves">
                   <div>
@@ -51,8 +56,37 @@ function addEventListenersToLabyrinthPage() {
   const moveButton = document.getElementById("moveBtn");
   const gameMap = document.getElementById("gameMap");
   const gameLog = document.getElementById("gameLog");
+  const playerNamesContainer = document.getElementById("players-container");
+  const addGamePlayer = document.getElementById("add-game-player-btn");
+  const restartGameButton = document.getElementById("restart-game");
 
-  startButton.addEventListener("click", function () {
+  restartGameButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    state.labyrinth.game = {};
+    enableOrDisablePlayersNamesSection(true);
+  });
+
+  addGamePlayer.addEventListener("click", (event) => {
+    event.preventDefault();
+    playerNamesContainer.insertAdjacentHTML("beforeend", generateGamePlayerInput());
+  });
+
+  playerNamesContainer.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (event.target.name === "delete-game-player") {
+      if ([...document.querySelectorAll(".del-btn-modal")].length > 1) {
+        const id = event.target.getAttribute("data-delete-id");
+        const el = document.querySelector(`div[data-id="${id}"]`);
+        el.parentNode.removeChild(el);
+      }
+    }
+  });
+
+  startButton.addEventListener("click", function (event) {
+    event.preventDefault();
+    if (state.labyrinth.game instanceof Game) {
+      state.labyrinth.game = null;
+    }
     const nameInputs = [...playersNamesInputsArray];
     const moveInputs = [...playersMovesInputsArray];
 
@@ -60,7 +94,6 @@ function addEventListenersToLabyrinthPage() {
       return;
     }
     const names = nameInputs.map((input) => input.value);
-
     state.labyrinth.game = new Game(names);
     renderPlayersMovesInputs(names);
     moveInputs.forEach((i) => (i.value = 1));
@@ -71,14 +104,13 @@ function addEventListenersToLabyrinthPage() {
 
   moveButton.addEventListener("click", (e) => {
     const moveInputs = [...document.querySelectorAll(`[name="playerMove"]`)];
-    if (!validateMoveInputsValues(moveInputs)) {
-      alert(1);
+    if (!validateMoveInputsValues(moveInputs) || state.labyrinth.game.isGameOver()) {
+      alert("The game is over ");
       return;
     }
     const moves = moveInputs.map((input) => {
       const player = state.labyrinth.game.players.find((p) => p.nickname === input.getAttribute("nickname"));
-      console.log(state.labyrinth.game.players);
-      console.log(input);
+
       return { player, dice: +input.value };
     });
     state.labyrinth.game.makeMoves(moves);
@@ -132,4 +164,18 @@ function generatePlayerMovesInputs(players) {
     `
     )
     .join("");
+}
+
+function generateGamePlayerInput() {
+  const id = window.crypto.randomUUID();
+  return `
+  <div class="mb-3 d-flex justify-content-between" data-id="${id}">
+    <div class="col-md-11" name="game-player">${generateTextInput({ placeholder: "Enter players nickname", id: id, name: "playerName" })}</div>
+    <div class="col-md-1 delete-in-modal">
+      <button class="btn btn-link text-danger del-btn-modal" title="Remove Player" name="delete-game-player" data-delete-id="${id}">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+  </div>
+  `;
 }

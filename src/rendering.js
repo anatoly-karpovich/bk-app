@@ -22,6 +22,7 @@ function renderLabyrinthPage() {
   renderPageContent(layout);
   addEventListenersToLabyrinthPage();
   sideMenuActivateElement("Labyrinth");
+  state.labyrinth = {};
 }
 
 function sideMenuActivateElement(value) {

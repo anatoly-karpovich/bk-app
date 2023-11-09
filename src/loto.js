@@ -143,7 +143,6 @@ function addEventListenersToLotoPage() {
         shouldFinish = true;
       }
     }
-    // return shouldFinish ? _.fromPairs(_.sortBy(_.toPairs(result), 1)) : shouldFinish;
     return shouldFinish ? handleWinners(result) : shouldFinish;
   }
 

@@ -1,20 +1,12 @@
-const getRandomUniqueCell = getUniqueRandomNumber(1, configuration.mapSize);
-
 class GameMap {
-  static instance;
-
+  getRandomUniqueCell = getUniqueRandomNumber(1, configuration.mapSize);
   constructor() {
-    // if (GameMap.instance) {
-    //   return GameMap.instance;
-    // }
     this.generateMap();
-
-    // GameMap.instance = this;
   }
 
   generateMap() {
     this.mapJson = configuration.bonusesArray.reduce((mapObject, bonus) => {
-      const cell = getRandomUniqueCell();
+      const cell = this.getRandomUniqueCell();
       if (cell) {
         mapObject[cell] = bonus;
       }
