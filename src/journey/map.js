@@ -12,7 +12,7 @@ class GameMap {
       }
       return mapObject;
     }, {});
-    logger.logMap(this.mapJson);
+    Game.logger.logMap(this.mapJson);
   }
 
   getMap() {
@@ -45,6 +45,6 @@ class GameMap {
     for (const cell in this.getMap()) {
       mapString += `On cell ${cell} there is a trap with ${mapJson[cell].prize}\n`;
     }
-    logger.log(`Game map:\n${mapString}\n`);
+    Game.logger.log(`Game map:\n${mapString}\n`);
   }
 }

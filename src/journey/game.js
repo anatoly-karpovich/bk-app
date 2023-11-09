@@ -1,8 +1,10 @@
 class Game {
   static jackpot = { isObtained: false, winner: null };
   static moveIndex = 0;
+  static logger;
 
-  constructor(players = [], gameMap = GameMap, moveController = MoveController) {
+  constructor(players = [], gameMap = GameMap, moveController = MoveController, logger = Logger) {
+    Game.logger = new logger();
     this.moveIndex = 0;
     if (!players.length) throw new Error("No players");
     this.players = players.map((nickName) => new Player(nickName));
@@ -20,7 +22,7 @@ class Game {
   }
 
   simulateGame() {
-    logger.log(`Jackpot cell: ${this.map.getJackpotCell()}`);
+    Game.logger.log(`Jackpot cell: ${this.map.getJackpotCell()}`);
     this.map.logMap();
 
     while (this.players.filter((p) => p.getCurrentPosition() < configuration.finishPosition).length) {
@@ -28,11 +30,11 @@ class Game {
     }
     this.players.forEach((player) => console.log(`Prize for ${player.nickname}: ${player.getCurrentPrize()}`));
     if (Game.jackpot.isObtained) {
-      logger.log(`${Game.jackpot.winner} нашел сокровище`);
+      Game.logger.log(`${Game.jackpot.winner} нашел сокровище`);
     } else {
-      logger.log(`Сокровище не было найдено`);
+      Game.logger.log(`Сокровище не было найдено`);
     }
-    logger.log(`====== Игра Завершена ======`);
+    Game.logger.log(`====== Игра Завершена ======`);
   }
 
   simulateGameResults() {

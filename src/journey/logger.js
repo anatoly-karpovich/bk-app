@@ -27,5 +27,3 @@ class Logger {
     return this.gameLog;
   }
 }
-
-const logger = new Logger();
