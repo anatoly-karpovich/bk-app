@@ -151,7 +151,7 @@ function addEventListenersToLabyrinthPage() {
 
   function generatePlayerMoveInput(playerName) {
     return `
-    <div class="col-md-11">
+    <div class="col-md-11 mb-3">
     <label for="playerMoves" class="form-label">Ход ${playerName}</label>
     <input type="number" class="form-control" name="playerMove" nickname="${playerName}" min="1" max="5" placeholder="Введите ход цифрой 1-5">           
     </div>`;
