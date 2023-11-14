@@ -83,7 +83,7 @@ function addEventListenersToLabyrinthPage() {
 
   startButton.addEventListener("click", function (event) {
     event.preventDefault();
-    if (state.labyrinth.game instanceof Game) {
+    if (state.labyrinth?.game instanceof Game) {
       state.labyrinth.game = null;
     }
     const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
@@ -99,15 +99,11 @@ function addEventListenersToLabyrinthPage() {
   });
 
   playerMovesSection.addEventListener("click", (event) => {
+    const moveInputs = [...document.querySelectorAll(playersMovesInputsSelector)];
     event.preventDefault();
     if (event.target.id === moveButtonId) {
-      const moveInputs = [...document.querySelectorAll(playersMovesInputsSelector)];
-      if (!validateMoveInputsValues(moveInputs) || state.labyrinth.game.isGameOver()) {
-        gameLog.value += "==================== Игра закончена! ====================\n";
-        gameLog.value += state.labyrinth.game.getGameResults();
-        document.getElementById(moveButtonId).setAttribute("disabled", "");
-        return;
-      }
+      // const moveInputs = [...document.querySelectorAll(playersMovesInputsSelector)];
+      const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
 
       if (!validateMoveInputsValues(moveInputs)) {
         return;
@@ -120,7 +116,25 @@ function addEventListenersToLabyrinthPage() {
       });
       state.labyrinth.game.makeMoves(moves);
       gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
+      moveInputs.forEach((moveInput) => (moveInput.value = ""));
+      disableInoutsForPlayersWhoFinished();
+
+      if (state.labyrinth.game.isGameOver()) {
+        gameLog.value += "==================== Игра закончена! ====================\n";
+        gameLog.value += state.labyrinth.game.getGameResults();
+        document.getElementById(moveButtonId).setAttribute("disabled", "");
+        return;
+      }
     }
+
+    playerMovesSection.addEventListener("input", () => {
+      const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
+      if (!validateMoveInputsValues(moveInputs)) {
+        document.getElementById(moveButtonId).setAttribute("disabled", "");
+      } else {
+        document.getElementById(moveButtonId).removeAttribute("disabled");
+      }
+    });
   });
 
   function enableOrDisablePlayersNamesSection(enable) {
@@ -146,7 +160,7 @@ function addEventListenersToLabyrinthPage() {
     <div id="player-moves-inputs" class="mb-3">
       ${playerNames.map((p) => generatePlayerMoveInput(p)).join("")}
     </div>
-    <button type="button" class="btn btn-success" id="moveBtn">Move</button>`;
+    <button type="button" class="btn btn-success" id="moveBtn" disabled>Move</button>`;
   }
 
   function generatePlayerMoveInput(playerName) {
@@ -178,4 +192,16 @@ function generateGamePlayerInput() {
     </div>
   </div>
   `;
+}
+
+function disableInoutsForPlayersWhoFinished() {
+  const finished = state.labyrinth.game.getFinishedPlayers();
+  if (!finished.length) {
+    return;
+  }
+  finished.forEach((player) => {
+    console.log(player.nickname);
+    const input = document.querySelector(`[nickname="${player.nickname}"]`);
+    input.setAttribute("disabled", "");
+  });
 }

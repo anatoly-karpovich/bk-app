@@ -60,15 +60,12 @@ class Game {
     }
     return this.players.map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`).join("\n");
   }
+
+  getFinishedPlayers() {
+    return this.players.filter((p) => p.getCurrentPosition() === configuration.finishPosition);
+  }
 }
 
 function dice() {
   return generateNumberInRange(1, configuration.maxNumberOfSteps);
 }
-
-// const result = [];
-// for (let i = 0; i < 10000; i++) {
-//   const c = new Game(["Euthonasia"]);
-//   result.push(c.simulateGameResults());
-// }
-// console.log(result.reduce((a, b) => a + b) / result.length);

@@ -17,6 +17,13 @@ function renderLotoPage() {
   sideMenuActivateElement("Loto");
 }
 
+function renderBotanPage() {
+  const layout = createBotanLayout();
+  renderPageContent(layout);
+  addEventListenersToBotanPage();
+  sideMenuActivateElement("Botan");
+}
+
 function renderLabyrinthPage() {
   const layout = createLabyrinthPageLayout();
   renderPageContent(layout);
