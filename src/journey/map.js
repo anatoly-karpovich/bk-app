@@ -1,26 +1,18 @@
-const getRandomUniqueCell = getUniqueRandomNumber(1, configuration.mapSize);
-
 class GameMap {
-  static instance;
-
+  getRandomUniqueCell = getUniqueRandomNumber(1, configuration.mapSize);
   constructor() {
-    // if (GameMap.instance) {
-    //   return GameMap.instance;
-    // }
     this.generateMap();
-
-    // GameMap.instance = this;
   }
 
   generateMap() {
     this.mapJson = configuration.bonusesArray.reduce((mapObject, bonus) => {
-      const cell = getRandomUniqueCell();
+      const cell = this.getRandomUniqueCell();
       if (cell) {
         mapObject[cell] = bonus;
       }
       return mapObject;
     }, {});
-    logger.logMap(this.mapJson);
+    Game.logger.logMap(this.mapJson);
   }
 
   getMap() {
@@ -53,6 +45,6 @@ class GameMap {
     for (const cell in this.getMap()) {
       mapString += `On cell ${cell} there is a trap with ${mapJson[cell].prize}\n`;
     }
-    logger.log(`Game map:\n${mapString}\n`);
+    Game.logger.log(`Game map:\n${mapString}\n`);
   }
 }

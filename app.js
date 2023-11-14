@@ -1,4 +1,5 @@
 const state = { quiz: {}, loto: { foundNumbers: [], cards: [] }, labyrinth: {} };
+renderBotanPage();
 
 function sideMenuClickHandler(page) {
   switch (page) {
@@ -15,6 +16,10 @@ function sideMenuClickHandler(page) {
 
     case "Labyrinth":
       renderLabyrinthPage();
+      break;
+
+    case "Botan":
+      renderBotanPage();
       break;
   }
 }

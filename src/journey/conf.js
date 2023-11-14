@@ -2,8 +2,10 @@ const jackPotPrize = 50;
 const bonusesArray = [
   { cellChange: 0, prize: 5 },
   { cellChange: 0, prize: 10 },
-  { cellChange: 0, prize: 15 },
-  { cellChange: 0, prize: 20 },
+  { cellChange: 0, prize: 10 },
+  { cellChange: 0, prize: 5 },
+  { cellChange: 0, prize: 10 },
+  { cellChange: 0, prize: 10 },
   { cellChange: 0, prize: -5 },
   { cellChange: 0, prize: -5 },
   { cellChange: 0, prize: -5 },

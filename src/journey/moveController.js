@@ -18,7 +18,7 @@ class MoveController {
       this.moveLog.type = "moveToFinish";
     }
     player.move({ cell, prize });
-    logger.logMove(this.moveLog);
+    Game.logger.logMove(this.moveLog);
     this.moveLog = {};
   }
 

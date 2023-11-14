@@ -71,7 +71,7 @@ function generateLotoCardNumbers(numberOfDigits = 10) {
 }
 
 function generateTextInput(options) {
-  return `<input type="text" class="form-control" placeholder="${options.placeholder}" id="${options.id}">`;
+  return `<input type="text" class="form-control" placeholder="${options?.placeholder ?? ""}" id="${options?.id ?? ""}" name="${options?.name ?? ""}">`;
 }
 
 function copyToClipboard(text) {
