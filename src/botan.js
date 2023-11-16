@@ -51,6 +51,9 @@ function addEventListenersToBotanPage() {
     output.value = value;
     copyToClipboard(value);
     input.value = "";
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(value)}`;
+    // Open the URL in a new tab
+    window.open(searchUrl, "_blank");
   }
 
   btn.addEventListener("click", (event) => {
