@@ -22,26 +22,27 @@ class Game {
   }
 
   simulateGame() {
-    Game.logger.log(`Jackpot cell: ${this.map.getJackpotCell()}`);
-    this.map.logMap();
+    // Game.logger.log(`Jackpot cell: ${this.map.getJackpotCell()}`);
+    // this.map.logMap();
 
     while (this.players.filter((p) => p.getCurrentPosition() < configuration.finishPosition).length) {
       this.makeMoves(this.generateMoves());
     }
-    this.players.forEach((player) => console.log(`Prize for ${player.nickname}: ${player.getCurrentPrize()}`));
-    if (Game.jackpot.isObtained) {
-      Game.logger.log(`${Game.jackpot.winner} нашел сокровище`);
-    } else {
-      Game.logger.log(`Сокровище не было найдено`);
-    }
-    Game.logger.log(`====== Игра Завершена ======`);
+    // this.players.forEach((player) => console.log(`Prize for ${player.nickname}: ${player.getCurrentPrize()}`));
+    // if (Game.jackpot.isObtained) {
+    //   Game.logger.log(`${Game.jackpot.winner} нашел сокровище`);
+    // } else {
+    //   Game.logger.log(`Сокровище не было найдено`);
+    // }
+    // Game.logger.log(`====== Игра Завершена ======`);
   }
 
   simulateGameResults() {
-    while (this.players.filter((p) => p.getCurrentPosition() < configuration.finishPosition).length) {
-      this.makeMoves(this.generateMoves());
-    }
-    return this.players.map((p) => p.getCurrentPrize())[0];
+    // while (this.players.filter((p) => p.getCurrentPosition() < configuration.finishPosition).length) {
+    //   this.makeMoves(this.generateMoves());
+    // }
+    this.simulateGame();
+    return this.players.map((p) => p.getCurrentPrize());
   }
 
   generateMoves() {
@@ -69,3 +70,14 @@ class Game {
 function dice() {
   return generateNumberInRange(1, configuration.maxNumberOfSteps);
 }
+
+// const prizesArr = [];
+// for (let i = 0; i < 1000; i++) {
+//   const c = new Game(["Mr Eko", "Спутник Рам-Мск", "Бешеный Пупок", "pupss", "Clark", "Euthonasia", "Лисичка Истеричка", "Пэрсик"]);
+//   // console.log(c.simulateGameResults());
+//   const results = c.simulateGameResults();
+//   const averagePrize = results.reduce((a, b) => a + b) / results.length;
+//   prizesArr.push(averagePrize);
+// }
+
+// console.log(prizesArr.reduce((a, b) => a + b) / prizesArr.length);

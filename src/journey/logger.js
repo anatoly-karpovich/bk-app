@@ -16,7 +16,7 @@ class Logger {
     }
     const comment = getCommentMessage(moveOptions);
     this.gameComments[Game.moveIndex].push(comment);
-    this.log(comment);
+    // this.log(comment);
   }
 
   logMap(map) {
