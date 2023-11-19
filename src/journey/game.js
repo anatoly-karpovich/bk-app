@@ -4,9 +4,11 @@ class Game {
   static logger;
 
   constructor(players = [], gameMap = GameMap, moveController = MoveController, logger = Logger) {
+    if (!players.length) {
+      throw new Error("No players");
+    }
     Game.logger = new logger();
     Game.moveIndex = 0;
-    if (!players.length) throw new Error("No players");
     this.players = players.map((nickName) => new Player(nickName));
     Game.jackpot.isObtained = false;
     this.map = new gameMap();
@@ -64,6 +66,14 @@ class Game {
 
   getFinishedPlayers() {
     return this.players.filter((p) => p.getCurrentPosition() === configuration.finishPosition);
+  }
+
+  removePlayer(nickname) {
+    alert(nickname);
+    const playerIndex = this.players.findIndex((p) => p.nickname === nickname);
+    if (playerIndex !== -1) {
+      this.players.splice(playerIndex, 1);
+    }
   }
 }
 

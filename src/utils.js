@@ -71,7 +71,19 @@ function generateLotoCardNumbers(numberOfDigits = 10) {
 }
 
 function generateTextInput(options) {
-  return `<input type="text" class="form-control" placeholder="${options?.placeholder ?? ""}" id="${options?.id ?? ""}" name="${options?.name ?? ""}">`;
+  return `<input type="text" class="form-control"  
+  ${Object.keys(options)
+    .map((key) => `${key}="${options[key]}"`)
+    .join(" ")}
+    >`;
+}
+
+function generateNumberInput(options) {
+  return `<input number="number" class="form-control" 
+  ${Object.keys(options)
+    .map((key) => `${key}="${options[key]}"`)
+    .join(" ")}
+  >`;
 }
 
 function copyToClipboard(text) {

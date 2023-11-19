@@ -636,3 +636,9 @@ button.accordion-button:focus {
 #gameLog {
   height: 450px;
 }
+
+.action-icon {
+  display: flex;
+  justify-content: space-around;
+  flex-direction: column;
+}
