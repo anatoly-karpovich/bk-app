@@ -34,3 +34,12 @@ const configuration = {
   minNumberOfSteps: 1,
   maxNumberOfSteps: 5,
 };
+
+const MOVE_TYPES = {
+  MOVE_WITH_JACKPOT: "moveWithJackpot",
+  MOVE_WITH_EMPTY_JACKPOT: "moveWithEmptyJackpot",
+  MOVE_WITH_INCREASING_PRIZE: "moveWithIncreasingPrize",
+  MOVE_WITH_DECREASING_PRIZE: "moveWithDecreasingPrize",
+  MOVE_WITHOUT_BONUS: "moveWithoutBonus",
+  MOVE_TO_FINISH: "moveToFinish",
+};

@@ -40,6 +40,7 @@ function addEventListenersToQuizPage() {
   const receipts = document.getElementById("receipts");
   const reportButton = document.getElementById("generate-report-btn");
   const startButton = document.getElementById("startBtn");
+  nickname.value = document.querySelector("strong#dj-name").textContent;
 
   numberOfQuestions.value = 10;
 
@@ -79,46 +80,6 @@ function addEventListenersToQuizPage() {
       }
     }
     return nickNames;
-  }
-
-  function calculateReceipts(obj) {
-    const result = {
-      100: 0,
-      50: 0,
-      20: 0,
-      10: 0,
-      5: 0,
-      1: 0,
-    };
-
-    Object.values(obj).forEach((el) => {
-      let value = el * 10;
-      while (value - 100 >= 0) {
-        result[100]++;
-        value = value - 100;
-      }
-      while (value - 50 >= 0) {
-        result[50]++;
-        value = value - 50;
-      }
-      while (value - 20 >= 0) {
-        result[20]++;
-        value = value - 20;
-      }
-      while (value - 10 >= 0) {
-        result[10]++;
-        value = value - 10;
-      }
-      while (value - 5 >= 0) {
-        result[5]++;
-        value = value - 5;
-      }
-      while (value - 1 >= 0) {
-        result[1]++;
-        value = value - 1;
-      }
-    });
-    return result;
   }
 
   const generateQuestionWithTextarea = (number) => `

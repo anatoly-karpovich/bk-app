@@ -15,7 +15,7 @@ class MoveController {
     const cell = this.handleNewCell(player, dice);
     const prize = this.handleNewPrize(player, cell);
     if (cell > configuration.mapSize) {
-      this.moveLog.type = "moveToFinish";
+      this.moveLog.type = MOVE_TYPES.MOVE_TO_FINISH;
     }
     player.move({ cell, prize });
     Game.logger.logMove(this.moveLog);
@@ -44,20 +44,20 @@ class MoveController {
         Game.jackpot.winner = player.nickname;
         newPrize += cell.prize;
         this.moveLog.jackpotWinner = true;
-        this.moveLog.type = "moveWithJackpot";
+        this.moveLog.type = MOVE_TYPES.MOVE_WITH_JACKPOT;
       } else if (cell.isJackPot && Game.jackpot.isObtained) {
         newPrize += 0;
         this.moveLog.jackpotWinner = false;
-        this.moveLog.type = "moveWithEmptyJackpot";
+        this.moveLog.type = MOVE_TYPES.MOVE_WITH_EMPTY_JACKPOT;
       } else {
         newPrize += cell.prize;
         this.moveLog.jackpotWinner = false;
-        this.moveLog.type = cell?.prize > 0 ? "moveWithIncreasingPrize" : "moveWithDecreasingPrize";
+        this.moveLog.type = cell?.prize > 0 ? MOVE_TYPES.MOVE_WITH_INCREASING_PRIZE : MOVE_TYPES.MOVE_WITH_DECREASING_PRIZE;
       }
     } else {
       newPrize += 0;
       this.moveLog.jackpotWinner = false;
-      this.moveLog.type = "moveWithoutBonus";
+      this.moveLog.type = MOVE_TYPES.MOVE_WITHOUT_BONUS;
     }
     this.moveLog.currentPrize = newPrize;
     return newPrize;

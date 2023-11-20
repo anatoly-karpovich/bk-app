@@ -70,20 +70,32 @@ function generateLotoCardNumbers(numberOfDigits = 10) {
   return result;
 }
 
-function generateTextInput(options) {
-  return `<input type="text" class="form-control"  
+function generateTextInput(options, validationText = "") {
+  let result = `<input type="text" class="form-control"  
   ${Object.keys(options)
     .map((key) => `${key}="${options[key]}"`)
     .join(" ")}
     >`;
+  if (options.id) {
+    result += `<div class="invalid-feedback" id="error-${options.id}">${validationText || ""}</div>`;
+  }
+  return result;
 }
 
-function generateNumberInput(options) {
-  return `<input number="number" class="form-control" 
+function generateNumberInput(options, validationText = "") {
+  let result = `<input type="number" class="form-control"  
   ${Object.keys(options)
     .map((key) => `${key}="${options[key]}"`)
     .join(" ")}
-  >`;
+    >`;
+  if (options.id) {
+    result += `<div class="invalid-feedback" id="error-${options.id}">${validationText || ""}</div>`;
+  }
+  return result;
+}
+
+function makeInputInvalidOrValid(input, valid = true) {
+  valid ? input.classList.remove("is-invalid") : input.classList.add("is-invalid");
 }
 
 function copyToClipboard(text) {
@@ -94,4 +106,48 @@ function copyToClipboard(text) {
   document.execCommand("copy");
   document.body.removeChild(textarea);
   console.log("Data copied to clipboard: " + text);
+}
+
+function enableOrDisableElement(element, enable = true) {
+  enable ? element.removeAttribute("disabled") : element.setAttribute("disabled", "");
+}
+
+function calculateReceipts(obj) {
+  const result = {
+    100: 0,
+    50: 0,
+    20: 0,
+    10: 0,
+    5: 0,
+    1: 0,
+  };
+
+  Object.values(obj).forEach((el) => {
+    let value = el * 10;
+    while (value - 100 >= 0) {
+      result[100]++;
+      value = value - 100;
+    }
+    while (value - 50 >= 0) {
+      result[50]++;
+      value = value - 50;
+    }
+    while (value - 20 >= 0) {
+      result[20]++;
+      value = value - 20;
+    }
+    while (value - 10 >= 0) {
+      result[10]++;
+      value = value - 10;
+    }
+    while (value - 5 >= 0) {
+      result[5]++;
+      value = value - 5;
+    }
+    while (value - 1 >= 0) {
+      result[1]++;
+      value = value - 1;
+    }
+  });
+  return result;
 }

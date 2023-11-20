@@ -117,7 +117,8 @@ function addEventListenersToLabyrinthPage() {
       gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
       moveInputs.forEach((moveInput) => (moveInput.value = ""));
       disableInputsForPlayersWhoFinished();
-      document.getElementById(moveButtonId).setAttribute("disabled", "");
+      const moveButton = document.getElementById(moveButtonId);
+      enableOrDisableElement(moveButton, false);
       if (state.labyrinth.game.isGameOver()) {
         gameLog.value += "==================== Игра закончена! ====================\n";
         gameLog.value += state.labyrinth.game.getGameResults();
@@ -132,11 +133,11 @@ function addEventListenersToLabyrinthPage() {
       if (isSkipped) {
         i.classList.remove("bi-lock");
         i.classList.add("bi-unlock");
-        playerMoveInput.setAttribute("disabled", "");
+        enableOrDisableElement(playerMoveInput, false);
       } else {
         i.classList.add("bi-lock");
         i.classList.remove("bi-unlock");
-        playerMoveInput.removeAttribute("disabled");
+        enableOrDisableElement(playerMoveInput, true);
       }
     } else if (event.target.name === "delete-move-player") {
       const deleteButtonsAmount = document.querySelectorAll(`[name="delete-move-player"]`).length;
@@ -157,10 +158,11 @@ function addEventListenersToLabyrinthPage() {
 
   playerMovesSection.addEventListener("input", () => {
     const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
+    const moveButton = document.getElementById(moveButtonId);
     if (!validateMoveInputsValues(moveInputs)) {
-      document.getElementById(moveButtonId).setAttribute("disabled", "");
+      enableOrDisableElement(moveButton, false);
     } else {
-      document.getElementById(moveButtonId).removeAttribute("disabled");
+      enableOrDisableElement(moveButton, true);
     }
   });
 
@@ -168,15 +170,15 @@ function addEventListenersToLabyrinthPage() {
     const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
     const deleteButtons = [...document.querySelectorAll(deletePlayersButtonSelector)];
     if (enable) {
-      nameInputs.forEach((input) => input.removeAttribute("disabled"));
-      deleteButtons.forEach((btn) => btn.removeAttribute("disabled"));
-      startButton.removeAttribute("disabled");
-      addGamePlayer.removeAttribute("disabled");
+      nameInputs.forEach((input) => enableOrDisableElement(input, true));
+      deleteButtons.forEach((btn) => enableOrDisableElement(btn, true));
+      enableOrDisableElement(startButton, true);
+      enableOrDisableElement(addGamePlayer, true);
     } else {
-      nameInputs.forEach((input) => input.setAttribute("disabled", ""));
-      deleteButtons.forEach((btn) => btn.setAttribute("disabled", ""));
-      startButton.setAttribute("disabled", "");
-      addGamePlayer.setAttribute("disabled", "");
+      nameInputs.forEach((input) => enableOrDisableElement(input, false));
+      deleteButtons.forEach((btn) => enableOrDisableElement(btn, false));
+      enableOrDisableElement(startButton, false);
+      enableOrDisableElement(addGamePlayer, false);
     }
   }
 
@@ -199,7 +201,7 @@ function addEventListenersToLabyrinthPage() {
     <div class="d-flex justify-content-between" data-player-move-id="${id}">  
       <div class="col-md-10 mb-3">
         <label for="${id}" class="form-label">Ход ${playerName}</label>
-        ${generateNumberInput(inputOptions)}         
+        ${generateNumberInput(inputOptions, "Move must be in range 1-5")}         
       </div>
       <div class="col-md-1 action-icon mt-2">
         <button class="btn btn-link text-primary del-btn-modal" title="Skip players move" name="skip-move-player" data-skip-id="${id}">
@@ -220,8 +222,21 @@ function validateInputsNotEmpty(inputs) {
   return inputs.every((el) => el.value.length);
 }
 
+function validateMoveInputValue(input) {
+  return input.value && +input.value >= configuration.minNumberOfSteps && input.value <= configuration.maxNumberOfSteps;
+}
+
 function validateMoveInputsValues(moveInputs) {
-  return moveInputs.every((el) => +el.value > 0 && +el.value < 6);
+  let isValid = true;
+  moveInputs.forEach((el) => {
+    if (validateMoveInputValue(el)) {
+      makeInputInvalidOrValid(el, true);
+    } else {
+      makeInputInvalidOrValid(el, false);
+      isValid = false;
+    }
+  });
+  return isValid;
 }
 
 function generateGamePlayerInput() {
@@ -247,8 +262,8 @@ function disableInputsForPlayersWhoFinished() {
     const input = document.querySelector(`[nickname="${player.nickname}"]`);
     const skipButton = document.querySelector(`[data-skip-id="move-${player.nickname}"]`);
     const deleteButton = document.querySelector(`[data-delete-id="move-${player.nickname}"]`);
-    input.setAttribute("disabled", "");
-    skipButton.setAttribute("disabled", "");
-    deleteButton.setAttribute("disabled", "");
+    enableOrDisableElement(input, false);
+    enableOrDisableElement(skipButton, false);
+    enableOrDisableElement(deleteButton, false);
   });
 }
