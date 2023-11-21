@@ -53,7 +53,7 @@ function addEventListenersToQuizPage() {
   }
 
   function getFullBank(obj) {
-    return Object.values(obj).length ? Object.values(obj).reduce((a, b) => a + b) * 10 : 0;
+    return Object.values(obj).length ? Object.values(obj).reduce((a, b) => a + b) : 0;
   }
 
   function getNickNamesFromChatMessages(text, dj) {
@@ -99,10 +99,10 @@ function addEventListenersToQuizPage() {
     console.log(obj);
     let result = "";
     const questionsAmount = numberOfQuestions.value;
-    for (let i = +questionsAmount; i > 0; i--) {
+    for (let i = +questionsAmount * 10; i > 0; i -= 10) {
       const winners = Object.entries(obj).filter((pair) => pair[1] === i);
       if (winners.length) {
-        result += `${i * 10} екр выиграли:\n${winners.map((pair) => pair[0]).join("\n")}\n\n`;
+        result += `${i} екр выиграли:\n${winners.map((pair) => pair[0]).join("\n")}\n\n`;
       }
     }
     return result;
@@ -119,16 +119,9 @@ function addEventListenersToQuizPage() {
       return removeDuplicates(el.map((nickname) => nickname.trim()));
     });
     return questionWinnersArray.flat().reduce((res, el) => {
-      res[el] ? res[el]++ : (res[el] = 1);
+      res[el] ? (res[el] += 10) : (res[el] = 10);
       return res;
     }, {});
-  }
-
-  function generateReceiptsReport(obj) {
-    return Object.keys(obj).reduce((a, b) => {
-      a += `Чеки по ${b} екр: ${obj[b]} штук\n`;
-      return a;
-    }, "");
   }
 
   reportButton.addEventListener("click", (event) => {

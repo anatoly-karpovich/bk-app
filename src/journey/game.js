@@ -61,7 +61,12 @@ class Game {
     if (!this.isGameOver()) {
       return;
     }
-    return this.players.map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`).join("\n");
+    let gameResults = this.players.reduce((res, p) => {
+      res[p.nickname] = p.getCurrentPrize();
+      return res;
+    }, {});
+    let result = this.players.map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`).join("\n");
+    return result + "\n" + "\n====================================================\n" + "\n" + generateReceiptsReport(calculateReceipts(gameResults));
   }
 
   getFinishedPlayers() {

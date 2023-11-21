@@ -122,8 +122,7 @@ function calculateReceipts(obj) {
     1: 0,
   };
 
-  Object.values(obj).forEach((el) => {
-    let value = el * 10;
+  Object.values(obj).forEach((value) => {
     while (value - 100 >= 0) {
       result[100]++;
       value = value - 100;
@@ -150,4 +149,11 @@ function calculateReceipts(obj) {
     }
   });
   return result;
+}
+
+function generateReceiptsReport(obj) {
+  return Object.keys(obj).reduce((a, b) => {
+    a += `Чеки по ${b} екр: ${obj[b]} штук\n`;
+    return a;
+  }, "");
 }
