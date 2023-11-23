@@ -17,7 +17,7 @@ class MoveController {
     if (cell > configuration.mapSize) {
       this.moveLog.type = MOVE_TYPES.MOVE_TO_FINISH;
     }
-    player.move({ cell, prize });
+    player.move({ cell, prize }, this.moveLog.jackpotWinner);
     Game.logger.logMove(this.moveLog);
     this.moveLog = {};
   }
@@ -49,6 +49,15 @@ class MoveController {
         newPrize += 0;
         this.moveLog.jackpotWinner = false;
         this.moveLog.type = MOVE_TYPES.MOVE_WITH_EMPTY_JACKPOT;
+      } else if (
+        (newPrize < configuration.maxPrize || (player.hasJackpot() && newPrize < configuration.maxPrize + jackPotPrize)) &&
+        (newPrize + cell.prize > configuration.maxPrize || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize))
+      ) {
+        newPrize = player.hasJackpot() ? configuration.maxPrize + jackPotPrize : configuration.maxPrize;
+        this.moveLog.type = MOVE_TYPES.MOVE_TO_MAX_PRIZE;
+      } else if (newPrize + cell.prize > configuration.maxPrize || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize)) {
+        newPrize += 0;
+        this.moveLog.type = MOVE_TYPES.MOVE_WITN_MAX_PRIZE;
       } else {
         newPrize += cell.prize;
         this.moveLog.jackpotWinner = false;
