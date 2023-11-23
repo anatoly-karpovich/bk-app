@@ -4,7 +4,7 @@ function createLabyrinthPageLayout() {
   <div class="d-flex justify-content-between mb-5">
     <h1>Labyrinth Game</h1>
     <div>
-      <button type="button" class="btn btn-primary me-2" id="startBtn">Start</button>
+      <button type="button" class="btn btn-primary me-2" id="startBtn" disabled>Start</button>
       <button class="btn btn-success" id="restart-game">Restart game</button>
     </div>
   </div>
@@ -68,6 +68,7 @@ function addEventListenersToLabyrinthPage() {
   addGamePlayer.addEventListener("click", (event) => {
     event.preventDefault();
     playerNamesContainer.insertAdjacentHTML("beforeend", generateGamePlayerInput());
+    enableOrDisableElement(startButton, false);
   });
 
   playerNamesContainer.addEventListener("click", (event) => {
@@ -78,7 +79,15 @@ function addEventListenersToLabyrinthPage() {
         const el = document.querySelector(`div[data-id="${id}"]`);
         el.parentNode.removeChild(el);
       }
+      const plyerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
+      validatePlayerInputsValues(plyerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
     }
+  });
+
+  playerNamesContainer.addEventListener("input", (event) => {
+    event.preventDefault();
+    const plyerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
+    validatePlayerInputsValues(plyerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
   });
 
   startButton.addEventListener("click", function (event) {
@@ -236,6 +245,26 @@ function validateMoveInputsValues(moveInputs) {
       isValid = false;
     }
   });
+  return isValid;
+}
+
+function validatePlayerInputsValues(playerInputs) {
+  let isValid = true;
+  playerInputs.forEach((el) => {
+    if (el.value) {
+      makeInputInvalidOrValid(el, true);
+    } else {
+      makeInputInvalidOrValid(el, false);
+      isValid = false;
+    }
+  });
+  const duplicates = getDuplicatesFromArrayOfInputs(playerInputs);
+  if (duplicates.length) {
+    isValid = false;
+    duplicates.forEach((input) => {
+      makeInputInvalidOrValid(input, false);
+    });
+  }
   return isValid;
 }
 

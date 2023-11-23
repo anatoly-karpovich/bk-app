@@ -157,3 +157,30 @@ function generateReceiptsReport(obj) {
     return a;
   }, "");
 }
+
+function getDuplicatesFromArray(array = []) {
+  const duplicates = _.filter(array, (value, index, iteratee) => _.includes(iteratee, value, index + 1));
+  return duplicates;
+}
+
+function getDuplicatesIndexes(array = []) {
+  const duplicatesIndexes = [];
+  array.forEach((value, index) => {
+    if (array.filter((v) => v === value).length > 1) {
+      duplicatesIndexes.push(index);
+    }
+  });
+  return duplicatesIndexes;
+}
+
+function getDuplicatesFromArrayOfInputs(inputs = []) {
+  const values = inputs.map((input) => input.value);
+  const duplicatesIndexes = getDuplicatesIndexes(values);
+  const duplicateInputs = [];
+  if (duplicatesIndexes.length) {
+    duplicatesIndexes.forEach((i) => {
+      duplicateInputs.push(inputs[i]);
+    });
+  }
+  return duplicateInputs;
+}
