@@ -28,9 +28,16 @@ function createLabyrinthPageLayout() {
       </div>
 
       <div class="col-md-6">
+        <div id="game-map-container">
           <h3>Game Map</h3>
           <textarea id="gameMap" class="form-control" rows="10" readonly>
           </textarea>
+        </div>
+        <div id="game-state-container" class="d-none mt-4">
+          <h3>Game State</h3>
+          <textarea id="gameState" class="form-control" rows="10" readonly>
+          </textarea>
+          </div>
       </div>
   </div>
 
@@ -54,6 +61,7 @@ function addEventListenersToLabyrinthPage() {
   const addGamePlayer = document.getElementById("add-game-player-btn");
   const restartGameButton = document.getElementById("restart-game");
   const playerMovesSection = document.getElementById("player-moves");
+  const gameState = document.getElementById("gameState");
 
   restartGameButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -63,6 +71,7 @@ function addEventListenersToLabyrinthPage() {
     gameMap.value = "";
     removePlayerMovesSection();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
+    displayOrHideGameLog(false);
   });
 
   addGamePlayer.addEventListener("click", (event) => {
@@ -106,6 +115,7 @@ function addEventListenersToLabyrinthPage() {
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
     enableOrDisablePlayersNamesSection(false);
+    displayOrHideGameLog(true);
   });
 
   playerMovesSection.addEventListener("click", (event) => {
@@ -130,6 +140,7 @@ function addEventListenersToLabyrinthPage() {
           gameLog.value += `${nickname} пропустил(-а) свой ход\n`;
         });
       }
+      gameState.value = getGameState(state.labyrinth.game);
       moveInputs.forEach((moveInput) => (moveInput.value = ""));
       removeInputsForPlayersWhoFinished();
       const moveButton = document.getElementById(moveButtonId);
@@ -317,5 +328,19 @@ function removeMoveInput(nickname) {
   const playerMoveInput = document.querySelector(`[data-player-move-id="move-${nickname}"]`);
   if (playerMoveInput) {
     playerMoveInput.parentNode.removeChild(playerMoveInput);
+  }
+}
+
+function getGameState(game) {
+  return game.players.map((p) => `${p.nickname}: Награда: [${p.getCurrentPrize()} екр], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`).join("\n");
+}
+
+function displayOrHideGameLog(display) {
+  if (display) {
+    document.getElementById("game-state-container").classList.add("d-block");
+    document.getElementById("game-state-container").classList.remove("d-none");
+  } else {
+    document.getElementById("game-state-container").classList.add("d-none");
+    document.getElementById("game-state-container").classList.remove("d-block");
   }
 }
