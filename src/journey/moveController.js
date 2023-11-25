@@ -50,12 +50,13 @@ class MoveController {
         this.moveLog.jackpotWinner = false;
         this.moveLog.type = MOVE_TYPES.MOVE_WITH_EMPTY_JACKPOT;
       } else if (
-        (newPrize < configuration.maxPrize || (player.hasJackpot() && newPrize < configuration.maxPrize + jackPotPrize)) &&
-        (newPrize + cell.prize > configuration.maxPrize || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize))
+        ((!player.hasJackpot() && newPrize < configuration.maxPrize) || (player.hasJackpot() && newPrize < configuration.maxPrize + jackPotPrize)) &&
+        ((!player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize) || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize))
       ) {
+        alert(1);
         newPrize = player.hasJackpot() ? configuration.maxPrize + jackPotPrize : configuration.maxPrize;
         this.moveLog.type = MOVE_TYPES.MOVE_TO_MAX_PRIZE;
-      } else if (newPrize + cell.prize > configuration.maxPrize || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize)) {
+      } else if ((!player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize) || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize)) {
         newPrize += 0;
         this.moveLog.type = MOVE_TYPES.MOVE_WITN_MAX_PRIZE;
       } else {
