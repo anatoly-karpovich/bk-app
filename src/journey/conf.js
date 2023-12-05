@@ -33,6 +33,7 @@ const configuration = {
   initialCashValue: 50,
   minNumberOfSteps: 1,
   maxNumberOfSteps: 5,
+  maxPrize: 100,
 };
 
 const MOVE_TYPES = {
@@ -42,4 +43,6 @@ const MOVE_TYPES = {
   MOVE_WITH_DECREASING_PRIZE: "moveWithDecreasingPrize",
   MOVE_WITHOUT_BONUS: "moveWithoutBonus",
   MOVE_TO_FINISH: "moveToFinish",
+  MOVE_WITN_MAX_PRIZE: "moveWithMaxPrize",
+  MOVE_TO_MAX_PRIZE: "moveToMaxPrize",
 };

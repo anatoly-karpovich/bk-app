@@ -74,7 +74,6 @@ class Game {
   }
 
   removePlayer(nickname) {
-    alert(nickname);
     const playerIndex = this.players.findIndex((p) => p.nickname === nickname);
     if (playerIndex !== -1) {
       this.players.splice(playerIndex, 1);

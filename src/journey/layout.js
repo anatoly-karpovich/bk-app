@@ -4,7 +4,7 @@ function createLabyrinthPageLayout() {
   <div class="d-flex justify-content-between mb-5">
     <h1>Labyrinth Game</h1>
     <div>
-      <button type="button" class="btn btn-primary me-2" id="startBtn">Start</button>
+      <button type="button" class="btn btn-primary me-2" id="startBtn" disabled>Start</button>
       <button class="btn btn-success" id="restart-game">Restart game</button>
     </div>
   </div>
@@ -28,9 +28,16 @@ function createLabyrinthPageLayout() {
       </div>
 
       <div class="col-md-6">
+        <div id="game-map-container">
           <h3>Game Map</h3>
           <textarea id="gameMap" class="form-control" rows="10" readonly>
           </textarea>
+        </div>
+        <div id="game-state-container" class="d-none mt-4">
+          <h3>Game State</h3>
+          <textarea id="gameState" class="form-control" rows="10" readonly>
+          </textarea>
+          </div>
       </div>
   </div>
 
@@ -54,6 +61,7 @@ function addEventListenersToLabyrinthPage() {
   const addGamePlayer = document.getElementById("add-game-player-btn");
   const restartGameButton = document.getElementById("restart-game");
   const playerMovesSection = document.getElementById("player-moves");
+  const gameState = document.getElementById("gameState");
 
   restartGameButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -63,11 +71,13 @@ function addEventListenersToLabyrinthPage() {
     gameMap.value = "";
     removePlayerMovesSection();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
+    displayOrHideGameLog(false);
   });
 
   addGamePlayer.addEventListener("click", (event) => {
     event.preventDefault();
     playerNamesContainer.insertAdjacentHTML("beforeend", generateGamePlayerInput());
+    enableOrDisableElement(startButton, false);
   });
 
   playerNamesContainer.addEventListener("click", (event) => {
@@ -78,7 +88,15 @@ function addEventListenersToLabyrinthPage() {
         const el = document.querySelector(`div[data-id="${id}"]`);
         el.parentNode.removeChild(el);
       }
+      const plyerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
+      validatePlayerInputsValues(plyerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
     }
+  });
+
+  playerNamesContainer.addEventListener("input", (event) => {
+    event.preventDefault();
+    const plyerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
+    validatePlayerInputsValues(plyerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
   });
 
   startButton.addEventListener("click", function (event) {
@@ -97,13 +115,14 @@ function addEventListenersToLabyrinthPage() {
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
     enableOrDisablePlayersNamesSection(false);
+    displayOrHideGameLog(true);
   });
 
   playerMovesSection.addEventListener("click", (event) => {
     event.preventDefault();
     if (event.target.id === moveButtonId) {
       const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
-
+      const disabledMoveInputs = [...document.querySelectorAll(`#player-moves-inputs input[disabled]`)];
       if (!validateMoveInputsValues(moveInputs)) {
         return;
       }
@@ -115,13 +134,19 @@ function addEventListenersToLabyrinthPage() {
       });
       state.labyrinth.game.makeMoves(moves);
       gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
+      if (disabledMoveInputs.length) {
+        disabledMoveInputs.forEach((input) => {
+          const nickname = input.getAttribute("nickname");
+          gameLog.value += `${nickname} пропустил(-а) свой ход\n`;
+        });
+      }
+      gameState.value = getGameState(state.labyrinth.game);
       moveInputs.forEach((moveInput) => (moveInput.value = ""));
-      disableInputsForPlayersWhoFinished();
+      removeInputsForPlayersWhoFinished();
       const moveButton = document.getElementById(moveButtonId);
       enableOrDisableElement(moveButton, false);
       if (state.labyrinth.game.isGameOver()) {
-        gameLog.value += "==================== Игра закончена! ====================\n";
-        gameLog.value += state.labyrinth.game.getGameResults();
+        displayResultsAfterGameOver();
         return;
       }
     } else if (event.target.name === "skip-move-player") {
@@ -139,19 +164,18 @@ function addEventListenersToLabyrinthPage() {
         i.classList.remove("bi-unlock");
         enableOrDisableElement(playerMoveInput, true);
       }
-    } else if (event.target.name === "delete-move-player") {
-      const deleteButtonsAmount = document.querySelectorAll(`[name="delete-move-player"]`).length;
-      if (!deleteButtonsAmount) {
-        return;
+      const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input`)];
+      const moveButton = document.getElementById(moveButtonId);
+      const moveInputsNotDisabled = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
+      validateMoveInputsValues(moveInputs) ? enableOrDisableElement(moveButton, true) : enableOrDisableElement(moveButton, false);
+      if (!moveInputsNotDisabled.length) {
+        enableOrDisableElement(moveButton, false);
       }
-      const deleteButton = event.target;
-      const id = deleteButton.getAttribute("data-delete-id");
-      const nickName = id.replace("move-", "");
-      const deleteApproved = confirm(`Delete ${nickName}?`);
-      if (deleteApproved) {
-        const playerMoveInput = document.querySelector(`[data-player-move-id="${id}"]`);
-        playerMoveInput.parentNode.removeChild(playerMoveInput);
-        state.labyrinth.game.removePlayer(nickName);
+    } else if (event.target.name === "delete-move-player") {
+      removeMoveInputByClickingDelete(event.target);
+      if (state.labyrinth.game.isGameOver()) {
+        displayResultsAfterGameOver();
+        return;
       }
     }
   });
@@ -180,6 +204,12 @@ function addEventListenersToLabyrinthPage() {
       enableOrDisableElement(startButton, false);
       enableOrDisableElement(addGamePlayer, false);
     }
+  }
+
+  function displayResultsAfterGameOver() {
+    gameLog.value += "==================== Игра закончена! ====================\n";
+    gameLog.value += state.labyrinth.game.getGameResults();
+    return;
   }
 
   function removePlayerMovesSection() {
@@ -223,19 +253,39 @@ function validateInputsNotEmpty(inputs) {
 }
 
 function validateMoveInputValue(input) {
-  return input.value && +input.value >= configuration.minNumberOfSteps && input.value <= configuration.maxNumberOfSteps;
+  return input.value && +input.value >= configuration.minNumberOfSteps && input.value <= configuration.maxNumberOfSteps && Number.isInteger(+input.value);
 }
 
 function validateMoveInputsValues(moveInputs) {
   let isValid = true;
   moveInputs.forEach((el) => {
-    if (validateMoveInputValue(el)) {
+    if (validateMoveInputValue(el) || el.getAttribute("disabled") !== null) {
       makeInputInvalidOrValid(el, true);
     } else {
       makeInputInvalidOrValid(el, false);
       isValid = false;
     }
   });
+  return isValid;
+}
+
+function validatePlayerInputsValues(playerInputs) {
+  let isValid = true;
+  playerInputs.forEach((el) => {
+    if (el.value) {
+      makeInputInvalidOrValid(el, true);
+    } else {
+      makeInputInvalidOrValid(el, false);
+      isValid = false;
+    }
+  });
+  const duplicates = getDuplicatesFromArrayOfInputs(playerInputs);
+  if (duplicates.length) {
+    isValid = false;
+    duplicates.forEach((input) => {
+      makeInputInvalidOrValid(input, false);
+    });
+  }
   return isValid;
 }
 
@@ -253,17 +303,44 @@ function generateGamePlayerInput() {
   `;
 }
 
-function disableInputsForPlayersWhoFinished() {
+function removeInputsForPlayersWhoFinished() {
   const finished = state.labyrinth.game.getFinishedPlayers();
   if (!finished.length) {
     return;
   }
   finished.forEach((player) => {
-    const input = document.querySelector(`[nickname="${player.nickname}"]`);
-    const skipButton = document.querySelector(`[data-skip-id="move-${player.nickname}"]`);
-    const deleteButton = document.querySelector(`[data-delete-id="move-${player.nickname}"]`);
-    enableOrDisableElement(input, false);
-    enableOrDisableElement(skipButton, false);
-    enableOrDisableElement(deleteButton, false);
+    removeMoveInput(player.nickname);
   });
+}
+
+function removeMoveInputByClickingDelete(deleteButton) {
+  const deleteButtonsAmount = document.querySelectorAll(`[name="delete-move-player"]`).length;
+  const id = deleteButton.getAttribute("data-delete-id");
+  const nickName = id.replace("move-", "");
+  const deleteApproved = confirm(deleteButtonsAmount < 2 ? `Are you sure you want to delete the last player ${nickName}?` : `Delete ${nickName}?`);
+  if (deleteApproved) {
+    removeMoveInput(nickName);
+    state.labyrinth.game.removePlayer(nickName);
+  }
+}
+
+function removeMoveInput(nickname) {
+  const playerMoveInput = document.querySelector(`[data-player-move-id="move-${nickname}"]`);
+  if (playerMoveInput) {
+    playerMoveInput.parentNode.removeChild(playerMoveInput);
+  }
+}
+
+function getGameState(game) {
+  return game.players.map((p) => `${p.nickname}: Награда: [${p.getCurrentPrize()} екр], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`).join("\n");
+}
+
+function displayOrHideGameLog(display) {
+  if (display) {
+    document.getElementById("game-state-container").classList.add("d-block");
+    document.getElementById("game-state-container").classList.remove("d-none");
+  } else {
+    document.getElementById("game-state-container").classList.add("d-none");
+    document.getElementById("game-state-container").classList.remove("d-block");
+  }
 }
