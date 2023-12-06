@@ -231,7 +231,7 @@ function addEventListenersToLabyrinthPage() {
     <div class="d-flex justify-content-between" data-player-move-id="${id}">  
       <div class="col-md-10 mb-3">
         <label for="${id}" class="form-label">Ход ${playerName}</label>
-        ${generateNumberInput(inputOptions, "Move must be in range 1-5")}         
+        ${generateNumberInput(inputOptions, validationErrorMessages.LABYRINTH_MOVE_NUMBER)}         
       </div>
       <div class="col-md-1 action-icon mt-2">
         <button class="btn btn-link text-primary del-btn-modal" title="Skip players move" name="skip-move-player" data-skip-id="${id}">
@@ -269,31 +269,11 @@ function validateMoveInputsValues(moveInputs) {
   return isValid;
 }
 
-function validatePlayerInputsValues(playerInputs) {
-  let isValid = true;
-  playerInputs.forEach((el) => {
-    if (el.value) {
-      makeInputInvalidOrValid(el, true);
-    } else {
-      makeInputInvalidOrValid(el, false);
-      isValid = false;
-    }
-  });
-  const duplicates = getDuplicatesFromArrayOfInputs(playerInputs);
-  if (duplicates.length) {
-    isValid = false;
-    duplicates.forEach((input) => {
-      makeInputInvalidOrValid(input, false);
-    });
-  }
-  return isValid;
-}
-
 function generateGamePlayerInput() {
   const id = window.crypto.randomUUID();
   return `
   <div class="mb-3 d-flex justify-content-between" data-id="${id}">
-    <div class="col-md-11" name="game-player">${generateTextInput({ placeholder: "Enter players nickname", id: id, name: "playerName" })}</div>
+    <div class="col-md-11" name="game-player">${generateTextInput({ placeholder: "Enter players nickname", id: id, name: "playerName" }, validationErrorMessages.NICKHANE)}</div>
     <div class="col-md-1 delete-in-modal">
       <button class="btn btn-link text-danger del-btn-modal" title="Remove Player" name="delete-game-player" data-delete-id="${id}">
         <i class="bi bi-trash"></i>

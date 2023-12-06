@@ -2,7 +2,7 @@ function createLotoPageLayout() {
   return `
   <div id="header">
     <div class="d-flex justify-content-start">
-      <div class="border border-dark mb-5 me-5" style="width:30%">
+      <div class="border border-dark mb-5 me-5" style="width:50%">
           <div class="p-5">    
             <label for="players-inputs" class="form-label">Loto Players</label>
             <div id="players-inputs" class="mb-3">
@@ -19,7 +19,7 @@ function createLotoPageLayout() {
       </div>
     <div class="d-flex justify-content-start">
       <div class="mb-3 me-5" style="width:30%">
-        <button class="btn btn-primary" id="start-loto-btn">Start</button>
+        <button class="btn btn-primary" id="start-loto-btn" disabled>Start</button>
       </div>
       <div class="mb-3 me-5" style="width:30%">
         <button class="btn btn-primary" id="get-next-number-btn" disabled>Next Number!</button>
@@ -62,14 +62,29 @@ function addEventListenersToLotoPage() {
     }
   });
 
+  inputsContainer.addEventListener("input", (event) => {
+    let isValid = true;
+    if (event.target.name === "player-nickname" || event.target.name === "card-numbers") {
+      const playerNameInputs = [...document.querySelectorAll(`[name="player-nickname"]`)];
+      const playerNumbersInputs = [...document.querySelectorAll(`[name="card-numbers"]`)];
+      const isValidPlayers = validatePlayerInputsValues(playerNameInputs);
+      const isValidNumbers = validateLotoNumbersInputs(playerNumbersInputs);
+      if (!isValidPlayers || !isValidNumbers) isValid = false;
+    }
+    enableOrDisableElement(startButton, isValid);
+  });
+
   addLotoPlayerBtn.addEventListener("click", (event) => {
     event.preventDefault();
+    enableOrDisableElement(startButton, false);
     inputsContainer.insertAdjacentHTML("beforeend", generateLotoPlayerInput());
   });
 
   startButton.addEventListener("click", () => {
-    const players = getLotoPlayers();
-    const numberOfLotoPlayers = players.length;
+    enableOrDisableElement(startButton, false);
+    enableOrDisableElement(addLotoPlayerBtn, false);
+    const cards = getLotoCards();
+    const numberOfLotoPlayers = Object.keys(cards).length;
     if (!numberOfLotoPlayers) {
       lotoContainer.innerHTML = "";
       lotoLogTextarea.value = "";
@@ -78,10 +93,6 @@ function addEventListenersToLotoPage() {
       return;
     }
 
-    const cards = {};
-    for (let i = 0; i < numberOfLotoPlayers; i++) {
-      cards[players[i]] = generateLotoCardNumbers();
-    }
     if (Object.keys(state.loto.cards).length) {
       for (const key of Object.keys(state.loto.cards)) {
         if (!Object.keys(cards).includes(key)) {
@@ -113,9 +124,15 @@ function addEventListenersToLotoPage() {
     }
   });
 
-  function getLotoPlayers() {
-    const players = [...document.querySelectorAll('[name="loto-player"] input')].map((el) => el.value).filter(Boolean);
-    return players;
+  function getLotoCards() {
+    const cards = {};
+    const cardContainers = [...document.querySelectorAll(`[name="loto-player"]`)];
+    for (const cardContainer of cardContainers) {
+      const playerName = cardContainer.querySelector(`input[name="player-nickname"]`).value;
+      const playerNumbersFromInput = cardContainer.querySelector(`input[name="card-numbers"]`).value;
+      cards[playerName] = getNumbersFromString(playerNumbersFromInput);
+    }
+    return cards;
   }
 
   function handleNextNumber(nextNumber) {
@@ -165,7 +182,10 @@ function generateLotoPlayerInput() {
   const id = window.crypto.randomUUID();
   return `
   <div class="mb-3 d-flex justify-content-between" data-id="${id}">
-    <div class="col-md-11" name="loto-player">${generateTextInput({ placeholder: "Enter players nickname", id: id })}</div>
+    <div class="col-md-11 d-flex juxtify-content-around" name="loto-player">
+      <div class="me-2" style="width: 30%">${generateTextInput({ placeholder: "Enter players nickname", id: id, name: "player-nickname" }, validationErrorMessages.NICKHANE)}</div>
+      <div style="width: 70%">${generateTextInput({ placeholder: "Enter players numbers devided by comma", id: id, name: "card-numbers" }, validationErrorMessages.LOTO_NUMBERS)}</div>
+    </div>
     <div class="col-md-1 delete-in-modal">
       <button class="btn btn-link text-danger del-btn-modal" title="Remove Player" name="delete-loto-player" data-delete-id="${id}">
         <i class="bi bi-trash"></i>
@@ -173,4 +193,18 @@ function generateLotoPlayerInput() {
     </div>
   </div>
   `;
+}
+
+function validateLotoNumbersInputs(inputs) {
+  let isValid = true;
+  for (const input of inputs) {
+    const numbers = getNumbersFromString(input.value);
+    if (validateArrayOnNumbersToHaveOnlyNumbersInRange(numbers) && numbers.length === 10 && numbers.length === [...new Set(numbers)].length) {
+      makeInputInvalidOrValid(input, true);
+    } else {
+      isValid = false;
+      makeInputInvalidOrValid(input, false);
+    }
+  }
+  return isValid;
 }

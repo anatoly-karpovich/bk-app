@@ -76,8 +76,8 @@ function generateTextInput(options, validationText = "") {
     .map((key) => `${key}="${options[key]}"`)
     .join(" ")}
     >`;
-  if (options.id) {
-    result += `<div class="invalid-feedback" id="error-${options.id}">${validationText || ""}</div>`;
+  if (options.id && validationText) {
+    result += `<div class="invalid-feedback" id="error-${options.id}">${validationText}</div>`;
   }
   return result;
 }
@@ -183,4 +183,37 @@ function getDuplicatesFromArrayOfInputs(inputs = []) {
     });
   }
   return duplicateInputs;
+}
+
+function getNumbersFromString(str) {
+  try {
+    const numbers = str.match(/\d+/g) || [];
+    return numbers.map(Number);
+  } catch (error) {
+    return [];
+  }
+}
+
+function validatePlayerInputsValues(playerInputs) {
+  let isValid = true;
+  playerInputs.forEach((el) => {
+    if (el.value) {
+      makeInputInvalidOrValid(el, true);
+    } else {
+      makeInputInvalidOrValid(el, false);
+      isValid = false;
+    }
+  });
+  const duplicates = getDuplicatesFromArrayOfInputs(playerInputs);
+  if (duplicates.length) {
+    isValid = false;
+    duplicates.forEach((input) => {
+      makeInputInvalidOrValid(input, false);
+    });
+  }
+  return isValid;
+}
+
+function validateArrayOnNumbersToHaveOnlyNumbersInRange(array, min = 1, max = 50) {
+  return array.every((n) => !isNaN(n) && n >= min && n <= max);
 }
