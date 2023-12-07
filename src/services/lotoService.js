@@ -14,7 +14,7 @@ class LotoService {
 
   getGame() {
     const storedLoto = this.dataStorageService.getGameData("loto");
-    if (!storedLoto.game || storedLoto.game === "{}") return;
+    if (!storedLoto || !storedLoto.game || storedLoto.game === "{}") return {};
     return storedLoto.game;
   }
 
