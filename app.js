@@ -1,5 +1,8 @@
 const state = { quiz: {}, loto: { foundNumbers: [], cards: [] }, labyrinth: {} };
+handleDJsName();
 renderBotanPage();
+const dataStorageService = new DataStorageService();
+dataStorageService.setInitialRouts();
 
 function sideMenuClickHandler(page) {
   switch (page) {

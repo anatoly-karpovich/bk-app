@@ -4,10 +4,10 @@ function generateNumberInRange(min = 1, max = 50) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const getUniqueRandomNumber = (min, max) => {
-  const generatedNumbers = [];
+const getUniqueRandomNumber = (min, max, numbersToExcept = []) => {
+  const generatedNumbers = [...numbersToExcept];
   return () => {
-    if (generatedNumbers.length === max + 1) {
+    if (generatedNumbers.length >= max) {
       return "All numbers generated";
     }
     let number = generateNumberInRange(min, max);
@@ -216,4 +216,15 @@ function validatePlayerInputsValues(playerInputs) {
 
 function validateArrayOnNumbersToHaveOnlyNumbersInRange(array, min = 1, max = 50) {
   return array.every((n) => !isNaN(n) && n >= min && n <= max);
+}
+
+function handleDJsName() {
+  let djName = localStorage.getItem("djName") || "";
+  while (!djName) {
+    djName = prompt("Enter DJ's nickname");
+    if (djName) {
+      localStorage.setItem("djName", djName);
+      document.querySelector(`strong#dj-name`).textContent = djName;
+    }
+  }
 }
