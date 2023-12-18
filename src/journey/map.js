@@ -1,18 +1,22 @@
 class GameMap {
+  mapJson;
   getRandomUniqueCell = getUniqueRandomNumber(1, configuration.mapSize);
-  constructor() {
-    this.generateMap();
+  constructor(mapJson) {
+    this.generateMap(mapJson);
   }
 
-  generateMap() {
-    this.mapJson = configuration.bonusesArray.reduce((mapObject, bonus) => {
-      const cell = this.getRandomUniqueCell();
-      if (cell) {
-        mapObject[cell] = bonus;
-      }
-      return mapObject;
-    }, {});
-    Game.logger.logMap(this.mapJson);
+  generateMap(mapJson) {
+    if (mapJson) {
+      this.mapJson = mapJson;
+    } else {
+      this.mapJson = configuration.bonusesArray.reduce((mapObject, bonus) => {
+        const cell = this.getRandomUniqueCell();
+        if (cell) {
+          mapObject[cell] = bonus;
+        }
+        return mapObject;
+      }, {});
+    }
   }
 
   getMap() {

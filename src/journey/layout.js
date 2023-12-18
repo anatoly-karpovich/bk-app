@@ -4,8 +4,9 @@ function createLabyrinthPageLayout() {
   <div class="d-flex justify-content-between mb-5">
     <h1>Labyrinth Game</h1>
     <div>
-      <button type="button" class="btn btn-primary me-2" id="startBtn" disabled>Start</button>
-      <button class="btn btn-success" id="restart-game">Restart game</button>
+      <button type="button" class="btn btn-primary me-2" id="startBtn" disabled>Start game</button>
+      <button type="button" class="btn btn-success me-2" id="restoreBtn" disabled>Restore game</button>
+      <button class="btn btn-secondary" id="restart-game">Restart</button>
     </div>
   </div>
 
@@ -54,6 +55,7 @@ function addEventListenersToLabyrinthPage() {
   const playersNamesInputsSelector = `[name="playerName"]`;
   const deletePlayersButtonSelector = `[name="delete-game-player"]`;
   const startButton = document.getElementById("startBtn");
+  const restoreButton = document.getElementById("restoreBtn");
   const moveButtonId = "moveBtn";
   const gameMap = document.getElementById("gameMap");
   const gameLog = document.getElementById("gameLog");
@@ -62,6 +64,12 @@ function addEventListenersToLabyrinthPage() {
   const restartGameButton = document.getElementById("restart-game");
   const playerMovesSection = document.getElementById("player-moves");
   const gameState = document.getElementById("gameState");
+
+  const g = new Game();
+  const storedLog = g.getGameLog();
+  if (storedLog.players.length) {
+    enableOrDisableElement(restoreButton, true);
+  }
 
   restartGameButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -101,54 +109,90 @@ function addEventListenersToLabyrinthPage() {
 
   startButton.addEventListener("click", function (event) {
     event.preventDefault();
-    if (state.labyrinth?.game instanceof Game) {
-      state.labyrinth.game = null;
-    }
-    const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
+    startGame();
+  });
 
-    if (!validateInputsNotEmpty(nameInputs)) {
-      return;
+  function startGame(restoredNames, restoredMap) {
+    let names = [];
+    if (restoredNames) {
+      names = restoredNames;
+    } else {
+      const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
+
+      if (!validateInputsNotEmpty(nameInputs)) {
+        return;
+      }
+      names = nameInputs.map((input) => input.value);
     }
-    const names = nameInputs.map((input) => input.value);
-    state.labyrinth.game = new Game(names);
+    state.labyrinth.game = new Game();
+    state.labyrinth.game.startGame(names, restoredMap);
     playerMovesSection.innerHTML = generatePlayerMovesSection(names);
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
     enableOrDisablePlayersNamesSection(false);
     displayOrHideGameLog(true);
+    enableOrDisableElement(restoreButton, false);
+  }
+
+  restoreButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    const game = new Game();
+    const gameLog = game.getGameLog();
+    const map = gameLog.map;
+    const players = gameLog.players;
+    startGame(players, map);
+    const moves = gameLog.moves;
+    for (const moveIndex of Object.keys(moves)) {
+      const move = moves[moveIndex];
+      const currentMoves = Object.keys(move).map((player) => {
+        return { player: state.labyrinth.game.players.find((p) => p.nickname === player), dice: move[player].dice };
+      });
+      makeMove(currentMoves);
+    }
   });
 
-  playerMovesSection.addEventListener("click", (event) => {
-    event.preventDefault();
-    if (event.target.id === moveButtonId) {
-      const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
-      const disabledMoveInputs = [...document.querySelectorAll(`#player-moves-inputs input[disabled]`)];
+  function makeMove(storedMoves) {
+    const disabledMoveInputs = [...document.querySelectorAll(`#player-moves-inputs input[disabled]`)];
+    const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
+
+    let moves = {};
+    if (storedMoves) {
+      moves = storedMoves;
+    } else {
       if (!validateMoveInputsValues(moveInputs)) {
         return;
       }
 
-      const moves = moveInputs.map((input) => {
+      moves = moveInputs.map((input) => {
         const player = state.labyrinth.game.players.find((p) => p.nickname === input.getAttribute("nickname"));
 
         return { player, dice: +input.value };
       });
-      state.labyrinth.game.makeMoves(moves);
-      gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
-      if (disabledMoveInputs.length) {
-        disabledMoveInputs.forEach((input) => {
-          const nickname = input.getAttribute("nickname");
-          gameLog.value += `${nickname} пропустил(-а) свой ход\n`;
-        });
-      }
-      gameState.value = getGameState(state.labyrinth.game);
-      moveInputs.forEach((moveInput) => (moveInput.value = ""));
-      removeInputsForPlayersWhoFinished();
-      const moveButton = document.getElementById(moveButtonId);
-      enableOrDisableElement(moveButton, false);
-      if (state.labyrinth.game.isGameOver()) {
-        displayResultsAfterGameOver();
-        return;
-      }
+    }
+
+    state.labyrinth.game.makeMoves(moves);
+    gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
+    if (disabledMoveInputs.length) {
+      disabledMoveInputs.forEach((input) => {
+        const nickname = input.getAttribute("nickname");
+        gameLog.value += `${nickname} пропустил(-а) свой ход\n`;
+      });
+    }
+    gameState.value = getGameState(state.labyrinth.game);
+    moveInputs.forEach((moveInput) => (moveInput.value = ""));
+    removeInputsForPlayersWhoFinished();
+    const moveButton = document.getElementById(moveButtonId);
+    enableOrDisableElement(moveButton, false);
+    if (state.labyrinth.game.isGameOver()) {
+      displayResultsAfterGameOver();
+      return;
+    }
+  }
+
+  playerMovesSection.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (event.target.id === moveButtonId) {
+      makeMove();
     } else if (event.target.name === "skip-move-player") {
       const skipButton = event.target;
       const i = skipButton.querySelector("i.bi");
