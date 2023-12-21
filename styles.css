@@ -642,3 +642,18 @@ button.accordion-button:focus {
   justify-content: space-around;
   flex-direction: column;
 }
+
+.cell {
+  width: 45px;
+  height: 45px;
+  margin: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.marking {
+  font-size: 1.2rem;
+  font-weight: bold;
+}

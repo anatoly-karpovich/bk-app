@@ -32,6 +32,14 @@ function renderLabyrinthPage() {
   state.labyrinth = {};
 }
 
+function renderBattleshipPage() {
+  const layout = createBattleshipPageLayout();
+  renderPageContent(layout);
+  addEventListenersToBattleshipPage();
+  sideMenuActivateElement("Battleship");
+  state.labyrinth = {};
+}
+
 function sideMenuActivateElement(value) {
   const li = document.querySelectorAll(`ul.nav a`);
   li.forEach((el) => {
