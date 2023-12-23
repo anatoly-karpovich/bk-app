@@ -218,7 +218,7 @@ function createMarkingElement(num) {
 }
 
 function createAbcMarkingElement(num) {
-  return `<div class="cell text-success" style="margin-top: 4px;"><img src = "src/assets/${numToAbcCoordinatesMapper[num]}-alphabet-round-icon.svg" alt="${numToAbcCoordinatesMapper[num]}"/></div>`;
+  return `<div class="cell text-success" style="margin-top: 4px;"><img src="./src/assets/${numToAbcCoordinatesMapper[num]}-alphabet-round-icon.svg" alt="${numToAbcCoordinatesMapper[num]}"/></div>`;
 }
 
 function createBattleShipRow(rowNumber = 1, boardSize = battleshipConfig.boardSize, board) {

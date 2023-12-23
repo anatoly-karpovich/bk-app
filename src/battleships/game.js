@@ -1,5 +1,4 @@
 class BattleShipsGame {
-  // #storageService = battleShipsService;
   #ships;
   #shipsCoordinates;
   #moves;
