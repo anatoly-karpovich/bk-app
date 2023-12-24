@@ -1,4 +1,4 @@
-const state = { quiz: {}, loto: { foundNumbers: [], cards: [] }, labyrinth: {} };
+const state = { quiz: {}, loto: { foundNumbers: [], cards: [] }, labyrinth: {}, battleships: {} };
 handleDJsName();
 renderBotanPage();
 const dataStorageService = new DataStorageService();
@@ -23,6 +23,10 @@ function sideMenuClickHandler(page) {
 
     case "Botan":
       renderBotanPage();
+      break;
+
+    case "Battleship":
+      renderBattleshipPage();
       break;
   }
 }
