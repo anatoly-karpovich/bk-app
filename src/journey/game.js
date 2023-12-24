@@ -2,20 +2,38 @@ class Game {
   static jackpot = { isObtained: false, winner: null };
   static moveIndex = 0;
   static logger;
+  #started;
 
-  constructor(players = [], gameMap = GameMap, moveController = MoveController, logger = Logger) {
+  constructor() {
+    this.#started = false;
+  }
+
+  #createPlayers(players) {
+    this.players = players.map((nickName) => new Player(nickName));
+  }
+
+  startGame(players = [], map) {
     if (!players.length) {
       throw new Error("No players");
     }
-    Game.logger = new logger();
+    this.#createPlayers(players);
+    this.#started = true;
     Game.moveIndex = 0;
-    this.players = players.map((nickName) => new Player(nickName));
     Game.jackpot.isObtained = false;
-    this.map = new gameMap();
-    this.MoveController = new moveController(this.map);
+    Game.logger = new Logger();
+    this.map = new GameMap(map);
+    this.MoveController = new MoveController(this.map);
+    Game.logger.startGame(players, this.map.getMap());
+  }
+
+  getGameLog() {
+    const gameLog = journeyService.getGame();
+    return gameLog;
   }
 
   makeMoves(moves) {
+    if (!this.#started) return;
+
     if (this.isGameOver()) {
       return;
     }
@@ -54,10 +72,14 @@ class Game {
   }
 
   isGameOver() {
+    if (!this.#started) return;
+
     return this.players.every((p) => p.getCurrentPosition() === configuration.finishPosition);
   }
 
   getGameResults() {
+    if (!this.#started) return;
+
     if (!this.isGameOver()) {
       return;
     }
@@ -70,10 +92,14 @@ class Game {
   }
 
   getFinishedPlayers() {
+    if (!this.#started) return;
+
     return this.players.filter((p) => p.getCurrentPosition() === configuration.finishPosition);
   }
 
   removePlayer(nickname) {
+    if (!this.#started) return;
+
     const playerIndex = this.players.findIndex((p) => p.nickname === nickname);
     if (playerIndex !== -1) {
       this.players.splice(playerIndex, 1);
