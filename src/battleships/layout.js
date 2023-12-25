@@ -206,7 +206,7 @@ function createHohizontalMarking(boardSize = battleshipConfig.boardSize) {
     marking += createMarkingElement(i);
   }
   return `
-  <div class="d-flex justify-content-center" style="width: 50%" marking="horizontal">
+  <div class="d-flex justify-content-center" style="width: 51%" marking="horizontal">
     <div class="cell text-success"><i class="bi bi-tsunami"></i></div>
     ${marking}
   </div>  
@@ -214,11 +214,11 @@ function createHohizontalMarking(boardSize = battleshipConfig.boardSize) {
 }
 
 function createMarkingElement(num) {
-  return `<div class="cell text-black"><i class="bi bi-${num}-circle"></i></div>`;
+  return `<div class="cell text-black"><span>${num}</span></i></div>`;
 }
 
 function createAbcMarkingElement(num) {
-  return `<div class="cell text-success" style="margin-top: 4px;"><img src="./src/assets/${numToAbcCoordinatesMapper[num]}-alphabet-round-icon.svg" alt="${numToAbcCoordinatesMapper[num]}"/></div>`;
+  return `<div class="cell text-black" style="margin-top: 4px;"><span>${numToAbcCoordinatesMapper[num].toUpperCase()}</span></div>`;
 }
 
 function createBattleShipRow(rowNumber = 1, boardSize = battleshipConfig.boardSize, board) {
