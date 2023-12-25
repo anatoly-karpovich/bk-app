@@ -6,6 +6,10 @@ function createQuizPageLayout() {
       <input type="number" class="form-control" placeholder="Enter number of questions" id="numberOfQuestions">
     </div>
     <div class="mb-3">
+      <label for="quastionPrize" class="form-label">Prize per question</label>
+      <input type="number" class="form-control" placeholder="Enter prize for one question" id="quastionPrize">
+    </div>
+    <div class="mb-3">
       <label for="nickname" class="form-label">DJ's nickname</label>
       <input type="text" class="form-control" placeholder="Enter your nickname" id="nickname">
       <div class="invalid-feedback" id="error-nick">Nickname must be 1 character or longer</div>
@@ -36,6 +40,7 @@ function addEventListenersToQuizPage() {
   const numberOfQuestions = document.getElementById("numberOfQuestions");
   const nickname = document.getElementById("nickname");
   const questionsContainer = document.getElementById("questions");
+  const questionPrize = document.getElementById("quastionPrize");
   const textarea = document.getElementById("report");
   const receipts = document.getElementById("receipts");
   const reportButton = document.getElementById("generate-report-btn");
@@ -43,6 +48,7 @@ function addEventListenersToQuizPage() {
   nickname.value = document.querySelector("strong#dj-name").textContent;
 
   numberOfQuestions.value = 10;
+  questionPrize.value = 10;
 
   function removeDuplicates(arr) {
     return [...new Set(arr)];
@@ -96,10 +102,10 @@ function addEventListenersToQuizPage() {
   }
 
   function getReportSortedByWinningsAmount(obj) {
-    console.log(obj);
+    const questionPrize = state.quiz.questionPrize;
     let result = "";
     const questionsAmount = numberOfQuestions.value;
-    for (let i = +questionsAmount * 10; i > 0; i -= 10) {
+    for (let i = +questionsAmount * questionPrize; i > 0; i -= questionPrize) {
       const winners = Object.entries(obj).filter((pair) => pair[1] === i);
       if (winners.length) {
         result += `${i} екр выиграли:\n${winners.map((pair) => pair[0]).join("\n")}\n\n`;
@@ -115,11 +121,12 @@ function addEventListenersToQuizPage() {
   }
 
   function getObjectWithAnswersAmount() {
+    const questionPrize = state.quiz.questionPrize;
     let questionWinnersArray = getDataArrayFromTextareas().map((el) => {
       return removeDuplicates(el.map((nickname) => nickname.trim()));
     });
     return questionWinnersArray.flat().reduce((res, el) => {
-      res[el] ? (res[el] += 10) : (res[el] = 10);
+      res[el] ? (res[el] += questionPrize) : (res[el] = questionPrize);
       return res;
     }, {});
   }
@@ -136,6 +143,8 @@ function addEventListenersToQuizPage() {
   startButton.addEventListener("click", (event) => {
     event.preventDefault();
     const questionsAmount = numberOfQuestions.value;
+    const questionPrize = +document.getElementById("quastionPrize").value;
+    state.quiz.questionPrize = questionPrize;
     if (questionsAmount) {
       const questionsHtml = generateQuestionInputs(questionsAmount);
       questionsContainer.innerHTML = questionsHtml;
