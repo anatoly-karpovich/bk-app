@@ -114,6 +114,7 @@ function enableOrDisableElement(element, enable = true) {
 
 function calculateReceipts(obj) {
   const result = {
+    200: 0,
     100: 0,
     50: 0,
     20: 0,
@@ -123,6 +124,10 @@ function calculateReceipts(obj) {
   };
 
   Object.values(obj).forEach((value) => {
+    while (value - 200 >= 0) {
+      result[200]++;
+      value = value - 200;
+    }
     while (value - 100 >= 0) {
       result[100]++;
       value = value - 100;

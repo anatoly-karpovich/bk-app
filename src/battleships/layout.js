@@ -16,12 +16,12 @@ function createBattleshipPageLayout() {
 }
 
 const numToAbcCoordinatesMapper = {
-  1: "a",
-  2: "b",
-  3: "c",
-  4: "d",
-  5: "e",
-  6: "f",
+  1: "а",
+  2: "б",
+  3: "в",
+  4: "г",
+  5: "д",
+  6: "е",
 };
 
 function addEventListenersToBattleshipPage() {
