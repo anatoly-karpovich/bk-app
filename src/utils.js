@@ -237,3 +237,13 @@ function handleDJsName() {
 function getKeyByValueFromObject(object, value) {
   return +Object.keys(object).find((key) => object[key] === value);
 }
+
+function getValueFromArraGenerator(array) {
+  const arr = _.shuffle(_.shuffle(array));
+  let counter = 1;
+  return () => {
+    const nextValue = arr[counter];
+    counter++;
+    return nextValue || null;
+  };
+}
