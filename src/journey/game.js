@@ -87,7 +87,12 @@ class Game {
       res[p.nickname] = p.getCurrentPrize();
       return res;
     }, {});
-    let result = "\n" + this.players.map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`).join("\n");
+    let result =
+      "\n" +
+      this.players
+        .sort((a, b) => b.getCurrentPrize() - a.getCurrentPrize())
+        .map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`)
+        .join("\n");
     result += "\n" + "\n" + `Всего приняло участия: ${this.players.length} игроков`;
     result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} екр`;
     return result + "\n" + "\n====================================================\n" + "\n" + generateReceiptsReport(calculateReceipts(gameResults));
