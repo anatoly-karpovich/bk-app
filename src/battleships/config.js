@@ -5,7 +5,7 @@ const battleshipConfig = {
     { size: 2, amount: 2 },
     { size: 1, amount: 4 },
   ],
-  maxShots: 20,
+  maxShots: 17,
   prizes: {
     shoot: 5,
     destroyBonus: {
