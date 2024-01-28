@@ -87,7 +87,14 @@ class Game {
       res[p.nickname] = p.getCurrentPrize();
       return res;
     }, {});
-    let result = this.players.map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`).join("\n");
+    let result =
+      "\n" +
+      this.players
+        .sort((a, b) => b.getCurrentPrize() - a.getCurrentPrize())
+        .map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`)
+        .join("\n");
+    result += "\n" + "\n" + `Всего приняло участия: ${this.players.length} игроков`;
+    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} екр`;
     return result + "\n" + "\n====================================================\n" + "\n" + generateReceiptsReport(calculateReceipts(gameResults));
   }
 
@@ -95,6 +102,10 @@ class Game {
     if (!this.#started) return;
 
     return this.players.filter((p) => p.getCurrentPosition() === configuration.finishPosition);
+  }
+
+  getFullPrize() {
+    return this.players.reduce((a, b) => a + b.getCurrentPrize(), 0);
   }
 
   removePlayer(nickname) {

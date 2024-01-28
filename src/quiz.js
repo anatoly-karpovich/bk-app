@@ -62,32 +62,6 @@ function addEventListenersToQuizPage() {
     return Object.values(obj).length ? Object.values(obj).reduce((a, b) => a + b) : 0;
   }
 
-  function getNickNamesFromChatMessages(text, dj) {
-    const nickNames = [];
-    let isNickNamesChar = false;
-    let nick = "";
-    for (const char of text) {
-      if (char === "[") {
-        isNickNamesChar = true;
-        nick = "";
-        continue;
-      } else if (char === "]") {
-        isNickNamesChar = false;
-        if (nick.includes(",")) {
-          continue;
-        }
-        if (nick.trim() !== dj.trim()) {
-          nickNames.push(nick.trim());
-        }
-      }
-
-      if (isNickNamesChar) {
-        nick += char;
-      }
-    }
-    return nickNames;
-  }
-
   const generateQuestionWithTextarea = (number) => `
     <label for="input${number}" class="form-label">Question ${number} winners</label>
     <textarea class="form-control" type="text" id="input${number}" rows="10" placeholder="Enter ${number} question winners devided by comma" style="width: 100%; margin-bottom: 20px;"></textarea>

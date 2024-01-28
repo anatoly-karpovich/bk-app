@@ -247,3 +247,29 @@ function getValueFromArraGenerator(array) {
     return nextValue || null;
   };
 }
+
+function getNickNamesFromChatMessages(text, dj) {
+  const nickNames = [];
+  let isNickNamesChar = false;
+  let nick = "";
+  for (const char of text) {
+    if (char === "[") {
+      isNickNamesChar = true;
+      nick = "";
+      continue;
+    } else if (char === "]") {
+      isNickNamesChar = false;
+      if (nick.includes(",")) {
+        continue;
+      }
+      if (nick.trim() !== dj.trim()) {
+        nickNames.push(nick.trim());
+      }
+    }
+
+    if (isNickNamesChar) {
+      nick += char;
+    }
+  }
+  return nickNames;
+}

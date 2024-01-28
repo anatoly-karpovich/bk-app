@@ -20,6 +20,11 @@ function createLabyrinthPageLayout() {
                   </div>
                   <div>
                     <button id="add-game-player-btn" class="btn btn-outline-primary form-buttons">Add Player</button>
+                    <button id="add-game-players-list-btn" class="btn btn-outline-secondary me-3">Add Players List</button>
+                  </div>
+                  <div class="mt-3 col-md-11 d-none" id="players-list-section">
+                    <textarea id="players-list-area" class="form-control" rows="10"></textarea>
+                    <button class="btn btn-primary mt-3" id="apply-game-players-list-btn">Add</button>
                   </div>
               </div>
               <div class="mt-4" id="player-moves">
@@ -61,6 +66,10 @@ function addEventListenersToLabyrinthPage() {
   const gameLog = document.getElementById("gameLog");
   const playerNamesContainer = document.getElementById("players-container");
   const addGamePlayer = document.getElementById("add-game-player-btn");
+  const addGamePlayersListBtn = document.getElementById("add-game-players-list-btn");
+  const applyGamePlayersList = document.getElementById("apply-game-players-list-btn");
+  const playersListSection = document.getElementById("players-list-section");
+  const playerListArea = document.getElementById("players-list-area");
   const restartGameButton = document.getElementById("restart-game");
   const playerMovesSection = document.getElementById("player-moves");
   const gameState = document.getElementById("gameState");
@@ -86,6 +95,42 @@ function addEventListenersToLabyrinthPage() {
     event.preventDefault();
     playerNamesContainer.insertAdjacentHTML("beforeend", generateGamePlayerInput());
     enableOrDisableElement(startButton, false);
+  });
+
+  addGamePlayersListBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    playersListSection.classList.contains("d-none") ? playersListSection.classList.remove("d-none") : playersListSection.classList.add("d-none");
+  });
+
+  applyGamePlayersList.addEventListener("click", (event) => {
+    event.preventDefault();
+    const dj = document.querySelector("strong#dj-name").textContent;
+    const text = playerListArea.value;
+
+    if (!text) return;
+
+    const names = getNickNamesFromChatMessages(text, dj);
+    for (const name of names) {
+      const inputExists = [...document.querySelectorAll(`[name="playerName"]`)].some((i) => i.value.trim() === name.trim());
+      if (!inputExists) {
+        const id = window.crypto.randomUUID();
+        playerNamesContainer.insertAdjacentHTML("beforeend", generateGamePlayerInput(id));
+        const input = document.getElementById(id);
+        input.value = name.trim();
+      }
+    }
+
+    playersListSection.classList.add("d-none");
+    const playerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
+    const emptyPlayerNameInputs = playerInputs.filter((input) => !input.value.trim());
+    if ([...document.querySelectorAll(".del-btn-modal")].length > 1 && emptyPlayerNameInputs.length) {
+      for (const input of emptyPlayerNameInputs) {
+        const id = input.getAttribute("id");
+        const el = document.querySelector(`div[data-id="${id}"]`);
+        el.parentNode.removeChild(el);
+      }
+    }
+    validatePlayerInputsValues(playerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
   });
 
   playerNamesContainer.addEventListener("click", (event) => {
@@ -182,9 +227,11 @@ function addEventListenersToLabyrinthPage() {
     moveInputs.forEach((moveInput) => (moveInput.value = ""));
     removeInputsForPlayersWhoFinished();
     const moveButton = document.getElementById(moveButtonId);
+    const addMovesList = document.getElementById(`move-parse`);
     enableOrDisableElement(moveButton, false);
     if (state.labyrinth.game.isGameOver()) {
       displayResultsAfterGameOver();
+      enableOrDisableElement(addMovesList, false);
       return;
     }
   }
@@ -221,6 +268,32 @@ function addEventListenersToLabyrinthPage() {
         displayResultsAfterGameOver();
         return;
       }
+    } else if (event.target.id === "move-parse") {
+      event.preventDefault();
+      const movesListSection = document.getElementById("moves-list-section");
+      movesListSection.classList.contains("d-none") ? movesListSection.classList.remove("d-none") : movesListSection.classList.add("d-none");
+    } else if (event.target.id === "apply-players-moves-list-btn") {
+      const text = document.getElementById("moves-list-area").value;
+      if (!text) return;
+      const movesObject = getMovesFromText(text);
+      for (const nickname of Object.keys(movesObject)) {
+        try {
+          const input = document.querySelector(`input[nickname="${nickname}"]`);
+          input.value = movesObject[nickname];
+        } catch (e) {
+          console.log(e.message);
+        }
+      }
+      const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input`)];
+      validateMoveInputsValues(moveInputs);
+      const moveButton = document.getElementById(moveButtonId);
+      if (!validateMoveInputsValues(moveInputs)) {
+        enableOrDisableElement(moveButton, false);
+      } else {
+        enableOrDisableElement(moveButton, true);
+      }
+      const movesListSection = document.getElementById("moves-list-section");
+      movesListSection.classList.add("d-none");
     }
   });
 
@@ -265,7 +338,14 @@ function addEventListenersToLabyrinthPage() {
     <div id="player-moves-inputs" class="mb-3">
       ${playerNames.map((p) => generatePlayerMoveInput(p)).join("")}
     </div>
-    <button type="button" class="btn btn-success" id="moveBtn" disabled>Move</button>`;
+    <div>
+      <button type="button" class="btn btn-success" id="moveBtn" disabled>Move</button>
+      <button type="button" class="btn btn-secondary ms-3" id="move-parse">Add moves list</button>
+    </div>
+    <div class="mt-3 col-md-11 d-none" id="moves-list-section">
+      <textarea id="moves-list-area" class="form-control" rows="10"></textarea>
+      <button class="btn btn-primary mt-3" id="apply-players-moves-list-btn">Parse</button>
+    </div>`;
   }
 
   function generatePlayerMoveInput(playerName) {
@@ -313,8 +393,8 @@ function validateMoveInputsValues(moveInputs) {
   return isValid;
 }
 
-function generateGamePlayerInput() {
-  const id = window.crypto.randomUUID();
+function generateGamePlayerInput(providedId) {
+  const id = providedId || window.crypto.randomUUID();
   return `
   <div class="mb-3 d-flex justify-content-between" data-id="${id}">
     <div class="col-md-11" name="game-player">${generateTextInput({ placeholder: "Enter players nickname", id: id, name: "playerName" }, validationErrorMessages.NICKHANE)}</div>
@@ -367,4 +447,19 @@ function displayOrHideGameLog(display) {
     document.getElementById("game-state-container").classList.add("d-none");
     document.getElementById("game-state-container").classList.remove("d-block");
   }
+}
+
+function getMovesFromText(inputText) {
+  const rows = inputText.split(/\n/);
+  return rows
+    .filter((row) => row.trim() !== "")
+    .map((row, index) => {
+      return index % 2 ? parseInt(row.match(/\d+/)[0], 10) : row.split(" [")[0];
+    })
+    .reduce((acc, row, index, arr) => {
+      if (index % 2) {
+        acc[arr[index - 1]] = row;
+      }
+      return acc;
+    }, {});
 }

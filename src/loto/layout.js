@@ -14,7 +14,7 @@ function createLotoPageLayout() {
           </div>
         </div>
         <div id="loto-log-div" class="border border-dark mb-5 me-5" style="width:30%">
-          <textarea class="form-control" id="loto-log" style=" width: 100%; height: 100%;" type="text"></textarea>
+          <textarea class="form-control" id="loto-log" style=" width: 100%; height: 100%;" type="text" disabled></textarea>
         </div>
       </div>
     <div class="d-flex justify-content-between">

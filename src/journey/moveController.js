@@ -53,7 +53,6 @@ class MoveController {
         ((!player.hasJackpot() && newPrize < configuration.maxPrize) || (player.hasJackpot() && newPrize < configuration.maxPrize + jackPotPrize)) &&
         ((!player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize) || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize))
       ) {
-        alert(1);
         newPrize = player.hasJackpot() ? configuration.maxPrize + jackPotPrize : configuration.maxPrize;
         this.moveLog.type = MOVE_TYPES.MOVE_TO_MAX_PRIZE;
       } else if ((!player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize) || (player.hasJackpot() && newPrize + cell.prize > configuration.maxPrize + jackPotPrize)) {
