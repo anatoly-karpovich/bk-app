@@ -6,6 +6,7 @@ class Player {
     this.previousPrize = configuration.initialCashValue;
     this.prize = configuration.initialCashValue;
     this.jackpot = false;
+    this.bonuses = [];
   }
   getCurrentPosition() {
     return this.position;
@@ -15,17 +16,26 @@ class Player {
     return this.prize;
   }
 
+  getFullPrize() {
+    return this.getCurrentPrize() + this.bonuses.reduce((amount, bonus) => amount + bonus.prize, 0);
+  }
+
+  getBonuses() {
+    return this.bonuses;
+  }
+
   hasJackpot() {
     return this.jackpot;
   }
 
-  move(moveObject, jackpot = false) {
+  move(moveObject) {
     this.previousPrize = this.getCurrentPrize();
     this.previousPosition = this.getCurrentPosition();
-    this.position = moveObject.cell;
+    this.position = moveObject.currentPosition;
     this.prize = moveObject.prize;
-    if (jackpot) {
-      this.jackpot = true;
-    }
+  }
+
+  setBonus(bonus) {
+    this.bonuses.push(bonus);
   }
 }

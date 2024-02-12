@@ -26,9 +26,18 @@ class GameMap {
   getMapPrettified() {
     let mapPrettified = "";
     for (const index in this.getMap()) {
-      const bonus = this.getMap()[index].prize;
-      const bonusType = bonus < 0 ? "ловушка" : bonus == jackPotPrize ? "сокровище" : "бонус";
-      mapPrettified += `На клетке ${index} находится ${bonusType} на ${bonus} екр` + "\n";
+      const cell = this.getMap()[index];
+      let cellType = "";
+      let prize = cell.prize;
+      if (cell.prize < 0) {
+        cellType = "ловушка";
+      } else if (cell.prize > 0) {
+        cellType = "награда";
+      } else if (cell.isJackPot) {
+        cellType = "сокровище";
+        prize = jackPotPrize;
+      }
+      mapPrettified += `На клетке ${index} находится ${cellType} на ${prize} ${configuration.currency}` + "\n";
     }
     return mapPrettified;
   }
@@ -36,7 +45,7 @@ class GameMap {
   getJackpotCell() {
     let jackPotCell = 0;
     for (const index in this.mapJson) {
-      if (this.mapJson[index].prize === jackPotPrize) {
+      if (this.mapJson[index].isJackPot) {
         jackPotCell = +index;
       }
     }

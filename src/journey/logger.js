@@ -26,6 +26,14 @@ class Logger {
     // this.log(comment);
   }
 
+  logMoves(moves) {
+    Object.keys(moves).forEach((nickname) => {
+      moves[nickname].forEach((move) => {
+        this.logMove(move);
+      });
+    });
+  }
+
   getGameLog() {
     return this.gameLog;
   }

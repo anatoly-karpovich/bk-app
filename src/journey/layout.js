@@ -436,7 +436,9 @@ function removeMoveInput(nickname) {
 }
 
 function getGameState(game) {
-  return game.players.map((p) => `${p.nickname}: Награда: [${p.getCurrentPrize()} екр], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`).join("\n");
+  return game.players
+    .map((p) => `${p.nickname}: Награда: [${p.getFullPrize()} ${configuration.currency}], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`)
+    .join("\n");
 }
 
 function displayOrHideGameLog(display) {

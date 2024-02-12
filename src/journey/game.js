@@ -22,7 +22,7 @@ class Game {
     Game.jackpot.isObtained = false;
     Game.logger = new Logger();
     this.map = new GameMap(map);
-    this.MoveController = new MoveController(this.map);
+    this.MoveController = new MovesController(this.map);
     Game.logger.startGame(players, this.map.getMap());
   }
 
@@ -38,7 +38,8 @@ class Game {
       return;
     }
     Game.moveIndex += 1;
-    moves.forEach((move) => this.MoveController.makeMove(move.player, move.dice));
+    const moveIndex = Game.moveIndex;
+    this.MoveController.makeMoves(moves, moveIndex);
   }
 
   simulateGame() {
@@ -84,17 +85,17 @@ class Game {
       return;
     }
     let gameResults = this.players.reduce((res, p) => {
-      res[p.nickname] = p.getCurrentPrize();
+      res[p.nickname] = p.getFullPrize();
       return res;
     }, {});
     let result =
       "\n" +
       this.players
-        .sort((a, b) => b.getCurrentPrize() - a.getCurrentPrize())
-        .map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`)
+        .sort((a, b) => b.getFullPrize() - a.getFullPrize())
+        .map((p) => `Игрок ${p.nickname} получает ${p.getFullPrize()} ${configuration.currency}`)
         .join("\n");
     result += "\n" + "\n" + `Всего приняло участия: ${this.players.length} игроков`;
-    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} екр`;
+    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} ${configuration.currency}`;
     return result + "\n" + "\n====================================================\n" + "\n" + generateReceiptsReport(calculateReceipts(gameResults));
   }
 

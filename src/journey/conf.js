@@ -24,7 +24,7 @@ const bonusesArray = [
   { cellChange: 0, prize: -5 },
   { cellChange: 0, prize: -5 },
   { cellChange: 0, prize: -5 },
-  { cellChange: 0, prize: jackPotPrize, isJackPot: true },
+  { cellChange: 0, prize: 0, isJackPot: true },
 ];
 const configuration = {
   mapSize: 50,
@@ -34,6 +34,7 @@ const configuration = {
   minNumberOfSteps: 1,
   maxNumberOfSteps: 5,
   maxPrize: 100,
+  currency: "фишек",
 };
 
 const MOVE_TYPES = {
@@ -45,4 +46,11 @@ const MOVE_TYPES = {
   MOVE_TO_FINISH: "moveToFinish",
   MOVE_WITN_MAX_PRIZE: "moveWithMaxPrize",
   MOVE_TO_MAX_PRIZE: "moveToMaxPrize",
+};
+
+const bonuses = {
+  JACKPOT: {
+    prize: jackPotPrize,
+    name: "Jackpot",
+  },
 };
