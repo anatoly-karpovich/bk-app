@@ -42,14 +42,14 @@ class GameMap {
     return mapPrettified;
   }
 
-  getJackpotCell() {
-    let jackPotCell = 0;
+  getJackpotCells() {
+    const jackpotCells = [];
     for (const index in this.mapJson) {
       if (this.mapJson[index].isJackPot) {
-        jackPotCell = +index;
+        jackpotCells.push(+index);
       }
     }
-    return jackPotCell;
+    return jackpotCells;
   }
 
   logMap() {
@@ -59,5 +59,9 @@ class GameMap {
       mapString += `On cell ${cell} there is a trap with ${mapJson[cell].prize}\n`;
     }
     Game.logger.log(`Game map:\n${mapString}\n`);
+  }
+
+  setJackpotWinnerOnCell(cellIndex, player) {
+    this.mapJson[cellIndex].winner = player;
   }
 }

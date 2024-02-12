@@ -24,7 +24,13 @@ const bonusesArray = [
   { cellChange: 0, prize: -5 },
   { cellChange: 0, prize: -5 },
   { cellChange: 0, prize: -5 },
-  { cellChange: 0, prize: 0, isJackPot: true },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
 ];
 const configuration = {
   mapSize: 50,

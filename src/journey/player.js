@@ -25,7 +25,7 @@ class Player {
   }
 
   hasJackpot() {
-    return this.jackpot;
+    return this.getBonuses().some((bonus) => bonus.name === bonuses.JACKPOT.name);
   }
 
   move(moveObject) {

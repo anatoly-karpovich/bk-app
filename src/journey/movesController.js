@@ -30,19 +30,28 @@ class MovesController {
   }
 
   handleJackpot() {
-    const playersOnJackpotCell = [...this.#getPlayersOnJackpotCell()];
-    if (!playersOnJackpotCell.length) return;
-    if (!Game.jackpot.isObtained) {
-      const jackpotWinner = playersOnJackpotCell[generateNumberInRange(0, playersOnJackpotCell.length - 1)];
-      Game.jackpot.winner = jackpotWinner;
-      Game.jackpot.isObtained = true;
-      this.movesLog[jackpotWinner][0].type = MOVE_TYPES.MOVE_WITH_JACKPOT;
+    const playersOnJackpotCells = this.#getPlayersOnJackpotCells();
+
+    if (Object.values(playersOnJackpotCells).every((el) => !el.length)) return;
+
+    for (const [index, players] of Object.entries(playersOnJackpotCells)) {
+      if (!players.length) continue;
+
+      const cell = this.map.getMap()[index];
+      if (!cell.winner) {
+        const playersWithoutJackpotOnCell = players.filter((p) => !p.getBonuses().some((bonus) => (bonus.name = bonuses.JACKPOT.name)));
+
+        if (!playersWithoutJackpotOnCell.length) continue;
+
+        const jackpotWinner = playersWithoutJackpotOnCell[generateNumberInRange(0, playersWithoutJackpotOnCell.length - 1)];
+        this.map.setJackpotWinnerOnCell(index, jackpotWinner);
+        this.movesLog[jackpotWinner.nickname][0].type = MOVE_TYPES.MOVE_WITH_JACKPOT;
+      }
+      const playersWithoutJackpot = players.filter((p) => p.nickname !== cell.winner.nickname);
+      playersWithoutJackpot.forEach((player) => {
+        this.movesLog[player.nickname][0].type = MOVE_TYPES.MOVE_WITH_EMPTY_JACKPOT;
+      });
     }
-    const playersWithoutJackpot = playersOnJackpotCell.filter((p) => p !== Game.jackpot.winner);
-    playersWithoutJackpot.forEach((player) => {
-      this.movesLog[player][0].type = MOVE_TYPES.MOVE_WITH_EMPTY_JACKPOT;
-    });
-    return;
   }
 
   handleAchievements() {
@@ -77,9 +86,16 @@ class MovesController {
     return this.movesLog[nickname];
   }
 
-  #getPlayersOnJackpotCell() {
-    const jackPotCellIndex = this.map.getJackpotCell();
-    const nicknames = Object.keys(this.movesLog).filter((key) => this.movesLog[key][0].currentPosition === jackPotCellIndex);
-    return nicknames;
+  #getPlayersOnJackpotCells() {
+    const jackPotCellIndexArray = this.map.getJackpotCells();
+    const playersOnJackpotCells = jackPotCellIndexArray.reduce((playersOnCells, index) => {
+      // const nicknames = Object.keys(this.movesLog).filter((key) => this.movesLog[key][0].currentPosition === index);
+      const nicknames = Object.values(this.movesLog)
+        .filter((move) => move[0].currentPosition === index)
+        .map((move) => move[0].player);
+      playersOnCells[index] = nicknames;
+      return playersOnCells;
+    }, {});
+    return playersOnJackpotCells;
   }
 }
