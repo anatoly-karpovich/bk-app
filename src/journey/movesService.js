@@ -39,6 +39,11 @@ class MovesService {
         this.move.type = MOVE_TYPES.MOVE_TO_MAX_PRIZE;
       } else if (newPrize + cell.prize > configuration.maxPrize) {
         this.move.type = MOVE_TYPES.MOVE_WITN_MAX_PRIZE;
+      } else if (newPrize >= 0 && newPrize + cell.prize < 0) {
+        console.log(newPrize);
+        console.log(typeof newPrize);
+        this.move.type = newPrize ? MOVE_TYPES.MOVE_TO_ZERO_PRIZE : MOVE_TYPES.MOVE_WITH_ZERO_PRIZE;
+        newPrize = 0;
       } else {
         newPrize += cell.prize;
         this.move.jackpotWinner = false;

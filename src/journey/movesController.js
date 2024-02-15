@@ -89,7 +89,6 @@ class MovesController {
   #getPlayersOnJackpotCells() {
     const jackPotCellIndexArray = this.map.getJackpotCells();
     const playersOnJackpotCells = jackPotCellIndexArray.reduce((playersOnCells, index) => {
-      // const nicknames = Object.keys(this.movesLog).filter((key) => this.movesLog[key][0].currentPosition === index);
       const nicknames = Object.values(this.movesLog)
         .filter((move) => move[0].currentPosition === index)
         .map((move) => move[0].player);
