@@ -44,6 +44,11 @@ const configuration = {
   maxNumberOfSteps: 5,
   maxPrize: 30,
   currency: "фишек",
+  jackPotPrize: 30,
+  achivementPrizes: {
+    unlucky: 5,
+    careful: 5,
+  },
 };
 
 const MOVE_TYPES = {
@@ -57,6 +62,7 @@ const MOVE_TYPES = {
   MOVE_TO_MAX_PRIZE: "moveToMaxPrize",
   MOVE_TO_ZERO_PRIZE: "moveToZeroPrize",
   MOVE_WITH_ZERO_PRIZE: "moveWithZeroPrize",
+  MOVE_TO_ACHIVEMENT: "moveToAchievement",
 };
 
 const bonuses = {
@@ -64,4 +70,31 @@ const bonuses = {
     prize: jackPotPrize,
     name: "Jackpot",
   },
+  UNLUCKY: {
+    prize: configuration.achivementPrizes.unlucky,
+    name: "Unlucky",
+    description: "попадание на 3 клетки с ловушками подряд",
+  },
+  CAREFUL: {
+    prize: configuration.achivementPrizes.careful,
+    name: "Careful",
+    description: "попадание на 3 пустые клетки подряд",
+  },
 };
+
+const bonusesNamesMapper = {
+  [bonuses["JACKPOT"].name]: "Сокровище",
+  [bonuses["UNLUCKY"].name]: "Невезучий",
+  [bonuses["CAREFUL"].name]: "Осторожный",
+};
+
+function getAchivementByName(name) {
+  let achivement = {};
+  for (const key of Object.keys(bonuses)) {
+    if (bonuses[key].name === name) {
+      achivement = bonuses[key];
+      break;
+    }
+  }
+  return achivement;
+}

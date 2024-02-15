@@ -5,15 +5,20 @@ function getCommentMessage(moveOptions) {
 }
 
 function setParametersToComment(comment, moveOptions) {
-  return (
-    comment
-      .replace("(Ник)", `${moveOptions.player.nickname}`)
-      // .replace("(клетка)", `${moveOptions.currentPosition}`)
-      .replace("(бонус)", `${Math.abs(moveOptions.cell?.isJackPot ? jackPotPrize : moveOptions.cell?.prize)}`)
-      .replace("(приз)", `${moveOptions.player.getFullPrize()}`)
-      .replace("(разница)", `${moveOptions.prize - moveOptions.previousPrize}`)
-      .replaceAll("(валюта)", `${configuration.currency}`)
-  );
+  let result = comment
+    .replace("(Ник)", `${moveOptions.player.nickname}`)
+    // .replace("(клетка)", `${moveOptions.currentPosition}`)
+    .replace("(бонус)", `${Math.abs(moveOptions.cell?.isJackPot ? jackPotPrize : moveOptions.cell?.prize)}`)
+    .replace("(приз)", `${moveOptions.achivements.length ? moveOptions.player.getCurrentPrize() : moveOptions.player.getFullPrize()}`)
+    .replace("(разница)", `${moveOptions.prize - moveOptions.previousPrize}`)
+    .replaceAll("(валюта)", `${configuration.currency}`);
+  if (moveOptions.type === MOVE_TYPES.MOVE_TO_ACHIVEMENT) {
+    result = result
+      .replace("(достижение)", `"${bonusesNamesMapper[getAchivementByName(moveOptions.achivement.name).name]}"`)
+      .replace("(описание достижения)", `${getAchivementByName(moveOptions.achivement.name).description}`)
+      .replace("(бонус достижения)", `${getAchivementByName(moveOptions.achivement.name).prize}`);
+  }
+  return result;
 }
 
 const commentMessages = {
@@ -85,4 +90,6 @@ const commentMessages = {
   [MOVE_TYPES.MOVE_WITH_ZERO_PRIZE]: [`На (Ник) напали грабители с целью отнять (бонус) (валюта), но не найдя в карманах ничего, накормили и пожалели [(приз) (валюта)]`],
 
   [MOVE_TYPES.MOVE_TO_ZERO_PRIZE]: [`Коллекторы пытались списать со счета (Ник) (бонус) (валюта), но смогли получить лишь (разница) (валюта) [(приз) (валюта)].`],
+
+  [MOVE_TYPES.MOVE_TO_ACHIVEMENT]: [`Игрок (Ник) зарабатывает достижение (достижение) за (описание достижения), награда: (бонус достижения) (валюта) [(приз) (валюта)]`],
 };

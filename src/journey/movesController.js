@@ -3,6 +3,7 @@ class MovesController {
   constructor(map) {
     this.map = map;
     this.movesService = new MovesService(map);
+    this.achivementsService = new AchievementsService();
     this.movesLog = {};
   }
 
@@ -55,7 +56,13 @@ class MovesController {
   }
 
   handleAchievements() {
-    return;
+    Object.keys(this.movesLog).forEach((nickname) => {
+      const achivements = this.achivementsService.getNewAchivementsForPlayer(this.movesLog[nickname][0]);
+      this.movesLog[nickname][0].achivements = achivements.map((b) => b.achivement);
+      if (achivements.length) {
+        this.movesLog[nickname].push(...achivements);
+      }
+    });
   }
 
   applyMoves() {
@@ -64,8 +71,11 @@ class MovesController {
       if (this.movesLog[nickname][0].type === MOVE_TYPES.MOVE_WITH_JACKPOT) {
         this.movesLog[nickname][0].player.setBonus(bonuses.JACKPOT);
       }
-      if (this.movesLog[nickname][0].bonuses) {
-        this.movesLog[nickname][0].bonuses.forEach((bonus) => this.movesLog[nickname][0].player.setBonus(bonus));
+      const achivementMoves = this.movesLog[nickname].filter((m) => m.type === MOVE_TYPES.MOVE_TO_ACHIVEMENT);
+      if (achivementMoves.length) {
+        achivementMoves.forEach((move) => {
+          this.movesLog[nickname][0].player.setBonus(move.achivement);
+        });
       }
     }
   }
