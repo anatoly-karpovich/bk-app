@@ -1,14 +1,15 @@
 class Player {
-  constructor(nickname) {
+  constructor(nickname, player) {
     this.nickname = nickname;
-    this.position = 0;
-    this.previousPosition = 0;
-    this.previousPrize = configuration.initialCashValue;
-    this.prize = configuration.initialCashValue;
+    this.position = player?.position ?? 0;
+    this.previousPosition = player?.previousPosition ?? 0;
+    this.previousPrize = player?.previousPrize ?? configuration.initialCashValue;
+    this.prize = player?.prize ?? configuration.initialCashValue;
     this.jackpot = false;
-    this.bonuses = [];
-    this.movesHistory = [];
+    this.bonuses = player?.bonuses ?? [];
+    this.movesHistory = player?.movesHistory ?? [];
   }
+
   getCurrentPosition() {
     return this.position;
   }
@@ -38,7 +39,7 @@ class Player {
     this.previousPosition = this.getCurrentPosition();
     this.position = moveObject.currentPosition;
     this.prize = moveObject.prize;
-    this.movesHistory.push({ position: moveObject.currentPosition, cell: moveObject.cell });
+    this.movesHistory.push({ position: moveObject.currentPosition, cell: structuredClone(moveObject.cell) });
   }
 
   setBonus(bonus) {

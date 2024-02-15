@@ -157,20 +157,15 @@ function addEventListenersToLabyrinthPage() {
     startGame();
   });
 
-  function startGame(restoredNames, restoredMap) {
-    let names = [];
-    if (restoredNames) {
-      names = restoredNames;
-    } else {
-      const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
+  function startGame() {
+    const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
 
-      if (!validateInputsNotEmpty(nameInputs)) {
-        return;
-      }
-      names = nameInputs.map((input) => input.value);
+    if (!validateInputsNotEmpty(nameInputs)) {
+      return;
     }
+    const names = nameInputs.map((input) => input.value);
     state.labyrinth.game = new Game();
-    state.labyrinth.game.startGame(names, restoredMap);
+    state.labyrinth.game.startGame(names);
     playerMovesSection.innerHTML = generatePlayerMovesSection(names);
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
@@ -182,18 +177,17 @@ function addEventListenersToLabyrinthPage() {
   restoreButton.addEventListener("click", (event) => {
     event.preventDefault();
     const game = new Game();
-    const gameLog = game.getGameLog();
-    const map = gameLog.map;
-    const players = gameLog.players;
-    startGame(players, map);
-    const moves = gameLog.moves;
-    for (const moveIndex of Object.keys(moves)) {
-      const move = moves[moveIndex];
-      const currentMoves = Object.keys(move).map((player) => {
-        return { player: state.labyrinth.game.players.find((p) => p.nickname === player), dice: move[player].dice };
-      });
-      makeMove(currentMoves);
-    }
+    state.labyrinth.game = game;
+    const storedGame = game.restoreGame();
+    playerMovesSection.innerHTML = generatePlayerMovesSection(storedGame.players);
+    gameMap.value = state.labyrinth.game.map.getMapPrettified();
+    playerNamesContainer.innerHTML = generateGamePlayerInput();
+    enableOrDisablePlayersNamesSection(false);
+    displayOrHideGameLog(true);
+    enableOrDisableElement(restoreButton, false);
+
+    gameLog.value += Game.logger.getStoredGameComments().flat().join("\n") + "\n";
+    gameState.value = getGameState(state.labyrinth.game);
   });
 
   function makeMove(storedMoves) {
@@ -214,7 +208,6 @@ function addEventListenersToLabyrinthPage() {
         return { player, dice: +input.value };
       });
     }
-
     state.labyrinth.game.makeMoves(moves);
     gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
     if (disabledMoveInputs.length) {

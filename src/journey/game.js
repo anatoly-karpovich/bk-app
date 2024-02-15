@@ -6,6 +6,7 @@ class Game {
 
   constructor() {
     this.#started = false;
+    Game.logger = new Logger();
   }
 
   #createPlayers(players) {
@@ -20,7 +21,6 @@ class Game {
     this.#started = true;
     Game.moveIndex = 0;
     Game.jackpot.isObtained = false;
-    Game.logger = new Logger();
     this.map = new GameMap(map);
     this.MoveController = new MovesController(this.map);
     Game.logger.startGame(players, this.map.getMap());
@@ -28,6 +28,25 @@ class Game {
 
   getGameLog() {
     const gameLog = journeyService.getGame();
+    return gameLog;
+  }
+
+  restoreGame() {
+    const gameLog = this.getGameLog();
+    this.map = new GameMap(gameLog.map);
+    this.MoveController = new MovesController(this.map);
+
+    Game.moveIndex = Object.keys(gameLog.moves).length;
+    const lastMove = gameLog.moves[Object.keys(gameLog.moves).at(-1)];
+    if (!lastMove) {
+      this.players = this.#createPlayers(gameLog.players);
+    } else {
+      const playersFromStorage = Object.values(lastMove).map((m) => m.player);
+      this.players = playersFromStorage.map((player) => new Player(player.nickname, player));
+    }
+    Game.logger.restoreGameComments();
+    this.#started = true;
+
     return gameLog;
   }
 

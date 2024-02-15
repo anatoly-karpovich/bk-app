@@ -14,6 +14,14 @@ class Logger {
     this.journeyService.startGame(players, map);
   }
 
+  getStoredGameComments() {
+    return this.journeyService.getGame().comments;
+  }
+
+  restoreGameComments() {
+    this.gameComments.push(...this.getStoredGameComments());
+  }
+
   logMove(moveOptions) {
     this.journeyService.saveMove(moveOptions);
 
@@ -23,7 +31,7 @@ class Logger {
     }
     const comment = getCommentMessage(moveOptions);
     this.gameComments[Game.moveIndex].push(comment);
-    // this.log(comment);
+    this.journeyService.saveGameComments(this.gameComments);
   }
 
   logMoves(moves) {

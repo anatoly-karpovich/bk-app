@@ -1,7 +1,7 @@
 class AchievementsService {
   newBonusesForPlayer = [];
+  bonuses = structuredClone(bonuses);
   getNewAchivementsForPlayer(move) {
-    console.log(move);
     this.newBonusesForPlayer = [];
     this.handleUnlucky(move);
     this.handleCareful(move);
@@ -14,8 +14,8 @@ class AchievementsService {
     }
     const lastMoves = move.player.movesHistory.slice(move.player.movesHistory.length - 2, move.player.movesHistory.length);
     const shoudAchive = lastMoves.every((el) => el.cell && el.cell.prize < 0) && move.cell.prize < 0;
-    if (shoudAchive && !move.player.getBonusByName(bonuses.UNLUCKY.name)) {
-      this.newBonusesForPlayer.push({ achivement: bonuses.UNLUCKY, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
+    if (shoudAchive && !move.player.getBonusByName(this.bonuses.UNLUCKY.name)) {
+      this.newBonusesForPlayer.push({ achivement: this.bonuses.UNLUCKY, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
     }
   }
 
@@ -25,8 +25,8 @@ class AchievementsService {
     }
     const lastMoves = move.player.movesHistory.slice(move.player.movesHistory.length - 2, move.player.movesHistory.length);
     const shoudAchive = lastMoves.every((el) => !el.cell) && !move.cell;
-    if (shoudAchive && !move.player.getBonusByName(bonuses.CAREFUL.name)) {
-      this.newBonusesForPlayer.push({ achivement: bonuses.CAREFUL, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
+    if (shoudAchive && !move.player.getBonusByName(this.bonuses.CAREFUL.name)) {
+      this.newBonusesForPlayer.push({ achivement: this.bonuses.CAREFUL, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
     }
   }
 }

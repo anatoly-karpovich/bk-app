@@ -62,6 +62,7 @@ class GameMap {
   }
 
   setJackpotWinnerOnCell(cellIndex, player) {
-    this.mapJson[cellIndex].winner = player;
+    this.mapJson[cellIndex].winner = structuredClone(player);
+    journeyService.saveMap(this.mapJson);
   }
 }

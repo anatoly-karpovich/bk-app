@@ -23,16 +23,14 @@ class MovesController {
   }
 
   handleMoves(moves) {
-    moves.forEach((palyerMove) => {
-      const move = this.movesService.handleMove(palyerMove.player, palyerMove.dice);
-      move.player = palyerMove.player;
+    moves.forEach((playerMove) => {
+      const move = this.movesService.handleMove(playerMove.player, playerMove.dice);
       this.#getMoveLogElementByPlayerNickname(move.player.nickname).push(move);
     });
   }
 
   handleJackpot() {
     const playersOnJackpotCells = this.#getPlayersOnJackpotCells();
-
     if (Object.values(playersOnJackpotCells).every((el) => !el.length)) return;
 
     for (const [index, players] of Object.entries(playersOnJackpotCells)) {
@@ -40,7 +38,7 @@ class MovesController {
 
       const cell = this.map.getMap()[index];
       if (!cell.winner) {
-        const playersWithoutJackpotOnCell = players.filter((p) => !p.getBonuses().some((bonus) => (bonus.name = bonuses.JACKPOT.name)));
+        const playersWithoutJackpotOnCell = players.filter((p) => !p.getBonuses().some((bonus) => bonus.name === bonuses.JACKPOT.name));
 
         if (!playersWithoutJackpotOnCell.length) continue;
 

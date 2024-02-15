@@ -32,7 +32,22 @@ class JourneyService {
     if (!storedGame.moves[Game.moveIndex]) {
       storedGame.moves[Game.moveIndex] = {};
     }
-    storedGame.moves[Game.moveIndex][moveOptions.player] = moveOptions;
+    storedGame.moves[Game.moveIndex][moveOptions.player.nickname] = moveOptions;
+    this.saveGame(storedGame);
+  }
+
+  saveGameComments(comments) {
+    const storedGame = this.getGame();
+    if (!storedGame) console.error("Labyrinth game not found");
+    if (!storedGame.comments) storedGame.comments = [];
+
+    storedGame.comments = comments;
+    this.saveGame(storedGame);
+  }
+
+  saveMap(map) {
+    const storedGame = this.getGame();
+    storedGame.map = map;
     this.saveGame(storedGame);
   }
 

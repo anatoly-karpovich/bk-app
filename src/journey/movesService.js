@@ -5,6 +5,7 @@ class MovesService {
   }
 
   handleMove(player, dice) {
+    this.move = {};
     this.move.player = player;
     this.move.dice = dice;
     this.move.previousPosition = player.getCurrentPosition();
@@ -14,9 +15,7 @@ class MovesService {
     }
     this.handleNewCell();
     this.handleNewPrize();
-    const move = structuredClone(this.move);
-    this.move = {};
-    return move;
+    return this.move;
   }
 
   handleNewCell() {
@@ -40,8 +39,6 @@ class MovesService {
       } else if (newPrize + cell.prize > configuration.maxPrize) {
         this.move.type = MOVE_TYPES.MOVE_WITN_MAX_PRIZE;
       } else if (newPrize >= 0 && newPrize + cell.prize < 0) {
-        console.log(newPrize);
-        console.log(typeof newPrize);
         this.move.type = newPrize ? MOVE_TYPES.MOVE_TO_ZERO_PRIZE : MOVE_TYPES.MOVE_WITH_ZERO_PRIZE;
         newPrize = 0;
       } else {
