@@ -1,5 +1,4 @@
 class Game {
-  static jackpot = { isObtained: false, winner: null };
   static moveIndex = 0;
   static logger;
   #started;
@@ -20,7 +19,6 @@ class Game {
     this.#createPlayers(players);
     this.#started = true;
     Game.moveIndex = 0;
-    Game.jackpot.isObtained = false;
     this.map = new GameMap(map);
     this.MoveController = new MovesController(this.map);
     Game.logger.startGame(players, this.map.getMap());
@@ -57,8 +55,7 @@ class Game {
       return;
     }
     Game.moveIndex += 1;
-    const moveIndex = Game.moveIndex;
-    this.MoveController.makeMoves(moves, moveIndex);
+    this.MoveController.makeMoves(moves, Game.moveIndex);
   }
 
   simulateGame() {

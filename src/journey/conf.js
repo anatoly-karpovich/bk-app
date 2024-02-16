@@ -19,13 +19,15 @@ const bonusesArray = [
   { cellChange: 0, prize: 3 },
   { cellChange: 0, prize: 5 },
   { cellChange: 0, prize: 5 },
+  { cellChange: 0, prize: -3 },
+  { cellChange: 0, prize: -3 },
   { cellChange: 0, prize: -2 },
   { cellChange: 0, prize: -2 },
   { cellChange: 0, prize: -2 },
   { cellChange: 0, prize: -2 },
-  { cellChange: 0, prize: -2 },
-  { cellChange: 0, prize: -2 },
-  { cellChange: 0, prize: -2 },
+  { cellChange: 0, prize: -1 },
+  { cellChange: 0, prize: -1 },
+  { cellChange: 0, prize: -1 },
   { cellChange: 0, prize: -1 },
   { cellChange: 0, prize: 0, isJackPot: true, winner: null },
   { cellChange: 0, prize: 0, isJackPot: true, winner: null },
@@ -48,6 +50,7 @@ const configuration = {
   achivementPrizes: {
     unlucky: 5,
     careful: 5,
+    collector: 5,
   },
 };
 
@@ -80,12 +83,18 @@ const bonuses = {
     name: "Careful",
     description: "попадание на 3 пустые клетки подряд",
   },
+  COLLECTOR: {
+    prize: configuration.achivementPrizes.careful,
+    name: "Collector",
+    description: "попадание на все виды ловушек и бонусных клеток (кроме сокровища)",
+  },
 };
 
 const bonusesNamesMapper = {
   [bonuses["JACKPOT"].name]: "Сокровище",
   [bonuses["UNLUCKY"].name]: "Невезучий",
   [bonuses["CAREFUL"].name]: "Осторожный",
+  [bonuses["COLLECTOR"].name]: "Коллекционер",
 };
 
 function getAchivementByName(name) {

@@ -163,11 +163,12 @@ function addEventListenersToLabyrinthPage() {
     if (!validateInputsNotEmpty(nameInputs)) {
       return;
     }
-    const names = nameInputs.map((input) => input.value);
+    const names = nameInputs.map((input) => input.value.trim());
     state.labyrinth.game = new Game();
     state.labyrinth.game.startGame(names);
     playerMovesSection.innerHTML = generatePlayerMovesSection(names);
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
+    gameState.value = "";
     playerNamesContainer.innerHTML = generateGamePlayerInput();
     enableOrDisablePlayersNamesSection(false);
     displayOrHideGameLog(true);
@@ -447,7 +448,7 @@ function displayOrHideGameLog(display) {
 function getMovesFromText(inputText) {
   const rows = inputText.split(/\n/);
   return rows
-    .filter((row) => row.trim() !== "")
+    .filter((row) => row.trim() !== "" && !row.trim().includes("Ответить")) //
     .map((row, index) => {
       return index % 2 ? parseInt(row.match(/\d+/)[0], 10) : row.split(" [")[0];
     })
