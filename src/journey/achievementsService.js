@@ -25,7 +25,7 @@ class AchievementsService {
       return;
     }
     const lastMoves = move.player.movesHistory.slice(move.player.movesHistory.length - 2, move.player.movesHistory.length);
-    const shoudAchive = lastMoves.every((el) => !el.cell) && !move.cell;
+    const shoudAchive = lastMoves.every((el) => !el.cell) && !move.cell && move.currentPosition !== configuration.finishPosition;
     if (shoudAchive && !move.player.getBonusByName(this.bonuses.CAREFUL.name)) {
       this.newBonusesForPlayer.push({ achivement: this.bonuses.CAREFUL, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
     }

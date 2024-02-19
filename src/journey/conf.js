@@ -37,6 +37,7 @@ const bonusesArray = [
   { cellChange: 0, prize: 0, isJackPot: true, winner: null },
   { cellChange: 0, prize: 0, isJackPot: true, winner: null },
 ];
+
 const configuration = {
   mapSize: 50,
   finishPosition: 51,
@@ -84,7 +85,7 @@ const bonuses = {
     description: "попадание на 3 пустые клетки подряд",
   },
   COLLECTOR: {
-    prize: configuration.achivementPrizes.careful,
+    prize: configuration.achivementPrizes.collector,
     name: "Collector",
     description: "попадание на все виды ловушек и бонусных клеток (кроме сокровища)",
   },

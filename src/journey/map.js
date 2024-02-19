@@ -9,7 +9,7 @@ class GameMap {
     if (mapJson) {
       this.mapJson = mapJson;
     } else {
-      this.mapJson = configuration.bonusesArray.reduce((mapObject, bonus) => {
+      this.mapJson = structuredClone(configuration.bonusesArray).reduce((mapObject, bonus) => {
         const cell = this.getRandomUniqueCell();
         if (cell) {
           mapObject[cell] = bonus;

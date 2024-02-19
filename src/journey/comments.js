@@ -7,21 +7,15 @@ function getCommentMessage(moveOptions) {
 function setParametersToComment(comment, moveOptions) {
   let result = comment
     .replace("(Ник)", `${moveOptions.player.nickname}`)
-    // .replace("(клетка)", `${moveOptions.currentPosition}`)
     .replace("(бонус)", `${Math.abs(moveOptions.cell?.isJackPot ? jackPotPrize : moveOptions.cell?.prize)}`)
     .replace("(разница)", `${moveOptions.prize - moveOptions.previousPrize}`)
-    .replaceAll("(валюта)", `${configuration.currency}`);
+    .replaceAll("(валюта)", `${configuration.currency}`)
+    .replace("(приз)", `${moveOptions.player.getFullPrize()}`);
   if (moveOptions.type === MOVE_TYPES.MOVE_TO_ACHIVEMENT) {
     result = result
       .replace("(достижение)", `"${bonusesNamesMapper[getAchivementByName(moveOptions.achivement.name).name]}"`)
       .replace("(описание достижения)", `${getAchivementByName(moveOptions.achivement.name).description}`)
       .replace("(бонус достижения)", `${getAchivementByName(moveOptions.achivement.name).prize}`);
-  }
-
-  if (moveOptions.achivements && moveOptions.achivements.length) {
-    result = result.replace("(приз)", `${moveOptions.player.getCurrentPrize()}`);
-  } else {
-    result = result.replace("(приз)", `${moveOptions.player.getFullPrize()}`);
   }
   return result;
 }
