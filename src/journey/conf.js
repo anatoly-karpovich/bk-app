@@ -52,6 +52,7 @@ const configuration = {
     unlucky: 5,
     careful: 5,
     collector: 5,
+    lucky: 5,
   },
 };
 
@@ -89,6 +90,11 @@ const bonuses = {
     name: "Collector",
     description: "попадание на все виды ловушек и бонусных клеток (кроме сокровища)",
   },
+  LUCKY: {
+    prize: configuration.achivementPrizes.lucky,
+    name: "Lucky",
+    description: "попадание на 5 клеток с бонусами подряд",
+  },
 };
 
 const bonusesNamesMapper = {
@@ -96,6 +102,7 @@ const bonusesNamesMapper = {
   [bonuses["UNLUCKY"].name]: "Невезучий",
   [bonuses["CAREFUL"].name]: "Осторожный",
   [bonuses["COLLECTOR"].name]: "Коллекционер",
+  [bonuses["LUCKY"].name]: "Счастличик",
 };
 
 function getAchivementByName(name) {

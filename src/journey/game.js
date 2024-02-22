@@ -122,7 +122,7 @@ class Game {
   }
 
   getFullPrize() {
-    return this.players.reduce((a, b) => a + b.getCurrentPrize(), 0);
+    return this.players.reduce((a, b) => a + b.getFullPrize(), 0);
   }
 
   removePlayer(nickname) {

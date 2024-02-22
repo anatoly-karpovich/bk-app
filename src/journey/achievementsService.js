@@ -6,6 +6,7 @@ class AchievementsService {
     this.handleUnlucky(move);
     this.handleCareful(move);
     this.handleCollector(move);
+    this.handleLucky(move);
     return this.newBonusesForPlayer;
   }
 
@@ -43,6 +44,17 @@ class AchievementsService {
       }) && moves.some((el) => !el.cell);
     if (shoudAchive && !move.player.getBonusByName(this.bonuses.COLLECTOR.name)) {
       this.newBonusesForPlayer.push({ achivement: this.bonuses.COLLECTOR, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
+    }
+  }
+
+  handleLucky(move) {
+    if (move.player.movesHistory.length < 4) {
+      return;
+    }
+    const lastMoves = move.player.movesHistory.slice(move.player.movesHistory.length - 4, move.player.movesHistory.length);
+    const shoudAchive = lastMoves.every((el) => el.cell && el.cell.prize > 0) && move.cell && move.cell.prize > 0;
+    if (shoudAchive && !move.player.getBonusByName(this.bonuses.LUCKY.name)) {
+      this.newBonusesForPlayer.push({ achivement: this.bonuses.LUCKY, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
     }
   }
 }
