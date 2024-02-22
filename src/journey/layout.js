@@ -157,22 +157,18 @@ function addEventListenersToLabyrinthPage() {
     startGame();
   });
 
-  function startGame(restoredNames, restoredMap) {
-    let names = [];
-    if (restoredNames) {
-      names = restoredNames;
-    } else {
-      const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
+  function startGame() {
+    const nameInputs = [...document.querySelectorAll(playersNamesInputsSelector)];
 
-      if (!validateInputsNotEmpty(nameInputs)) {
-        return;
-      }
-      names = nameInputs.map((input) => input.value);
+    if (!validateInputsNotEmpty(nameInputs)) {
+      return;
     }
+    const names = nameInputs.map((input) => input.value.trim());
     state.labyrinth.game = new Game();
-    state.labyrinth.game.startGame(names, restoredMap);
+    state.labyrinth.game.startGame(names);
     playerMovesSection.innerHTML = generatePlayerMovesSection(names);
     gameMap.value = state.labyrinth.game.map.getMapPrettified();
+    gameState.value = "";
     playerNamesContainer.innerHTML = generateGamePlayerInput();
     enableOrDisablePlayersNamesSection(false);
     displayOrHideGameLog(true);
@@ -182,18 +178,17 @@ function addEventListenersToLabyrinthPage() {
   restoreButton.addEventListener("click", (event) => {
     event.preventDefault();
     const game = new Game();
-    const gameLog = game.getGameLog();
-    const map = gameLog.map;
-    const players = gameLog.players;
-    startGame(players, map);
-    const moves = gameLog.moves;
-    for (const moveIndex of Object.keys(moves)) {
-      const move = moves[moveIndex];
-      const currentMoves = Object.keys(move).map((player) => {
-        return { player: state.labyrinth.game.players.find((p) => p.nickname === player), dice: move[player].dice };
-      });
-      makeMove(currentMoves);
-    }
+    state.labyrinth.game = game;
+    const storedGame = game.restoreGame();
+    playerMovesSection.innerHTML = generatePlayerMovesSection(storedGame.players);
+    gameMap.value = state.labyrinth.game.map.getMapPrettified();
+    playerNamesContainer.innerHTML = generateGamePlayerInput();
+    enableOrDisablePlayersNamesSection(false);
+    displayOrHideGameLog(true);
+    enableOrDisableElement(restoreButton, false);
+
+    gameLog.value += Game.logger.getStoredGameComments().flat().join("\n") + "\n";
+    gameState.value = getGameState(state.labyrinth.game);
   });
 
   function makeMove(storedMoves) {
@@ -214,7 +209,6 @@ function addEventListenersToLabyrinthPage() {
         return { player, dice: +input.value };
       });
     }
-
     state.labyrinth.game.makeMoves(moves);
     gameLog.value += Game.logger.gameComments[Game.moveIndex].join("\n") + "\n";
     if (disabledMoveInputs.length) {
@@ -436,7 +430,9 @@ function removeMoveInput(nickname) {
 }
 
 function getGameState(game) {
-  return game.players.map((p) => `${p.nickname}: Награда: [${p.getCurrentPrize()} екр], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`).join("\n");
+  return game.players
+    .map((p) => `${p.nickname}: Награда: [${p.getFullPrize()} ${configuration.currency}], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`)
+    .join("\n");
 }
 
 function displayOrHideGameLog(display) {
@@ -452,7 +448,7 @@ function displayOrHideGameLog(display) {
 function getMovesFromText(inputText) {
   const rows = inputText.split(/\n/);
   return rows
-    .filter((row) => row.trim() !== "")
+    .filter((row) => row.trim() !== "" && !row.trim().includes("Ответить")) //
     .map((row, index) => {
       return index % 2 ? parseInt(row.match(/\d+/)[0], 10) : row.split(" [")[0];
     })

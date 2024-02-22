@@ -1,11 +1,11 @@
 class Game {
-  static jackpot = { isObtained: false, winner: null };
   static moveIndex = 0;
   static logger;
   #started;
 
   constructor() {
     this.#started = false;
+    Game.logger = new Logger();
   }
 
   #createPlayers(players) {
@@ -19,15 +19,32 @@ class Game {
     this.#createPlayers(players);
     this.#started = true;
     Game.moveIndex = 0;
-    Game.jackpot.isObtained = false;
-    Game.logger = new Logger();
     this.map = new GameMap(map);
-    this.MoveController = new MoveController(this.map);
+    this.MoveController = new MovesController(this.map);
     Game.logger.startGame(players, this.map.getMap());
   }
 
   getGameLog() {
     const gameLog = journeyService.getGame();
+    return gameLog;
+  }
+
+  restoreGame() {
+    const gameLog = this.getGameLog();
+    this.map = new GameMap(gameLog.map);
+    this.MoveController = new MovesController(this.map);
+
+    Game.moveIndex = Object.keys(gameLog.moves).length;
+    const lastMove = gameLog.moves[Object.keys(gameLog.moves).at(-1)];
+    if (!lastMove) {
+      this.players = this.#createPlayers(gameLog.players);
+    } else {
+      const playersFromStorage = Object.values(lastMove).map((m) => m.player);
+      this.players = playersFromStorage.map((player) => new Player(player.nickname, player));
+    }
+    Game.logger.restoreGameComments();
+    this.#started = true;
+
     return gameLog;
   }
 
@@ -38,7 +55,7 @@ class Game {
       return;
     }
     Game.moveIndex += 1;
-    moves.forEach((move) => this.MoveController.makeMove(move.player, move.dice));
+    this.MoveController.makeMoves(moves, Game.moveIndex);
   }
 
   simulateGame() {
@@ -84,17 +101,17 @@ class Game {
       return;
     }
     let gameResults = this.players.reduce((res, p) => {
-      res[p.nickname] = p.getCurrentPrize();
+      res[p.nickname] = p.getFullPrize();
       return res;
     }, {});
     let result =
       "\n" +
       this.players
-        .sort((a, b) => b.getCurrentPrize() - a.getCurrentPrize())
-        .map((p) => `Игрок ${p.nickname} получает ${p.getCurrentPrize()} екр`)
+        .sort((a, b) => b.getFullPrize() - a.getFullPrize())
+        .map((p) => `Игрок ${p.nickname} получает ${p.getFullPrize()} ${configuration.currency}`)
         .join("\n");
     result += "\n" + "\n" + `Всего приняло участия: ${this.players.length} игроков`;
-    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} екр`;
+    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} ${configuration.currency}`;
     return result + "\n" + "\n====================================================\n" + "\n" + generateReceiptsReport(calculateReceipts(gameResults));
   }
 
