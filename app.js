@@ -1,5 +1,8 @@
-const state = { quiz: {}, loto: { foundNumbers: [], cards: [] }, labyrinth: {} };
+const state = { quiz: {}, loto: { foundNumbers: [], cards: [] }, labyrinth: {}, battleships: {} };
+handleDJsName();
 renderBotanPage();
+const dataStorageService = new DataStorageService();
+dataStorageService.setInitialRouts();
 
 function sideMenuClickHandler(page) {
   switch (page) {
@@ -20,6 +23,10 @@ function sideMenuClickHandler(page) {
 
     case "Botan":
       renderBotanPage();
+      break;
+
+    case "Battleship":
+      renderBattleshipPage();
       break;
   }
 }

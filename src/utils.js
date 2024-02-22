@@ -4,10 +4,10 @@ function generateNumberInRange(min = 1, max = 50) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const getUniqueRandomNumber = (min, max) => {
-  const generatedNumbers = [];
+const getUniqueRandomNumber = (min, max, numbersToExcept = []) => {
+  const generatedNumbers = [...numbersToExcept];
   return () => {
-    if (generatedNumbers.length === max + 1) {
+    if (generatedNumbers.length >= max) {
       return "All numbers generated";
     }
     let number = generateNumberInRange(min, max);
@@ -70,8 +70,32 @@ function generateLotoCardNumbers(numberOfDigits = 10) {
   return result;
 }
 
-function generateTextInput(options) {
-  return `<input type="text" class="form-control" placeholder="${options?.placeholder ?? ""}" id="${options?.id ?? ""}" name="${options?.name ?? ""}">`;
+function generateTextInput(options, validationText = "") {
+  let result = `<input type="text" class="form-control"  
+  ${Object.keys(options)
+    .map((key) => `${key}="${options[key]}"`)
+    .join(" ")}
+    >`;
+  if (options.id && validationText) {
+    result += `<div class="invalid-feedback" id="error-${options.id}">${validationText}</div>`;
+  }
+  return result;
+}
+
+function generateNumberInput(options, validationText = "") {
+  let result = `<input type="number" class="form-control"  
+  ${Object.keys(options)
+    .map((key) => `${key}="${options[key]}"`)
+    .join(" ")}
+    >`;
+  if (options.id) {
+    result += `<div class="invalid-feedback" id="error-${options.id}">${validationText || ""}</div>`;
+  }
+  return result;
+}
+
+function makeInputInvalidOrValid(input, valid = true) {
+  valid ? input.classList.remove("is-invalid") : input.classList.add("is-invalid");
 }
 
 function copyToClipboard(text) {
@@ -82,4 +106,170 @@ function copyToClipboard(text) {
   document.execCommand("copy");
   document.body.removeChild(textarea);
   console.log("Data copied to clipboard: " + text);
+}
+
+function enableOrDisableElement(element, enable = true) {
+  enable ? element.removeAttribute("disabled") : element.setAttribute("disabled", "");
+}
+
+function calculateReceipts(obj) {
+  const result = {
+    200: 0,
+    100: 0,
+    50: 0,
+    20: 0,
+    10: 0,
+    5: 0,
+    1: 0,
+  };
+
+  Object.values(obj).forEach((value) => {
+    while (value - 200 >= 0) {
+      result[200]++;
+      value = value - 200;
+    }
+    while (value - 100 >= 0) {
+      result[100]++;
+      value = value - 100;
+    }
+    while (value - 50 >= 0) {
+      result[50]++;
+      value = value - 50;
+    }
+    while (value - 20 >= 0) {
+      result[20]++;
+      value = value - 20;
+    }
+    while (value - 10 >= 0) {
+      result[10]++;
+      value = value - 10;
+    }
+    while (value - 5 >= 0) {
+      result[5]++;
+      value = value - 5;
+    }
+    while (value - 1 >= 0) {
+      result[1]++;
+      value = value - 1;
+    }
+  });
+  return result;
+}
+
+function generateReceiptsReport(obj) {
+  return Object.keys(obj).reduce((a, b) => {
+    a += `Чеки по ${b} екр: ${obj[b]} штук\n`;
+    return a;
+  }, "");
+}
+
+function getDuplicatesFromArray(array = []) {
+  const duplicates = _.filter(array, (value, index, iteratee) => _.includes(iteratee, value, index + 1));
+  return duplicates;
+}
+
+function getDuplicatesIndexes(array = []) {
+  const duplicatesIndexes = [];
+  array.forEach((value, index) => {
+    if (array.filter((v) => v === value).length > 1) {
+      duplicatesIndexes.push(index);
+    }
+  });
+  return duplicatesIndexes;
+}
+
+function getDuplicatesFromArrayOfInputs(inputs = []) {
+  const values = inputs.map((input) => input.value);
+  const duplicatesIndexes = getDuplicatesIndexes(values);
+  const duplicateInputs = [];
+  if (duplicatesIndexes.length) {
+    duplicatesIndexes.forEach((i) => {
+      duplicateInputs.push(inputs[i]);
+    });
+  }
+  return duplicateInputs;
+}
+
+function getNumbersFromString(str) {
+  try {
+    const numbers = str.match(/\d+/g) || [];
+    return numbers.map(Number);
+  } catch (error) {
+    return [];
+  }
+}
+
+function validatePlayerInputsValues(playerInputs) {
+  let isValid = true;
+  playerInputs.forEach((el) => {
+    if (el.value) {
+      makeInputInvalidOrValid(el, true);
+    } else {
+      makeInputInvalidOrValid(el, false);
+      isValid = false;
+    }
+  });
+  const duplicates = getDuplicatesFromArrayOfInputs(playerInputs);
+  if (duplicates.length) {
+    isValid = false;
+    duplicates.forEach((input) => {
+      makeInputInvalidOrValid(input, false);
+    });
+  }
+  return isValid;
+}
+
+function validateArrayOnNumbersToHaveOnlyNumbersInRange(array, min = 1, max = 50) {
+  return array.every((n) => !isNaN(n) && n >= min && n <= max);
+}
+
+function handleDJsName() {
+  let djName = localStorage.getItem("djName") || "";
+  while (!djName) {
+    djName = prompt("Enter DJ's nickname");
+    if (djName) {
+      localStorage.setItem("djName", djName);
+      document.querySelector(`strong#dj-name`).textContent = djName;
+    }
+  }
+}
+
+function getKeyByValueFromObject(object, value) {
+  return +Object.keys(object).find((key) => object[key] === value);
+}
+
+function getValueFromArraGenerator(array) {
+  const arr = _.shuffle(_.shuffle(array));
+  let counter = 1;
+  return () => {
+    const nextValue = arr[counter];
+    counter++;
+    return nextValue || null;
+  };
+}
+
+function getNickNamesFromChatMessages(text, dj) {
+  const nickNames = [];
+  let isNickNamesChar = false;
+  let nick = "";
+  for (const char of text) {
+    if (char === "[") {
+      isNickNamesChar = true;
+      nick = "";
+      continue;
+    } else if (char === "]") {
+      isNickNamesChar = false;
+      if (nick.includes(",")) {
+        continue;
+      }
+      if (nick.trim() !== dj.trim()) {
+        nickNames.push(nick.trim());
+      }
+    }
+
+    if (isNickNamesChar) {
+      nick += char;
+    }
+  }
+  return nickNames;
 }

@@ -54,13 +54,21 @@
               Labyrinth
             </a>
           </li>
+          <li>
+            <a href="#" class="nav-link  text-white" onclick="sideMenuClickHandler('Battleship');">
+              <svg class="bi me-2" width="16" height="16">
+                <use xlink:href="#grid"></use>
+              </svg>
+              Battleship
+            </a>
+          </li>
         </ul>
         <hr>
         <div class="dropdown">
           <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
             id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
             <img src="https://github.com/mdo.png" alt="" width="32" height="32" class="rounded-circle me-2">
-            <strong>Геральт из Ривии</strong>
+            <strong id="dj-name">Геральт из Ривии</strong>
           </a>
           <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
             <li><a class="dropdown-item" id="signOut" href="#">Change DJ</a></li>
@@ -81,17 +89,32 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
 
+  <script src="./src/constants.js"></script>
   <script src="./src/utils.js"></script>
+  <script src="./src/services/dataStorage.js"></script>
+  <script src="./src/services/djService.js"></script>
+  <script src="./src/services/lotoService.js"></script>
+  <script src="./src/services/battleshipService.js"></script>
+  <script src="./src/services/journeyService.js"></script>
   <script src="./src/quiz.js"></script>
-  <script src="./src/loto.js"></script>
+  <script src="./src/loto/config.js"></script>
+  <script src="./src/loto/utils.js"></script>
+  <script src="./src/loto/game.js"></script>
+  <script src="./src/loto/components.js"></script>
+  <script src="./src/loto/layout.js"></script>
   <script src="./src/journey/conf.js"></script>
   <script src="./src/journey/comments.js"></script>
+  <script src="./src/journey/achievementsService.js"></script>
   <script src="./src/journey/logger.js"></script>
   <script src="./src/journey/map.js"></script>
-  <script src="./src/journey/moveController.js"></script>
+  <script src="./src/journey/movesService.js"></script>
+  <script src="./src/journey/movesController.js"></script>
   <script src="./src/journey/player.js"></script>
   <script src="./src/journey/game.js"></script>
   <script src="./src/journey/layout.js"></script>
+  <script src="./src/battleships/game.js"></script>
+  <script src="./src/battleships/layout.js"></script>
+  <script src="./src/battleships/config.js"></script>
   <script src="./src/botan.js"></script>
   <script src="./src/rendering.js"></script>
   <script src="./app.js"></script>
