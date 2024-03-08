@@ -25,8 +25,26 @@ class AchievementsService {
     if (move.player.movesHistory.length <= 1) {
       return;
     }
-    const lastMoves = move.player.movesHistory.slice(move.player.movesHistory.length - 2, move.player.movesHistory.length);
-    const shoudAchive = lastMoves.every((el) => !el.cell) && !move.cell && move.currentPosition !== configuration.finishPosition;
+
+    const lastMoves = [...move.player.movesHistory.slice(move.player.movesHistory.length - 2, move.player.movesHistory.length), { position: move.currentPosition, cell: move.cell }];
+    const shoudAchive = lastMoves.every((el) => {
+      let isValidForAchievement = true;
+      if (el.cell) {
+        if (el.cell.prize) {
+          isValidForAchievement = false;
+        }
+        if (el.cell.winner && el.cell.winner.nickname === move.player.nickname) {
+          isValidForAchievement = false;
+        }
+        if (move.type === "moveWithJackpot") {
+          isValidForAchievement = false;
+        }
+      }
+      if (move.currentPosition == configurationService.getConfig().labyrinth.finishPosition) {
+        isValidForAchievement = false;
+      }
+      return isValidForAchievement;
+    });
     if (shoudAchive && !move.player.getBonusByName(this.bonuses.CAREFUL.name)) {
       this.newBonusesForPlayer.push({ achivement: this.bonuses.CAREFUL, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
     }

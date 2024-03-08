@@ -5,6 +5,7 @@ class BattleShipsGame {
   #shipsStorageService = battleShipsService;
 
   startGame(ships, boardSize = 6, restoredBoard, restoredShipsCoordinates) {
+    this.configuration = configurationService.getConfigForGame("battleShips");
     this.boardSize = boardSize;
     this.board = restoredBoard ? restoredBoard : Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
     this.#ships = ships;
@@ -58,12 +59,12 @@ class BattleShipsGame {
     const damagedShips = this.#getDamagedShips();
     const damagedPrize = damagedShips.reduce((prize, ship) => {
       const numberOfDamagedZones = ship.filter((cell) => cell.isHit).length;
-      prize += numberOfDamagedZones * battleshipConfig.prizes.shoot;
+      prize += numberOfDamagedZones * this.configuration.prizes.shoot;
       return prize;
     }, 0);
     const destroyedShips = this.#getDestroyedShips();
     const destroyedPrize = destroyedShips.reduce((prize, ship) => {
-      prize += battleshipConfig.prizes.shoot * ship.length + battleshipConfig.prizes.destroyBonus[ship.length];
+      prize += this.configuration.prizes.shoot * ship.length + this.configuration.prizes.destroyBonus[ship.length];
       return prize;
     }, 0);
     return destroyedPrize + damagedPrize;

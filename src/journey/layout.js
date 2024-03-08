@@ -371,7 +371,12 @@ function validateInputsNotEmpty(inputs) {
 }
 
 function validateMoveInputValue(input) {
-  return input.value && +input.value >= configuration.minNumberOfSteps && input.value <= configuration.maxNumberOfSteps && Number.isInteger(+input.value);
+  return (
+    input.value &&
+    +input.value >= configurationService.getConfig().labyrinth.minNumberOfSteps &&
+    input.value <= configurationService.getConfig().labyrinth.maxNumberOfSteps &&
+    Number.isInteger(+input.value)
+  );
 }
 
 function validateMoveInputsValues(moveInputs) {
@@ -431,7 +436,10 @@ function removeMoveInput(nickname) {
 
 function getGameState(game) {
   return game.players
-    .map((p) => `${p.nickname}: Награда: [${p.getFullPrize()} ${configuration.currency}], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`)
+    .map(
+      (p) =>
+        `${p.nickname}: Награда: [${p.getFullPrize()} ${configurationService.getConfig().labyrinth.currency}], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`
+    )
     .join("\n");
 }
 

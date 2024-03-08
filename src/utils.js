@@ -273,3 +273,17 @@ function getNickNamesFromChatMessages(text, dj) {
   }
   return nickNames;
 }
+
+function generateFormTextInput(options) {
+  return ` <div class="${options.divClasslist}" id="div-${options.id}">
+                <label for="${options.id}" class="form-label">${options.name}</label>
+                <input type="${options.type}" class="${options.classlist}" id="${options.id}" 
+                placeholder="${options.placeholder}" ${options.attributes ? options.attributes : ""}
+                value="${options.value}"> 
+                <div class="invalid-feedback" id=error-${options.id}></div>
+                </div>`;
+}
+
+function getValueFromHTMLElement(id) {
+  return document.getElementById(id).value;
+}

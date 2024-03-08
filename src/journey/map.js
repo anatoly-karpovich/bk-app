@@ -1,6 +1,6 @@
 class GameMap {
   mapJson;
-  getRandomUniqueCell = getUniqueRandomNumber(1, configuration.mapSize);
+  getRandomUniqueCell = getUniqueRandomNumber(1, configurationService.getConfig().labyrinth.mapSize);
   constructor(mapJson) {
     this.generateMap(mapJson);
   }
@@ -9,7 +9,7 @@ class GameMap {
     if (mapJson) {
       this.mapJson = mapJson;
     } else {
-      this.mapJson = structuredClone(configuration.bonusesArray).reduce((mapObject, bonus) => {
+      this.mapJson = structuredClone(configurationService.getConfig().labyrinth.bonusesArray).reduce((mapObject, bonus) => {
         const cell = this.getRandomUniqueCell();
         if (cell) {
           mapObject[cell] = bonus;
@@ -37,7 +37,7 @@ class GameMap {
         cellType = "сокровище";
         prize = jackPotPrize;
       }
-      mapPrettified += `На клетке ${index} находится ${cellType} на ${prize} ${configuration.currency}` + "\n";
+      mapPrettified += `На клетке ${index} находится ${cellType} на ${prize} ${configurationService.getConfig().labyrinth.currency}` + "\n";
     }
     return mapPrettified;
   }

@@ -3,8 +3,8 @@ class Player {
     this.nickname = nickname;
     this.position = player?.position ?? 0;
     this.previousPosition = player?.previousPosition ?? 0;
-    this.previousPrize = player?.previousPrize ?? configuration.initialCashValue;
-    this.prize = player?.prize ?? configuration.initialCashValue;
+    this.previousPrize = player?.previousPrize ?? configurationService.getConfig().labyrinth.initialCashValue;
+    this.prize = player?.prize ?? configurationService.getConfig().labyrinth.initialCashValue;
     this.jackpot = false;
     this.bonuses = player?.bonuses ?? [];
     this.movesHistory = player?.movesHistory ?? [];

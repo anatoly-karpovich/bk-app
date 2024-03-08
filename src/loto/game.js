@@ -6,7 +6,6 @@ class LotoGame {
   constructor(cards = {}, foundNumbers = []) {
     this.#cards = cards;
     this.#foundNumbers = [...foundNumbers];
-    // this.#findNumberMethod = getUniqueRandomNumber(lotoConfig.min, lotoConfig.max, foundNumbers);
     this.#findNumberMethod = getValueFromArraGenerator(_.range([1], 51));
     this.#lotoService = lotoService;
     this.saveGameProgress();
