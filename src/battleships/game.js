@@ -4,11 +4,11 @@ class BattleShipsGame {
   #moves;
   #shipsStorageService = battleShipsService;
 
-  startGame(ships, boardSize = 6, restoredBoard, restoredShipsCoordinates) {
-    this.configuration = configurationService.getConfigForGame("battleShips");
-    this.boardSize = boardSize;
-    this.board = restoredBoard ? restoredBoard : Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
-    this.#ships = ships;
+  startGame(config, restoredBoard, restoredShipsCoordinates) {
+    this.boardSize = config.selectedBoardSize;
+    this.configuration = config.boards[this.boardSize];
+    this.board = restoredBoard ? restoredBoard : Array.from({ length: this.boardSize }, () => Array(this.boardSize).fill(0));
+    this.#ships = this.configuration.ships;
     this.#shipsCoordinates = [];
     if (restoredBoard && restoredShipsCoordinates) {
       this.#shipsCoordinates = restoredShipsCoordinates;

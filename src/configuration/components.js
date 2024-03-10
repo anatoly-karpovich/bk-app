@@ -8,10 +8,9 @@ function EditPencilButton(id) {
 function RadioButton(options) {
   return `
   <div class="form-check mb-2">
-    <input class="form-check-input" type="radio" id="${options.id}" ${options.attributes && options.attributes.length ? options.attributes.reduce((a, b) => a + b, "") : ""}>
-    <label class="form-check-label" for="${options.id}">
-      ${options.label}
-    </label>
+    <input class="form-check-input" type="radio" id="${options.id}" 
+    ${options.attributes && options.attributes.length ? options.attributes.reduce((a, b) => a + " " + b, "") : ""}>
+    <label class="form-check-label" for="${options.id}">${options.label}</label>
   </div>
   `;
 }
@@ -31,6 +30,7 @@ function LotoConfigurationComponent(configurationPageOptions) {
        </div>
        <div class="d-flex justify-content-start mt-4">
         <button class="btn btn-primary me-3" id="config-loto-save" disabled>Save</button>
+        <button class="btn btn-outline-primary me-3 d-none" id="config-loto-cancel">Cancel</button>
         <button class="btn btn-outline-danger" id="config-loto-default" disabled>Set default</button>
        </div>
       </form>
@@ -53,8 +53,16 @@ function BattleshipsConfigurationComponent(configurationPageOptions) {
             ${generateFormTextInput(configurationPageOptions.battleships.inputs.currency)}
           </div>
           <h5 class="mt-5">Deck size</h5>
-          <div class="d-flex justify-content-start mt-3">
-            ${RadioButton({ id: "battleships-config-6x6", label: "6x6 game", attributes: ["disabled"] })}          
+          <div class="d-flex justify-content-start mt-3" id="battleships-config-deck-size">
+            <div class="me-5">
+              ${RadioButton({ id: "battleships-config-deck-size-6", label: "6x6 game", attributes: ["disabled", "data-boardSize=6", "name=battleships-config-deck-size", "checked"] })}          
+            </div>
+            <div class="me-5">
+              ${RadioButton({ id: "battleships-config-deck-size-7", label: "7x7 game", attributes: ["disabled", "data-boardSize=7", "name=battleships-config-deck-size"] })}          
+            </div>
+            <div class="me-5">
+              ${RadioButton({ id: "battleships-config-deck-size-8", label: "8x8 game", attributes: ["disabled", "data-boardSize=8", "name=battleships-config-deck-size"] })}          
+            </div>
           </div>
           <h5 class="mt-4">Prize for ship kill</h5>
           <div class="d-flex justify-content-start mt-3">
@@ -73,6 +81,7 @@ function BattleshipsConfigurationComponent(configurationPageOptions) {
         </div>
         <div class="mt-4">
           <button class="btn btn-primary me-3" id="config-battleships-save" disabled>Save</button>
+          <button class="btn btn-outline-primary me-3 d-none" id="config-battleships-cancel">Cancel</button>
           <button class="btn btn-outline-danger" id="config-battleships-default" disabled>Set default</button>
         </div>
       </form>

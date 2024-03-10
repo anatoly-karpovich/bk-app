@@ -51,6 +51,12 @@ class BattleShipsService {
     storedGameData.game = {};
     this.dataStorageService.setGameData("battleShips", JSON.stringify(storedGameData));
   }
+
+  getAppliedConfig() {
+    const generalConfig = configurationService.getConfigForGame("battleShips");
+    const selectedBoardSize = generalConfig.selectedBoardSize;
+    return generalConfig.boards[selectedBoardSize];
+  }
 }
 
 const battleShipsService = new BattleShipsService();

@@ -182,20 +182,27 @@ const configurationPageOptions = {
 
 const initialConfig = {
   battleShips: {
-    boardSize: 6,
-    ships: [
-      { size: 3, amount: 1 },
-      { size: 2, amount: 2 },
-      { size: 1, amount: 4 },
-    ],
-    maxShots: 17,
-    currency: "фишки",
-    prizes: {
-      shoot: 2,
-      destroyBonus: {
-        3: 2,
-        2: 1,
-        1: 1,
+    selectedBoardSize: 6,
+    boards: {
+      6: {
+        boardSize: 6,
+        ships: [
+          { size: 4, amount: 0 },
+          { size: 3, amount: 1 },
+          { size: 2, amount: 2 },
+          { size: 1, amount: 4 },
+        ],
+        maxShots: 17,
+        currency: "фишки",
+        prizes: {
+          shoot: 2,
+          destroyBonus: {
+            4: 2,
+            3: 2,
+            2: 1,
+            1: 1,
+          },
+        },
       },
     },
   },

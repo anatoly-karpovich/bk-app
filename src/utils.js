@@ -112,6 +112,21 @@ function enableOrDisableElement(element, enable = true) {
   enable ? element.removeAttribute("disabled") : element.setAttribute("disabled", "");
 }
 
+function enableOrDisableArrayOfElements(elementsArray = [], enable = true) {
+  if (!Array.isArray(elementsArray)) {
+    console.log("ElementsArray is not an array");
+    return;
+  }
+
+  elementsArray.forEach((el) => {
+    enableOrDisableElement(el, enable);
+  });
+}
+
+function showOrHideElement(element, show = true) {
+  show ? element.classList.remove("d-none") : element.classList.add("d-none");
+}
+
 function calculateReceipts(obj) {
   const result = {
     200: 0,

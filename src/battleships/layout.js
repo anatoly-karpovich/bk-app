@@ -50,15 +50,7 @@ function addEventListenersToBattleshipPage() {
   });
 
   function disabOrEnableleHeaderSection(enable = true) {
-    if (enable) {
-      enableOrDisableElement(playerInput, true);
-      enableOrDisableElement(startButton, true);
-      enableOrDisableElement(restoreButton, true);
-    } else {
-      enableOrDisableElement(playerInput, false);
-      enableOrDisableElement(startButton, false);
-      enableOrDisableElement(restoreButton, false);
-    }
+    enableOrDisableArrayOfElements([playerInput, startButton, restoreButton], enable);
   }
 
   startButton.addEventListener("click", (event) => {
@@ -68,17 +60,12 @@ function addEventListenersToBattleshipPage() {
 
   function startBattleshipGame(storedBoard, storedShipsCoordinates) {
     state.battleships = new BattleShipsGame();
-    const board = state.battleships.startGame(
-      configurationService.getConfigForGame("battleShips").ships,
-      configurationService.getConfigForGame("battleShips").boardSize,
-      storedBoard,
-      storedShipsCoordinates
-    );
-    container.innerHTML = createGameSection(configurationService.getConfigForGame("battleShips").boardSize, board);
+    const board = state.battleships.startGame(configurationService.getConfigForGame("battleShips"), storedBoard, storedShipsCoordinates);
+    container.innerHTML = createGameSection(battleShipsService.getAppliedConfig().boardSize, board);
     const attemptsOutput = document.getElementById("battleship-attempts-output");
     const prizeOutput = document.getElementById("battleship-prize-output");
     prizeOutput.value = `0`;
-    attemptsOutput.value = `${configurationService.getConfigForGame("battleShips").maxShots}`;
+    attemptsOutput.value = `${battleShipsService.getAppliedConfig().maxShots}`;
     disabOrEnableleHeaderSection(false);
   }
 
@@ -108,8 +95,11 @@ function addEventListenersToBattleshipPage() {
       const undoButton = document.getElementById("battleship-undo-move");
       horizontalInput.value = "";
       verticalInput.value = "";
-      if (+attemptsOutput.value === configurationService.getConfigForGame("battleShips").maxShots) {
+      if (+attemptsOutput.value === battleShipsService.getAppliedConfig().maxShots) {
         enableOrDisableElement(undoButton, false);
+      }
+      if (+attemptsOutput.value > 0) {
+        enableOrDisableArrayOfElements([horizontalInput, verticalInput], true);
       }
     }
   });
@@ -129,9 +119,7 @@ function addEventListenersToBattleshipPage() {
     enableOrDisableElement(undoButton, true);
     enableOrDisableElement(moveButton, false);
     if (state.battleships.isGameOver() || +attemptsOutput.value <= 0) {
-      // enableOrDisableElement(event.target, false);
-      enableOrDisableElement(horizontalInput, false);
-      enableOrDisableElement(verticalInput, false);
+      enableOrDisableArrayOfElements([horizontalInput, verticalInput], false);
     }
   }
 
@@ -171,7 +159,6 @@ function battleshipMoveHandler({ horizontal, vertical }, undo = false) {
   if (undo) {
     state.battleships.undoMove();
     const cell = findCellByCoordinates({ horizontal, vertical });
-    // const ship = state.battleships.findShipByCoordinates({ horizontal, vertical });
     const ship = state.battleships.getShips().find((ship) => ship.some((s) => s.horizontal === horizontal && s.vertical === vertical));
     cell.setAttribute("isHit", "false");
     if (ship) {
@@ -205,7 +192,7 @@ function findCellByCoordinates({ horizontal, vertical }) {
   return cell;
 }
 
-function createHohizontalMarking(boardSize = configurationService.getConfigForGame("battleShips").boardSize) {
+function createHohizontalMarking(boardSize = configurationService.getConfigForGame("battleShips").selectedBoardSize) {
   let marking = "";
   for (let i = 1; i <= boardSize; i++) {
     marking += createMarkingElement(i);
@@ -226,7 +213,7 @@ function createAbcMarkingElement(num) {
   return `<div class="cell text-primary" style="margin-top: 4px;"><span>${numToAbcCoordinatesMapper[num].toUpperCase()}</span></div>`;
 }
 
-function createBattleShipRow(rowNumber = 1, boardSize = configurationService.getConfigForGame("battleShips").boardSize, board) {
+function createBattleShipRow(rowNumber = 1, boardSize = configurationService.getConfigForGame("battleShips").selectedBoardSize, board) {
   let row = "";
   const boardRow = board[rowNumber - 1];
   for (let i = 0; i < boardSize; i++) {
@@ -245,7 +232,7 @@ function createBattleShipRowElement(rowNumber = 1, cellNumber = 1, shipSize) {
   return `<div class="cell text-success" isHit="false" row="${rowNumber}" cell="${cellNumber}"><i class="bi bi${shipSize ? "-" + shipSize : ""}-square"></i></div>`;
 }
 
-function createBattleShipBoard(boardSize = configurationService.getConfigForGame("battleShips").boardSize, board) {
+function createBattleShipBoard(boardSize = configurationService.getConfigForGame("battleShips").selectedBoardSize, board) {
   let row = `${createHohizontalMarking(boardSize)}`;
   for (let i = 1; i <= boardSize; i++) {
     row += createBattleShipRow(i, boardSize, board);
@@ -258,7 +245,7 @@ function validateHorizontalCoordinate(horizontal) {
 }
 
 function validateVerticalCoordinate(vertical) {
-  return !isNaN(vertical) && +vertical > 0 && +vertical <= configurationService.getConfigForGame("battleShips").boardSize;
+  return !isNaN(vertical) && +vertical > 0 && +vertical <= configurationService.getConfigForGame("battleShips").selectedBoardSize;
 }
 
 function createGameSection(boardSize, board) {
@@ -282,7 +269,7 @@ function createGameSection(boardSize, board) {
       </div>
       <div class="col-md-3 d-flex justify-content-between mt-3">
         <div class="me-3">
-          <label for="battleship-prize-output" class="form-label">Prize (${configurationService.getConfigForGame("battleShips").currency})</label>
+          <label for="battleship-prize-output" class="form-label">Prize (${battleShipsService.getAppliedConfig().currency})</label>
           ${generateTextInput({ id: "battleship-prize-output", disabled: true })}
         </div>
         <div>
