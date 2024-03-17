@@ -40,6 +40,14 @@ function renderBattleshipPage() {
   state.labyrinth = {};
 }
 
+function renderConfigurationPage() {
+  const layout = createConfigurationPageLayout();
+  renderPageContent(layout);
+  addEventListenersToConfigurationPage();
+  setStoredConfigToConfigurationPage();
+  sideMenuActivateElement("Configuration");
+}
+
 function sideMenuActivateElement(value) {
   const li = document.querySelectorAll(`ul.nav a`);
   li.forEach((el) => {

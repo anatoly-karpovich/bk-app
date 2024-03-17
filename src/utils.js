@@ -112,6 +112,21 @@ function enableOrDisableElement(element, enable = true) {
   enable ? element.removeAttribute("disabled") : element.setAttribute("disabled", "");
 }
 
+function enableOrDisableArrayOfElements(elementsArray = [], enable = true) {
+  if (!Array.isArray(elementsArray)) {
+    console.log("ElementsArray is not an array");
+    return;
+  }
+
+  elementsArray.forEach((el) => {
+    enableOrDisableElement(el, enable);
+  });
+}
+
+function showOrHideElement(element, show = true) {
+  show ? element.classList.remove("d-none") : element.classList.add("d-none");
+}
+
 function calculateReceipts(obj) {
   const result = {
     200: 0,
@@ -272,4 +287,18 @@ function getNickNamesFromChatMessages(text, dj) {
     }
   }
   return nickNames;
+}
+
+function generateFormTextInput(options) {
+  return ` <div class="${options.divClasslist}" id="div-${options.id}">
+                <label for="${options.id}" class="form-label">${options.name}</label>
+                <input type="${options.type}" class="${options.classlist}" id="${options.id}" 
+                placeholder="${options.placeholder}" ${options.attributes ? options.attributes : ""}
+                value="${options.value}"> 
+                <div class="invalid-feedback" id=error-${options.id}></div>
+                </div>`;
+}
+
+function getValueFromHTMLElement(id) {
+  return document.getElementById(id).value;
 }

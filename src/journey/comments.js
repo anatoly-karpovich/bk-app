@@ -9,7 +9,7 @@ function setParametersToComment(comment, moveOptions) {
     .replace("(Ник)", `${moveOptions.player.nickname}`)
     .replace("(бонус)", `${Math.abs(moveOptions.cell?.isJackPot ? jackPotPrize : moveOptions.cell?.prize)}`)
     .replace("(разница)", `${moveOptions.prize - moveOptions.previousPrize}`)
-    .replaceAll("(валюта)", `${configuration.currency}`)
+    .replaceAll("(валюта)", `${configurationService.getConfig().labyrinth.currency}`)
     .replace("(приз)", `${moveOptions.player.getFullPrize()}`);
   if (moveOptions.type === MOVE_TYPES.MOVE_TO_ACHIVEMENT) {
     result = result

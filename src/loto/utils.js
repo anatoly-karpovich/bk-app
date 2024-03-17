@@ -2,7 +2,11 @@ function validateLotoNumbersInputs(inputs) {
   let isValid = true;
   for (const input of inputs) {
     const numbers = getNumbersFromString(input.value);
-    if (validateArrayOnNumbersToHaveOnlyNumbersInRange(numbers) && numbers.length === 10 && numbers.length === [...new Set(numbers)].length) {
+    if (
+      validateArrayOnNumbersToHaveOnlyNumbersInRange(numbers) &&
+      numbers.length === configurationService.getConfigForGame("loto").cardNumbersAmount &&
+      numbers.length === [...new Set(numbers)].length
+    ) {
       makeInputInvalidOrValid(input, true);
     } else {
       isValid = false;

@@ -62,7 +62,7 @@ class Game {
     // Game.logger.log(`Jackpot cell: ${this.map.getJackpotCell()}`);
     // this.map.logMap();
 
-    while (this.players.filter((p) => p.getCurrentPosition() < configuration.finishPosition).length) {
+    while (this.players.filter((p) => p.getCurrentPosition() < configurationService.getConfig().labyrinth.finishPosition).length) {
       this.makeMoves(this.generateMoves());
     }
     // this.players.forEach((player) => console.log(`Prize for ${player.nickname}: ${player.getCurrentPrize()}`));
@@ -75,7 +75,7 @@ class Game {
   }
 
   simulateGameResults() {
-    // while (this.players.filter((p) => p.getCurrentPosition() < configuration.finishPosition).length) {
+    // while (this.players.filter((p) => p.getCurrentPosition() < configurationService.getConfig().labyrinth.finishPosition).length) {
     //   this.makeMoves(this.generateMoves());
     // }
     this.simulateGame();
@@ -91,7 +91,7 @@ class Game {
   isGameOver() {
     if (!this.#started) return;
 
-    return this.players.every((p) => p.getCurrentPosition() === configuration.finishPosition);
+    return this.players.every((p) => p.getCurrentPosition() === configurationService.getConfig().labyrinth.finishPosition);
   }
 
   getGameResults() {
@@ -108,17 +108,17 @@ class Game {
       "\n" +
       this.players
         .sort((a, b) => b.getFullPrize() - a.getFullPrize())
-        .map((p) => `Игрок ${p.nickname} получает ${p.getFullPrize()} ${configuration.currency}`)
+        .map((p) => `Игрок ${p.nickname} получает ${p.getFullPrize()} ${configurationService.getConfig().labyrinth.currency}`)
         .join("\n");
     result += "\n" + "\n" + `Всего приняло участия: ${this.players.length} игроков`;
-    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} ${configuration.currency}`;
+    result += "\n" + `Всего игроки вынесли: ${this.getFullPrize()} ${configurationService.getConfig().labyrinth.currency}`;
     return result + "\n" + "\n====================================================\n" + "\n" + generateReceiptsReport(calculateReceipts(gameResults));
   }
 
   getFinishedPlayers() {
     if (!this.#started) return;
 
-    return this.players.filter((p) => p.getCurrentPosition() === configuration.finishPosition);
+    return this.players.filter((p) => p.getCurrentPosition() === configurationService.getConfig().labyrinth.finishPosition);
   }
 
   getFullPrize() {
@@ -136,7 +136,7 @@ class Game {
 }
 
 function dice() {
-  return generateNumberInRange(1, configuration.maxNumberOfSteps);
+  return generateNumberInRange(1, configurationService.getConfig().labyrinth.maxNumberOfSteps);
 }
 
 // const prizesArr = [];

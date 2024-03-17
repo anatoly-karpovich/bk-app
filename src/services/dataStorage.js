@@ -25,7 +25,7 @@ class DataStorageService {
   }
 
   setInitialRouts() {
-    const games = ["loto", "labyrinth", "battleShips"];
+    const games = ["config", "loto", "labyrinth", "battleShips"];
     for (const game of games) {
       const gameData = this.#getValueByKey(game);
       if (!gameData) this.#setValueByKey(game, "{}");

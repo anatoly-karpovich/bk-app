@@ -4,6 +4,11 @@ renderBotanPage();
 const dataStorageService = new DataStorageService();
 dataStorageService.setInitialRouts();
 
+const storedConfig = configurationService.getConfig();
+if (!storedConfig || !Object.keys(storedConfig).length) {
+  configurationService.setConfig(initialConfig);
+}
+
 function sideMenuClickHandler(page) {
   switch (page) {
     case "Home":
@@ -27,6 +32,10 @@ function sideMenuClickHandler(page) {
 
     case "Battleship":
       renderBattleshipPage();
+      break;
+
+    case "Configuration":
+      renderConfigurationPage();
       break;
   }
 }
