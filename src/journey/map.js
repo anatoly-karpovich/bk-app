@@ -10,9 +10,11 @@ class GameMap {
       this.mapJson = mapJson;
     } else {
       this.mapJson = structuredClone(configurationService.getConfig().labyrinth.bonusesArray).reduce((mapObject, bonus) => {
-        const cell = this.getRandomUniqueCell();
-        if (cell) {
-          mapObject[cell] = bonus;
+        for (let i = 0; i < bonus.amount; i++) {
+          const cell = this.getRandomUniqueCell();
+          if (cell) {
+            mapObject[cell] = bonus.cell;
+          }
         }
         return mapObject;
       }, {});

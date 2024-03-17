@@ -57,12 +57,6 @@ function BattleshipsConfigurationComponent(configurationPageOptions) {
             <div class="me-5">
               ${RadioButton({ id: "battleships-config-deck-size-6", label: "6x6 game", attributes: ["disabled", "data-boardSize=6", "name=battleships-config-deck-size", "checked"] })}          
             </div>
-            <div class="me-5">
-              ${RadioButton({ id: "battleships-config-deck-size-7", label: "7x7 game", attributes: ["disabled", "data-boardSize=7", "name=battleships-config-deck-size"] })}          
-            </div>
-            <div class="me-5">
-              ${RadioButton({ id: "battleships-config-deck-size-8", label: "8x8 game", attributes: ["disabled", "data-boardSize=8", "name=battleships-config-deck-size"] })}          
-            </div>
           </div>
           <h5 class="mt-4">Prize for ship kill</h5>
           <div class="d-flex justify-content-start mt-3">

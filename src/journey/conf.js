@@ -1,5 +1,12 @@
 const jackPotPrize = 30;
 const bonusesArray = [
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
   { cellChange: 0, prize: 2 },
   { cellChange: 0, prize: 2 },
   { cellChange: 0, prize: 2 },
@@ -29,19 +36,43 @@ const bonusesArray = [
   { cellChange: 0, prize: -1 },
   { cellChange: 0, prize: -1 },
   { cellChange: 0, prize: -1 },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
-  { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+];
+
+const bonusCells = [
+  {
+    cell: { cellChange: 0, prize: 0, isJackPot: true, winner: null },
+    amount: 7,
+  },
+  {
+    cell: { cellChange: 0, prize: 2 },
+    amount: 12,
+  },
+  {
+    cell: { cellChange: 0, prize: 3 },
+    amount: 5,
+  },
+  {
+    cell: { cellChange: 0, prize: 5 },
+    amount: 2,
+  },
+  {
+    cell: { cellChange: 0, prize: -3 },
+    amount: 2,
+  },
+  {
+    cell: { cellChange: 0, prize: -2 },
+    amount: 4,
+  },
+  {
+    cell: { cellChange: 0, prize: -1 },
+    amount: 4,
+  },
 ];
 
 const configuration = {
   mapSize: 50,
   finishPosition: 51,
-  bonusesArray: bonusesArray,
+  bonusesArray: bonusCells,
   initialCashValue: 15,
   minNumberOfSteps: 1,
   maxNumberOfSteps: 5,

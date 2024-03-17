@@ -55,7 +55,8 @@ function addEventListenersToConfigurationPage() {
 
   document.getElementById("config-battleships-save").addEventListener("click", (event) => {
     event.preventDefault();
-    saveBattleShipsConfig();
+    const isSaved = saveBattleShipsConfig();
+    if (!isSaved) return;
     enableOrDisableBattleshipsConfigFields(false);
     enableOrDisableArrayOfElements(boardSizeRadioButtons, false);
   });
@@ -67,7 +68,8 @@ function addEventListenersToConfigurationPage() {
 
   document.getElementById("battleships-config-deck-size").addEventListener("click", (event) => {
     event.preventDefault();
-    setCheckedAttributeToRadioButtonFromArray(boardSizeRadioButtons, event.target.id);
+    // setCheckedAttributeToRadioButtonFromArray(boardSizeRadioButtons, event.target.id);
+    //TODO: TBD
   });
 }
 
@@ -146,7 +148,19 @@ function saveBattleShipsConfig() {
       },
     },
   };
-  configurationService.setConfigForGame("battleShips", newConfig);
+
+  let isValidShipsConfig;
+  for (let i = 0; i < 10; i++) {
+    const game = new BattleShipsGame({ selectedBoardSize: newConfig.boards });
+    const board = game.startGame();
+    if (!board) {
+      isValidShipsConfig = false;
+      alert("Unable");
+    }
+  }
+
+  if (isValidShipsConfig) configurationService.setConfigForGame("battleShips", newConfig);
+  return isValidShipsConfig;
 }
 
 function saveConfiguration() {
