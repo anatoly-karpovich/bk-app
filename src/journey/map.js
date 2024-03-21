@@ -13,7 +13,7 @@ class GameMap {
         for (let i = 0; i < bonus.amount; i++) {
           const cell = this.getRandomUniqueCell();
           if (cell) {
-            mapObject[cell] = bonus.cell;
+            mapObject[cell] = structuredClone(bonus.cell);
           }
         }
         return mapObject;
