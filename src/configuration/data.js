@@ -241,7 +241,7 @@ const initialConfig = {
     ],
     initialCashValue: 15,
     minNumberOfSteps: 1,
-    maxNumberOfSteps: 5,
+    maxNumberOfSteps: 6,
     maxPrize: 30,
     currency: "фишек",
     jackPotPrize: 30,

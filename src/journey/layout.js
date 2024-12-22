@@ -99,7 +99,9 @@ function addEventListenersToLabyrinthPage() {
 
   addGamePlayersListBtn.addEventListener("click", (event) => {
     event.preventDefault();
-    playersListSection.classList.contains("d-none") ? playersListSection.classList.remove("d-none") : playersListSection.classList.add("d-none");
+    playersListSection.classList.contains("d-none")
+      ? playersListSection.classList.remove("d-none")
+      : playersListSection.classList.add("d-none");
   });
 
   applyGamePlayersList.addEventListener("click", (event) => {
@@ -111,7 +113,9 @@ function addEventListenersToLabyrinthPage() {
 
     const names = getNickNamesFromChatMessages(text, dj);
     for (const name of names) {
-      const inputExists = [...document.querySelectorAll(`[name="playerName"]`)].some((i) => i.value.trim() === name.trim());
+      const inputExists = [...document.querySelectorAll(`[name="playerName"]`)].some(
+        (i) => i.value.trim() === name.trim()
+      );
       if (!inputExists) {
         const id = window.crypto.randomUUID();
         playerNamesContainer.insertAdjacentHTML("beforeend", generateGamePlayerInput(id));
@@ -130,7 +134,9 @@ function addEventListenersToLabyrinthPage() {
         el.parentNode.removeChild(el);
       }
     }
-    validatePlayerInputsValues(playerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
+    validatePlayerInputsValues(playerInputs)
+      ? enableOrDisableElement(startButton, true)
+      : enableOrDisableElement(startButton, false);
   });
 
   playerNamesContainer.addEventListener("click", (event) => {
@@ -142,14 +148,18 @@ function addEventListenersToLabyrinthPage() {
         el.parentNode.removeChild(el);
       }
       const plyerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
-      validatePlayerInputsValues(plyerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
+      validatePlayerInputsValues(plyerInputs)
+        ? enableOrDisableElement(startButton, true)
+        : enableOrDisableElement(startButton, false);
     }
   });
 
   playerNamesContainer.addEventListener("input", (event) => {
     event.preventDefault();
     const plyerInputs = [...document.querySelectorAll(`input[name="playerName"]`)];
-    validatePlayerInputsValues(plyerInputs) ? enableOrDisableElement(startButton, true) : enableOrDisableElement(startButton, false);
+    validatePlayerInputsValues(plyerInputs)
+      ? enableOrDisableElement(startButton, true)
+      : enableOrDisableElement(startButton, false);
   });
 
   startButton.addEventListener("click", function (event) {
@@ -252,7 +262,9 @@ function addEventListenersToLabyrinthPage() {
       const moveInputs = [...document.querySelectorAll(`#player-moves-inputs input`)];
       const moveButton = document.getElementById(moveButtonId);
       const moveInputsNotDisabled = [...document.querySelectorAll(`#player-moves-inputs input:not([disabled])`)];
-      validateMoveInputsValues(moveInputs) ? enableOrDisableElement(moveButton, true) : enableOrDisableElement(moveButton, false);
+      validateMoveInputsValues(moveInputs)
+        ? enableOrDisableElement(moveButton, true)
+        : enableOrDisableElement(moveButton, false);
       if (!moveInputsNotDisabled.length) {
         enableOrDisableElement(moveButton, false);
       }
@@ -265,7 +277,9 @@ function addEventListenersToLabyrinthPage() {
     } else if (event.target.id === "move-parse") {
       event.preventDefault();
       const movesListSection = document.getElementById("moves-list-section");
-      movesListSection.classList.contains("d-none") ? movesListSection.classList.remove("d-none") : movesListSection.classList.add("d-none");
+      movesListSection.classList.contains("d-none")
+        ? movesListSection.classList.remove("d-none")
+        : movesListSection.classList.add("d-none");
     } else if (event.target.id === "apply-players-moves-list-btn") {
       const text = document.getElementById("moves-list-area").value;
       if (!text) return;
@@ -344,12 +358,22 @@ function addEventListenersToLabyrinthPage() {
 
   function generatePlayerMoveInput(playerName) {
     const id = "move-" + playerName;
-    const inputOptions = { nickname: playerName, name: "playerMove", placeholder: "Введите ход цифрой 1-5", min: 1, max: 5, id };
+    const config = configurationService.getConfig().labyrinth;
+    const minMove = config.minNumberOfSteps;
+    const maxMove = config.maxNumberOfSteps;
+    const inputOptions = {
+      nickname: playerName,
+      name: "playerMove",
+      placeholder: `Введите ход цифрой ${minMove}-${maxMove}`,
+      min: minMove,
+      max: maxMove,
+      id,
+    };
     return `
     <div class="d-flex justify-content-between" data-player-move-id="${id}">  
       <div class="col-md-10 mb-3">
         <label for="${id}" class="form-label">Ход ${playerName}</label>
-        ${generateNumberInput(inputOptions, validationErrorMessages.LABYRINTH_MOVE_NUMBER)}         
+        ${generateNumberInput(inputOptions, validationErrorMessages.LABYRINTH_MOVE_NUMBER(minMove, maxMove))}         
       </div>
       <div class="col-md-1 action-icon mt-2">
         <button class="btn btn-link text-primary del-btn-modal" title="Skip players move" name="skip-move-player" data-skip-id="${id}">
@@ -396,7 +420,10 @@ function generateGamePlayerInput(providedId) {
   const id = providedId || window.crypto.randomUUID();
   return `
   <div class="mb-3 d-flex justify-content-between" data-id="${id}">
-    <div class="col-md-11" name="game-player">${generateTextInput({ placeholder: "Enter players nickname", id: id, name: "playerName" }, validationErrorMessages.NICKHANE)}</div>
+    <div class="col-md-11" name="game-player">${generateTextInput(
+      { placeholder: "Enter players nickname", id: id, name: "playerName" },
+      validationErrorMessages.NICKHANE
+    )}</div>
     <div class="col-md-1 delete-in-modal">
       <button class="btn btn-link text-danger del-btn-modal" title="Remove Player" name="delete-game-player" data-delete-id="${id}">
         <i class="bi bi-trash"></i>
@@ -420,7 +447,9 @@ function removeMoveInputByClickingDelete(deleteButton) {
   const deleteButtonsAmount = document.querySelectorAll(`[name="delete-move-player"]`).length;
   const id = deleteButton.getAttribute("data-delete-id");
   const nickName = id.replace("move-", "");
-  const deleteApproved = confirm(deleteButtonsAmount < 2 ? `Are you sure you want to delete the last player ${nickName}?` : `Delete ${nickName}?`);
+  const deleteApproved = confirm(
+    deleteButtonsAmount < 2 ? `Are you sure you want to delete the last player ${nickName}?` : `Delete ${nickName}?`
+  );
   if (deleteApproved) {
     removeMoveInput(nickName);
     state.labyrinth.game.removePlayer(nickName);
@@ -438,7 +467,9 @@ function getGameState(game) {
   return game.players
     .map(
       (p) =>
-        `${p.nickname}: Награда: [${p.getFullPrize()} ${configurationService.getConfig().labyrinth.currency}], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`
+        `${p.nickname}: Награда: [${p.getFullPrize()} ${
+          configurationService.getConfig().labyrinth.currency
+        }], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`
     )
     .join("\n");
 }
@@ -456,9 +487,10 @@ function displayOrHideGameLog(display) {
 function getMovesFromText(inputText) {
   const rows = inputText.split(/\n/);
   return rows
-    .filter((row) => row.trim() !== "" && !row.trim().includes("Ответить")) //
+    .filter((row) => row.trim() !== "" && !row.trim().includes("Ответить") && !row.includes("Страницы:")) //
     .map((row, index) => {
-      return index % 2 ? parseInt(row.match(/\d+/)[0], 10) : row.split(" [")[0];
+      const result = index % 2 ? parseInt(row.match(/\d+/)[0], 10) : row.split(" [")[0];
+      return result;
     })
     .reduce((acc, row, index, arr) => {
       if (index % 2) {
