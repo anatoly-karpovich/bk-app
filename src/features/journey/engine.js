@@ -1,4 +1,13 @@
-import { JOURNEY_ACHIEVEMENTS, JOURNEY_BONUS_CELLS, JOURNEY_CONFIG, MOVE_TYPES, NON_JACKPOT_PRIZES } from "./config";
+import {
+  oldbk2_rules,
+  DEFAULT_JOURNEY_RULESET,
+  getJourneyAchievements,
+  getJourneyBonusCells,
+  getJourneyConfig,
+  getNonJackpotPrizes,
+  MOVE_TYPES,
+  normalizeJourneyRules,
+} from "./config";
 import { buildJourneyComment } from "./commentTemplates";
 
 function clone(value) {
@@ -7,6 +16,10 @@ function clone(value) {
 
 function getNowIso() {
   return new Date().toISOString();
+}
+
+function getGameRules(game) {
+  return normalizeJourneyRules(game?.rules ?? oldbk2_rules);
 }
 
 function generatePlayerId(nickname = "player") {
@@ -33,8 +46,8 @@ function playerHasBonus(player, bonusName) {
   return player.bonuses.some((bonus) => bonus.name === bonusName);
 }
 
-function getAchievementBonus(name) {
-  return Object.values(JOURNEY_ACHIEVEMENTS).find((achievement) => achievement.name === name) ?? null;
+function getAchievementBonus(name, rules = oldbk2_rules) {
+  return Object.values(getJourneyAchievements(rules)).find((achievement) => achievement.name === name) ?? null;
 }
 
 function buildRoundHeader(moveIndex) {
@@ -49,12 +62,12 @@ function isPositiveRewardMove(move) {
   return Boolean(move.cell && move.cell.prize > 0);
 }
 
-function getPlayerStatus(player) {
+function getPlayerStatus(player, finishPosition) {
   if (player.removedAt || player.status === "removed") {
     return "removed";
   }
 
-  if (player.position === JOURNEY_CONFIG.finishPosition) {
+  if (player.position === finishPosition) {
     return "finished";
   }
 
@@ -69,18 +82,23 @@ function indexPlayersById(players) {
 }
 
 function refreshGameIndexes(game, updateTimestamp = true) {
+  const { finishPosition } = getJourneyConfig(getGameRules(game));
+
   game.players.forEach((player) => {
-    player.status = getPlayerStatus(player);
+    player.status = getPlayerStatus(player, finishPosition);
   });
+
   game.playersById = indexPlayersById(game.players);
+
   if (updateTimestamp) {
     game.updatedAt = getNowIso();
   }
+
   return game;
 }
 
-function isCarefulEligibleMove(move) {
-  if (move.currentPosition === JOURNEY_CONFIG.finishPosition || move.type === MOVE_TYPES.JACKPOT) {
+function isCarefulEligibleMove(move, finishPosition) {
+  if (move.currentPosition === finishPosition || move.type === MOVE_TYPES.JACKPOT) {
     return false;
   }
 
@@ -95,7 +113,9 @@ function isCarefulEligibleMove(move) {
   return !move.cell.prize;
 }
 
-function createPlayer(nickname) {
+function createPlayer(nickname, rules) {
+  const { initialPrize } = getJourneyConfig(rules);
+
   return {
     id: generatePlayerId(nickname),
     nickname,
@@ -104,18 +124,19 @@ function createPlayer(nickname) {
     removedReason: null,
     position: 0,
     previousPosition: 0,
-    previousPrize: JOURNEY_CONFIG.initialPrize,
-    prize: JOURNEY_CONFIG.initialPrize,
+    previousPrize: initialPrize,
+    prize: initialPrize,
     bonuses: [],
     movesHistory: [],
   };
 }
 
-function createMap(randomFn = Math.random) {
-  const availableCells = Array.from({ length: JOURNEY_CONFIG.mapSize }, (_, index) => index + 1);
+function createMap(rules, randomFn = Math.random) {
+  const { mapSize } = getJourneyConfig(rules);
+  const availableCells = Array.from({ length: mapSize }, (_, index) => index + 1);
   const gameMap = {};
 
-  JOURNEY_BONUS_CELLS.forEach(({ cell, amount }) => {
+  getJourneyBonusCells(rules).forEach(({ cell, amount }) => {
     for (let index = 0; index < amount; index += 1) {
       const randomCellIndex = randomInteger(0, availableCells.length - 1, randomFn);
       const [position] = availableCells.splice(randomCellIndex, 1);
@@ -126,21 +147,24 @@ function createMap(randomFn = Math.random) {
   return gameMap;
 }
 
-function buildMove(player, dice, gameMap) {
-  if (player.position === JOURNEY_CONFIG.finishPosition) {
+function buildMove(player, dice, gameMap, rules) {
+  const journeyConfig = getJourneyConfig(rules);
+  const hasPrizeLimit = Number.isFinite(journeyConfig.maxPrize);
+
+  if (player.position === journeyConfig.finishPosition) {
     return null;
   }
 
-  const currentPosition = Math.min(player.position + dice, JOURNEY_CONFIG.finishPosition);
+  const currentPosition = Math.min(player.position + dice, journeyConfig.finishPosition);
   const cell = gameMap[currentPosition] ? clone(gameMap[currentPosition]) : null;
   let prize = player.prize;
   let type = MOVE_TYPES.EMPTY;
 
   if (cell && cell.prize) {
-    if (prize < JOURNEY_CONFIG.maxPrize && prize + cell.prize > JOURNEY_CONFIG.maxPrize) {
-      prize = JOURNEY_CONFIG.maxPrize;
+    if (hasPrizeLimit && prize < journeyConfig.maxPrize && prize + cell.prize > journeyConfig.maxPrize) {
+      prize = journeyConfig.maxPrize;
       type = MOVE_TYPES.TO_MAX;
-    } else if (prize + cell.prize > JOURNEY_CONFIG.maxPrize) {
+    } else if (hasPrizeLimit && prize + cell.prize > journeyConfig.maxPrize) {
       type = MOVE_TYPES.AT_MAX;
     } else if (prize >= 0 && prize + cell.prize < 0) {
       prize = 0;
@@ -151,7 +175,7 @@ function buildMove(player, dice, gameMap) {
     }
   }
 
-  if (currentPosition === JOURNEY_CONFIG.finishPosition) {
+  if (currentPosition === journeyConfig.finishPosition) {
     type = MOVE_TYPES.FINISH;
   }
 
@@ -167,11 +191,13 @@ function buildMove(player, dice, gameMap) {
   };
 }
 
-function applyJackpots(game, movesByNickname, randomFn = Math.random) {
+function applyJackpots(game, movesByNickname, rules, randomFn = Math.random) {
+  const journeyAchievements = getJourneyAchievements(rules);
   const jackpotCells = Object.entries(game.map).filter(([, cell]) => cell.isJackpot);
 
   jackpotCells.forEach(([position, cell]) => {
     const movesOnCell = Object.values(movesByNickname).filter((move) => move.currentPosition === Number(position));
+
     if (!movesOnCell.length) {
       return;
     }
@@ -179,7 +205,7 @@ function applyJackpots(game, movesByNickname, randomFn = Math.random) {
     if (!cell.winner) {
       const eligiblePlayers = movesOnCell
         .map((move) => getPlayerByNickname(game, move.playerNickname))
-        .filter((player) => player && !playerHasBonus(player, JOURNEY_ACHIEVEMENTS.JACKPOT.name));
+        .filter((player) => player && !playerHasBonus(player, journeyAchievements.JACKPOT.name));
 
       if (eligiblePlayers.length) {
         const winner = eligiblePlayers[randomInteger(0, eligiblePlayers.length - 1, randomFn)];
@@ -200,37 +226,42 @@ function applyJackpots(game, movesByNickname, randomFn = Math.random) {
   });
 }
 
-function getAchievementMovesForPlayer(player, move) {
+function getAchievementMovesForPlayer(player, move, rules) {
+  const journeyAchievements = getJourneyAchievements(rules);
+  const nonJackpotPrizes = getNonJackpotPrizes(rules);
+  const { finishPosition } = getJourneyConfig(rules);
   const achievementMoves = [];
 
   if (
     player.movesHistory.length >= 2 &&
     player.movesHistory.slice(-2).every((historyMove) => historyMove.cell && historyMove.cell.prize < 0) &&
     isTrapMove(move) &&
-    !playerHasBonus(player, JOURNEY_ACHIEVEMENTS.UNLUCKY.name)
+    !playerHasBonus(player, journeyAchievements.UNLUCKY.name)
   ) {
-    achievementMoves.push(JOURNEY_ACHIEVEMENTS.UNLUCKY);
+    achievementMoves.push(journeyAchievements.UNLUCKY);
   }
 
   if (
     player.movesHistory.length >= 2 &&
-    [...player.movesHistory.slice(-2), move].every((historyMove) => isCarefulEligibleMove(historyMove)) &&
-    !playerHasBonus(player, JOURNEY_ACHIEVEMENTS.CAREFUL.name)
+    [...player.movesHistory.slice(-2), move].every((historyMove) =>
+      isCarefulEligibleMove(historyMove, finishPosition),
+    ) &&
+    !playerHasBonus(player, journeyAchievements.CAREFUL.name)
   ) {
-    achievementMoves.push(JOURNEY_ACHIEVEMENTS.CAREFUL);
+    achievementMoves.push(journeyAchievements.CAREFUL);
   }
 
   if (
-    player.movesHistory.length >= NON_JACKPOT_PRIZES.length - 1 &&
-    !playerHasBonus(player, JOURNEY_ACHIEVEMENTS.COLLECTOR.name)
+    player.movesHistory.length >= nonJackpotPrizes.length - 1 &&
+    !playerHasBonus(player, journeyAchievements.COLLECTOR.name)
   ) {
     const historyWithCurrentMove = [...player.movesHistory, { cell: move.cell }];
-    const hasAllPrizeTypes = NON_JACKPOT_PRIZES.every((prize) =>
+    const hasAllPrizeTypes = nonJackpotPrizes.every((prize) =>
       historyWithCurrentMove.some((historyMove) => historyMove.cell && historyMove.cell.prize === prize),
     );
 
     if (hasAllPrizeTypes) {
-      achievementMoves.push(JOURNEY_ACHIEVEMENTS.COLLECTOR);
+      achievementMoves.push(journeyAchievements.COLLECTOR);
     }
   }
 
@@ -238,9 +269,9 @@ function getAchievementMovesForPlayer(player, move) {
     player.movesHistory.length >= 4 &&
     player.movesHistory.slice(-4).every((historyMove) => historyMove.cell && historyMove.cell.prize > 0) &&
     isPositiveRewardMove(move) &&
-    !playerHasBonus(player, JOURNEY_ACHIEVEMENTS.LUCKY.name)
+    !playerHasBonus(player, journeyAchievements.LUCKY.name)
   ) {
-    achievementMoves.push(JOURNEY_ACHIEVEMENTS.LUCKY);
+    achievementMoves.push(journeyAchievements.LUCKY);
   }
 
   return achievementMoves.map((achievement) => ({
@@ -250,7 +281,7 @@ function getAchievementMovesForPlayer(player, move) {
   }));
 }
 
-function applyMoveToPlayer(player, move) {
+function applyMoveToPlayer(player, move, finishPosition) {
   player.previousPosition = player.position;
   player.previousPrize = player.prize;
   player.position = move.currentPosition;
@@ -260,7 +291,7 @@ function applyMoveToPlayer(player, move) {
     cell: move.cell ? clone(move.cell) : null,
     type: move.type,
   });
-  player.status = getPlayerStatus(player);
+  player.status = getPlayerStatus(player, finishPosition);
 }
 
 function getPlayerFullPrize(player) {
@@ -301,12 +332,14 @@ function createEntriesFromLegacyRound(round, playersByNickname, fallbackCreatedA
     if (!accumulator[achievementMove.playerNickname]) {
       accumulator[achievementMove.playerNickname] = [];
     }
+
     accumulator[achievementMove.playerNickname].push(clone(achievementMove.achievement));
     return accumulator;
   }, {});
 
   const moveEntries = Object.values(movesByNickname).map((move) => {
     const player = playersByNickname[move.playerNickname];
+
     return {
       createdAt: round.createdAt ?? fallbackCreatedAt,
       playerId: player?.id ?? null,
@@ -331,6 +364,7 @@ function createEntriesFromLegacyRound(round, playersByNickname, fallbackCreatedA
 
   const skippedEntries = (round.skippedNicknames ?? []).map((nickname) => {
     const player = playersByNickname[nickname];
+
     return {
       createdAt: round.createdAt ?? fallbackCreatedAt,
       playerId: player?.id ?? null,
@@ -363,24 +397,31 @@ export function normalizeJourneyGame(rawGame) {
   game.createdAt = game.createdAt ?? getNowIso();
   game.updatedAt = game.updatedAt ?? game.createdAt;
   game.status = game.status ?? "in_progress";
+  game.rulesetId = game.rulesetId ?? DEFAULT_JOURNEY_RULESET.id;
+  game.rulesetName = game.rulesetName ?? DEFAULT_JOURNEY_RULESET.name;
+  game.rules = getGameRules(game);
   game.map = game.map ?? {};
   game.comments = game.comments ?? [];
   game.rounds = game.rounds ?? [];
+
+  const { initialPrize, finishPosition } = getJourneyConfig(game.rules);
+
   game.players = (game.players ?? []).map((player, index) => ({
     id: player.id ?? generatePlayerId(player.nickname ?? `player-${index + 1}`),
     nickname: player.nickname,
-    status: player.status ?? getPlayerStatus(player),
+    status: player.status ?? getPlayerStatus(player, finishPosition),
     removedAt: player.removedAt ?? null,
     removedReason: player.removedReason ?? null,
     position: player.position ?? 0,
     previousPosition: player.previousPosition ?? 0,
-    previousPrize: player.previousPrize ?? JOURNEY_CONFIG.initialPrize,
-    prize: player.prize ?? JOURNEY_CONFIG.initialPrize,
+    previousPrize: player.previousPrize ?? initialPrize,
+    prize: player.prize ?? initialPrize,
     bonuses: clone(player.bonuses ?? []),
     movesHistory: clone(player.movesHistory ?? []),
   }));
 
   refreshGameIndexes(game, false);
+
   const playersByNickname = game.players.reduce((accumulator, player) => {
     accumulator[player.nickname] = player;
     return accumulator;
@@ -405,21 +446,35 @@ export function normalizeJourneyGame(rawGame) {
   return game;
 }
 
-export function createJourneyGame(nicknames, randomFn = Math.random) {
+export function createJourneyGame(
+  nicknames,
+  {
+    randomFn = Math.random,
+    rules = oldbk2_rules,
+    rulesetId = DEFAULT_JOURNEY_RULESET.id,
+    rulesetName = DEFAULT_JOURNEY_RULESET.name,
+  } = {},
+) {
   const createdAt = getNowIso();
+  const normalizedRules = normalizeJourneyRules(rules);
+
   const game = {
     createdAt,
     updatedAt: createdAt,
     moveIndex: 0,
     status: "in_progress",
-    map: createMap(randomFn),
+    rulesetId,
+    rulesetName,
+    rules: normalizedRules,
+    map: createMap(normalizedRules, randomFn),
     players: [...new Set(nicknames.map((nickname) => nickname.trim()).filter(Boolean))].map((nickname) =>
-      createPlayer(nickname),
+      createPlayer(nickname, normalizedRules),
     ),
     playersById: {},
     rounds: [],
     comments: [],
   };
+
   return refreshGameIndexes(game, false);
 }
 
@@ -466,6 +521,7 @@ export function calculateReceiptsDistribution(game) {
 
   getJourneyResults(game).forEach((player) => {
     let amount = player.fullPrize;
+
     [200, 100, 50, 20, 10, 5, 1].forEach((receipt) => {
       while (amount - receipt >= 0) {
         result[receipt] += 1;
@@ -488,15 +544,20 @@ function appendJourneyFinalSummary(game) {
 
   const results = getJourneyResults(game);
   const receipts = calculateReceiptsDistribution(game);
+  const { currency } = getJourneyConfig(getGameRules(game));
+
   const finalComments = [
     "==================== Итоги ====================",
     ...results.map(
       (player, index) =>
-        `${index + 1}. ${player.nickname} — ${player.fullPrize} ${JOURNEY_CONFIG.currency} (база: ${player.prize}, бонусы: ${
+        `${index + 1}. ${player.nickname} — ${player.fullPrize} ${currency} (база: ${player.prize}, бонусы: ${
           player.fullPrize - player.prize
         })`,
     ),
     `Финишировали: ${getJourneyFinishedPlayers(game).length}`,
+    `Размен чеков: ${Object.entries(receipts)
+      .map(([amount, count]) => `${amount}: ${count}`)
+      .join(", ")}`,
   ];
 
   game.comments.push(...finalComments);
@@ -505,7 +566,10 @@ function appendJourneyFinalSummary(game) {
 
 export function removeJourneyPlayer(game, nickname) {
   const nextGame = clone(game);
+  nextGame.rules = getGameRules(nextGame);
+
   const player = getPlayerByNickname(nextGame, nickname);
+
   if (!player || player.status === "removed") {
     return nextGame;
   }
@@ -514,16 +578,23 @@ export function removeJourneyPlayer(game, nickname) {
   player.removedAt = getNowIso();
   player.removedReason = "manual";
   nextGame.comments = [...nextGame.comments, `Игрок ${nickname} удалён из текущей партии.`];
+
   if (isJourneyGameOver(nextGame)) {
     nextGame.status = "finished";
     appendJourneyFinalSummary(nextGame);
   }
+
   return refreshGameIndexes(nextGame);
 }
 
 export function makeJourneyRound(game, inputMoves, skippedNicknames = [], randomFn = Math.random) {
   const nextGame = clone(game);
+  nextGame.rules = getGameRules(nextGame);
+
+  const journeyAchievements = getJourneyAchievements(nextGame.rules);
+  const { finishPosition } = getJourneyConfig(nextGame.rules);
   const activePlayers = getJourneyActivePlayers(nextGame);
+
   if (!activePlayers.length) {
     nextGame.status = "finished";
     appendJourneyFinalSummary(nextGame);
@@ -537,38 +608,42 @@ export function makeJourneyRound(game, inputMoves, skippedNicknames = [], random
 
   inputMoves.forEach(({ nickname, dice }) => {
     const player = getPlayerByNickname(nextGame, nickname);
+
     if (!player || player.status !== "active") {
       return;
     }
 
-    const move = buildMove(player, dice, nextGame.map);
+    const move = buildMove(player, dice, nextGame.map, nextGame.rules);
+
     if (move) {
       movesByNickname[nickname] = move;
     }
   });
 
-  applyJackpots(nextGame, movesByNickname, randomFn);
+  applyJackpots(nextGame, movesByNickname, nextGame.rules, randomFn);
 
   const achievementMoves = [];
+
   Object.values(movesByNickname).forEach((move) => {
     const player = getPlayerByNickname(nextGame, move.playerNickname);
-    achievementMoves.push(...getAchievementMovesForPlayer(player, move));
+    achievementMoves.push(...getAchievementMovesForPlayer(player, move, nextGame.rules));
   });
 
   const achievementMovesByNickname = achievementMoves.reduce((accumulator, achievementMove) => {
     if (!accumulator[achievementMove.playerNickname]) {
       accumulator[achievementMove.playerNickname] = [];
     }
+
     accumulator[achievementMove.playerNickname].push(clone(achievementMove.achievement));
     return accumulator;
   }, {});
 
   Object.values(movesByNickname).forEach((move) => {
     const player = getPlayerByNickname(nextGame, move.playerNickname);
-    applyMoveToPlayer(player, move);
+    applyMoveToPlayer(player, move, finishPosition);
 
     if (move.type === MOVE_TYPES.JACKPOT) {
-      player.bonuses.push(clone(JOURNEY_ACHIEVEMENTS.JACKPOT));
+      player.bonuses.push(clone(journeyAchievements.JACKPOT));
     }
 
     achievementMoves
@@ -594,14 +669,22 @@ export function makeJourneyRound(game, inputMoves, skippedNicknames = [], random
   });
 
   const roundComments = [buildRoundHeader(nextGame.moveIndex)];
+
   Object.values(movesByNickname).forEach((move) => {
     const player = getPlayerByNickname(nextGame, move.playerNickname);
-    roundComments.push(buildJourneyComment({ move, player, randomFn }));
+    roundComments.push(buildJourneyComment({ move, player, rules: nextGame.rules, randomFn }));
   });
 
   achievementMoves.forEach((achievementMove) => {
     const player = getPlayerByNickname(nextGame, achievementMove.playerNickname);
-    roundComments.push(buildJourneyComment({ achievement: achievementMove.achievement, player, randomFn }));
+    roundComments.push(
+      buildJourneyComment({
+        achievement: achievementMove.achievement,
+        player,
+        rules: nextGame.rules,
+        randomFn,
+      }),
+    );
   });
 
   skippedNicknames.forEach((nickname) => {
@@ -634,12 +717,15 @@ export function getJourneyCellLabel(cell) {
   if (!cell) {
     return "Пусто";
   }
+
   if (cell.isJackpot) {
     return "Сокровище";
   }
+
   if (cell.prize > 0) {
     return `Бонус +${cell.prize}`;
   }
+
   return `Ловушка ${cell.prize}`;
 }
 
@@ -666,8 +752,8 @@ export function getJourneyMoveTypeLabel(type) {
   }
 }
 
-export function getAchievementMetadata(name) {
-  return getAchievementBonus(name);
+export function getAchievementMetadata(name, rules = oldbk2_rules) {
+  return getAchievementBonus(name, rules);
 }
 
 export function getJourneyPlayerTimeline(game, playerIdOrNickname) {

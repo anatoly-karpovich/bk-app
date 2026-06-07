@@ -1,12 +1,19 @@
 import { AppBar, Box, Button, Container, Stack, Toolbar, Typography } from "@mui/material";
-import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
+import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
   {
     label: "Карта Мародёров",
     to: "/journey",
+    icon: <TravelExploreRoundedIcon />,
+  },
+  {
+    label: "Наборы правил",
+    to: "/journey/config",
+    icon: <SettingsRoundedIcon />,
   },
 ];
 
@@ -43,7 +50,7 @@ export default function AppHeader() {
                 component={NavLink}
                 to={item.to}
                 color="inherit"
-                startIcon={<TravelExploreRoundedIcon />}
+                startIcon={item.icon}
                 sx={{
                   px: 2,
                   fontWeight: 600,

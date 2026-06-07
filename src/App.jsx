@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
 import JourneyPage from "./features/journey/JourneyPage";
+import JourneyRulesetsPage from "./features/journey/JourneyRulesetsPage";
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/journey" replace />} />
           <Route path="/journey" element={<JourneyPage />} />
+          <Route path="/journey/config" element={<JourneyRulesetsPage />} />
         </Routes>
       </Container>
     </Box>

@@ -1,4 +1,4 @@
-import { JOURNEY_ACHIEVEMENTS, JOURNEY_CONFIG, MOVE_TYPES } from "./config";
+﻿import { getJourneyAchievements, getJourneyConfig, MOVE_TYPES } from "./config";
 
 function randomFrom(array, randomFn = Math.random) {
   const index = Math.floor(randomFn() * array.length);
@@ -63,21 +63,23 @@ const achievementTemplates = [
   'Игрок {nickname} получает достижение "{achievement}" за {description}. Награда: {bonus} {currency} [{fullPrize} {currency}]',
 ];
 
-export function buildJourneyComment({ move, player, achievement, randomFn = Math.random }) {
+export function buildJourneyComment({ move, player, achievement, rules, randomFn = Math.random }) {
+  const journeyConfig = getJourneyConfig(rules);
+  const journeyAchievements = getJourneyAchievements(rules);
+
   if (move) {
     const templates = moveTemplates[move.type] ?? moveTemplates[MOVE_TYPES.EMPTY];
     return interpolate(randomFrom(templates, randomFn), {
       nickname: player.nickname,
-      bonus: Math.abs(move.cell?.isJackpot ? JOURNEY_CONFIG.jackpotPrize : move.cell?.prize ?? 0),
+      bonus: Math.abs(move.cell?.isJackpot ? journeyConfig.jackpotPrize : move.cell?.prize ?? 0),
       difference: move.prize - move.previousPrize,
       differenceAbs: Math.abs(move.prize - move.previousPrize),
       fullPrize: player.prize + player.bonuses.reduce((sum, bonus) => sum + bonus.prize, 0),
-      currency: JOURNEY_CONFIG.currency,
+      currency: journeyConfig.currency,
     });
   }
 
-  const achievementMeta =
-    achievement && Object.values(JOURNEY_ACHIEVEMENTS).find((item) => item.name === achievement.name);
+  const achievementMeta = achievement && Object.values(journeyAchievements).find((item) => item.name === achievement.name);
 
   return interpolate(randomFrom(achievementTemplates, randomFn), {
     nickname: player.nickname,
@@ -85,7 +87,6 @@ export function buildJourneyComment({ move, player, achievement, randomFn = Math
     description: achievementMeta?.description ?? "",
     bonus: achievementMeta?.prize ?? achievement?.prize ?? 0,
     fullPrize: player.prize + player.bonuses.reduce((sum, bonus) => sum + bonus.prize, 0),
-    currency: JOURNEY_CONFIG.currency,
+    currency: journeyConfig.currency,
   });
 }
-
