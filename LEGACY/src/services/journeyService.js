@@ -3,6 +3,17 @@ class JourneyService {
     this.dataStorageService = new dataStorageService();
   }
 
+  #createEmptyGame() {
+    return {
+      game: {
+        moves: {},
+        players: [],
+        map: {},
+        comments: [],
+      },
+    };
+  }
+
   startGame(players, map) {
     const game = {
       players: players,
@@ -54,8 +65,7 @@ class JourneyService {
   #getGameData() {
     let storedGame = this.dataStorageService.getGameData("labyrinth");
     if (!storedGame || !storedGame.game || storedGame.game === "{}") {
-      storedGame = {};
-      storedGame.game = { moves: {}, players: [], map: {} };
+      storedGame = this.#createEmptyGame();
     }
     return storedGame;
   }
@@ -71,10 +81,7 @@ class JourneyService {
   }
 
   deleteGame() {
-    const storedGame = this.getGame();
-    if (!storedGame || !storedGame.game) return;
-    storedGame.game = {};
-    this.dataStorageService.setGameData("labyrinth", JSON.stringify(storedGame));
+    this.dataStorageService.setGameData("labyrinth", JSON.stringify(this.#createEmptyGame()));
   }
 }
 

@@ -56,10 +56,9 @@ class AchievementsService {
       return;
     }
     const moves = [...structuredClone(move.player.movesHistory), { cell: move.cell }];
-    const shoudAchive =
-      uniqueCells.every((cell) => {
-        return moves.some((el) => el.cell && el.cell.prize === cell.prize);
-      }) && moves.some((el) => !el.cell);
+    const shoudAchive = uniqueCells.every((cell) => {
+      return moves.some((el) => el.cell && el.cell.prize === cell.prize);
+    });
     if (shoudAchive && !move.player.getBonusByName(this.bonuses.COLLECTOR.name)) {
       this.newBonusesForPlayer.push({ achivement: this.bonuses.COLLECTOR, type: MOVE_TYPES.MOVE_TO_ACHIVEMENT, player: move.player });
     }

@@ -8,15 +8,13 @@ class MovesController {
   }
 
   makeMoves(moves, moveIndex) {
+    this.moveIndex = moveIndex;
     try {
-      this.moveIndex = moveIndex;
       this.handleMoves(moves);
       this.handleJackpot();
       this.handleAchievements();
       this.applyMoves();
       this.logMoves();
-    } catch (e) {
-      console.log(e);
     } finally {
       this.clearMove();
     }
@@ -25,6 +23,9 @@ class MovesController {
   handleMoves(moves) {
     moves.forEach((playerMove) => {
       const move = this.movesService.handleMove(playerMove.player, playerMove.dice);
+      if (!move) {
+        return;
+      }
       this.#getMoveLogElementByPlayerNickname(move.player.nickname).push(move);
     });
   }

@@ -37,7 +37,7 @@ class Game {
     Game.moveIndex = Object.keys(gameLog.moves).length;
     const lastMove = gameLog.moves[Object.keys(gameLog.moves).at(-1)];
     if (!lastMove) {
-      this.players = this.#createPlayers(gameLog.players);
+      this.#createPlayers(gameLog.players);
     } else {
       const playersFromStorage = Object.values(lastMove).map((m) => m.player);
       this.players = playersFromStorage.map((player) => new Player(player.nickname, player));

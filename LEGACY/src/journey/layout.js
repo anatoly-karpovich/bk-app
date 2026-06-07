@@ -82,13 +82,16 @@ function addEventListenersToLabyrinthPage() {
 
   restartGameButton.addEventListener("click", (event) => {
     event.preventDefault();
+    journeyService.deleteGame();
     state.labyrinth.game = {};
     enableOrDisablePlayersNamesSection(true);
     gameLog.value = "";
     gameMap.value = "";
+    gameState.value = "";
     removePlayerMovesSection();
     playerNamesContainer.innerHTML = generateGamePlayerInput();
     displayOrHideGameLog(false);
+    enableOrDisableElement(restoreButton, false);
   });
 
   addGamePlayer.addEventListener("click", (event) => {
