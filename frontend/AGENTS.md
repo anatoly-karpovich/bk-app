@@ -27,20 +27,22 @@ When editing this app, optimize for:
 - MUI 5
 - Emotion
 - Vite 5
+- TypeScript
 - Browser storage via `localStorage`
 
 Entry points:
 
-- [src/main.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/main.jsx:1)
-- [src/App.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.jsx:1)
+- [src/main.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/main.tsx:1)
+- [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:1)
 
 Build commands:
 
 - `npm run dev`
 - `npm run build`
 - `npm run preview`
+- `npm run typecheck`
 
-Use `npm run build` as the minimum verification step after meaningful changes.
+Use `npm run build` and `npm run typecheck` as the minimum verification step after meaningful changes.
 
 ---
 
@@ -48,10 +50,10 @@ Use `npm run build` as the minimum verification step after meaningful changes.
 
 ### Shell and App Structure
 
-- [src/main.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/main.jsx:1)
+- [src/main.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/main.tsx:1)
   Mounts React, `ThemeProvider`, `CssBaseline`, and `BrowserRouter`.
 
-- [src/App.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.jsx:1)
+- [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:1)
   Owns app-level state that must be shared across routes:
   - DJ name
   - available journey rulesets
@@ -65,7 +67,7 @@ Use `npm run build` as the minimum verification step after meaningful changes.
 
 ### Theme and Design System
 
-- [src/theme.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/theme.js:1)
+- [src/theme.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/theme.ts:1)
   Single source of truth for:
   - palette
   - typography
@@ -74,16 +76,16 @@ Use `npm run build` as the minimum verification step after meaningful changes.
 
 ### Shared UI Components
 
-- [src/components/ui/AppTextInput.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppTextInput.jsx:1)
-- [src/components/ui/AppChip.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppChip.jsx:1)
-- [src/components/ui/AppPillButton.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppPillButton.jsx:1)
-- [src/components/ui/AppBreadcrumbs.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppBreadcrumbs.jsx:1)
+- [src/components/ui/AppTextInput.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppTextInput.tsx:1)
+- [src/components/ui/AppChip.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppChip.tsx:1)
+- [src/components/ui/AppPillButton.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppPillButton.tsx:1)
+- [src/components/ui/AppBreadcrumbs.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppBreadcrumbs.tsx:1)
 
 These are the preferred primitives for repeated UI patterns in this app.
 
 ### Global Header
 
-- [src/components/AppHeader.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/AppHeader.jsx:1)
+- [src/components/AppHeader.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/AppHeader.tsx:1)
 
 Responsibilities:
 
@@ -95,31 +97,31 @@ Responsibilities:
 
 ### Journey Feature
 
-- [src/features/journey/JourneyPage.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyPage.jsx:1)
+- [src/features/journey/JourneyPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyPage.tsx:1)
   Main operator screen.
 
-- [src/features/journey/JourneyRulesetsPage.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyRulesetsPage.jsx:1)
+- [src/features/journey/JourneyRulesetsPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyRulesetsPage.tsx:1)
   Transitional config page for rulesets. Still active, but conceptually moving toward a global config screen.
 
-- [src/features/journey/engine.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.js:1)
+- [src/features/journey/engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:1)
   Core game engine. This is the most sensitive file in the frontend.
 
-- [src/features/journey/config.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/config.js:1)
+- [src/features/journey/config.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/config.ts:1)
   Built-in rulesets, normalization, config derivation, achievements metadata.
 
-- [src/features/journey/storage.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.js:1)
+- [src/features/journey/storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.ts:1)
   `localStorage` boundary for game snapshots and rulesets.
 
-- [src/features/journey/parsers.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/parsers.js:1)
+- [src/features/journey/parsers.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/parsers.ts:1)
   Forum text parsing for players and moves.
 
-- [src/features/journey/commentTemplates.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/commentTemplates.js:1)
+- [src/features/journey/commentTemplates.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/commentTemplates.ts:1)
   Comment/log text generation support.
 
 ### Text Dictionaries
 
-- [src/texts/appHeaderTexts.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/texts/appHeaderTexts.js:1)
-- [src/texts/journeyTexts.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/texts/journeyTexts.js:1)
+- [src/texts/appHeaderTexts.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/texts/appHeaderTexts.ts:1)
+- [src/texts/journeyTexts.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/texts/journeyTexts.ts:1)
 
 Prefer adding/editing UI copy here instead of hardcoding strings in JSX.
 
@@ -127,7 +129,7 @@ Prefer adding/editing UI copy here instead of hardcoding strings in JSX.
 
 ## Routing
 
-Current routes in [src/App.jsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.jsx:65):
+Current routes in [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:65):
 
 - `/` -> redirects to `/journey`
 - `/journey` -> main game page
@@ -189,12 +191,12 @@ This behavior is encoded in the current architecture. Do not break it.
 
 ## Storage Model
 
-Storage keys in [storage.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.js:1):
+Storage keys in [storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.ts:1):
 
 - `combats-dj:journey`
 - `combats-dj:journey:rulesets`
 - `combats-dj:journey:default-ruleset-id`
-- `combats-dj:dj-name` is managed in `App.jsx`
+- `combats-dj:dj-name` is managed in `App.tsx`
 
 Important behaviors:
 
@@ -223,7 +225,7 @@ The domain is centered around:
 - map cells
 - achievements
 
-Important engine exports in [engine.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.js:391):
+Important engine exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:391):
 
 - `normalizeJourneyGame`
 - `createJourneyGame`
@@ -254,7 +256,7 @@ Guidance:
 
 Use `theme.customRadii.*` for component-level radius decisions.
 
-Available semantic radii in [theme.js](/abs/path/C:/Users/anato/git/bk-app/frontend/src/theme.js:3):
+Available semantic radii in [theme.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/theme.ts:3):
 
 - `xs`
 - `sm`
@@ -443,7 +445,7 @@ Keep that separation unless product explicitly changes it.
 
 ### If You Change Visual Styling
 
-1. check `theme.js`
+1. check `theme.ts`
 2. check if a shared UI component should absorb the change
 3. only then update page-specific `sx`
 
@@ -455,7 +457,7 @@ Keep that separation unless product explicitly changes it.
 
 ### If You Change Game Rules
 
-1. update `config.js` and/or `engine.js`
+1. update `config.ts` and/or `engine.ts`
 2. verify derived UI still makes sense
 3. verify storage normalization still works
 4. run `npm run build`
@@ -470,8 +472,8 @@ Keep that separation unless product explicitly changes it.
 
 Minimum expected surfaces:
 
-1. route in `App.jsx`
-2. nav item in `AppHeader.jsx`
+1. route in `App.tsx`
+2. nav item in `AppHeader.tsx`
 3. page-level text dictionary
 4. feature folder under `src/features/<game>`
 5. clear separation between engine/config/storage/ui
@@ -501,6 +503,7 @@ When editing these areas:
 After meaningful edits, check:
 
 1. `npm run build`
+2. `npm run typecheck`
 2. no accidental raw numeric `borderRadius` in `sx` where px semantics matter
 3. no duplicated product copy in JSX if the screen already uses `src/texts`
 4. no game-rule logic duplicated outside `engine.js`
@@ -525,4 +528,3 @@ Don’t:
 - add raw numeric `borderRadius` casually in `sx`
 - mutate game logic directly in the view layer
 - make existing games depend on future backend assumptions
-

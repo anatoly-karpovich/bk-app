@@ -4,6 +4,7 @@ import { Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
 import JourneyPage from "./features/journey/JourneyPage";
 import JourneyRulesetsPage from "./features/journey/JourneyRulesetsPage";
+import type { JourneyRulesetState } from "./features/journey/types";
 import {
   loadDefaultJourneyRulesetId,
   loadJourneyRulesets,
@@ -14,7 +15,7 @@ const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
 
 export default function App() {
   const [djName, setDjName] = useState(() => localStorage.getItem(DJ_NAME_STORAGE_KEY) ?? "");
-  const [journeyRulesetsState, setJourneyRulesetsState] = useState(() => ({
+  const [journeyRulesetsState, setJourneyRulesetsState] = useState<JourneyRulesetState>(() => ({
     rulesets: loadJourneyRulesets(),
     defaultRulesetId: loadDefaultJourneyRulesetId(),
   }));
@@ -31,7 +32,7 @@ export default function App() {
   }, []);
 
   const handleDefaultRulesetChange = useCallback(
-    (nextRulesetId) => {
+    (nextRulesetId: string) => {
       saveDefaultJourneyRulesetId(nextRulesetId);
       refreshJourneyRulesets();
     },
@@ -41,7 +42,7 @@ export default function App() {
   const defaultJourneyRuleset = useMemo(
     () =>
       journeyRulesetsState.rulesets.find((ruleset) => ruleset.id === journeyRulesetsState.defaultRulesetId) ??
-      journeyRulesetsState.rulesets[0],
+      journeyRulesetsState.rulesets[0]!,
     [journeyRulesetsState.defaultRulesetId, journeyRulesetsState.rulesets],
   );
 

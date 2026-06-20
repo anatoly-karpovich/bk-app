@@ -1,11 +1,12 @@
-﻿import { getJourneyAchievements, getJourneyConfig, MOVE_TYPES } from "./config";
+import { getJourneyAchievements, getJourneyConfig, MOVE_TYPES } from "./config";
+import type { JourneyAchievement, JourneyMove, JourneyPlayer, JourneyRules, RandomFn } from "./types";
 
-function randomFrom(array, randomFn = Math.random) {
+function randomFrom<T>(array: T[], randomFn: RandomFn = Math.random): T {
   const index = Math.floor(randomFn() * array.length);
   return array[index];
 }
 
-function interpolate(template, values) {
+function interpolate(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), template);
 }
 
@@ -15,7 +16,7 @@ const moveTemplates = {
     "{nickname} протёр уставшие глаза, но кроме паутины ничего не обнаружил [{fullPrize} {currency}]",
     "На клетке подозрительно тихо. Для {nickname} тут сегодня пусто [{fullPrize} {currency}]",
     "{nickname} заглянул в каждый угол, но нашёл только стены [{fullPrize} {currency}]",
-    "{nickname} ощутил лишь пустоту — даже шорохов не было слышно [{fullPrize} {currency}]",
+    "{nickname} ощутил лишь пустоту - даже шорохов не было слышно [{fullPrize} {currency}]",
   ],
   [MOVE_TYPES.INCREASE]: [
     "{nickname} нашёл чек на {bonus} {currency} [{fullPrize} {currency}]",
@@ -63,7 +64,21 @@ const achievementTemplates = [
   'Игрок {nickname} получает достижение "{achievement}" за {description}. Награда: {bonus} {currency} [{fullPrize} {currency}]',
 ];
 
-export function buildJourneyComment({ move, player, achievement, rules, randomFn = Math.random }) {
+interface BuildJourneyCommentArgs {
+  move?: JourneyMove;
+  player: JourneyPlayer;
+  achievement?: JourneyAchievement;
+  rules: JourneyRules;
+  randomFn?: RandomFn;
+}
+
+export function buildJourneyComment({
+  move,
+  player,
+  achievement,
+  rules,
+  randomFn = Math.random,
+}: BuildJourneyCommentArgs): string {
   const journeyConfig = getJourneyConfig(rules);
   const journeyAchievements = getJourneyAchievements(rules);
 

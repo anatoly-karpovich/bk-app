@@ -27,6 +27,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import type { ChipProps } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -61,22 +62,35 @@ import AppBreadcrumbs from "../../components/ui/AppBreadcrumbs";
 import AppChip from "../../components/ui/AppChip";
 import AppPillButton from "../../components/ui/AppPillButton";
 import AppTextInput from "../../components/ui/AppTextInput";
+import type {
+  JourneyAchievement,
+  JourneyAchievementsMap,
+  JourneyConfig,
+  JourneyGame,
+  JourneyMapCell,
+  JourneyMoveInputs,
+  JourneyPlayer,
+  JourneyReceiptsDistribution,
+  JourneyRuleset,
+  JourneySkippedPlayers,
+  JourneyTimelineEntry,
+} from "./types";
 
-function createEmptyMoveState(players = []) {
-  return players.reduce((accumulator, player) => {
+function createEmptyMoveState(players: JourneyPlayer[] = []): JourneyMoveInputs {
+  return players.reduce<JourneyMoveInputs>((accumulator, player) => {
     accumulator[player.nickname] = "";
     return accumulator;
   }, {});
 }
 
-function createEmptySkipState(players = []) {
-  return players.reduce((accumulator, player) => {
+function createEmptySkipState(players: JourneyPlayer[] = []): JourneySkippedPlayers {
+  return players.reduce<JourneySkippedPlayers>((accumulator, player) => {
     accumulator[player.nickname] = false;
     return accumulator;
   }, {});
 }
 
-function getPlayerNameErrors(playerNames) {
+function getPlayerNameErrors(playerNames: string[]): string[] {
   const normalizedNames = playerNames.map((name) => name.trim());
 
   return playerNames.map((name, index) => {
@@ -92,20 +106,20 @@ function getPlayerNameErrors(playerNames) {
   });
 }
 
-function isValidDiceValue(value, journeyConfig) {
+function isValidDiceValue(value: string, journeyConfig: JourneyConfig): boolean {
   const dice = Number(value);
   return Number.isInteger(dice) && dice >= journeyConfig.minDice && dice <= journeyConfig.maxDice;
 }
 
-function isTrapProgressEntry(entry) {
+function isTrapProgressEntry(entry: JourneyTimelineEntry): boolean {
   return !entry.skipped && entry.cell && entry.cell.prize < 0;
 }
 
-function isLuckyProgressEntry(entry) {
+function isLuckyProgressEntry(entry: JourneyTimelineEntry): boolean {
   return !entry.skipped && entry.cell && entry.cell.prize > 0;
 }
 
-function getBestStreak(entries, predicate) {
+function getBestStreak(entries: JourneyTimelineEntry[], predicate: (entry: JourneyTimelineEntry) => boolean): number {
   let current = 0;
   let best = 0;
 
@@ -121,7 +135,7 @@ function getBestStreak(entries, predicate) {
   return best;
 }
 
-function getCurrentStreak(entries, predicate) {
+function getCurrentStreak(entries: JourneyTimelineEntry[], predicate: (entry: JourneyTimelineEntry) => boolean): number {
   let current = 0;
 
   [...entries].reverse().some((entry) => {
@@ -136,11 +150,19 @@ function getCurrentStreak(entries, predicate) {
   return current;
 }
 
-function getPrizeBadgeLabel(prize) {
+function getPrizeBadgeLabel(prize: number): string {
   return prize > 0 ? `+${prize}` : `${prize}`;
 }
 
-function JourneyRulesSummary({ journeyConfig, journeyAchievements }) {
+function JourneyRulesSummary({
+  journeyConfig,
+  journeyAchievements,
+}: {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+}) {
+  const achievementList = Object.values(journeyAchievements) as JourneyAchievement[];
+
   return (
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -158,7 +180,7 @@ function JourneyRulesSummary({ journeyConfig, journeyAchievements }) {
       <Divider />
 
       <Stack spacing={1.25}>
-        {Object.values(journeyAchievements)
+        {achievementList
           .filter((achievement) => achievement.name !== journeyAchievements.JACKPOT.name)
           .map((achievement) => (
             <Box key={achievement.name}>
@@ -175,19 +197,36 @@ function JourneyRulesSummary({ journeyConfig, journeyAchievements }) {
   );
 }
 
-export default function JourneyPage({ djName, defaultRuleset }) {
-  const [game, setGame] = useState(null);
+interface JourneyPageProps {
+  djName: string;
+  defaultRuleset: JourneyRuleset;
+}
+
+interface HoveredCellState {
+  anchorEl: HTMLElement;
+  cellIndex: number;
+  cell: JourneyMapCell | null;
+  playersOnCell: JourneyPlayer[];
+}
+
+type StatusChip = {
+  label: string;
+  color?: ChipProps["color"];
+};
+
+export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps) {
+  const [game, setGame] = useState<JourneyGame | null>(null);
   const [playerNames, setPlayerNames] = useState([""]);
   const [playersImportText, setPlayersImportText] = useState("");
   const [movesImportText, setMovesImportText] = useState("");
-  const [moveInputs, setMoveInputs] = useState({});
-  const [skippedPlayers, setSkippedPlayers] = useState({});
+  const [moveInputs, setMoveInputs] = useState<JourneyMoveInputs>({});
+  const [skippedPlayers, setSkippedPlayers] = useState<JourneySkippedPlayers>({});
   const [savedGameAvailable, setSavedGameAvailable] = useState(hasStoredJourneyGame());
-  const [hoveredCell, setHoveredCell] = useState(null);
+  const [hoveredCell, setHoveredCell] = useState<HoveredCellState | null>(null);
   const [playersImportOpen, setPlayersImportOpen] = useState(false);
   const [movesImportOpen, setMovesImportOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
-  const [expandedPlayerId, setExpandedPlayerId] = useState(null);
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!game) {
@@ -208,7 +247,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
   const activePlayers = useMemo(() => (game ? getJourneyActivePlayers(game) : []), [game]);
   const finishedPlayers = useMemo(() => (game ? getJourneyFinishedPlayers(game) : []), [game]);
   const results = useMemo(() => (game ? getJourneyResults(game) : []), [game]);
-  const receipts = useMemo(() => (game ? calculateReceiptsDistribution(game) : null), [game]);
+  const receipts = useMemo<JourneyReceiptsDistribution | null>(() => (game ? calculateReceiptsDistribution(game) : null), [game]);
   const gameIsOver = game ? isJourneyGameOver(game) : false;
   const activeGame = Boolean(game && !gameIsOver);
   const totalGamePlayers = useMemo(
@@ -229,7 +268,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     return activeMovePlayers.every((player) => isValidDiceValue(moveInputs[player.nickname], journeyConfig));
   }, [activePlayers, journeyConfig, moveInputs, skippedPlayers]);
 
-  const playerTimelines = useMemo(() => {
+  const playerTimelines = useMemo<Record<string, JourneyTimelineEntry[]>>(() => {
     if (!game) {
       return {};
     }
@@ -247,8 +286,8 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     }, {});
   }, [game]);
 
-  const pageStatusChips = useMemo(() => {
-    const rulesetLabel = {
+  const pageStatusChips = useMemo<StatusChip[]>(() => {
+    const rulesetLabel: StatusChip = {
       label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.rulesetName : defaultRuleset.name}`,
       color: "secondary",
     };
@@ -257,8 +296,11 @@ export default function JourneyPage({ djName, defaultRuleset }) {
       return [{ label: journeyTexts.statuses.notStarted, color: "default" }, rulesetLabel];
     }
 
-    const chips = [
-      { label: gameIsOver ? journeyTexts.statuses.complete : journeyTexts.statuses.active, color: gameIsOver ? "success" : "default" },
+    const chips: StatusChip[] = [
+      {
+        label: gameIsOver ? journeyTexts.statuses.complete : journeyTexts.statuses.active,
+        color: gameIsOver ? "success" : "default",
+      },
       rulesetLabel,
     ];
 
@@ -340,14 +382,14 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     });
   }
 
-  function handleMoveInputChange(nickname, value) {
+  function handleMoveInputChange(nickname: string, value: string) {
     setMoveInputs((current) => ({
       ...current,
       [nickname]: value,
     }));
   }
 
-  function handleSkipToggle(nickname) {
+  function handleSkipToggle(nickname: string) {
     setSkippedPlayers((current) => ({
       ...current,
       [nickname]: !current[nickname],
@@ -382,7 +424,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     resetRoundUi(getJourneyActivePlayers(nextGame));
   }
 
-  function handleRemovePlayerFromGame(nickname) {
+  function handleRemovePlayerFromGame(nickname: string) {
     const nextGame = removeJourneyPlayer(game, nickname);
     setGame(nextGame);
 
@@ -399,7 +441,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     });
   }
 
-  function getPlayersOnCell(index) {
+  function getPlayersOnCell(index: number): JourneyPlayer[] {
     if (!game) {
       return [];
     }
@@ -407,7 +449,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     return getJourneyVisiblePlayers(game).filter((player) => player.position === index);
   }
 
-  function getCompactCellLabel(cell) {
+  function getCompactCellLabel(cell: JourneyMapCell | null): string {
     if (!cell) {
       return "·";
     }
@@ -419,7 +461,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     return cell.prize > 0 ? `+${cell.prize}` : `${cell.prize}`;
   }
 
-  function getCompactCellTone(cell) {
+  function getCompactCellTone(cell: JourneyMapCell | null) {
     if (!cell) {
       return {
         backgroundColor: "#ffffff",
@@ -451,7 +493,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     };
   }
 
-  function shortenNickname(nickname) {
+  function shortenNickname(nickname: string): string {
     if (nickname.length <= 10) {
       return nickname;
     }
@@ -459,7 +501,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     return `${nickname.slice(0, 8)}…`;
   }
 
-  function getHistoryEntrySummary(entry) {
+  function getHistoryEntrySummary(entry: JourneyTimelineEntry): string {
     if (entry.skipped) {
       return `${journeyTexts.timeline.turnPrefix} ${entry.roundIndex}: ${journeyTexts.timeline.skipSuffix}`;
     }
@@ -483,7 +525,7 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     return `${journeyTexts.timeline.turnPrefix} ${entry.roundIndex}: ${movement}, ${cellPart}, ${journeyTexts.timeline.change} ${prizePart}, ${journeyTexts.timeline.total} ${entry.fullPrizeAfterRound}`;
   }
 
-  function isCarefulProgressEntry(entry) {
+  function isCarefulProgressEntry(entry: JourneyTimelineEntry): boolean {
     if (entry.skipped || entry.currentPosition === journeyConfig.finishPosition || entry.moveType === "moveWithJackpot") {
       return false;
     }
@@ -493,13 +535,13 @@ export default function JourneyPage({ djName, defaultRuleset }) {
     }
 
     if (entry.cell.isJackpot) {
-      return entry.moveType !== "moveWithJackpot";
+      return true;
     }
 
     return !entry.cell.prize;
   }
 
-  function getAchievementProgress(player, timeline) {
+  function getAchievementProgress(player: JourneyPlayer, timeline: JourneyTimelineEntry[]) {
     const obtainedPrizes = [
       ...new Set(
         timeline

@@ -16,6 +16,8 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material/Select";
+import type { SxProps, Theme } from "@mui/material/styles";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
@@ -23,11 +25,33 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { NavLink, useLocation } from "react-router-dom";
+import type { JourneyRuleset } from "../features/journey/types";
 import { appHeaderTexts } from "../texts/appHeaderTexts";
 import AppPillButton from "./ui/AppPillButton";
 import AppTextInput from "./ui/AppTextInput";
 
-const navItems = [
+interface NavItem {
+  label: string;
+  to: string;
+  icon: JSX.Element;
+  disabled: boolean;
+}
+
+interface NavMenuButtonProps {
+  item: NavItem;
+  active: boolean;
+  onClick?: () => void;
+}
+
+interface AppHeaderProps {
+  djName: string;
+  onDjNameChange: (nextValue: string) => void;
+  rulesets: JourneyRuleset[];
+  defaultRulesetId: string;
+  onDefaultRulesetChange: (nextRulesetId: string) => void;
+}
+
+const navItems: NavItem[] = [
   {
     label: appHeaderTexts.nav.journey,
     to: "/journey",
@@ -48,8 +72,8 @@ const navItems = [
   },
 ];
 
-function NavMenuButton({ item, active, onClick }) {
-  const buttonSx = {
+function NavMenuButton({ item, active, onClick }: NavMenuButtonProps) {
+  const buttonSx: SxProps<Theme> = {
     px: 2,
     minHeight: 40,
     borderRadius: (theme) => theme.customRadii.pill,
@@ -77,7 +101,13 @@ function NavMenuButton({ item, active, onClick }) {
   );
 }
 
-export default function AppHeader({ djName, onDjNameChange, rulesets, defaultRulesetId, onDefaultRulesetChange }) {
+export default function AppHeader({
+  djName,
+  onDjNameChange,
+  rulesets,
+  defaultRulesetId,
+  onDefaultRulesetChange,
+}: AppHeaderProps) {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -169,22 +199,22 @@ export default function AppHeader({ djName, onDjNameChange, rulesets, defaultRul
                   </Typography>
                   <FormControl fullWidth size="small">
                     <Select
-                    value={defaultRulesetId}
-                    onChange={(event) => onDefaultRulesetChange(event.target.value)}
-                    sx={{
-                      borderRadius: (theme) => theme.customRadii.pill,
-                      backgroundColor: "#fff",
-                      fontWeight: 700,
-                      "& .MuiSelect-select": {
-                        py: 1.1,
-                      },
-                    }}
-                  >
-                    {rulesets.map((ruleset) => (
-                      <MenuItem key={ruleset.id} value={ruleset.id}>
-                        {ruleset.name}
-                      </MenuItem>
-                    ))}
+                      value={defaultRulesetId}
+                      onChange={(event: SelectChangeEvent<string>) => onDefaultRulesetChange(event.target.value)}
+                      sx={{
+                        borderRadius: (theme) => theme.customRadii.pill,
+                        backgroundColor: "#fff",
+                        fontWeight: 700,
+                        "& .MuiSelect-select": {
+                          py: 1.1,
+                        },
+                      }}
+                    >
+                      {rulesets.map((ruleset) => (
+                        <MenuItem key={ruleset.id} value={ruleset.id}>
+                          {ruleset.name}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </Stack>

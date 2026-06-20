@@ -1,6 +1,7 @@
 import { createTheme } from "@mui/material/styles";
+import type { ThemeOptions } from "@mui/material/styles";
 
-const radii = {
+const radii: NonNullable<ThemeOptions["customRadii"]> = {
   xs: "6px",
   sm: "12px",
   md: "16px",

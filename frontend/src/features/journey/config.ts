@@ -1,8 +1,18 @@
-function clone(value) {
+import type {
+  JourneyAchievementsMap,
+  JourneyConfig,
+  JourneyMapCell,
+  JourneyRules,
+  JourneyRulesInput,
+  JourneyRuleset,
+  JourneyRulesetInput,
+} from "./types";
+
+function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-export const oldbk2_rules = {
+export const oldbk2_rules: JourneyRules = {
   currency: "фишек",
   initialPrize: 15,
   minDice: 1,
@@ -29,7 +39,7 @@ export const oldbk2_rules = {
   },
 };
 
-export const combats_club_rules = {
+export const combats_club_rules: JourneyRules = {
   currency: "екр",
   initialPrize: 30,
   minDice: 1,
@@ -56,7 +66,7 @@ export const combats_club_rules = {
   },
 };
 
-export const DEFAULT_JOURNEY_RULESET = {
+export const DEFAULT_JOURNEY_RULESET: JourneyRuleset = {
   id: "oldbk2",
   name: "oldbk2",
   description: "Базовые правила Карты Мародёров",
@@ -64,7 +74,7 @@ export const DEFAULT_JOURNEY_RULESET = {
   rules: oldbk2_rules,
 };
 
-export const COMBATS_CLUB_JOURNEY_RULES = {
+export const COMBATS_CLUB_JOURNEY_RULES: JourneyRuleset = {
   id: "combatsclub",
   name: "combatsclub",
   description: "Правила Карты Мародёров из Combats Club",
@@ -72,7 +82,7 @@ export const COMBATS_CLUB_JOURNEY_RULES = {
   rules: combats_club_rules,
 };
 
-export const BUILT_IN_JOURNEY_RULESETS = [DEFAULT_JOURNEY_RULESET, COMBATS_CLUB_JOURNEY_RULES];
+export const BUILT_IN_JOURNEY_RULESETS: JourneyRuleset[] = [DEFAULT_JOURNEY_RULESET, COMBATS_CLUB_JOURNEY_RULES];
 
 export const MOVE_TYPES = {
   JACKPOT: "moveWithJackpot",
@@ -86,9 +96,9 @@ export const MOVE_TYPES = {
   TO_ZERO: "moveToZeroPrize",
   AT_ZERO: "moveWithZeroPrize",
   ACHIEVEMENT: "moveToAchievement",
-};
+} as const;
 
-export function normalizeJourneyRules(rawRules = {}) {
+export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
   const rules = clone(oldbk2_rules);
 
   return {
@@ -123,7 +133,7 @@ export function normalizeJourneyRules(rawRules = {}) {
   };
 }
 
-export function normalizeJourneyRuleset(rawRuleset = {}) {
+export function normalizeJourneyRuleset(rawRuleset: JourneyRulesetInput = {}): JourneyRuleset {
   return {
     id: rawRuleset.id ?? DEFAULT_JOURNEY_RULESET.id,
     name: rawRuleset.name?.trim?.() || DEFAULT_JOURNEY_RULESET.name,
@@ -133,15 +143,18 @@ export function normalizeJourneyRuleset(rawRuleset = {}) {
   };
 }
 
-export function getBuiltInJourneyRulesets() {
+export function getBuiltInJourneyRulesets(): JourneyRuleset[] {
   return BUILT_IN_JOURNEY_RULESETS.map((ruleset) => normalizeJourneyRuleset(ruleset));
 }
 
-export function getJourneyRulesetById(rulesetId, rulesets = getBuiltInJourneyRulesets()) {
+export function getJourneyRulesetById(
+  rulesetId: string,
+  rulesets: JourneyRuleset[] = getBuiltInJourneyRulesets(),
+): JourneyRuleset | null {
   return rulesets.find((ruleset) => ruleset.id === rulesetId) ?? null;
 }
 
-export function getJourneyConfig(rules = oldbk2_rules) {
+export function getJourneyConfig(rules: JourneyRules = oldbk2_rules): JourneyConfig {
   const normalizedRules = normalizeJourneyRules(rules);
 
   return {
@@ -156,7 +169,9 @@ export function getJourneyConfig(rules = oldbk2_rules) {
   };
 }
 
-export function getJourneyBonusCells(rules = oldbk2_rules) {
+export function getJourneyBonusCells(
+  rules: JourneyRules = oldbk2_rules,
+): Array<{ cell: JourneyMapCell; amount: number }> {
   const normalizedRules = normalizeJourneyRules(rules);
 
   return [
@@ -171,7 +186,7 @@ export function getJourneyBonusCells(rules = oldbk2_rules) {
   ];
 }
 
-export function getJourneyAchievements(rules = oldbk2_rules) {
+export function getJourneyAchievements(rules: JourneyRules = oldbk2_rules): JourneyAchievementsMap {
   const normalizedRules = normalizeJourneyRules(rules);
   const config = getJourneyConfig(normalizedRules);
 
@@ -208,7 +223,7 @@ export function getJourneyAchievements(rules = oldbk2_rules) {
   };
 }
 
-export function getNonJackpotPrizes(rules = oldbk2_rules) {
+export function getNonJackpotPrizes(rules: JourneyRules = oldbk2_rules): number[] {
   return [
     ...new Set(
       getJourneyBonusCells(rules)
