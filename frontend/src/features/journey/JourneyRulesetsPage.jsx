@@ -53,7 +53,7 @@ function getRulesSummary(ruleset) {
   };
 }
 
-export default function JourneyRulesetsPage() {
+export default function JourneyRulesetsPage({ onRulesetsChange }) {
   const [rulesets, setRulesets] = useState(() => loadJourneyRulesets());
   const [defaultRulesetId, setDefaultRulesetId] = useState(() => loadDefaultJourneyRulesetId());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -83,6 +83,7 @@ export default function JourneyRulesetsPage() {
   function refreshRulesetsState(nextDefaultRulesetId = defaultRulesetId) {
     setRulesets(loadJourneyRulesets());
     setDefaultRulesetId(nextDefaultRulesetId);
+    onRulesetsChange?.();
   }
 
   function handleSetDefaultRuleset(rulesetId) {

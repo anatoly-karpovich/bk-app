@@ -3,11 +3,9 @@ import {
   Alert,
   Avatar,
   Box,
-  Button,
   Card,
   CardContent,
   CardHeader,
-  Chip,
   Collapse,
   Dialog,
   DialogActions,
@@ -26,7 +24,6 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -36,13 +33,11 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
-import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import { NavLink } from "react-router-dom";
 import {
   calculateReceiptsDistribution,
   createJourneyGame,
@@ -60,13 +55,12 @@ import {
 } from "./engine";
 import { getJourneyAchievements, getJourneyConfig, getNonJackpotPrizes } from "./config";
 import { parseMovesFromForum, parsePlayerNamesFromForum } from "./parsers";
-import {
-  clearJourneyGame,
-  hasStoredJourneyGame,
-  loadDefaultJourneyRuleset,
-  loadJourneyGame,
-  saveJourneyGame,
-} from "./storage";
+import { clearJourneyGame, hasStoredJourneyGame, loadJourneyGame, saveJourneyGame } from "./storage";
+import { journeyTexts } from "../../texts/journeyTexts";
+import AppBreadcrumbs from "../../components/ui/AppBreadcrumbs";
+import AppChip from "../../components/ui/AppChip";
+import AppPillButton from "../../components/ui/AppPillButton";
+import AppTextInput from "../../components/ui/AppTextInput";
 
 function createEmptyMoveState(players = []) {
   return players.reduce((accumulator, player) => {
@@ -87,11 +81,11 @@ function getPlayerNameErrors(playerNames) {
 
   return playerNames.map((name, index) => {
     if (!name.trim()) {
-      return "Заполните ник";
+      return journeyTexts.validation.fillNickname;
     }
 
     if (normalizedNames.filter((current) => current === normalizedNames[index]).length > 1) {
-      return "Ник дублируется";
+      return journeyTexts.validation.duplicateNickname;
     }
 
     return "";
@@ -146,24 +140,54 @@ function getPrizeBadgeLabel(prize) {
   return prize > 0 ? `+${prize}` : `${prize}`;
 }
 
-export default function JourneyPage() {
+function JourneyRulesSummary({ journeyConfig, journeyAchievements }) {
+  return (
+    <Stack spacing={2}>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <AppChip label={`${journeyTexts.rulesChips.startPrefix} ${journeyConfig.initialPrize}`} color="primary" />
+        <AppChip label={`${journeyTexts.rulesChips.mapPrefix} ${journeyConfig.mapSize} ${journeyTexts.rulesChips.mapSuffix}`} color="secondary" />
+        <AppChip label={`${journeyTexts.rulesChips.movePrefix} ${journeyConfig.minDice}-${journeyConfig.maxDice}`} />
+        <AppChip label={`${journeyTexts.rulesChips.jackpotPrefix} ${journeyConfig.jackpotPrize}`} color="warning" />
+        {Number.isFinite(journeyConfig.maxPrize) ? (
+          <AppChip label={`${journeyTexts.rulesChips.prizeLimitPrefix} ${journeyConfig.maxPrize}`} />
+        ) : (
+          <AppChip label={journeyTexts.rulesChips.noPrizeLimit} />
+        )}
+      </Stack>
+
+      <Divider />
+
+      <Stack spacing={1.25}>
+        {Object.values(journeyAchievements)
+          .filter((achievement) => achievement.name !== journeyAchievements.JACKPOT.name)
+          .map((achievement) => (
+            <Box key={achievement.name}>
+              <Typography fontWeight={700}>
+                {achievement.title} · +{achievement.prize} {journeyConfig.currency}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {achievement.description}
+              </Typography>
+            </Box>
+          ))}
+      </Stack>
+    </Stack>
+  );
+}
+
+export default function JourneyPage({ djName, defaultRuleset }) {
   const [game, setGame] = useState(null);
   const [playerNames, setPlayerNames] = useState([""]);
   const [playersImportText, setPlayersImportText] = useState("");
   const [movesImportText, setMovesImportText] = useState("");
-  const [djName, setDjName] = useState(() => localStorage.getItem("combats-dj:dj-name") ?? "");
   const [moveInputs, setMoveInputs] = useState({});
   const [skippedPlayers, setSkippedPlayers] = useState({});
   const [savedGameAvailable, setSavedGameAvailable] = useState(hasStoredJourneyGame());
   const [hoveredCell, setHoveredCell] = useState(null);
   const [playersImportOpen, setPlayersImportOpen] = useState(false);
   const [movesImportOpen, setMovesImportOpen] = useState(false);
+  const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
-  const [defaultRuleset] = useState(() => loadDefaultJourneyRuleset());
-
-  useEffect(() => {
-    localStorage.setItem("combats-dj:dj-name", djName);
-  }, [djName]);
 
   useEffect(() => {
     if (!game) {
@@ -186,6 +210,11 @@ export default function JourneyPage() {
   const results = useMemo(() => (game ? getJourneyResults(game) : []), [game]);
   const receipts = useMemo(() => (game ? calculateReceiptsDistribution(game) : null), [game]);
   const gameIsOver = game ? isJourneyGameOver(game) : false;
+  const activeGame = Boolean(game && !gameIsOver);
+  const totalGamePlayers = useMemo(
+    () => (game ? game.players.filter((player) => player.status !== "removed").length : 0),
+    [game],
+  );
 
   const canSubmitRound = useMemo(() => {
     if (!activePlayers.length) {
@@ -217,6 +246,29 @@ export default function JourneyPage() {
       return accumulator;
     }, {});
   }, [game]);
+
+  const pageStatusChips = useMemo(() => {
+    const rulesetLabel = {
+      label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.rulesetName : defaultRuleset.name}`,
+      color: "secondary",
+    };
+
+    if (!game) {
+      return [{ label: journeyTexts.statuses.notStarted, color: "default" }, rulesetLabel];
+    }
+
+    const chips = [
+      { label: gameIsOver ? journeyTexts.statuses.complete : journeyTexts.statuses.active, color: gameIsOver ? "success" : "default" },
+      rulesetLabel,
+    ];
+
+    if (activeGame) {
+      chips.push({ label: `${journeyTexts.statuses.roundPrefix} ${game.rounds.length}`, color: "primary" });
+      chips.push({ label: `${totalGamePlayers} ${journeyTexts.statuses.playersSuffix}`, color: "info" });
+    }
+
+    return chips;
+  }, [activeGame, defaultRuleset.name, game, gameIsOver, totalGamePlayers]);
 
   function resetRoundUi(players = []) {
     setMoveInputs(createEmptyMoveState(players));
@@ -409,7 +461,7 @@ export default function JourneyPage() {
 
   function getHistoryEntrySummary(entry) {
     if (entry.skipped) {
-      return `Ход ${entry.roundIndex}: пропуск`;
+      return `${journeyTexts.timeline.turnPrefix} ${entry.roundIndex}: ${journeyTexts.timeline.skipSuffix}`;
     }
 
     const movement = `${entry.previousPosition} → ${entry.currentPosition}`;
@@ -421,14 +473,14 @@ export default function JourneyPage() {
           : "0";
 
     const cellPart = entry.cell?.isJackpot
-      ? "сокровище"
+      ? journeyTexts.timeline.treasure
       : entry.cell
         ? entry.cell.prize > 0
-          ? `бонус ${entry.cell.prize > 0 ? `+${entry.cell.prize}` : entry.cell.prize}`
-          : `ловушка ${entry.cell.prize}`
-        : "пусто";
+          ? `${journeyTexts.timeline.bonusPrefix} ${entry.cell.prize > 0 ? `+${entry.cell.prize}` : entry.cell.prize}`
+          : `${journeyTexts.timeline.trapPrefix} ${entry.cell.prize}`
+        : journeyTexts.timeline.empty;
 
-    return `Ход ${entry.roundIndex}: ${movement}, ${cellPart}, изменение ${prizePart}, итог ${entry.fullPrizeAfterRound}`;
+    return `${journeyTexts.timeline.turnPrefix} ${entry.roundIndex}: ${movement}, ${cellPart}, ${journeyTexts.timeline.change} ${prizePart}, ${journeyTexts.timeline.total} ${entry.fullPrizeAfterRound}`;
   }
 
   function isCarefulProgressEntry(entry) {
@@ -486,11 +538,11 @@ export default function JourneyPage() {
 
   const resultsCard = game && gameIsOver ? (
     <Card>
-      <CardHeader title="Результаты" subheader="Финальная таблица и размен чеков" />
+      <CardHeader title={journeyTexts.cards.resultsTitle} subheader={journeyTexts.cards.resultsSubtitle} />
       <CardContent>
         <Stack spacing={2}>
           <Alert icon={<EmojiEventsRoundedIcon fontSize="inherit" />} severity="success">
-            Игра завершена. На финише {finishedPlayers.length} игрок(ов).
+            {journeyTexts.alerts.resultsCompletePrefix} {finishedPlayers.length} {journeyTexts.alerts.resultsCompleteSuffix}
           </Alert>
           <Stack spacing={1}>
             {results.map((player, index) => (
@@ -498,7 +550,7 @@ export default function JourneyPage() {
                 key={player.nickname}
                 sx={{
                   p: 1.5,
-                  borderRadius: 3,
+                  borderRadius: (theme) => theme.customRadii.md,
                   backgroundColor: index === 0 ? "rgba(245, 158, 11, 0.14)" : "rgba(255,255,255,0.64)",
                 }}
               >
@@ -514,11 +566,11 @@ export default function JourneyPage() {
           {receipts ? (
             <Box>
               <Typography fontWeight={700} sx={{ mb: 1 }}>
-                Размен чеков
+                {journeyTexts.results.receiptsTitle}
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {Object.entries(receipts).map(([amount, count]) => (
-                  <Chip key={amount} label={`${amount}: ${count}`} />
+                  <AppChip key={amount} label={`${amount}: ${count}`} />
                 ))}
               </Stack>
             </Box>
@@ -532,71 +584,77 @@ export default function JourneyPage() {
     <>
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Card>
-            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Card
+            sx={{
+              backgroundColor: "rgba(255,255,255,0.92)",
+              boxShadow: "0 18px 42px rgba(15, 23, 42, 0.08)",
+            }}
+          >
+            <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
               <Stack direction={{ xs: "column", xl: "row" }} spacing={3} justifyContent="space-between" alignItems={{ xl: "center" }}>
-                <Stack spacing={1.5} sx={{ width: "100%", maxWidth: { xl: "50%" }, minWidth: { xl: 520 } }}>
-                  <Typography variant="h6">Сессия</Typography>
-                  <TextField
-                    label="Ник ведущего"
-                    value={djName}
-                    onChange={(event) => setDjName(event.target.value)}
-                    helperText="Нужен только для импорта списка игроков из форумного текста"
-                    size="small"
-                  />
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: "100%", justifyContent: { sm: "space-between" } }}>
-                    {!game ? (
-                      <Button variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={handleStartGame} disabled={!canStartGame}>
-                        Новая игра
-                      </Button>
-                    ) : null}
-                    <Button variant="outlined" startIcon={<RestoreRoundedIcon />} onClick={handleRestoreGame} disabled={!savedGameAvailable}>
-                      Восстановить
-                    </Button>
-                    <Button variant="text" color="inherit" startIcon={<AutorenewRoundedIcon />} onClick={handleRestartGame}>
-                      Сбросить
-                    </Button>
+                <Stack spacing={1.25} sx={{ minWidth: 0, maxWidth: { xl: "60%" } }}>
+                    <AppBreadcrumbs items={journeyTexts.breadcrumbs.split(" / ")} />
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ md: "center" }} flexWrap="wrap" useFlexGap>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        lineHeight: 1,
+                        letterSpacing: "-0.04em",
+                        fontSize: { xs: "2.1rem", md: "3rem" },
+                      }}
+                    >
+                      {journeyTexts.pageTitle}
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      {pageStatusChips.map((chip) => (
+                      <AppChip key={chip.label} label={chip.label} color={chip.color} />
+                      ))}
+                    </Stack>
                   </Stack>
-                  <Button component={NavLink} to="/journey/config" variant="outlined" startIcon={<SettingsRoundedIcon />}>
-                    Конфигурация
-                  </Button>
-                  {!game ? (
-                    <Alert severity="info">Новый запуск использует набор правил: {defaultRuleset.name}</Alert>
-                  ) : (
-                    <Alert severity="info">Текущая партия запущена с набором правил: {game.rulesetName}</Alert>
-                  )}
-                  {savedGameAvailable && !game ? (
-                    <Alert icon={<SaveRoundedIcon fontSize="inherit" />} severity="info">
-                      В localStorage есть сохранённая партия.
-                    </Alert>
-                  ) : null}
+                  <Typography variant="body1" color="text.secondary">
+                    {journeyTexts.pageDescription}
+                  </Typography>
                 </Stack>
 
-                <Box>
-                  <Typography variant="h3">Карта Мародёров</Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-                    Новый интерфейс игры для ведущего.
-                  </Typography>
-                </Box>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ width: { xs: "100%", xl: "auto" } }}>
+                  <AppPillButton variant="outlined" startIcon={<MenuBookRoundedIcon />} onClick={() => setRulesDialogOpen(true)}>
+                    {journeyTexts.actions.rules}
+                  </AppPillButton>
+                  <AppPillButton variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={handleStartGame} disabled={Boolean(game) || !canStartGame}>
+                    {journeyTexts.actions.newGame}
+                  </AppPillButton>
+                  <AppPillButton variant="outlined" startIcon={<RestoreRoundedIcon />} onClick={handleRestoreGame} disabled={!savedGameAvailable}>
+                    {journeyTexts.actions.restore}
+                  </AppPillButton>
+                  <AppPillButton variant="text" color="inherit" startIcon={<AutorenewRoundedIcon />} onClick={handleRestartGame}>
+                    {journeyTexts.actions.reset}
+                  </AppPillButton>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} lg={4}>
-          <Stack spacing={3}>
-            {resultsCard}
+        {!djName.trim() ? (
+          <Grid item xs={12}>
+            <Alert severity="warning">{journeyTexts.alerts.setDjName}</Alert>
+          </Grid>
+        ) : null}
+
+          <Grid item xs={12} lg={4}>
+            <Stack spacing={3}>
+              {resultsCard}
 
             {!game ? (
               <Card>
-                <CardHeader title="Игроки" subheader="Можно вручную, можно вставкой из форума" />
+                <CardHeader title={journeyTexts.cards.playersTitle} subheader={journeyTexts.cards.playersSubtitle} />
                 <CardContent>
                   <Stack spacing={2}>
                     {playerNames.map((playerName, index) => (
                       <Stack key={index} direction="row" spacing={1} alignItems="center">
-                        <TextField
+                        <AppTextInput
                           fullWidth
-                          label={`Игрок ${index + 1}`}
+                          label={`${journeyTexts.fields.playerPrefix} ${index + 1}`}
                           value={playerName}
                           onChange={(event) => handlePlayerNameChange(index, event.target.value)}
                           error={Boolean(playerNameErrors[index])}
@@ -610,19 +668,19 @@ export default function JourneyPage() {
                     ))}
 
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                      <Button variant="outlined" startIcon={<AddRoundedIcon />} onClick={handleAddPlayerField}>
-                        Добавить игрока
-                      </Button>
-                      <Button variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={() => setPlayersImportOpen(true)}>
-                        Импорт игроков
-                      </Button>
+                      <AppPillButton variant="outlined" startIcon={<AddRoundedIcon />} onClick={handleAddPlayerField}>
+                        {journeyTexts.actions.addPlayer}
+                      </AppPillButton>
+                      <AppPillButton variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={() => setPlayersImportOpen(true)}>
+                        {journeyTexts.actions.importPlayers}
+                      </AppPillButton>
                     </Stack>
                   </Stack>
                 </CardContent>
               </Card>
             ) : (
               <Card>
-                <CardHeader title="Ходы" subheader="Ходы активных игроков и ручные пропуски" />
+                <CardHeader title={journeyTexts.cards.movesTitle} subheader={journeyTexts.cards.movesSubtitle} />
                 <CardContent>
                   <Stack spacing={2}>
                     {activePlayers.length ? (
@@ -632,18 +690,18 @@ export default function JourneyPage() {
                           direction={{ xs: "column", md: "row" }}
                           spacing={1.5}
                           alignItems={{ md: "flex-start" }}
-                          sx={{ p: 1.5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.6)" }}
+                          sx={{ p: 1.5, borderRadius: (theme) => theme.customRadii.md, backgroundColor: "rgba(255,255,255,0.6)" }}
                         >
                           <Box sx={{ minWidth: 160 }}>
                             <Typography fontWeight={700}>{player.nickname}</Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Клетка {player.position} · {getJourneyPlayerFullPrize(player)} {journeyConfig.currency}
+                              {journeyTexts.table.cell} {player.position} · {getJourneyPlayerFullPrize(player)} {journeyConfig.currency}
                             </Typography>
                           </Box>
 
-                          <TextField
+                          <AppTextInput
                             type="number"
-                            label="Ход"
+                            label={journeyTexts.fields.move}
                             size="small"
                             value={moveInputs[player.nickname] ?? ""}
                             onChange={(event) => handleMoveInputChange(player.nickname, event.target.value)}
@@ -657,9 +715,9 @@ export default function JourneyPage() {
                           />
 
                           <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>
-                            <Typography variant="body2">Пропуск</Typography>
+                            <Typography variant="body2">{journeyTexts.fields.skip}</Typography>
                             <Switch checked={Boolean(skippedPlayers[player.nickname])} onChange={() => handleSkipToggle(player.nickname)} />
-                            <Tooltip title="Удалить игрока из текущей партии">
+                            <Tooltip title={journeyTexts.tooltips.removePlayer}>
                               <IconButton color="error" onClick={() => handleRemovePlayerFromGame(player.nickname)}>
                                 <DeleteOutlineRoundedIcon />
                               </IconButton>
@@ -668,16 +726,16 @@ export default function JourneyPage() {
                         </Stack>
                       ))
                     ) : (
-                      <Alert severity="success">Все игроки уже на финише.</Alert>
+                      <Alert severity="success">{journeyTexts.alerts.allPlayersFinished}</Alert>
                     )}
 
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                      <Button variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={() => setMovesImportOpen(true)}>
-                        Импорт ходов
-                      </Button>
-                      <Button variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={handleSubmitRound} disabled={!canSubmitRound}>
-                        Применить ход
-                      </Button>
+                      <AppPillButton variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={() => setMovesImportOpen(true)}>
+                        {journeyTexts.actions.importMoves}
+                      </AppPillButton>
+                      <AppPillButton variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={handleSubmitRound} disabled={!canSubmitRound}>
+                        {journeyTexts.actions.applyMove}
+                      </AppPillButton>
                     </Stack>
                   </Stack>
                 </CardContent>
@@ -685,49 +743,47 @@ export default function JourneyPage() {
             )}
 
             <Card>
-              <CardHeader title="Срез правил" subheader="Текущее состояние правил, заложенное в engine" />
+              <CardHeader title={journeyTexts.cards.logTitle} subheader={journeyTexts.cards.logSubtitle} />
               <CardContent>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  <Chip label={`Старт ${journeyConfig.initialPrize}`} color="primary" />
-                  <Chip label={`Карта ${journeyConfig.mapSize} клеток`} color="secondary" />
-                  <Chip label={`Ход ${journeyConfig.minDice}-${journeyConfig.maxDice}`} />
-                  <Chip label={`Сокровище ${journeyConfig.jackpotPrize}`} color="warning" />
-                  {Number.isFinite(journeyConfig.maxPrize) ? (
-                    <Chip label={`Лимит обычной награды ${journeyConfig.maxPrize}`} />
-                  ) : (
-                    <Chip label="Без лимита обычной награды" />
-                  )}
-                </Stack>
-                <Divider sx={{ my: 2 }} />
-                <Stack spacing={1.25}>
-                  {Object.values(journeyAchievements)
-                    .filter((achievement) => achievement.name !== journeyAchievements.JACKPOT.name)
-                    .map((achievement) => (
-                      <Box key={achievement.name}>
-                        <Typography fontWeight={700}>
-                          {achievement.title} · +{achievement.prize} {journeyConfig.currency}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {achievement.description}
-                        </Typography>
-                      </Box>
-                    ))}
-                </Stack>
+                {game?.comments?.length ? (
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: (theme) => theme.customRadii.surface,
+                      backgroundColor: "#0f172a",
+                      color: "#e2e8f0",
+                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      whiteSpace: "pre-wrap",
+                      maxHeight: 520,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {game.comments.join("\n")}
+                  </Box>
+                ) : (
+                  <Alert severity="info" icon={<TravelExploreRoundedIcon fontSize="inherit" />}>
+                    {journeyTexts.alerts.logEmpty}
+                  </Alert>
+                )}
               </CardContent>
             </Card>
-          </Stack>
-        </Grid>
+
+            </Stack>
+          </Grid>
 
         <Grid item xs={12} lg={8}>
           <Stack spacing={3}>
             <Card>
-              <CardHeader title="Карта" subheader={`Полная карта ведущего: ${journeyConfig.mapSize} клеток и позиции игроков`} />
+              <CardHeader
+                title={journeyTexts.cards.mapTitle}
+                subheader={`${journeyTexts.cards.mapSubtitlePrefix} ${journeyConfig.mapSize} ${journeyTexts.cards.mapSubtitleSuffix}`}
+              />
               <CardContent>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                  <Chip size="small" label="· Пусто" variant="outlined" />
-                  <Chip size="small" label="+N Бонус" color="success" variant="outlined" />
-                  <Chip size="small" label="-N Ловушка" color="error" variant="outlined" />
-                  <Chip size="small" label="🏆 Сокровище" color="warning" variant="outlined" />
+                  <AppChip size="small" label={journeyTexts.mapLegend.empty} variant="outlined" />
+                  <AppChip size="small" label={journeyTexts.mapLegend.bonus} color="success" variant="outlined" />
+                  <AppChip size="small" label={journeyTexts.mapLegend.trap} color="error" variant="outlined" />
+                  <AppChip size="small" label={journeyTexts.mapLegend.treasure} color="warning" variant="outlined" />
                 </Stack>
 
                 <Box
@@ -763,7 +819,7 @@ export default function JourneyPage() {
                         sx={{
                           width: 72,
                           height: 72,
-                          borderRadius: "6px",
+                          borderRadius: (theme) => theme.customRadii.control,
                           p: 0.5,
                           display: "flex",
                           flexDirection: "column",
@@ -786,7 +842,7 @@ export default function JourneyPage() {
                               {player.nickname.slice(0, 1).toUpperCase()}
                             </Avatar>
                           ))}
-                          {playersOnCell.length > 3 ? <Chip size="small" label={`+${playersOnCell.length - 3}`} /> : null}
+                          {playersOnCell.length > 3 ? <AppChip size="small" label={`+${playersOnCell.length - 3}`} /> : null}
                         </Stack>
                       </Paper>
                     );
@@ -796,11 +852,13 @@ export default function JourneyPage() {
                 <Popper open={Boolean(hoveredCell?.anchorEl)} anchorEl={hoveredCell?.anchorEl} placement="top" transition>
                   {({ TransitionProps }) => (
                     <Fade {...TransitionProps} timeout={120}>
-                      <Paper sx={{ p: 2, width: 320, borderRadius: 3, boxShadow: 8 }}>
+                      <Paper sx={{ p: 2, width: 320, borderRadius: (theme) => theme.customRadii.md, boxShadow: 8 }}>
                         <Stack spacing={1.25}>
                           <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
-                            <Typography fontWeight={700}>Клетка {hoveredCell?.cellIndex}</Typography>
-                            <Chip
+                            <Typography fontWeight={700}>
+                              {journeyTexts.hover.cellPrefix} {hoveredCell?.cellIndex}
+                            </Typography>
+                            <AppChip
                               size="small"
                               label={getJourneyCellLabel(hoveredCell?.cell)}
                               color={
@@ -819,16 +877,16 @@ export default function JourneyPage() {
                           {hoveredCell?.cell?.isJackpot ? (
                             <Typography variant="body2" color="text.secondary">
                               {hoveredCell.cell?.winner?.nickname
-                                ? `Сокровище уже найдено игроком ${hoveredCell.cell.winner.nickname}.`
-                                : "Сокровище ещё не найдено."}
+                                ? `${journeyTexts.hover.jackpotFoundPrefix} ${hoveredCell.cell.winner.nickname}.`
+                                : journeyTexts.hover.jackpotNotFound}
                             </Typography>
                           ) : (
                             <Typography variant="body2" color="text.secondary">
                               {hoveredCell?.cell
                                 ? hoveredCell.cell.prize > 0
-                                  ? `На клетке бонус ${hoveredCell.cell.prize} ${journeyConfig.currency}.`
-                                  : `На клетке ловушка ${hoveredCell.cell.prize} ${journeyConfig.currency}.`
-                                : "Пустая клетка без бонусов и ловушек."}
+                                  ? `${journeyTexts.hover.bonusPrefix} ${hoveredCell.cell.prize} ${journeyConfig.currency}.`
+                                  : `${journeyTexts.hover.trapPrefix} ${hoveredCell.cell.prize} ${journeyConfig.currency}.`
+                                : journeyTexts.hover.cellEmpty}
                             </Typography>
                           )}
 
@@ -836,17 +894,17 @@ export default function JourneyPage() {
 
                           <Box>
                             <Typography variant="caption" color="text.secondary">
-                              Игроки на клетке
+                              {journeyTexts.hover.playersOnCell}
                             </Typography>
                             {hoveredCell?.playersOnCell?.length ? (
                               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
                                 {hoveredCell.playersOnCell.map((player) => (
-                                  <Chip key={player.id} size="small" color="primary" label={shortenNickname(player.nickname)} />
+                                  <AppChip key={player.id} size="small" color="primary" label={shortenNickname(player.nickname)} />
                                 ))}
                               </Stack>
                             ) : (
                               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                Сейчас никого нет.
+                                {journeyTexts.hover.noPlayersOnCell}
                               </Typography>
                             )}
                           </Box>
@@ -859,18 +917,18 @@ export default function JourneyPage() {
             </Card>
 
             <Card>
-              <CardHeader title="Состояние игры" subheader="Актуальные позиции и общий приз игроков" />
+              <CardHeader title={journeyTexts.cards.stateTitle} subheader={journeyTexts.cards.stateSubtitle} />
               <CardContent>
                 {game ? (
                   <Table size="small">
                     <TableHead>
                       <TableRow>
                         <TableCell width={56}></TableCell>
-                        <TableCell>Игрок</TableCell>
-                        <TableCell align="right">Клетка</TableCell>
-                        <TableCell align="right">База</TableCell>
-                        <TableCell align="right">С бонусами</TableCell>
-                        <TableCell align="right">Достижения</TableCell>
+                        <TableCell>{journeyTexts.table.player}</TableCell>
+                        <TableCell align="right">{journeyTexts.table.cell}</TableCell>
+                        <TableCell align="right">{journeyTexts.table.base}</TableCell>
+                        <TableCell align="right">{journeyTexts.table.withBonuses}</TableCell>
+                        <TableCell align="right">{journeyTexts.table.achievements}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -891,10 +949,10 @@ export default function JourneyPage() {
                                 <Stack direction="row" spacing={1} alignItems="center">
                                   <Typography fontWeight={600}>{player.nickname}</Typography>
                                   {player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name) ? (
-                                    <Chip size="small" color="warning" label="Сокровище" />
+                                    <AppChip size="small" color="warning" label={journeyTexts.table.treasure} />
                                   ) : null}
-                                  {player.status === "removed" ? <Chip size="small" color="default" label="Удалён" /> : null}
-                                  {player.status === "finished" ? <Chip size="small" color="success" label="Финиш" /> : null}
+                                  {player.status === "removed" ? <AppChip size="small" color="default" label={journeyTexts.table.removed} /> : null}
+                                  {player.status === "finished" ? <AppChip size="small" color="success" label={journeyTexts.table.finish} /> : null}
                                 </Stack>
                               </TableCell>
                               <TableCell align="right">{player.position}</TableCell>
@@ -912,52 +970,59 @@ export default function JourneyPage() {
                                     <Stack spacing={2}>
                                       <Box>
                                         <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                          Прогресс достижений
+                                          {journeyTexts.progress.title}
                                         </Typography>
 
                                         <Stack spacing={1}>
-                                          <Box sx={{ p: 1.25, borderRadius: 2, backgroundColor: "#fff", border: "1px solid rgba(15, 23, 42, 0.08)" }}>
+                                          <Box
+                                            sx={{
+                                              p: 1.25,
+                                              borderRadius: (theme) => theme.customRadii.sm,
+                                              backgroundColor: "#fff",
+                                              border: "1px solid rgba(15, 23, 42, 0.08)",
+                                            }}
+                                          >
                                             <Stack direction={{ xs: "column", md: "row" }} spacing={1} justifyContent="space-between">
                                               <Typography variant="body2" fontWeight={700}>
                                                 {journeyAchievements.COLLECTOR.title}
                                               </Typography>
-                                              <Chip
+                                              <AppChip
                                                 size="small"
                                                 color={achievementProgress.collector.achieved ? "success" : "default"}
                                                 label={
                                                   achievementProgress.collector.achieved
-                                                    ? "Получено"
-                                                    : `${achievementProgress.collector.obtainedPrizes.length} из ${nonJackpotPrizes.length}`
+                                                    ? journeyTexts.progress.obtained
+                                                    : `${achievementProgress.collector.obtainedPrizes.length} ${journeyTexts.progress.of} ${nonJackpotPrizes.length}`
                                                 }
                                               />
                                             </Stack>
 
                                             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                                              Получено:
+                                              {journeyTexts.progress.obtained}:
                                             </Typography>
                                             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                                               {achievementProgress.collector.obtainedPrizes.length ? (
                                                 achievementProgress.collector.obtainedPrizes.map((prize) => (
-                                                  <Chip key={`${player.id}-obtained-${prize}`} size="small" color="success" label={getPrizeBadgeLabel(prize)} />
+                                                  <AppChip key={`${player.id}-obtained-${prize}`} size="small" color="success" label={getPrizeBadgeLabel(prize)} />
                                                 ))
                                               ) : (
                                                 <Typography variant="body2" color="text.secondary">
-                                                  Пока ничего.
+                                                  {journeyTexts.progress.nothingYet}
                                                 </Typography>
                                               )}
                                             </Stack>
 
                                             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                                              Не получено:
+                                              {journeyTexts.progress.missing}:
                                             </Typography>
                                             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                                               {achievementProgress.collector.missingPrizes.length ? (
                                                 achievementProgress.collector.missingPrizes.map((prize) => (
-                                                  <Chip key={`${player.id}-missing-${prize}`} size="small" variant="outlined" label={getPrizeBadgeLabel(prize)} />
+                                                  <AppChip key={`${player.id}-missing-${prize}`} size="small" variant="outlined" label={getPrizeBadgeLabel(prize)} />
                                                 ))
                                               ) : (
                                                 <Typography variant="body2" color="text.secondary">
-                                                  Всё собрано.
+                                                  {journeyTexts.progress.allCollected}
                                                 </Typography>
                                               )}
                                             </Stack>
@@ -968,16 +1033,32 @@ export default function JourneyPage() {
                                             { key: "careful", meta: journeyAchievements.CAREFUL, data: achievementProgress.careful },
                                             { key: "lucky", meta: journeyAchievements.LUCKY, data: achievementProgress.lucky },
                                           ].map(({ key, meta, data }) => (
-                                            <Box key={`${player.id}-${key}`} sx={{ p: 1.25, borderRadius: 2, backgroundColor: "#fff", border: "1px solid rgba(15, 23, 42, 0.08)" }}>
+                                            <Box
+                                              key={`${player.id}-${key}`}
+                                              sx={{
+                                                p: 1.25,
+                                                borderRadius: (theme) => theme.customRadii.sm,
+                                                backgroundColor: "#fff",
+                                                border: "1px solid rgba(15, 23, 42, 0.08)",
+                                              }}
+                                            >
                                               <Stack direction={{ xs: "column", md: "row" }} spacing={1} justifyContent="space-between">
                                                 <Typography variant="body2" fontWeight={700}>
                                                   {meta.title}
                                                 </Typography>
-                                                <Chip size="small" color={data.achieved ? "success" : "default"} label={data.achieved ? "Получено" : "В процессе"} />
+                                                <AppChip
+                                                  size="small"
+                                                  color={data.achieved ? "success" : "default"}
+                                                  label={data.achieved ? journeyTexts.progress.obtained : journeyTexts.progress.inProgress}
+                                                />
                                               </Stack>
                                               <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
-                                                <Typography variant="body2">Текущая серия: {data.current} из {data.target}</Typography>
-                                                <Typography variant="body2">Максимум: {data.best} из {data.target}</Typography>
+                                                <Typography variant="body2">
+                                                  {journeyTexts.progress.currentSeries}: {data.current} {journeyTexts.progress.of} {data.target}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                  {journeyTexts.progress.maximum}: {data.best} {journeyTexts.progress.of} {data.target}
+                                                </Typography>
                                               </Stack>
                                             </Box>
                                           ))}
@@ -986,7 +1067,7 @@ export default function JourneyPage() {
 
                                       <Box>
                                         <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                          История игрока
+                                          {journeyTexts.progress.historyTitle}
                                         </Typography>
                                         {timeline.length ? (
                                           <Stack spacing={0.75}>
@@ -995,7 +1076,7 @@ export default function JourneyPage() {
                                                 key={`${player.id}-${entry.createdAt}-${index}`}
                                                 sx={{
                                                   p: 1,
-                                                  borderRadius: 2,
+                                                  borderRadius: (theme) => theme.customRadii.sm,
                                                   backgroundColor: "#fff",
                                                   border: "1px solid rgba(15, 23, 42, 0.08)",
                                                 }}
@@ -1004,7 +1085,7 @@ export default function JourneyPage() {
                                                 {entry.achievementsAwarded?.length ? (
                                                   <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
                                                     {entry.achievementsAwarded.map((achievement) => (
-                                                      <Chip key={`${player.id}-${achievement.name}-${index}`} size="small" color="secondary" label={achievement.title} />
+                                                      <AppChip key={`${player.id}-${achievement.name}-${index}`} size="small" color="secondary" label={achievement.title} />
                                                     ))}
                                                   </Stack>
                                                 ) : null}
@@ -1013,7 +1094,7 @@ export default function JourneyPage() {
                                           </Stack>
                                         ) : (
                                           <Typography variant="body2" color="text.secondary">
-                                            История пока пустая.
+                                            {journeyTexts.progress.historyEmpty}
                                           </Typography>
                                         )}
                                       </Box>
@@ -1028,99 +1109,86 @@ export default function JourneyPage() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <Alert severity="info">Создай или восстанови партию, чтобы увидеть состояние игры.</Alert>
+                  <Alert severity="info">{journeyTexts.alerts.createOrRestoreGame}</Alert>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader title="Лог игры" subheader="Пошаговый лог партии с комментариями по раундам" />
-              <CardContent>
-                {game?.comments?.length ? (
-                  <Box
-                    sx={{
-                      p: 2,
-                      borderRadius: 3,
-                      backgroundColor: "#0f172a",
-                      color: "#e2e8f0",
-                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                      whiteSpace: "pre-wrap",
-                      maxHeight: 520,
-                      overflowY: "auto",
-                    }}
-                  >
-                    {game.comments.join("\n")}
-                  </Box>
-                ) : (
-                  <Alert severity="info" icon={<TravelExploreRoundedIcon fontSize="inherit" />}>
-                    Лог пока пуст. После первого хода здесь появятся все события партии.
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
           </Stack>
         </Grid>
       </Grid>
 
+      <Dialog open={rulesDialogOpen} onClose={() => setRulesDialogOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle>{journeyTexts.rulesDialogTitle}</DialogTitle>
+        <DialogContent dividers>
+          <JourneyRulesSummary journeyConfig={journeyConfig} journeyAchievements={journeyAchievements} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <AppPillButton color="inherit" onClick={() => setRulesDialogOpen(false)}>
+            {journeyTexts.actions.close}
+          </AppPillButton>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={playersImportOpen} onClose={() => setPlayersImportOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>Импорт игроков</DialogTitle>
+        <DialogTitle>{journeyTexts.dialogTitles.playersImport}</DialogTitle>
         <DialogContent>
-          <TextField
+          <AppTextInput
             autoFocus
             fullWidth
-            label="Текст с форума"
+            label={journeyTexts.fields.forumText}
             multiline
             minRows={10}
             value={playersImportText}
             onChange={(event) => setPlayersImportText(event.target.value)}
-            helperText="Поддерживает текущий legacy-формат разбора"
+            helperText={journeyTexts.helperText.playersImport}
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button color="inherit" onClick={() => setPlayersImportOpen(false)}>
-            Отмена
-          </Button>
-          <Button
+          <AppPillButton color="inherit" onClick={() => setPlayersImportOpen(false)}>
+            {journeyTexts.actions.cancel}
+          </AppPillButton>
+          <AppPillButton
             variant="contained"
             onClick={() => {
               handleImportPlayers();
               setPlayersImportOpen(false);
             }}
           >
-            Применить
-          </Button>
+            {journeyTexts.actions.apply}
+          </AppPillButton>
         </DialogActions>
       </Dialog>
 
       <Dialog open={movesImportOpen} onClose={() => setMovesImportOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>Импорт ходов</DialogTitle>
+        <DialogTitle>{journeyTexts.dialogTitles.movesImport}</DialogTitle>
         <DialogContent>
-          <TextField
+          <AppTextInput
             autoFocus
             fullWidth
-            label="Текст с форума"
+            label={journeyTexts.fields.forumText}
             multiline
             minRows={8}
             value={movesImportText}
             onChange={(event) => setMovesImportText(event.target.value)}
-            helperText="Legacy-парсер строк ник/число сохранён"
+            helperText={journeyTexts.helperText.movesImport}
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button color="inherit" onClick={() => setMovesImportOpen(false)}>
-            Отмена
-          </Button>
-          <Button
+          <AppPillButton color="inherit" onClick={() => setMovesImportOpen(false)}>
+            {journeyTexts.actions.cancel}
+          </AppPillButton>
+          <AppPillButton
             variant="contained"
             onClick={() => {
               handleImportMoves();
               setMovesImportOpen(false);
             }}
           >
-            Применить
-          </Button>
+            {journeyTexts.actions.apply}
+          </AppPillButton>
         </DialogActions>
       </Dialog>
     </>

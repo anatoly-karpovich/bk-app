@@ -1,5 +1,16 @@
 import { createTheme } from "@mui/material/styles";
 
+const radii = {
+  xs: "6px",
+  sm: "12px",
+  md: "16px",
+  lg: "20px",
+  xl: "28px",
+  pill: "999px",
+  control: "12px",
+  surface: "12px",
+};
+
 export const appTheme = createTheme({
   palette: {
     mode: "light",
@@ -26,6 +37,7 @@ export const appTheme = createTheme({
   shape: {
     borderRadius: 16,
   },
+  customRadii: radii,
   typography: {
     fontFamily: ["Inter", "Segoe UI", "Roboto", "Arial", "sans-serif"].join(","),
     h3: {
@@ -42,10 +54,50 @@ export const appTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
+          borderRadius: radii.md,
           boxShadow: "0 12px 32px rgba(15, 23, 42, 0.08)",
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: radii.pill,
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: radii.pill,
+        },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: "outlined",
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: radii.md,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: radii.lg,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        rounded: {
+          borderRadius: radii.md,
         },
       },
     },
   },
 });
-
