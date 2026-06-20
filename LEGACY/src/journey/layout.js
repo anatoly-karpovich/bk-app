@@ -7,6 +7,7 @@ function createLabyrinthPageLayout() {
       <button type="button" class="btn btn-primary me-2" id="startBtn" disabled>Start game</button>
       <button type="button" class="btn btn-success me-2" id="restoreBtn" disabled>Restore game</button>
       <button class="btn btn-secondary" id="restart-game">Restart</button>
+      <button class="btn btn-secondary" id="get-answers" onclick="getAnswers()">Get Answers</button>
     </div>
   </div>
 
@@ -117,7 +118,7 @@ function addEventListenersToLabyrinthPage() {
     const names = getNickNamesFromChatMessages(text, dj);
     for (const name of names) {
       const inputExists = [...document.querySelectorAll(`[name="playerName"]`)].some(
-        (i) => i.value.trim() === name.trim()
+        (i) => i.value.trim() === name.trim(),
       );
       if (!inputExists) {
         const id = window.crypto.randomUUID();
@@ -425,7 +426,7 @@ function generateGamePlayerInput(providedId) {
   <div class="mb-3 d-flex justify-content-between" data-id="${id}">
     <div class="col-md-11" name="game-player">${generateTextInput(
       { placeholder: "Enter players nickname", id: id, name: "playerName" },
-      validationErrorMessages.NICKHANE
+      validationErrorMessages.NICKHANE,
     )}</div>
     <div class="col-md-1 delete-in-modal">
       <button class="btn btn-link text-danger del-btn-modal" title="Remove Player" name="delete-game-player" data-delete-id="${id}">
@@ -451,7 +452,7 @@ function removeMoveInputByClickingDelete(deleteButton) {
   const id = deleteButton.getAttribute("data-delete-id");
   const nickName = id.replace("move-", "");
   const deleteApproved = confirm(
-    deleteButtonsAmount < 2 ? `Are you sure you want to delete the last player ${nickName}?` : `Delete ${nickName}?`
+    deleteButtonsAmount < 2 ? `Are you sure you want to delete the last player ${nickName}?` : `Delete ${nickName}?`,
   );
   if (deleteApproved) {
     removeMoveInput(nickName);
@@ -472,7 +473,7 @@ function getGameState(game) {
       (p) =>
         `${p.nickname}: Награда: [${p.getFullPrize()} ${
           configurationService.getConfig().labyrinth.currency
-        }], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`
+        }], Клетка: [${p.getCurrentPosition()}]${p.hasJackpot() ? ", Нашел(-ла) сокровище" : ""}`,
     )
     .join("\n");
 }

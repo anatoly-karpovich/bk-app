@@ -29,7 +29,7 @@ export const oldbk2_rules = {
   },
 };
 
-export const darkBK_rules = {
+export const combats_club_rules = {
   currency: "екр",
   initialPrize: 30,
   minDice: 1,
@@ -64,15 +64,15 @@ export const DEFAULT_JOURNEY_RULESET = {
   rules: oldbk2_rules,
 };
 
-export const DARK_BK_JOURNEY_RULES = {
-  id: "darkbk",
-  name: "darkbk",
-  description: "Темные правила Карты Мародёров",
+export const COMBATS_CLUB_JOURNEY_RULES = {
+  id: "combatsclub",
+  name: "combatsclub",
+  description: "Правила Карты Мародёров из Combats Club",
   isBuiltIn: true,
-  rules: darkBK_rules,
+  rules: combats_club_rules,
 };
 
-export const BUILT_IN_JOURNEY_RULESETS = [DEFAULT_JOURNEY_RULESET, DARK_BK_JOURNEY_RULES];
+export const BUILT_IN_JOURNEY_RULESETS = [DEFAULT_JOURNEY_RULESET, COMBATS_CLUB_JOURNEY_RULES];
 
 export const MOVE_TYPES = {
   JACKPOT: "moveWithJackpot",
