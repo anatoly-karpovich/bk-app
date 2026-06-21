@@ -210,3 +210,37 @@ export interface JourneyMoveInput {
   nickname: string;
   dice: number;
 }
+
+export type JourneyChipColor = "default" | "primary" | "secondary" | "success" | "error" | "info" | "warning";
+
+export interface JourneyStatusChip {
+  label: string;
+  color?: JourneyChipColor;
+}
+
+export interface HoveredCellState {
+  anchorEl: HTMLElement;
+  cellIndex: number;
+  cell: JourneyMapCell | null;
+  playersOnCell: JourneyPlayer[];
+}
+
+export interface JourneyCollectorProgress {
+  achieved: boolean;
+  obtainedPrizes: number[];
+  missingPrizes: number[];
+}
+
+export interface JourneyStreakProgress {
+  achieved: boolean;
+  current: number;
+  best: number;
+  target: number;
+}
+
+export interface JourneyAchievementProgress {
+  collector: JourneyCollectorProgress;
+  unlucky: JourneyStreakProgress;
+  careful: JourneyStreakProgress;
+  lucky: JourneyStreakProgress;
+}

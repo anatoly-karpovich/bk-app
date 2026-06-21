@@ -4,7 +4,7 @@
 
 This `frontend` app is a React + MUI operator panel for forum games.
 
-Today the only implemented game is `Journey` (`Карта Мародёров`), but the UI shell is already moving toward a multi-game structure:
+Today the only implemented game is `Journey`, but the app shell is already moving toward a multi-game structure:
 
 - global nav/header
 - shared project/ruleset selection
@@ -13,7 +13,7 @@ Today the only implemented game is `Journey` (`Карта Мародёров`), 
 
 When editing this app, optimize for:
 
-- preserving the current game logic
+- preserving current game logic
 - keeping UI consistent through shared components and theme
 - keeping text/configuration out of JSX where practical
 - preparing the codebase for future backend-driven configs and more games
@@ -54,7 +54,7 @@ Use `npm run build` and `npm run typecheck` as the minimum verification step aft
   Mounts React, `ThemeProvider`, `CssBaseline`, and `BrowserRouter`.
 
 - [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:1)
-  Owns app-level state that must be shared across routes:
+  Owns app-level state shared across routes:
   - DJ name
   - available journey rulesets
   - current default ruleset id
@@ -74,6 +74,9 @@ Use `npm run build` and `npm run typecheck` as the minimum verification step aft
   - base MUI overrides
   - semantic radii via `theme.customRadii`
 
+- [src/types/mui.d.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/types/mui.d.ts:1)
+  Type augmentation for custom MUI theme fields.
+
 ### Shared UI Components
 
 - [src/components/ui/AppTextInput.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppTextInput.tsx:1)
@@ -81,7 +84,7 @@ Use `npm run build` and `npm run typecheck` as the minimum verification step aft
 - [src/components/ui/AppPillButton.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppPillButton.tsx:1)
 - [src/components/ui/AppBreadcrumbs.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/components/ui/AppBreadcrumbs.tsx:1)
 
-These are the preferred primitives for repeated UI patterns in this app.
+These are the preferred primitives for repeated app-level UI patterns.
 
 ### Global Header
 
@@ -98,16 +101,31 @@ Responsibilities:
 ### Journey Feature
 
 - [src/features/journey/JourneyPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyPage.tsx:1)
-  Main operator screen.
+  Thin page container that owns page-level state, derives feature models, and wires callbacks into feature components.
+
+- [src/features/journey/journey-page.helpers.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/journey-page.helpers.ts:1)
+  Pure UI-focused helpers for validation, compact map labels, history summaries, and achievement progress derivation.
+
+- [src/features/journey/components/JourneyPageHeader.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyPageHeader.tsx:1)
+- [src/features/journey/components/JourneyPlayersSetupCard.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyPlayersSetupCard.tsx:1)
+- [src/features/journey/components/JourneyRoundControlsCard.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyRoundControlsCard.tsx:1)
+- [src/features/journey/components/JourneyLogCard.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyLogCard.tsx:1)
+- [src/features/journey/components/JourneyResultsCard.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyResultsCard.tsx:1)
+- [src/features/journey/components/JourneyMapCard.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyMapCard.tsx:1)
+- [src/features/journey/components/JourneyStateCard.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyStateCard.tsx:1)
+- [src/features/journey/components/JourneyRulesDialog.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyRulesDialog.tsx:1)
+- [src/features/journey/components/JourneyImportDialog.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/components/JourneyImportDialog.tsx:1)
+
+Feature-local components should stay inside `src/features/journey/components` unless they become clearly reusable outside the Journey feature.
 
 - [src/features/journey/JourneyRulesetsPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyRulesetsPage.tsx:1)
-  Transitional config page for rulesets. Still active, but conceptually moving toward a global config screen.
+  Transitional config page for rulesets. Still active, but conceptually moving toward a broader config surface.
 
 - [src/features/journey/engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:1)
   Core game engine. This is the most sensitive file in the frontend.
 
 - [src/features/journey/config.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/config.ts:1)
-  Built-in rulesets, normalization, config derivation, achievements metadata.
+  Built-in rulesets, normalization, config derivation, and achievements metadata.
 
 - [src/features/journey/storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.ts:1)
   `localStorage` boundary for game snapshots and rulesets.
@@ -117,6 +135,9 @@ Responsibilities:
 
 - [src/features/journey/commentTemplates.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/commentTemplates.ts:1)
   Comment/log text generation support.
+
+- [src/features/journey/types.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/types.ts:1)
+  Feature domain and view-model types.
 
 ### Text Dictionaries
 
@@ -129,7 +150,7 @@ Prefer adding/editing UI copy here instead of hardcoding strings in JSX.
 
 ## Routing
 
-Current routes in [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:65):
+Current routes in [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:1):
 
 - `/` -> redirects to `/journey`
 - `/journey` -> main game page
@@ -156,7 +177,7 @@ Owned by `App`:
 Why:
 
 - the global header and routed pages need the same source of truth
-- changing default ruleset in the header must be reflected across routes
+- changing the default ruleset in the header must be reflected across routes
 
 ### Journey Page State
 
@@ -167,16 +188,19 @@ Owned by `JourneyPage`:
 - imported forum text
 - current round inputs
 - skip toggles
-- modal/dialog open state
-- hover state for map popper
-- expanded player row state
+- dialog open state
+
+Owned by feature-local child components:
+
+- map hover state in `JourneyMapCard`
+- expanded player row state in `JourneyStateCard`
 
 Rule of thumb:
 
-- transient screen interaction state stays in `JourneyPage`
+- transient local interaction state should stay as close as practical to the component that uses it
 - durable cross-route state stays in `App`
-- pure game mutations stay in `engine.js`
-- persistence stays in `storage.js`
+- pure game mutations stay in `engine.ts`
+- persistence stays in `storage.ts`
 
 ### Ruleset Behavior
 
@@ -225,7 +249,7 @@ The domain is centered around:
 - map cells
 - achievements
 
-Important engine exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:391):
+Important engine exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:1):
 
 - `normalizeJourneyGame`
 - `createJourneyGame`
@@ -243,10 +267,10 @@ Important engine exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/fron
 
 Guidance:
 
-- treat `engine.js` as the source of truth for game rules
+- treat `engine.ts` as the source of truth for game rules
 - keep UI derivations thin
 - if a rule changes, fix the engine first, then adapt UI
-- avoid duplicating rule logic in `JourneyPage`
+- avoid duplicating rule logic in `JourneyPage` or child components
 
 ---
 
@@ -256,7 +280,7 @@ Guidance:
 
 Use `theme.customRadii.*` for component-level radius decisions.
 
-Available semantic radii in [theme.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/theme.ts:3):
+Available semantic radii in [theme.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/theme.ts:1):
 
 - `xs`
 - `sm`
@@ -289,14 +313,14 @@ Prefer:
 - `AppPillButton` for pill-style button actions
 - `AppBreadcrumbs` for breadcrumb rows
 
-If a new primitive repeats 2+ times and has styling semantics, extract it.
+If a new primitive repeats 2+ times and is style-oriented rather than Journey-specific, extract it.
 
 ### 3. Prefer MUI Components Over Native HTML Controls
 
 Examples:
 
-- use `Select` + `MenuItem`, not native `<select>` through `TextField native`
-- use MUI dialogs, chips, cards, buttons, inputs
+- use `Select` + `MenuItem`, not a native `<select>`
+- use MUI dialogs, chips, cards, buttons, and inputs
 
 ### 4. Keep Layouts Intentional
 
@@ -327,16 +351,16 @@ UI text should live in `src/texts` when it is:
 Prefer:
 
 - `appHeaderTexts` for shell/header copy
-- `journeyTexts` for journey page/domain copy
+- `journeyTexts` for Journey page/domain copy
 
 Avoid:
 
-- scattering Russian UI copy through JSX
+- scattering product copy through JSX
 - duplicating the same label across files
 
 Exception:
 
-- low-level purely technical labels can remain local if truly one-off, but bias toward extraction
+- low-level technical labels can remain local if truly one-off, but bias toward extraction
 
 ---
 
@@ -355,14 +379,14 @@ Examples already used:
 
 - `getAchievementProgress`
 - `getHistoryEntrySummary`
-- rules summary helpers
+- compact map label/tone helpers
 
 ### Keep UI Components Thin Around the Engine
 
 Bad:
 
 - re-implementing move rules in JSX
-- manually deciding edge cases already handled in `engine.js`
+- manually deciding edge cases already handled in `engine.ts`
 
 Good:
 
@@ -373,7 +397,7 @@ Good:
 
 Boundaries:
 
-- localStorage reads
+- `localStorage` reads
 - ruleset creation/update
 - game snapshot loading
 
@@ -387,7 +411,7 @@ Before lifting state to `App`, ask:
 - is it cross-route durable?
 - is it shared app shell state?
 
-If not, keep it inside the feature page.
+If not, keep it inside the relevant feature page or local feature component.
 
 ---
 
@@ -411,21 +435,21 @@ It should not contain:
 
 ### Page Header
 
-`JourneyPage` page header should contain:
+The Journey page header should contain:
 
 - breadcrumbs
 - page title
 - status chips
-- page-level actions like `Правила`, `Новая игра`, `Восстановить`, `Сбросить`
+- page-level actions such as rules, new game, restore, and reset
 
 ### Status Chips
 
-Status chips in `JourneyPage` are derived from actual game state.
+Status chips on the Journey page are derived from actual game state.
 
 Current logic:
 
-- no game -> `Игра не начата`
-- active game -> status + ruleset + round + players count
+- no game -> not started status + ruleset
+- active game -> active status + ruleset + round + player count
 - completed game -> completion status + ruleset
 
 If this logic changes, update the derivation in one place.
@@ -434,8 +458,8 @@ If this logic changes, update the derivation in one place.
 
 Current desktop intent:
 
-- left rail: inputs, control flow, game log
-- main column: map, state, deep data
+- left rail: setup/round controls, results, game log
+- main column: map, state, deep player data
 
 Keep that separation unless product explicitly changes it.
 
@@ -461,12 +485,19 @@ Keep that separation unless product explicitly changes it.
 2. verify derived UI still makes sense
 3. verify storage normalization still works
 4. run `npm run build`
+5. run `npm run typecheck`
 
 ### If You Add a New Reusable Control
 
 1. place it in `src/components/ui`
-2. keep API small and style-focused
+2. keep the API small and style-focused
 3. avoid domain coupling in shared UI primitives
+
+### If You Add a New Journey-Only UI Block
+
+1. place it under `src/features/journey/components`
+2. keep it presentation-focused
+3. keep domain mutations in `JourneyPage`, helpers, or the engine unless the component truly owns local interaction state
 
 ### If You Add a New Game
 
@@ -478,7 +509,7 @@ Minimum expected surfaces:
 4. feature folder under `src/features/<game>`
 5. clear separation between engine/config/storage/ui
 
-Do not copy Journey blindly if the domain differs. Reuse the shell and shared UI, not the full feature structure by default.
+Do not copy Journey blindly if the domain differs. Reuse the shell and shared UI, not the entire feature structure by default.
 
 ---
 
@@ -487,7 +518,7 @@ Do not copy Journey blindly if the domain differs. Reuse the shell and shared UI
 These areas are intentionally in transition:
 
 - `/journey/config` is still route-based, but product direction points to broader global config
-- rulesets are currently localStorage-based, but expected to move to backend
+- rulesets are currently `localStorage`-based, but expected to move to backend
 - DJ auth/name is inline text today, but expected to become API-driven later
 
 When editing these areas:
@@ -504,14 +535,14 @@ After meaningful edits, check:
 
 1. `npm run build`
 2. `npm run typecheck`
-2. no accidental raw numeric `borderRadius` in `sx` where px semantics matter
-3. no duplicated product copy in JSX if the screen already uses `src/texts`
-4. no game-rule logic duplicated outside `engine.js`
-5. header/page alignment still matches across desktop widths
+3. no accidental raw numeric `borderRadius` in `sx` where px semantics matter
+4. no duplicated product copy in JSX if the screen already uses `src/texts`
+5. no game-rule logic duplicated outside `engine.ts`
+6. header/page alignment still matches across desktop widths
 
 ---
 
-## Do / Don’t
+## Do / Don't
 
 Do:
 
@@ -521,7 +552,7 @@ Do:
 - preserve the engine/storage/UI separation
 - keep ruleset behavior backward compatible
 
-Don’t:
+Don't:
 
 - hardcode new UI copy in multiple places
 - use native selects when MUI equivalents exist
