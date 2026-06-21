@@ -24,7 +24,7 @@ interface CreateJourneyGamePayload {
 
 interface SaveJourneyRoundPayload {
   moves: JourneyMoveInput[];
-  skippedNicknames?: string[];
+  skippedPlayerIds?: string[];
 }
 
 function getJourneyGamesCollection() {
@@ -64,10 +64,15 @@ async function saveJourneyGameDocument(
     return null;
   }
 
+  const { _id: _ignoredId, id: _ignoredPublicId, ...persistedGame } = normalizedGame as JourneyGame & {
+    _id?: ObjectId;
+    id?: string;
+  };
+
   const updateResult = await collection.findOneAndUpdate(
     { _id: assertObjectId(gameId) },
     {
-      $set: normalizedGame,
+      $set: persistedGame,
     },
     {
       returnDocument: "after",
@@ -132,7 +137,7 @@ export async function submitJourneyRound(
   const nextGame = makeJourneyRound(
     currentGame,
     payload.moves,
-    payload.skippedNicknames ?? [],
+    payload.skippedPlayerIds ?? [],
   );
 
   return saveJourneyGameDocument(gameId, nextGame);
@@ -140,7 +145,7 @@ export async function submitJourneyRound(
 
 export async function removeJourneyPlayerFromSnapshot(
   gameId: string,
-  nickname: string,
+  playerId: string,
 ): Promise<JourneyGameResponse | null> {
   const currentGame = await getJourneyGameDocumentById(gameId);
 
@@ -148,7 +153,7 @@ export async function removeJourneyPlayerFromSnapshot(
     return null;
   }
 
-  const nextGame = removeJourneyPlayer(currentGame, nickname);
+  const nextGame = removeJourneyPlayer(currentGame, playerId);
   return saveJourneyGameDocument(gameId, nextGame);
 }
 

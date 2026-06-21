@@ -12,13 +12,13 @@ import { buildJourneyComment } from "./commentTemplates";
 import type {
   JourneyAchievement,
   JourneyAchievementMove,
-  JourneyAchievementsByNickname,
+  JourneyAchievementsByPlayerId,
   JourneyGame,
   JourneyMapCell,
   JourneyMove,
   JourneyMoveInput,
   JourneyMoveType,
-  JourneyMovesByNickname,
+  JourneyMovesByPlayerId,
   JourneyPlayer,
   JourneyPlayersById,
   JourneyRound,
@@ -209,6 +209,7 @@ function buildMove(
   }
 
   return {
+    playerId: player.id,
     playerNickname: player.nickname,
     dice,
     previousPosition: player.position,
@@ -222,7 +223,7 @@ function buildMove(
 
 function applyJackpots(
   game: JourneyGame,
-  movesByNickname: JourneyMovesByNickname,
+  movesByPlayerId: JourneyMovesByPlayerId,
   rules: JourneyRules,
   randomFn: RandomFn = Math.random,
 ) {
@@ -231,7 +232,7 @@ function applyJackpots(
 
   jackpotCells.forEach(([position, cell]) => {
     const cellPosition = Number(position);
-    const movesOnCell = Object.values(movesByNickname).filter((move) => move.currentPosition === cellPosition);
+    const movesOnCell = Object.values(movesByPlayerId).filter((move) => move.currentPosition === cellPosition);
 
     if (!movesOnCell.length) {
       return;
@@ -239,14 +240,14 @@ function applyJackpots(
 
     if (!cell.winner) {
       const eligiblePlayers = movesOnCell
-        .map((move) => getPlayerByNickname(game, move.playerNickname))
+        .map((move) => getPlayerById(game, move.playerId))
         .filter((player): player is JourneyPlayer => Boolean(player))
         .filter((player) => !playerHasBonus(player, journeyAchievements.JACKPOT.name));
 
       if (eligiblePlayers.length) {
         const winner = eligiblePlayers[randomInteger(0, eligiblePlayers.length - 1, randomFn)];
         game.map[cellPosition].winner = { nickname: winner.nickname };
-        movesByNickname[winner.nickname].type = MOVE_TYPES.JACKPOT;
+        movesByPlayerId[winner.id].type = MOVE_TYPES.JACKPOT;
       }
     }
 
@@ -256,8 +257,10 @@ function applyJackpots(
       return;
     }
 
+    const winnerId = getPlayerByNickname(game, jackpotCell.winner.nickname)?.id;
+
     movesOnCell
-      .filter((move) => move.playerNickname !== jackpotCell.winner?.nickname)
+      .filter((move) => move.playerId !== winnerId)
       .forEach((move) => {
         move.type = MOVE_TYPES.EMPTY_JACKPOT;
       });
@@ -318,6 +321,7 @@ function getAchievementMovesForPlayer(
 
   return achievementMoves.map((achievement) => ({
     type: MOVE_TYPES.ACHIEVEMENT,
+    playerId: player.id,
     playerNickname: player.nickname,
     achievement,
   }));
@@ -380,8 +384,8 @@ function createEntriesFromLegacyRound(
   playersByNickname: Record<string, JourneyPlayer>,
   fallbackCreatedAt: string,
 ): JourneyRoundEntry[] {
-  const movesByNickname: JourneyMovesByNickname = round.movesByNickname ?? {};
-  const achievementMovesByNickname = (round.achievementMoves ?? []).reduce<JourneyAchievementsByNickname>(
+  const movesByNickname: Record<string, JourneyMove> = round.movesByNickname ?? {};
+  const achievementMovesByNickname = (round.achievementMoves ?? []).reduce<Record<string, JourneyAchievement[]>>(
     (accumulator, achievementMove) => {
       if (!accumulator[achievementMove.playerNickname]) {
         accumulator[achievementMove.playerNickname] = [];
@@ -626,15 +630,17 @@ function appendJourneyFinalSummary(game: JourneyGame): JourneyGame {
   return game;
 }
 
-export function removeJourneyPlayer(game: JourneyGame, nickname: string): JourneyGame {
+export function removeJourneyPlayer(game: JourneyGame, playerId: string): JourneyGame {
   const nextGame = clone(game);
   nextGame.rules = getGameRules(nextGame);
 
-  const player = getPlayerByNickname(nextGame, nickname);
+  const player = getPlayerById(nextGame, playerId);
 
   if (!player || player.status === "removed") {
     return nextGame;
   }
+
+  const nickname = player.nickname;
 
   player.status = "removed";
   player.removedAt = getNowIso();
@@ -652,7 +658,7 @@ export function removeJourneyPlayer(game: JourneyGame, nickname: string): Journe
 export function makeJourneyRound(
   game: JourneyGame,
   inputMoves: JourneyMoveInput[],
-  skippedNicknames: string[] = [],
+  skippedPlayerIds: string[] = [],
   randomFn: RandomFn = Math.random,
 ): JourneyGame {
   const nextGame = clone(game);
@@ -670,11 +676,11 @@ export function makeJourneyRound(
 
   nextGame.moveIndex += 1;
   const roundCreatedAt = getNowIso();
-  const movesByNickname: JourneyMovesByNickname = {};
+  const movesByPlayerId: JourneyMovesByPlayerId = {};
   const playersBeforeRoundById = indexPlayersById(activePlayers.map((player) => clone(player)));
 
-  inputMoves.forEach(({ nickname, dice }: JourneyMoveInput) => {
-    const player = getPlayerByNickname(nextGame, nickname);
+  inputMoves.forEach(({ playerId, dice }: JourneyMoveInput) => {
+    const player = getPlayerById(nextGame, playerId);
 
     if (!player || player.status !== "active") {
       return;
@@ -683,16 +689,16 @@ export function makeJourneyRound(
     const move = buildMove(player, dice, nextGame.map, nextGame.rules);
 
     if (move) {
-      movesByNickname[nickname] = move;
+      movesByPlayerId[playerId] = move;
     }
   });
 
-  applyJackpots(nextGame, movesByNickname, nextGame.rules, randomFn);
+  applyJackpots(nextGame, movesByPlayerId, nextGame.rules, randomFn);
 
   const achievementMoves: JourneyAchievementMove[] = [];
 
-  Object.values(movesByNickname).forEach((move) => {
-    const player = getPlayerByNickname(nextGame, move.playerNickname);
+  Object.values(movesByPlayerId).forEach((move) => {
+    const player = getPlayerById(nextGame, move.playerId);
     if (!player) {
       return;
     }
@@ -700,20 +706,20 @@ export function makeJourneyRound(
     achievementMoves.push(...getAchievementMovesForPlayer(player, move, nextGame.rules));
   });
 
-  const achievementMovesByNickname = achievementMoves.reduce<JourneyAchievementsByNickname>(
+  const achievementMovesByPlayerId = achievementMoves.reduce<JourneyAchievementsByPlayerId>(
     (accumulator, achievementMove) => {
-      if (!accumulator[achievementMove.playerNickname]) {
-        accumulator[achievementMove.playerNickname] = [];
+      if (!accumulator[achievementMove.playerId]) {
+        accumulator[achievementMove.playerId] = [];
       }
 
-      accumulator[achievementMove.playerNickname].push(clone(achievementMove.achievement));
+      accumulator[achievementMove.playerId].push(clone(achievementMove.achievement));
       return accumulator;
     },
     {},
   );
 
-  Object.values(movesByNickname).forEach((move) => {
-    const player = getPlayerByNickname(nextGame, move.playerNickname);
+  Object.values(movesByPlayerId).forEach((move) => {
+    const player = getPlayerById(nextGame, move.playerId);
     if (!player) {
       return;
     }
@@ -725,7 +731,7 @@ export function makeJourneyRound(
     }
 
     achievementMoves
-      .filter((achievementMove) => achievementMove.playerNickname === player.nickname)
+      .filter((achievementMove) => achievementMove.playerId === player.id)
       .forEach((achievementMove) => {
         player.bonuses.push(clone(achievementMove.achievement));
       });
@@ -733,23 +739,23 @@ export function makeJourneyRound(
 
   const roundEntries = activePlayers.map((playerBeforeRound) => {
     const playerAfterRound = getPlayerById(nextGame, playerBeforeRound.id);
-    const move = movesByNickname[playerBeforeRound.nickname];
-    const skipped = skippedNicknames.includes(playerBeforeRound.nickname);
+    const move = movesByPlayerId[playerBeforeRound.id];
+    const skipped = skippedPlayerIds.includes(playerBeforeRound.id);
 
     return buildRoundEntry({
       playerBeforeRound: playersBeforeRoundById[playerBeforeRound.id] ?? playerBeforeRound,
       playerAfterRound: playerAfterRound ?? playerBeforeRound,
       move,
       skipped,
-      achievementsAwarded: achievementMovesByNickname[playerBeforeRound.nickname] ?? [],
+      achievementsAwarded: achievementMovesByPlayerId[playerBeforeRound.id] ?? [],
       roundCreatedAt,
     });
   });
 
   const roundComments: string[] = [buildRoundHeader(nextGame.moveIndex)];
 
-  Object.values(movesByNickname).forEach((move) => {
-    const player = getPlayerByNickname(nextGame, move.playerNickname);
+  Object.values(movesByPlayerId).forEach((move) => {
+    const player = getPlayerById(nextGame, move.playerId);
 
     if (player) {
       roundComments.push(buildJourneyComment({ move, player, rules: nextGame.rules, randomFn }));
@@ -757,7 +763,7 @@ export function makeJourneyRound(
   });
 
   achievementMoves.forEach((achievementMove) => {
-    const player = getPlayerByNickname(nextGame, achievementMove.playerNickname);
+    const player = getPlayerById(nextGame, achievementMove.playerId);
 
     if (player) {
       roundComments.push(
@@ -771,6 +777,15 @@ export function makeJourneyRound(
     }
   });
 
+  const skippedNicknames = skippedPlayerIds
+    .map((playerId) => getPlayerById(nextGame, playerId)?.nickname)
+    .filter((nickname): nickname is string => Boolean(nickname));
+
+  const movesByNickname = Object.values(movesByPlayerId).reduce<Record<string, JourneyMove>>((accumulator, move) => {
+    accumulator[move.playerNickname] = move;
+    return accumulator;
+  }, {});
+
   skippedNicknames.forEach((nickname) => {
     roundComments.push(`${nickname} пропускает ход`);
   });
@@ -779,8 +794,10 @@ export function makeJourneyRound(
     moveIndex: nextGame.moveIndex,
     createdAt: roundCreatedAt,
     entries: roundEntries,
+    movesByPlayerId,
     movesByNickname,
     achievementMoves,
+    skippedPlayerIds,
     skippedNicknames,
   });
   nextGame.comments.push(...roundComments);

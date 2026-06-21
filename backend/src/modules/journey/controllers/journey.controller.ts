@@ -23,7 +23,7 @@ function isJourneyMoveInputArray(value: unknown): value is JourneyMoveInput[] {
       (item) =>
         typeof item === "object" &&
         item !== null &&
-        typeof (item as JourneyMoveInput).nickname === "string" &&
+        typeof (item as JourneyMoveInput).playerId === "string" &&
         typeof (item as JourneyMoveInput).dice === "number",
     )
   );
@@ -185,9 +185,9 @@ export async function updateJourneyGameSnapshot(req: Request, res: Response) {
 
 export async function makeJourneyRoundMove(req: Request, res: Response) {
   const gameId = getSingleRouteParam(req.params.gameId);
-  const { moves, skippedNicknames } = req.body as {
+  const { moves, skippedPlayerIds } = req.body as {
     moves?: unknown;
-    skippedNicknames?: unknown;
+    skippedPlayerIds?: unknown;
   };
 
   if (!gameId) {
@@ -200,21 +200,21 @@ export async function makeJourneyRoundMove(req: Request, res: Response) {
   if (!isJourneyMoveInputArray(moves)) {
     return res.status(400).json({
       success: false,
-      message: "Body field 'moves' must be an array of { nickname, dice }",
+      message: "Body field 'moves' must be an array of { playerId, dice }",
     });
   }
 
-  if (skippedNicknames !== undefined && !isStringArray(skippedNicknames)) {
+  if (skippedPlayerIds !== undefined && !isStringArray(skippedPlayerIds)) {
     return res.status(400).json({
       success: false,
-      message: "Body field 'skippedNicknames' must be a string array when provided",
+      message: "Body field 'skippedPlayerIds' must be a string array when provided",
     });
   }
 
   try {
     const updatedGame = await submitJourneyRound(gameId, {
       moves,
-      skippedNicknames,
+      skippedPlayerIds,
     });
 
     if (!updatedGame) {
@@ -242,17 +242,17 @@ export async function makeJourneyRoundMove(req: Request, res: Response) {
 
 export async function removeJourneyPlayerFromGame(req: Request, res: Response) {
   const gameId = getSingleRouteParam(req.params.gameId);
-  const nickname = getSingleRouteParam(req.params.nickname);
+  const playerId = getSingleRouteParam(req.params.playerId);
 
-  if (!gameId || !nickname) {
+  if (!gameId || !playerId) {
     return res.status(400).json({
       success: false,
-      message: "Route parameters 'gameId' and 'nickname' are required",
+      message: "Route parameters 'gameId' and 'playerId' are required",
     });
   }
 
   try {
-    const updatedGame = await removeJourneyPlayerFromSnapshot(gameId, nickname);
+    const updatedGame = await removeJourneyPlayerFromSnapshot(gameId, playerId);
 
     if (!updatedGame) {
       return res.status(404).json({

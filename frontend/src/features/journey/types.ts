@@ -130,6 +130,7 @@ export interface JourneyPlayer {
 }
 
 export interface JourneyMove {
+  playerId: string;
   playerNickname: string;
   dice: number;
   previousPosition: number;
@@ -142,6 +143,7 @@ export interface JourneyMove {
 
 export interface JourneyAchievementMove {
   type: "moveToAchievement";
+  playerId: string;
   playerNickname: string;
   achievement: JourneyAchievement;
 }
@@ -169,12 +171,15 @@ export interface JourneyRound {
   createdAt: string;
   moveIndex: number;
   entries: JourneyRoundEntry[];
+  movesByPlayerId?: Record<string, JourneyMove>;
   movesByNickname?: Record<string, JourneyMove>;
+  skippedPlayerIds?: string[];
   skippedNicknames?: string[];
   achievementMoves?: JourneyAchievementMove[];
 }
 
 export interface JourneyGame {
+  id?: string;
   createdAt: string;
   updatedAt: string;
   moveIndex: number;
@@ -189,6 +194,10 @@ export interface JourneyGame {
   comments: string[];
 }
 
+export interface JourneyPersistedGame extends JourneyGame {
+  id: string;
+}
+
 export interface JourneyRulesetState {
   rulesets: JourneyRuleset[];
   defaultRulesetId: string;
@@ -197,6 +206,8 @@ export interface JourneyRulesetState {
 export type JourneyMoveInputs = Record<string, string>;
 export type JourneySkippedPlayers = Record<string, boolean>;
 export type JourneyPlayersById = Record<string, JourneyPlayer>;
+export type JourneyMovesByPlayerId = Record<string, JourneyMove>;
+export type JourneyAchievementsByPlayerId = Record<string, JourneyAchievement[]>;
 export type JourneyMovesByNickname = Record<string, JourneyMove>;
 export type JourneyAchievementsByNickname = Record<string, JourneyAchievement[]>;
 export type JourneyParsedMoves = Record<string, number>;
@@ -207,7 +218,7 @@ export interface JourneyTimelineEntry extends JourneyRoundEntry {
 }
 
 export interface JourneyMoveInput {
-  nickname: string;
+  playerId: string;
   dice: number;
 }
 

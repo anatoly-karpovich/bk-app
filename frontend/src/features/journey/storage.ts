@@ -4,7 +4,7 @@ import {
   getJourneyRulesetById,
   normalizeJourneyRuleset,
 } from "./config";
-import { normalizeJourneyGame } from "./engine";
+import type { JourneyPersistedGame } from "./types";
 
 const GAME_STORAGE_KEY = "combats-dj:journey";
 const RULESETS_STORAGE_KEY = "combats-dj:journey:rulesets";
@@ -48,12 +48,26 @@ function saveCustomJourneyRulesets(rulesets) {
   );
 }
 
-export function saveJourneyGame(game) {
-  writeJsonStorage(GAME_STORAGE_KEY, game);
+export function saveJourneyGameId(gameId: string) {
+  writeJsonStorage(GAME_STORAGE_KEY, gameId);
 }
 
-export function loadJourneyGame() {
-  return normalizeJourneyGame(readJsonStorage(GAME_STORAGE_KEY, null));
+export function loadJourneyGameId() {
+  const storedValue = readJsonStorage(GAME_STORAGE_KEY, null);
+
+  if (typeof storedValue === "string") {
+    return storedValue;
+  }
+
+  if (
+    storedValue &&
+    typeof storedValue === "object" &&
+    typeof (storedValue as JourneyPersistedGame).id === "string"
+  ) {
+    return (storedValue as JourneyPersistedGame).id;
+  }
+
+  return null;
 }
 
 export function clearJourneyGame() {
@@ -61,7 +75,7 @@ export function clearJourneyGame() {
 }
 
 export function hasStoredJourneyGame() {
-  return Boolean(localStorage.getItem(GAME_STORAGE_KEY));
+  return Boolean(loadJourneyGameId());
 }
 
 export function loadJourneyRulesets() {

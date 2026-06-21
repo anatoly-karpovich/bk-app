@@ -1,4 +1,4 @@
-import { Alert, Box, Card, CardContent, CardHeader, IconButton, Stack, Switch, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, CardHeader, CircularProgress, IconButton, Stack, Switch, Tooltip, Typography } from "@mui/material";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
@@ -15,9 +15,13 @@ interface JourneyRoundControlsCardProps {
   skippedPlayers: JourneySkippedPlayers;
   journeyConfig: JourneyConfig;
   canSubmitRound: boolean;
-  onMoveInputChange: (nickname: string, value: string) => void;
-  onSkipToggle: (nickname: string) => void;
-  onRemovePlayer: (nickname: string) => void;
+  actionsDisabled: boolean;
+  isImportingMoves: boolean;
+  isSubmittingRound: boolean;
+  removingPlayerId: string | null;
+  onMoveInputChange: (playerId: string, value: string) => void;
+  onSkipToggle: (playerId: string) => void;
+  onRemovePlayer: (playerId: string) => void;
   onOpenImport: () => void;
   onSubmitRound: () => void;
 }
@@ -28,6 +32,10 @@ export default function JourneyRoundControlsCard({
   skippedPlayers,
   journeyConfig,
   canSubmitRound,
+  actionsDisabled,
+  isImportingMoves,
+  isSubmittingRound,
+  removingPlayerId,
   onMoveInputChange,
   onSkipToggle,
   onRemovePlayer,
@@ -42,7 +50,7 @@ export default function JourneyRoundControlsCard({
           {activePlayers.length ? (
             activePlayers.map((player) => (
               <Stack
-                key={player.nickname}
+                key={player.id}
                 direction={{ xs: "column", md: "row" }}
                 spacing={1.5}
                 alignItems={{ md: "flex-start" }}
@@ -59,23 +67,31 @@ export default function JourneyRoundControlsCard({
                   type="number"
                   label={journeyTexts.fields.move}
                   size="small"
-                  value={moveInputs[player.nickname] ?? ""}
-                  onChange={(event) => onMoveInputChange(player.nickname, event.target.value)}
-                  disabled={Boolean(skippedPlayers[player.nickname])}
+                  value={moveInputs[player.id] ?? ""}
+                  onChange={(event) => onMoveInputChange(player.id, event.target.value)}
+                  disabled={actionsDisabled || Boolean(skippedPlayers[player.id])}
                   inputProps={{ min: journeyConfig.minDice, max: journeyConfig.maxDice }}
                   error={
-                    Boolean(moveInputs[player.nickname]) &&
-                    !isValidDiceValue(moveInputs[player.nickname], journeyConfig) &&
-                    !skippedPlayers[player.nickname]
+                    Boolean(moveInputs[player.id]) &&
+                    !isValidDiceValue(moveInputs[player.id], journeyConfig) &&
+                    !skippedPlayers[player.id]
                   }
                 />
 
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>
                   <Typography variant="body2">{journeyTexts.fields.skip}</Typography>
-                  <Switch checked={Boolean(skippedPlayers[player.nickname])} onChange={() => onSkipToggle(player.nickname)} />
+                  <Switch
+                    checked={Boolean(skippedPlayers[player.id])}
+                    onChange={() => onSkipToggle(player.id)}
+                    disabled={actionsDisabled}
+                  />
                   <Tooltip title={journeyTexts.tooltips.removePlayer}>
-                    <IconButton color="error" onClick={() => onRemovePlayer(player.nickname)}>
-                      <DeleteOutlineRoundedIcon />
+                    <IconButton color="error" onClick={() => onRemovePlayer(player.id)} disabled={actionsDisabled}>
+                      {removingPlayerId === player.id ? (
+                        <CircularProgress size={18} color="inherit" />
+                      ) : (
+                        <DeleteOutlineRoundedIcon />
+                      )}
                     </IconButton>
                   </Tooltip>
                 </Stack>
@@ -86,10 +102,22 @@ export default function JourneyRoundControlsCard({
           )}
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <AppPillButton variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={onOpenImport}>
+            <AppPillButton
+              variant="outlined"
+              startIcon={<UploadFileRoundedIcon />}
+              onClick={onOpenImport}
+              disabled={actionsDisabled}
+              loading={isImportingMoves}
+            >
               {journeyTexts.actions.importMoves}
             </AppPillButton>
-            <AppPillButton variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={onSubmitRound} disabled={!canSubmitRound}>
+            <AppPillButton
+              variant="contained"
+              startIcon={<PlayArrowRoundedIcon />}
+              onClick={onSubmitRound}
+              disabled={actionsDisabled || !canSubmitRound}
+              loading={isSubmittingRound}
+            >
               {journeyTexts.actions.applyMove}
             </AppPillButton>
           </Stack>

@@ -14,6 +14,10 @@ interface JourneyPageHeaderProps {
   canStartGame: boolean;
   hasGame: boolean;
   savedGameAvailable: boolean;
+  isStartingGame: boolean;
+  isRestoringGame: boolean;
+  isResettingGame: boolean;
+  actionsDisabled: boolean;
   onOpenRules: () => void;
   onStartGame: () => void;
   onRestoreGame: () => void;
@@ -25,6 +29,10 @@ export default function JourneyPageHeader({
   canStartGame,
   hasGame,
   savedGameAvailable,
+  isStartingGame,
+  isRestoringGame,
+  isResettingGame,
+  actionsDisabled,
   onOpenRules,
   onStartGame,
   onRestoreGame,
@@ -64,16 +72,35 @@ export default function JourneyPageHeader({
           </Stack>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ width: { xs: "100%", xl: "auto" } }}>
-            <AppPillButton variant="outlined" startIcon={<MenuBookRoundedIcon />} onClick={onOpenRules}>
+            <AppPillButton variant="outlined" startIcon={<MenuBookRoundedIcon />} onClick={onOpenRules} disabled={actionsDisabled}>
               {journeyTexts.actions.rules}
             </AppPillButton>
-            <AppPillButton variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={onStartGame} disabled={hasGame || !canStartGame}>
+            <AppPillButton
+              variant="contained"
+              startIcon={<PlayArrowRoundedIcon />}
+              onClick={onStartGame}
+              disabled={actionsDisabled || hasGame || !canStartGame}
+              loading={isStartingGame}
+            >
               {journeyTexts.actions.newGame}
             </AppPillButton>
-            <AppPillButton variant="outlined" startIcon={<RestoreRoundedIcon />} onClick={onRestoreGame} disabled={!savedGameAvailable}>
+            <AppPillButton
+              variant="outlined"
+              startIcon={<RestoreRoundedIcon />}
+              onClick={onRestoreGame}
+              disabled={actionsDisabled || !savedGameAvailable}
+              loading={isRestoringGame}
+            >
               {journeyTexts.actions.restore}
             </AppPillButton>
-            <AppPillButton variant="text" color="inherit" startIcon={<AutorenewRoundedIcon />} onClick={onRestartGame}>
+            <AppPillButton
+              variant="text"
+              color="inherit"
+              startIcon={<AutorenewRoundedIcon />}
+              onClick={onRestartGame}
+              disabled={actionsDisabled && !isResettingGame}
+              loading={isResettingGame}
+            >
               {journeyTexts.actions.reset}
             </AppPillButton>
           </Stack>

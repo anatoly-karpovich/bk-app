@@ -1,19 +1,15 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Grid, Stack } from "@mui/material";
 import {
   calculateReceiptsDistribution,
-  createJourneyGame,
   getJourneyActivePlayers,
   getJourneyFinishedPlayers,
   getJourneyPlayerTimeline,
   getJourneyResults,
   isJourneyGameOver,
-  makeJourneyRound,
-  removeJourneyPlayer,
 } from "./engine";
 import { getJourneyAchievements, getJourneyConfig, getNonJackpotPrizes } from "./config";
-import { parseMovesFromForum, parsePlayerNamesFromForum } from "./parsers";
-import { clearJourneyGame, hasStoredJourneyGame, loadJourneyGame, saveJourneyGame } from "./storage";
+import { clearJourneyGame, hasStoredJourneyGame, loadJourneyGameId, saveJourneyGameId } from "./storage";
 import {
   createEmptyMoveState,
   createEmptySkipState,
@@ -30,9 +26,17 @@ import JourneyResultsCard from "./components/JourneyResultsCard";
 import JourneyRoundControlsCard from "./components/JourneyRoundControlsCard";
 import JourneyRulesDialog from "./components/JourneyRulesDialog";
 import JourneyStateCard from "./components/JourneyStateCard";
+import {
+  createJourneyGameRequest,
+  getJourneyGameByIdRequest,
+  parseJourneyMovesRequest,
+  parseJourneyPlayersRequest,
+  removeJourneyPlayerRequest,
+  submitJourneyRoundRequest,
+} from "./api/journey.client";
 import type {
-  JourneyGame,
   JourneyMoveInputs,
+  JourneyPersistedGame,
   JourneyPlayer,
   JourneyReceiptsDistribution,
   JourneyRuleset,
@@ -46,8 +50,12 @@ interface JourneyPageProps {
   defaultRuleset: JourneyRuleset;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Journey request failed";
+}
+
 export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps) {
-  const [game, setGame] = useState<JourneyGame | null>(null);
+  const [game, setGame] = useState<JourneyPersistedGame | null>(null);
   const [playerNames, setPlayerNames] = useState([""]);
   const [playersImportText, setPlayersImportText] = useState("");
   const [movesImportText, setMovesImportText] = useState("");
@@ -57,13 +65,21 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
   const [playersImportOpen, setPlayersImportOpen] = useState(false);
   const [movesImportOpen, setMovesImportOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [isStartingGame, setIsStartingGame] = useState(false);
+  const [isRestoringGame, setIsRestoringGame] = useState(false);
+  const [isResettingGame, setIsResettingGame] = useState(false);
+  const [isSubmittingRound, setIsSubmittingRound] = useState(false);
+  const [isImportingPlayers, setIsImportingPlayers] = useState(false);
+  const [isImportingMoves, setIsImportingMoves] = useState(false);
+  const [removingPlayerId, setRemovingPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!game) {
+    if (!game?.id) {
       return;
     }
 
-    saveJourneyGame(game);
+    saveJourneyGameId(game.id);
     setSavedGameAvailable(true);
   }, [game]);
 
@@ -84,18 +100,45 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
     () => (game ? game.players.filter((player) => player.status !== "removed").length : 0),
     [game],
   );
+  const headerActionsDisabled = useMemo(
+    () =>
+      isStartingGame ||
+      isRestoringGame ||
+      isResettingGame ||
+      isSubmittingRound ||
+      isImportingPlayers ||
+      isImportingMoves ||
+      Boolean(removingPlayerId),
+    [
+      isImportingMoves,
+      isImportingPlayers,
+      isResettingGame,
+      isRestoringGame,
+      isStartingGame,
+      isSubmittingRound,
+      removingPlayerId,
+    ],
+  );
+  const setupActionsDisabled = useMemo(
+    () => isStartingGame || isImportingPlayers || isRestoringGame || isResettingGame,
+    [isImportingPlayers, isResettingGame, isRestoringGame, isStartingGame],
+  );
+  const roundActionsDisabled = useMemo(
+    () => isSubmittingRound || isImportingMoves || isResettingGame || isRestoringGame || Boolean(removingPlayerId),
+    [isImportingMoves, isResettingGame, isRestoringGame, isSubmittingRound, removingPlayerId],
+  );
 
   const canSubmitRound = useMemo(() => {
     if (!activePlayers.length) {
       return false;
     }
 
-    const activeMovePlayers = activePlayers.filter((player) => !skippedPlayers[player.nickname]);
+    const activeMovePlayers = activePlayers.filter((player) => !skippedPlayers[player.id]);
     if (!activeMovePlayers.length) {
       return false;
     }
 
-    return activeMovePlayers.every((player) => isValidDiceValue(moveInputs[player.nickname], journeyConfig));
+    return activeMovePlayers.every((player) => isValidDiceValue(moveInputs[player.id], journeyConfig));
   }, [activePlayers, journeyConfig, moveInputs, skippedPlayers]);
 
   const playerTimelines = useMemo<Record<string, JourneyTimelineEntry[]>>(() => {
@@ -148,37 +191,71 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
     setMovesImportText("");
   }
 
-  function handleRestoreGame() {
-    const storedGame = loadJourneyGame();
-
-    if (!storedGame) {
-      setSavedGameAvailable(false);
-      return;
-    }
-
-    setGame(storedGame);
-    resetRoundUi(getJourneyActivePlayers(storedGame));
-  }
-
-  function handleStartGame() {
-    const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
-    const nextGame = createJourneyGame(cleanNames, {
-      rules: defaultRuleset.rules,
-      rulesetId: defaultRuleset.id,
-      rulesetName: defaultRuleset.name,
-    });
-
-    setGame(nextGame);
-    resetRoundUi(getJourneyActivePlayers(nextGame));
-  }
-
-  function handleRestartGame() {
+  function resetJourneyPageState() {
     clearJourneyGame();
     setSavedGameAvailable(false);
     setGame(null);
     setPlayerNames([""]);
     setPlayersImportText("");
     resetRoundUi([]);
+  }
+
+  async function handleRestoreGame() {
+    const storedGameId = loadJourneyGameId();
+
+    if (!storedGameId) {
+      setSavedGameAvailable(false);
+      return;
+    }
+
+    setRequestError(null);
+    setIsRestoringGame(true);
+
+    try {
+      const restoredGame = await getJourneyGameByIdRequest(storedGameId);
+      setGame(restoredGame);
+      resetRoundUi(getJourneyActivePlayers(restoredGame));
+      setSavedGameAvailable(true);
+    } catch (error) {
+      clearJourneyGame();
+      setSavedGameAvailable(false);
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsRestoringGame(false);
+    }
+  }
+
+  async function handleStartGame() {
+    const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
+    if (!cleanNames.length) {
+      return;
+    }
+
+    setRequestError(null);
+    setIsStartingGame(true);
+
+    try {
+      const nextGame = await createJourneyGameRequest({
+        nicknames: cleanNames,
+        rules: defaultRuleset.rules,
+        rulesetId: defaultRuleset.id,
+        rulesetName: defaultRuleset.name,
+      });
+
+      setGame(nextGame);
+      resetRoundUi(getJourneyActivePlayers(nextGame));
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsStartingGame(false);
+    }
+  }
+
+  function handleRestartGame() {
+    setRequestError(null);
+    setIsResettingGame(true);
+    resetJourneyPageState();
+    setIsResettingGame(false);
   }
 
   function handleAddPlayerField() {
@@ -199,76 +276,156 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
     });
   }
 
-  function handleImportPlayers() {
-    const importedNames = parsePlayerNamesFromForum(playersImportText, djName);
-
-    if (!importedNames.length) {
-      return;
+  async function handleImportPlayers() {
+    if (!playersImportText.trim()) {
+      return false;
     }
 
-    setPlayerNames((current) => {
-      const merged = [...current.map((name) => name.trim()).filter(Boolean), ...importedNames];
-      return [...new Set(merged)];
-    });
+    setRequestError(null);
+    setIsImportingPlayers(true);
+
+    try {
+      const importedNames = await parseJourneyPlayersRequest(playersImportText, djName);
+
+      if (!importedNames.length) {
+        return false;
+      }
+
+      setPlayerNames((current) => {
+        const merged = [...current.map((name) => name.trim()).filter(Boolean), ...importedNames];
+        return [...new Set(merged)];
+      });
+
+      return true;
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+      return false;
+    } finally {
+      setIsImportingPlayers(false);
+    }
   }
 
-  function handleMoveInputChange(nickname: string, value: string) {
+  function handleMoveInputChange(playerId: string, value: string) {
     setMoveInputs((current) => ({
       ...current,
-      [nickname]: value,
+      [playerId]: value,
     }));
   }
 
-  function handleSkipToggle(nickname: string) {
+  function handleSkipToggle(playerId: string) {
     setSkippedPlayers((current) => ({
       ...current,
-      [nickname]: !current[nickname],
+      [playerId]: !current[playerId],
     }));
   }
 
-  function handleImportMoves() {
-    const parsedMoves = parseMovesFromForum(movesImportText);
+  async function handleImportMoves() {
+    if (!movesImportText.trim()) {
+      return false;
+    }
 
-    if (!Object.keys(parsedMoves).length) {
+    setRequestError(null);
+    setIsImportingMoves(true);
+
+    try {
+      const parsedMoves = await parseJourneyMovesRequest(movesImportText);
+
+      if (!Object.keys(parsedMoves).length) {
+        return false;
+      }
+
+      const activePlayersByNickname = activePlayers.reduce<Record<string, JourneyPlayer>>((accumulator, player) => {
+        accumulator[player.nickname.trim().toLowerCase()] = player;
+        return accumulator;
+      }, {});
+
+      const mappedMoves = Object.entries(parsedMoves).reduce<Record<string, string>>((accumulator, [nickname, dice]) => {
+        const player = activePlayersByNickname[nickname.trim().toLowerCase()];
+
+        if (player) {
+          accumulator[player.id] = String(dice);
+        }
+
+        return accumulator;
+      }, {});
+
+      if (!Object.keys(mappedMoves).length) {
+        return false;
+      }
+
+      setMoveInputs((current) => ({
+        ...current,
+        ...mappedMoves,
+      }));
+
+      return true;
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+      return false;
+    } finally {
+      setIsImportingMoves(false);
+    }
+  }
+
+  async function handleSubmitRound() {
+    if (!game?.id) {
       return;
     }
 
-    setMoveInputs((current) => ({
-      ...current,
-      ...Object.fromEntries(Object.entries(parsedMoves).map(([nickname, dice]) => [nickname, String(dice)])),
-    }));
-  }
-
-  function handleSubmitRound() {
     const moves = activePlayers
-      .filter((player) => !skippedPlayers[player.nickname])
+      .filter((player) => !skippedPlayers[player.id])
       .map((player) => ({
-        nickname: player.nickname,
-        dice: Number(moveInputs[player.nickname]),
+        playerId: player.id,
+        dice: Number(moveInputs[player.id]),
       }));
 
-    const skippedNicknames = activePlayers.filter((player) => skippedPlayers[player.nickname]).map((player) => player.nickname);
-    const nextGame = makeJourneyRound(game!, moves, skippedNicknames);
+    const skippedPlayerIds = activePlayers.filter((player) => skippedPlayers[player.id]).map((player) => player.id);
+    setRequestError(null);
+    setIsSubmittingRound(true);
 
-    setGame(nextGame);
-    resetRoundUi(getJourneyActivePlayers(nextGame));
+    try {
+      const nextGame = await submitJourneyRoundRequest(game.id, {
+        moves,
+        skippedPlayerIds,
+      });
+
+      setGame(nextGame);
+      resetRoundUi(getJourneyActivePlayers(nextGame));
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsSubmittingRound(false);
+    }
   }
 
-  function handleRemovePlayerFromGame(nickname: string) {
-    const nextGame = removeJourneyPlayer(game!, nickname);
-    setGame(nextGame);
+  async function handleRemovePlayerFromGame(playerId: string) {
+    if (!game?.id) {
+      return;
+    }
 
-    setMoveInputs((current) => {
-      const nextInputs = { ...current };
-      delete nextInputs[nickname];
-      return nextInputs;
-    });
+    setRequestError(null);
+    setRemovingPlayerId(playerId);
 
-    setSkippedPlayers((current) => {
-      const nextSkipped = { ...current };
-      delete nextSkipped[nickname];
-      return nextSkipped;
-    });
+    try {
+      const nextGame = await removeJourneyPlayerRequest(game.id, playerId);
+      setGame(nextGame);
+
+      setMoveInputs((current) => {
+        const nextInputs = { ...current };
+        delete nextInputs[playerId];
+        return nextInputs;
+      });
+
+      setSkippedPlayers((current) => {
+        const nextSkipped = { ...current };
+        delete nextSkipped[playerId];
+        return nextSkipped;
+      });
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setRemovingPlayerId(null);
+    }
   }
 
   return (
@@ -280,6 +437,10 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
             canStartGame={canStartGame}
             hasGame={Boolean(game)}
             savedGameAvailable={savedGameAvailable}
+            isStartingGame={isStartingGame}
+            isRestoringGame={isRestoringGame}
+            isResettingGame={isResettingGame}
+            actionsDisabled={headerActionsDisabled}
             onOpenRules={() => setRulesDialogOpen(true)}
             onStartGame={handleStartGame}
             onRestoreGame={handleRestoreGame}
@@ -290,6 +451,14 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
         {!djName.trim() ? (
           <Grid item xs={12}>
             <Alert severity="warning">{journeyTexts.alerts.setDjName}</Alert>
+          </Grid>
+        ) : null}
+
+        {requestError ? (
+          <Grid item xs={12}>
+            <Alert severity="error" onClose={() => setRequestError(null)}>
+              {requestError}
+            </Alert>
           </Grid>
         ) : null}
 
@@ -310,6 +479,10 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
                 skippedPlayers={skippedPlayers}
                 journeyConfig={journeyConfig}
                 canSubmitRound={canSubmitRound}
+                actionsDisabled={roundActionsDisabled}
+                isImportingMoves={isImportingMoves}
+                isSubmittingRound={isSubmittingRound}
+                removingPlayerId={removingPlayerId}
                 onMoveInputChange={handleMoveInputChange}
                 onSkipToggle={handleSkipToggle}
                 onRemovePlayer={handleRemovePlayerFromGame}
@@ -320,6 +493,7 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
               <JourneyPlayersSetupCard
                 playerNames={playerNames}
                 playerNameErrors={playerNameErrors}
+                actionsDisabled={setupActionsDisabled}
                 onPlayerNameChange={handlePlayerNameChange}
                 onRemovePlayerField={handleRemovePlayerField}
                 onAddPlayerField={handleAddPlayerField}
@@ -361,6 +535,7 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
         onChange={setPlayersImportText}
         helperText={journeyTexts.helperText.playersImport}
         minRows={10}
+        loading={isImportingPlayers}
       />
 
       <JourneyImportDialog
@@ -372,8 +547,8 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
         onChange={setMovesImportText}
         helperText={journeyTexts.helperText.movesImport}
         minRows={8}
+        loading={isImportingMoves}
       />
     </>
   );
 }
-

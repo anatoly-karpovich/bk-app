@@ -6,12 +6,13 @@ import { journeyTexts } from "../../../texts/journeyTexts";
 interface JourneyImportDialogProps {
   open: boolean;
   onClose: () => void;
-  onApply: () => void;
+  onApply: () => Promise<boolean>;
   title: string;
   value: string;
   onChange: (value: string) => void;
   helperText: string;
   minRows: number;
+  loading?: boolean;
 }
 
 export default function JourneyImportDialog({
@@ -23,9 +24,10 @@ export default function JourneyImportDialog({
   onChange,
   helperText,
   minRows,
+  loading = false,
 }: JourneyImportDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={loading ? undefined : onClose} fullWidth maxWidth="md" disableEscapeKeyDown={loading}>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <AppTextInput
@@ -38,17 +40,22 @@ export default function JourneyImportDialog({
           onChange={(event) => onChange(event.target.value)}
           helperText={helperText}
           sx={{ mt: 1 }}
+          disabled={loading}
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <AppPillButton color="inherit" onClick={onClose}>
+        <AppPillButton color="inherit" onClick={onClose} disabled={loading}>
           {journeyTexts.actions.cancel}
         </AppPillButton>
         <AppPillButton
           variant="contained"
-          onClick={() => {
-            onApply();
-            onClose();
+          loading={loading}
+          onClick={async () => {
+            const applied = await onApply();
+
+            if (applied) {
+              onClose();
+            }
           }}
         >
           {journeyTexts.actions.apply}

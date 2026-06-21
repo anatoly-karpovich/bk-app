@@ -9,6 +9,7 @@ import AppTextInput from "../../../components/ui/AppTextInput";
 interface JourneyPlayersSetupCardProps {
   playerNames: string[];
   playerNameErrors: string[];
+  actionsDisabled: boolean;
   onPlayerNameChange: (index: number, value: string) => void;
   onRemovePlayerField: (index: number) => void;
   onAddPlayerField: () => void;
@@ -18,6 +19,7 @@ interface JourneyPlayersSetupCardProps {
 export default function JourneyPlayersSetupCard({
   playerNames,
   playerNameErrors,
+  actionsDisabled,
   onPlayerNameChange,
   onRemovePlayerField,
   onAddPlayerField,
@@ -38,18 +40,19 @@ export default function JourneyPlayersSetupCard({
                 error={Boolean(playerNameErrors[index])}
                 placeholder={playerNameErrors[index] || ""}
                 FormHelperTextProps={{ sx: { display: "none" } }}
+                disabled={actionsDisabled}
               />
-              <IconButton color="error" onClick={() => onRemovePlayerField(index)}>
+              <IconButton color="error" onClick={() => onRemovePlayerField(index)} disabled={actionsDisabled}>
                 <DeleteOutlineRoundedIcon />
               </IconButton>
             </Stack>
           ))}
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <AppPillButton variant="outlined" startIcon={<AddRoundedIcon />} onClick={onAddPlayerField}>
+            <AppPillButton variant="outlined" startIcon={<AddRoundedIcon />} onClick={onAddPlayerField} disabled={actionsDisabled}>
               {journeyTexts.actions.addPlayer}
             </AppPillButton>
-            <AppPillButton variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={onOpenImport}>
+            <AppPillButton variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={onOpenImport} disabled={actionsDisabled}>
               {journeyTexts.actions.importPlayers}
             </AppPillButton>
           </Stack>

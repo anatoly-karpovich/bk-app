@@ -12,14 +12,14 @@ import type {
 
 export function createEmptyMoveState(players: JourneyPlayer[] = []): JourneyMoveInputs {
   return players.reduce<JourneyMoveInputs>((accumulator, player) => {
-    accumulator[player.nickname] = "";
+    accumulator[player.id] = "";
     return accumulator;
   }, {});
 }
 
 export function createEmptySkipState(players: JourneyPlayer[] = []): JourneySkippedPlayers {
   return players.reduce<JourneySkippedPlayers>((accumulator, player) => {
-    accumulator[player.nickname] = false;
+    accumulator[player.id] = false;
     return accumulator;
   }, {});
 }
