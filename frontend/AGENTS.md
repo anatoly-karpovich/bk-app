@@ -7,7 +7,7 @@ This `frontend` app is a React + MUI operator panel for forum games.
 Today the only implemented game is `Journey`, but the app shell is already moving toward a multi-game structure:
 
 - global nav/header
-- shared project/ruleset selection
+- shared project/config selection
 - game-specific page headers
 - reusable UI primitives
 
@@ -57,14 +57,14 @@ Use `npm run build` and `npm run typecheck` as the minimum verification step aft
 - [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/App.tsx:1)
   Owns app-level state shared across routes:
   - DJ name
-  - available journey rulesets
-  - current default ruleset id
+  - available backend configs
+  - current selected config id
 
   It renders:
   - global header
   - route container
   - `JourneyPage`
-  - transitional `JourneyRulesetsPage`
+  - `ConfigsPage`
 
 ### Theme and Design System
 
@@ -96,7 +96,7 @@ Responsibilities:
 - brand and game navigation
 - mobile drawer
 - DJ name input
-- project/ruleset selector
+- project/config selector
 - config entrypoint
 
 ### Journey Feature
@@ -105,7 +105,16 @@ Responsibilities:
   Thin page container that owns page-level state, runs async Journey API actions, derives feature models, and wires callbacks into feature components.
 
 - [src/features/journey/api/journey.client.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/api/journey.client.ts:1)
-  Fetch-based Journey API client. It consumes lean backend DTOs and normalizes them into the richer frontend shape used by existing helpers/components.
+  Fetch-based Journey API client. It consumes lean backend DTOs, creates games by `configId`, and normalizes responses into the richer frontend shape used by existing helpers/components.
+
+- [src/features/configs/api/config.client.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/configs/api/config.client.ts:1)
+  Fetch-based global configs API client.
+
+- [src/features/configs/ConfigsPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/configs/ConfigsPage.tsx:1)
+  Read-only global config screen for browsing and selecting the active project config.
+
+- [src/features/configs/storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/configs/storage.ts:1)
+  `localStorage` boundary for the last selected config id.
 
 - [src/features/journey/journey-page.helpers.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/journey-page.helpers.ts:1)
   Pure UI-focused helpers for validation, compact map labels, history summaries, and achievement progress derivation.
@@ -122,17 +131,14 @@ Responsibilities:
 
 Feature-local components should stay inside `src/features/journey/components` unless they become clearly reusable outside the Journey feature.
 
-- [src/features/journey/JourneyRulesetsPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyRulesetsPage.tsx:1)
-  Transitional config page for rulesets. Still active, but conceptually moving toward a broader config surface.
-
 - [src/features/journey/engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:1)
   Transitional Journey domain/normalization layer. Frontend no longer owns authoritative Journey mutations, but this file still powers derivations, normalization, and view helpers.
 
 - [src/features/journey/config.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/config.ts:1)
-  Built-in rulesets, normalization, config derivation, and achievements metadata.
+  Pure Journey rule normalization, config derivation, and achievements metadata. Do not treat this file as the source of app-level project configs.
 
 - [src/features/journey/storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.ts:1)
-  `localStorage` boundary for Journey `gameId`, rulesets, and default ruleset selection.
+  `localStorage` boundary for Journey `gameId` restore only.
 
 - [src/features/journey/parsers.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/parsers.ts:1)
   Forum text parsing for players and moves.
@@ -158,13 +164,13 @@ Current routes in [src/App.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src
 
 - `/` -> redirects to `/journey`
 - `/journey` -> main game page
-- `/journey/config` -> ruleset configuration page
+- `/config` -> global configs page
 
 Notes:
 
-- `JourneyRulesetsPage` is still real and wired.
-- Product direction suggests configs will eventually move to backend/global config.
-- Do not casually delete `/journey/config` without also updating `AppHeader` and the current config flow.
+- configs are backend-driven via `/api/configs`
+- the global config screen is shared app shell UI, not Journey-only UI
+- do not casually rename `/config` without also updating `AppHeader` and the current config flow
 
 ---
 
@@ -175,13 +181,13 @@ Notes:
 Owned by `App`:
 
 - `djName`
-- `journeyRulesetsState.rulesets`
-- `journeyRulesetsState.defaultRulesetId`
+- `configs`
+- `selectedConfigId`
 
 Why:
 
 - the global header and routed pages need the same source of truth
-- changing the default ruleset in the header must be reflected across routes
+- changing the selected config in the header must be reflected across routes
 
 ### Journey Page State
 
@@ -207,12 +213,13 @@ Rule of thumb:
 - pure derivations and normalization stay in `engine.ts`
 - persistence stays in `storage.ts`
 
-### Ruleset Behavior
+### Config Behavior
 
 Critical product rule:
 
-- `default ruleset` affects only new games
+- selected config affects only new games
 - an already started game keeps its own rules snapshot
+- selected config is client-local state, not shared backend session state
 
 This behavior is encoded in the current architecture. Do not break it.
 
@@ -223,16 +230,15 @@ This behavior is encoded in the current architecture. Do not break it.
 Storage keys in [storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.ts:1):
 
 - `combats-dj:journey`
-- `combats-dj:journey:rulesets`
-- `combats-dj:journey:default-ruleset-id`
 - `combats-dj:dj-name` is managed in `App.tsx`
+- `combats-dj:selected-config-id` is managed in `src/features/configs/storage.ts`
 
 Important behaviors:
 
 - only the current `gameId` is stored locally for Journey restore
-- custom rulesets are normalized when read/write
-- built-in rulesets always win on id collisions
-- deleting the default custom ruleset falls back to the built-in default
+- the selected config id is stored locally as a convenience only
+- the source of truth for available configs is the backend
+- if the stored config id is missing or invalid, the app falls back to the first backend config
 - Journey API responses are normalized before entering page state
 
 If you change storage shape:
@@ -247,7 +253,7 @@ If you change storage shape:
 
 The domain is centered around:
 
-- rulesets
+- configs and per-game rules snapshots
 - game snapshot
 - players
 - rounds
@@ -258,6 +264,7 @@ The domain is centered around:
 Important current architecture:
 
 - backend is the source of truth for Journey mutations and stored game state
+- backend is also the source of truth for available project configs
 - frontend still uses local helpers for display-oriented derivations
 - backend returns a lean DTO, which the frontend normalizes into its richer internal shape
 
@@ -411,7 +418,7 @@ Good:
 Boundaries:
 
 - `localStorage` reads
-- ruleset creation/update
+- backend config responses
 - game snapshot loading
 
 If raw external data can be malformed, normalize there.
@@ -439,7 +446,7 @@ It should contain:
 - brand
 - game navigation
 - DJ name
-- project/ruleset selector
+- project/config selector
 - config access
 
 It should not contain:
@@ -461,9 +468,9 @@ Status chips on the Journey page are derived from actual game state.
 
 Current logic:
 
-- no game -> not started status + ruleset
-- active game -> active status + ruleset + round + player count
-- completed game -> completion status + ruleset
+- no game -> not started status + selected config
+- active game -> active status + game config + round + player count
+- completed game -> completion status + game config
 
 If this logic changes, update the derivation in one place.
 
@@ -495,8 +502,8 @@ Keep that separation unless product explicitly changes it.
 ### If You Change Game Rules
 
 1. update `config.ts` and/or `engine.ts`
-2. verify derived UI still makes sense
-3. verify storage normalization still works
+2. verify backend config payloads still map correctly into frontend helpers
+3. verify derived UI still makes sense
 4. run `npm run build`
 5. run `npm run typecheck`
 
@@ -530,11 +537,10 @@ Do not copy Journey blindly if the domain differs. Reuse the shell and shared UI
 
 These areas are intentionally in transition:
 
-- `/journey/config` is still route-based, but product direction points to broader global config
-- rulesets are currently `localStorage`-based, but expected to move to backend
 - DJ auth/name is inline text today, but expected to become API-driven later
 - Journey page still normalizes richer internal models from a lean backend DTO
 - frontend still carries legacy Journey engine structures for compatibility with existing UI helpers
+- config selection is local to the browser, while available configs come from the backend
 
 When editing these areas:
 
@@ -565,7 +571,7 @@ Do:
 - use `theme.customRadii`
 - centralize text
 - preserve the engine/storage/UI separation
-- keep ruleset behavior backward compatible
+- keep selected-config behavior backward compatible
 
 Don't:
 
@@ -573,4 +579,4 @@ Don't:
 - use native selects when MUI equivalents exist
 - add raw numeric `borderRadius` casually in `sx`
 - mutate game logic directly in the view layer
-- make existing games depend on future backend assumptions
+- make existing games depend on mutating live backend config after the game has started

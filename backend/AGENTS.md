@@ -7,7 +7,8 @@ This `backend` app is a TypeScript Express API for forum-game tooling.
 Today it exposes:
 
 - forum topic proxying
-- Journey (`Карта Мародёров`) game persistence
+- global read-only project configs
+- Journey game persistence
 - Journey game state transitions backed by MongoDB
 
 When editing this app, optimize for:
@@ -67,16 +68,25 @@ Important behavior:
 - connection lifecycle should stay centralized here
 - `process.loadEnvFile()` is used instead of `dotenv`
 
-Environment files:
+### Configs Module
 
-- [backend/.env.example](/abs/path/C:/Users/anato/git/bk-app/backend/.env.example:1)
+- [src/modules/configs/domain/types.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/configs/domain/types.ts:1)
+  Canonical app-level config types.
+
+- [src/modules/configs/domain/defaultConfigs.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/configs/domain/defaultConfigs.ts:1)
+  Built-in project configs such as `oldbk2` and `combatsclub`.
+
+- [src/modules/configs/services/configs.service.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/configs/services/configs.service.ts:1)
+  Loads configs from Mongo and ensures the built-in defaults exist.
+
+- [src/modules/configs/controllers/configs.controller.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/configs/controllers/configs.controller.ts:1)
+- [src/modules/configs/routes/configs.routes.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/configs/routes/configs.routes.ts:1)
+  Read-only HTTP boundary for `/api/configs`.
 
 ### Forum Topic API
 
 - [src/controllers/forumTopic.controller.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/controllers/forumTopic.controller.ts:1)
 - [src/routes/forumTopic.routes.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/routes/forumTopic.routes.ts:1)
-
-This module is a thin proxy around the external forum topic API.
 
 ### Journey Module
 
@@ -90,10 +100,10 @@ The Journey backend is intentionally split into layers:
 #### Domain
 
 - [src/modules/journey/domain/types.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/journey/domain/types.ts:1)
-  Canonical Journey domain types.
+  Canonical Journey domain types and public DTOs.
 
 - [src/modules/journey/domain/config.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/journey/domain/config.ts:1)
-  Rulesets, normalization, move type constants, config derivation.
+  Pure Journey rule normalization, move type constants, and config derivation helpers.
 
 - [src/modules/journey/domain/engine.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/journey/domain/engine.ts:1)
   Core Journey game logic and state transitions.
@@ -111,6 +121,7 @@ The Journey backend is intentionally split into layers:
 Responsibilities:
 
 - load and save Journey snapshots
+- resolve `configId` into `config.games.journey` on game creation
 - apply engine transitions to stored games
 - serialize Mongo documents to API responses
 - keep persistence logic out of controllers
@@ -131,6 +142,7 @@ Controllers should not:
 - contain game-rule logic
 - build Mongo queries directly
 - duplicate behavior from `engine.ts`
+- embed built-in config payloads inline
 
 #### Route Layer
 
@@ -150,6 +162,11 @@ Responsibilities:
 
 - `GET /api/forum/topic?topicId=<id>`
 
+### Configs
+
+- `GET /api/configs`
+- `GET /api/configs/:configId`
+
 ### Journey
 
 - `GET /api/journey/games/latest`
@@ -164,7 +181,8 @@ Responsibilities:
 
 Important note:
 
-- the frontend now uses this backend for Journey game creation, round submission, player removal, and forum parsing
+- the frontend loads available project configs from `/api/configs`
+- Journey game creation now resolves rules from `configId` on the backend
 - the backend returns a lean Journey DTO for UI needs rather than the full internal snapshot shape
 - Mongo still stores a fuller internal snapshot than the public API returns
 
@@ -183,8 +201,9 @@ For Journey, the source of truth for rules is the domain layer, especially:
 If a Journey rule changes:
 
 1. update the domain layer first
-2. then update service/controller behavior if needed
-3. avoid patching rule behavior in controllers
+2. if built-in project configs should change too, update `modules/configs/domain/defaultConfigs.ts`
+3. then update service/controller behavior if needed
+4. avoid patching rule behavior in controllers
 
 ### 2. Keep Services Stateful, Domain Pure
 
@@ -230,7 +249,7 @@ Avoid:
 
 ## Persistence Model
 
-Journey is currently stored as snapshot-style documents in MongoDB.
+Journey is stored as snapshot-style documents in MongoDB.
 
 This means:
 
@@ -239,15 +258,10 @@ This means:
 - domain engine applies the transition
 - service code saves the full updated snapshot back
 
-This is intentional right now because:
-
-- it keeps the internal engine/storage model stable
-- it minimizes translation layers
-- it keeps the backend logic aligned with the current game engine
-
 Important distinction:
 
 - stored Mongo documents use the fuller internal `JourneyGame` shape
+- older documents may still contain legacy `rulesetId/rulesetName` fields and must be normalized on read
 - HTTP responses are serialized into a lean public DTO in `journey.service.ts`
 - do not assume the API response shape and storage shape are identical
 
@@ -262,9 +276,10 @@ If you change the snapshot shape:
 
 ## Journey Domain Guidance
 
-Key domain concepts:
+Key concepts:
 
-- rulesets
+- app configs
+- per-game rules snapshots
 - game snapshot
 - players
 - rounds
@@ -292,6 +307,7 @@ Important exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src
 Guidance:
 
 - treat `engine.ts` as the Journey rulebook
+- treat `modules/configs` as the source of truth for which project configs exist
 - do not re-implement move outcomes in controllers or services
 - if a new endpoint needs Journey calculations, prefer calling domain helpers
 - mutations should key players by `playerId`, not `nickname`
@@ -301,13 +317,7 @@ Guidance:
 
 ## TypeScript Rules
 
-This backend is already strict TypeScript.
-
-Current compiler direction in [tsconfig.json](/abs/path/C:/Users/anato/git/bk-app/backend/tsconfig.json:1):
-
-- `strict: true`
-- `rootDir: src`
-- `outDir: dist`
+This backend is strict TypeScript.
 
 When editing:
 
@@ -315,13 +325,6 @@ When editing:
 - keep `unknown` at external boundaries only
 - narrow request input before use
 - avoid spreading `as` casts through controllers
-
-Good candidates for stronger typing:
-
-- request DTOs
-- response envelopes
-- route param/query/body generics for `Request`
-- repository return types
 
 Avoid:
 
@@ -333,15 +336,7 @@ Avoid:
 
 ## Mongo Rules
 
-The project currently uses the native MongoDB driver, not Mongoose.
-
-That is the preferred default unless there is an explicit migration decision.
-
-Why:
-
-- less duplication with existing TypeScript domain types
-- fewer abstraction layers
-- easier snapshot persistence
+The project uses the native MongoDB driver, not Mongoose.
 
 When touching Mongo code:
 
@@ -372,12 +367,9 @@ Do not:
 
 - pass raw `req.body` into domain functions without checks
 - trust client-sent snapshots blindly
+- trust client-sent Journey rules when `configId` should be resolved server-side
 - accept malformed game ids or player identifiers
 - reintroduce nickname-based mutation payloads where `playerId` is already available
-
-Current validation style is lightweight and manual.
-
-If validation becomes repetitive, prefer introducing a schema layer consistently rather than one-off helpers in random files.
 
 ---
 
@@ -386,8 +378,16 @@ If validation becomes repetitive, prefer introducing a schema layer consistently
 ### If You Change a Journey Rule
 
 1. update `domain/config.ts` and/or `domain/engine.ts`
-2. ensure services still persist the resulting shape correctly
-3. ensure controller payload expectations still make sense
+2. update built-in app configs if the default projects should inherit the new rule
+3. ensure services still persist the resulting shape correctly
+4. ensure controller payload expectations still make sense
+5. run `npm run build`
+
+### If You Change Global Config Behavior
+
+1. update `modules/configs/domain/types.ts` first
+2. update `modules/configs/services` and HTTP responses
+3. verify Journey creation still resolves `config.games.journey` correctly
 4. run `npm run build`
 
 ### If You Add a Journey Endpoint
@@ -398,13 +398,6 @@ If validation becomes repetitive, prefer introducing a schema layer consistently
 4. keep route naming consistent with existing `/api/journey/...`
 5. run `npm run build`
 
-### If You Change Persistence Shape
-
-1. update domain types
-2. update service serialization/deserialization
-3. keep normalization behavior explicit
-4. avoid silent divergence between stored snapshots and domain expectations
-
 ### If You Add Shared Infra
 
 1. place it under `src/lib`
@@ -413,53 +406,12 @@ If validation becomes repetitive, prefer introducing a schema layer consistently
 
 ---
 
-## Design Rules for the Backend
-
-### Prefer Coherent Modules
-
-Feature code should live together.
-
-For Journey, prefer staying inside:
-
-- `src/modules/journey/domain`
-- `src/modules/journey/services`
-- `src/modules/journey/controllers`
-- `src/modules/journey/routes`
-
-Do not scatter Journey logic into top-level folders unless it truly becomes shared.
-
-### Prefer Explicit URLs
-
-Routes should stay human-readable and resource-oriented.
-
-Current style:
-
-- `/games/:gameId`
-- `/games/:gameId/rounds`
-- `/games/:gameId/players/:playerId`
-- `/parse/players`
-
-Keep that style consistent unless the whole API design changes.
-
-### Preserve Thin HTTP Edges
-
-The app is still small.
-
-Avoid overengineering with:
-
-- generic base controllers
-- abstract router factories
-- premature DI containers
-
-Small explicit modules are preferred here.
-
----
-
 ## Known Transitional Areas
 
 These areas are intentionally transitional:
 
 - frontend still contains Journey engine helpers for derivation/normalization, but game mutations are backend-driven
+- frontend keeps the selected config locally, while the backend owns the available config list
 - backend stores snapshot documents rather than a more normalized game model
 - validation is manual rather than schema-driven
 - public API DTOs are leaner than internal Mongo snapshots
@@ -489,6 +441,7 @@ After meaningful edits, check:
 Do:
 
 - keep Journey rules in the domain layer
+- keep available project configs in `modules/configs`
 - keep controllers thin
 - keep routes declarative
 - centralize Mongo access
