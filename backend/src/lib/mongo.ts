@@ -1,15 +1,19 @@
 import { Collection, Document, MongoClient } from "mongodb";
 
-const DEFAULT_MONGODB_URI =
-  "mongodb+srv://user:user@cluster0.j9uiirp.mongodb.net/?retryWrites=true&w=majority";
 const DEFAULT_DB_NAME = "bk-app";
 
-const mongoUri = process.env.MONGODB_URI ?? DEFAULT_MONGODB_URI;
+process.loadEnvFile();
+
+const mongoUri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB_NAME ?? DEFAULT_DB_NAME;
 
 let clientPromise: Promise<MongoClient> | null = null;
 
 function getMongoClient(): Promise<MongoClient> {
+  if (!mongoUri) {
+    throw new Error("Missing required environment variable MONGODB_URI");
+  }
+
   if (!clientPromise) {
     const client = new MongoClient(mongoUri);
     clientPromise = client.connect();

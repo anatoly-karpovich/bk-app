@@ -1,3 +1,5 @@
+process.loadEnvFile();
+
 import app from "./app";
 import { ensureMongoConnection } from "./lib/mongo";
 
