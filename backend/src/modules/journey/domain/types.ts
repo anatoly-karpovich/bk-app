@@ -193,6 +193,44 @@ export interface JourneyGame {
   comments: string[];
 }
 
+export interface JourneyPlayerDto {
+  id: string;
+  nickname: string;
+  status: JourneyPlayerStatus;
+  position: number;
+  prize: number;
+  bonuses: JourneyAchievement[];
+}
+
+export interface JourneyRoundEntryDto {
+  createdAt: string;
+  playerId: string | null;
+  skipped: boolean;
+  previousPosition: number | null;
+  currentPosition: number | null;
+  previousPrize: number | null;
+  prizeAfterMove: number | null;
+  fullPrizeAfterRound: number | null;
+  moveType: JourneyMoveType | JourneySkippedMoveType | null;
+  cell: JourneyMapCell | null;
+  achievementsAwarded: JourneyAchievement[];
+}
+
+export interface JourneyRoundDto {
+  createdAt: string;
+  moveIndex: number;
+  entries: JourneyRoundEntryDto[];
+}
+
+export interface JourneyGameDto {
+  rulesetName: string;
+  rules: JourneyRules;
+  map: Record<number, JourneyMapCell>;
+  players: JourneyPlayerDto[];
+  rounds: JourneyRoundDto[];
+  comments: string[];
+}
+
 export interface JourneyRulesetState {
   rulesets: JourneyRuleset[];
   defaultRulesetId: string;

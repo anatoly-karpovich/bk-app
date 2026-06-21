@@ -15,6 +15,7 @@ import type {
   JourneyAchievementsByPlayerId,
   JourneyAchievementsByNickname,
   JourneyGame,
+  JourneyGameDto,
   JourneyMapCell,
   JourneyMove,
   JourneyMoveInput,
@@ -445,12 +446,12 @@ function createEntriesFromLegacyRound(
   return [...moveEntries, ...skippedEntries];
 }
 
-export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame | null {
+export function normalizeJourneyGame(rawGame: JourneyGame | JourneyGameDto | null): JourneyGame | null {
   if (!rawGame) {
     return null;
   }
 
-  const game = clone(rawGame);
+  const game = clone(rawGame as any) as JourneyGame;
   game.createdAt = game.createdAt ?? getNowIso();
   game.updatedAt = game.updatedAt ?? game.createdAt;
   game.status = game.status ?? "in_progress";
@@ -492,6 +493,10 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
         ...entry,
         createdAt: entry.createdAt ?? round.createdAt ?? game.updatedAt ?? game.createdAt,
         playerId: entry.playerId ?? playersByNickname[entry.nickname]?.id ?? null,
+        nickname: entry.nickname ?? (entry.playerId ? game.playersById[entry.playerId]?.nickname ?? "" : ""),
+        playerStatusBeforeRound: entry.playerStatusBeforeRound ?? null,
+        playerStatusAfterRound: entry.playerStatusAfterRound ?? null,
+        dice: entry.dice ?? null,
         achievementsAwarded: clone(entry.achievementsAwarded ?? []),
         bonusesSnapshot: clone(entry.bonusesSnapshot ?? []),
         cell: entry.cell ? clone(entry.cell) : null,

@@ -1,4 +1,5 @@
-import type { JourneyMoveInput, JourneyPersistedGame, JourneyRules } from "../types";
+import { normalizeJourneyGame } from "../engine";
+import type { JourneyMoveInput, JourneyPersistedGame, JourneyPersistedGameDto, JourneyRules } from "../types";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
 
@@ -38,20 +39,33 @@ async function requestJourneyApi<T>(path: string, init?: RequestInit): Promise<T
   return responseBody.data;
 }
 
+function normalizeJourneyGameResponse(game: JourneyPersistedGameDto): JourneyPersistedGame {
+  const normalizedGame = normalizeJourneyGame(game);
+
+  if (!normalizedGame || !game.id) {
+    throw new Error("Journey response normalization failed");
+  }
+
+  return {
+    ...normalizedGame,
+    id: game.id,
+  };
+}
+
 export function createJourneyGameRequest(payload: {
   nicknames: string[];
   rules?: JourneyRules;
   rulesetId?: string;
   rulesetName?: string;
 }) {
-  return requestJourneyApi<JourneyPersistedGame>("/games", {
+  return requestJourneyApi<JourneyPersistedGameDto>("/games", {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }).then(normalizeJourneyGameResponse);
 }
 
 export function getJourneyGameByIdRequest(gameId: string) {
-  return requestJourneyApi<JourneyPersistedGame>(`/games/${gameId}`);
+  return requestJourneyApi<JourneyPersistedGameDto>(`/games/${gameId}`).then(normalizeJourneyGameResponse);
 }
 
 export function submitJourneyRoundRequest(
@@ -61,16 +75,16 @@ export function submitJourneyRoundRequest(
     skippedPlayerIds?: string[];
   },
 ) {
-  return requestJourneyApi<JourneyPersistedGame>(`/games/${gameId}/rounds`, {
+  return requestJourneyApi<JourneyPersistedGameDto>(`/games/${gameId}/rounds`, {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }).then(normalizeJourneyGameResponse);
 }
 
 export function removeJourneyPlayerRequest(gameId: string, playerId: string) {
-  return requestJourneyApi<JourneyPersistedGame>(`/games/${gameId}/players/${encodeURIComponent(playerId)}`, {
+  return requestJourneyApi<JourneyPersistedGameDto>(`/games/${gameId}/players/${encodeURIComponent(playerId)}`, {
     method: "DELETE",
-  });
+  }).then(normalizeJourneyGameResponse);
 }
 
 export function deleteJourneyGameRequest(gameId: string) {

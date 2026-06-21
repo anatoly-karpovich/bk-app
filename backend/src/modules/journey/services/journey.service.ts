@@ -2,11 +2,11 @@ import { ObjectId, WithId } from "mongodb";
 import { getMongoCollection } from "../../../lib/mongo";
 import { createJourneyGame, makeJourneyRound, normalizeJourneyGame, removeJourneyPlayer } from "../domain/engine";
 import { parseMovesFromForum, parsePlayerNamesFromForum } from "../domain/parsers";
-import type { JourneyGame, JourneyMoveInput, JourneyRules, JourneyRuleset } from "../domain/types";
+import type { JourneyGame, JourneyGameDto, JourneyMoveInput, JourneyRules, JourneyRuleset } from "../domain/types";
 
 const JOURNEY_GAMES_COLLECTION = "journey_games";
 
-export interface JourneyGameResponse extends JourneyGame {
+export interface JourneyGameResponse extends JourneyGameDto {
   id: string;
 }
 
@@ -36,7 +36,35 @@ function serializeJourneyGame(document: WithId<JourneyGameDocument>): JourneyGam
 
   return {
     id: _id.toHexString(),
-    ...game,
+    rulesetName: game.rulesetName,
+    rules: game.rules,
+    map: game.map,
+    players: game.players.map((player) => ({
+      id: player.id,
+      nickname: player.nickname,
+      status: player.status,
+      position: player.position,
+      prize: player.prize,
+      bonuses: player.bonuses,
+    })),
+    rounds: game.rounds.map((round) => ({
+      createdAt: round.createdAt,
+      moveIndex: round.moveIndex,
+      entries: (round.entries ?? []).map((entry) => ({
+        createdAt: entry.createdAt,
+        playerId: entry.playerId,
+        skipped: entry.skipped,
+        previousPosition: entry.previousPosition,
+        currentPosition: entry.currentPosition,
+        previousPrize: entry.previousPrize,
+        prizeAfterMove: entry.prizeAfterMove,
+        fullPrizeAfterRound: entry.fullPrizeAfterRound,
+        moveType: entry.moveType,
+        cell: entry.cell,
+        achievementsAwarded: entry.achievementsAwarded,
+      })),
+    })),
+    comments: game.comments,
   };
 }
 
