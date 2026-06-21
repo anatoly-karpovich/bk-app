@@ -1,8 +1,9 @@
 import { ObjectId, WithId } from "mongodb";
 import { getMongoCollection } from "../../../lib/mongo";
+import { getConfigById } from "../../configs/services/configs.service";
 import { createJourneyGame, makeJourneyRound, normalizeJourneyGame, removeJourneyPlayer } from "../domain/engine";
 import { parseMovesFromForum, parsePlayerNamesFromForum } from "../domain/parsers";
-import type { JourneyGame, JourneyGameDto, JourneyMoveInput, JourneyRules, JourneyRuleset } from "../domain/types";
+import type { JourneyGame, JourneyGameDto, JourneyMoveInput } from "../domain/types";
 
 const JOURNEY_GAMES_COLLECTION = "journey_games";
 
@@ -17,9 +18,7 @@ interface JourneyGameDocument extends JourneyGame {
 
 interface CreateJourneyGamePayload {
   nicknames: string[];
-  rules?: JourneyRules;
-  rulesetId?: JourneyRuleset["id"];
-  rulesetName?: JourneyRuleset["name"];
+  configId: string;
 }
 
 interface SaveJourneyRoundPayload {
@@ -33,13 +32,19 @@ function getJourneyGamesCollection() {
 
 function serializeJourneyGame(document: WithId<JourneyGameDocument>): JourneyGameResponse {
   const { _id, ...game } = document;
+  const normalizedGame = normalizeJourneyGame(game);
+
+  if (!normalizedGame) {
+    throw new Error("Journey response normalization failed");
+  }
 
   return {
     id: _id.toHexString(),
-    rulesetName: game.rulesetName,
-    rules: game.rules,
-    map: game.map,
-    players: game.players.map((player) => ({
+    configId: normalizedGame.configId,
+    configName: normalizedGame.configName,
+    rules: normalizedGame.rules,
+    map: normalizedGame.map,
+    players: normalizedGame.players.map((player) => ({
       id: player.id,
       nickname: player.nickname,
       status: player.status,
@@ -47,7 +52,7 @@ function serializeJourneyGame(document: WithId<JourneyGameDocument>): JourneyGam
       prize: player.prize,
       bonuses: player.bonuses,
     })),
-    rounds: game.rounds.map((round) => ({
+    rounds: normalizedGame.rounds.map((round) => ({
       createdAt: round.createdAt,
       moveIndex: round.moveIndex,
       entries: (round.entries ?? []).map((entry) => ({
@@ -64,7 +69,7 @@ function serializeJourneyGame(document: WithId<JourneyGameDocument>): JourneyGam
         achievementsAwarded: entry.achievementsAwarded,
       })),
     })),
-    comments: game.comments,
+    comments: normalizedGame.comments,
   };
 }
 
@@ -113,10 +118,20 @@ async function saveJourneyGameDocument(
 export async function createJourneyGameSnapshot(
   payload: CreateJourneyGamePayload,
 ): Promise<JourneyGameResponse> {
+  const config = await getConfigById(payload.configId);
+
+  if (!config) {
+    throw new Error("Journey config not found");
+  }
+
+  if (!config.games.journey) {
+    throw new Error(`Config '${config.name}' does not support Journey`);
+  }
+
   const nextGame = createJourneyGame(payload.nicknames, {
-    rules: payload.rules,
-    rulesetId: payload.rulesetId,
-    rulesetName: payload.rulesetName,
+    rules: config.games.journey,
+    configId: config.id,
+    configName: config.name,
   });
 
   const collection = await getJourneyGamesCollection();

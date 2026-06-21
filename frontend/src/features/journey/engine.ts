@@ -1,6 +1,5 @@
 import {
-  oldbk2_rules,
-  DEFAULT_JOURNEY_RULESET,
+  DEFAULT_JOURNEY_RULES,
   getJourneyAchievements,
   getJourneyBonusCells,
   getJourneyConfig,
@@ -27,7 +26,6 @@ import type {
   JourneyRound,
   JourneyRoundEntry,
   JourneyRules,
-  JourneyRuleset,
   RandomFn,
 } from "./types";
 
@@ -40,7 +38,7 @@ function getNowIso(): string {
 }
 
 function getGameRules(game: JourneyGame | null | undefined): JourneyRules {
-  return normalizeJourneyRules(game?.rules ?? oldbk2_rules);
+  return normalizeJourneyRules(game?.rules ?? DEFAULT_JOURNEY_RULES);
 }
 
 function generatePlayerId(nickname = "player"): string {
@@ -67,7 +65,7 @@ function playerHasBonus(player: JourneyPlayer, bonusName: string): boolean {
   return player.bonuses.some((bonus) => bonus.name === bonusName);
 }
 
-function getAchievementBonus(name: string, rules: JourneyRules = oldbk2_rules): JourneyAchievement | null {
+function getAchievementBonus(name: string, rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyAchievement | null {
   return Object.values(getJourneyAchievements(rules)).find((achievement) => achievement.name === name) ?? null;
 }
 
@@ -455,8 +453,9 @@ export function normalizeJourneyGame(rawGame: JourneyGame | JourneyGameDto | nul
   game.createdAt = game.createdAt ?? getNowIso();
   game.updatedAt = game.updatedAt ?? game.createdAt;
   game.status = game.status ?? "in_progress";
-  game.rulesetId = game.rulesetId ?? DEFAULT_JOURNEY_RULESET.id;
-  game.rulesetName = game.rulesetName ?? DEFAULT_JOURNEY_RULESET.name;
+  const legacyGame = game as JourneyGame & { rulesetId?: string; rulesetName?: string };
+  game.configId = game.configId ?? legacyGame.rulesetId ?? "oldbk2";
+  game.configName = game.configName ?? legacyGame.rulesetName ?? game.configId;
   game.rules = getGameRules(game);
   game.map = game.map ?? {};
   game.comments = game.comments ?? [];
@@ -512,14 +511,14 @@ export function createJourneyGame(
   nicknames: string[],
   {
     randomFn = Math.random,
-    rules = oldbk2_rules,
-    rulesetId = DEFAULT_JOURNEY_RULESET.id,
-    rulesetName = DEFAULT_JOURNEY_RULESET.name,
+    rules = DEFAULT_JOURNEY_RULES,
+    configId = "oldbk2",
+    configName = configId,
   }: {
     randomFn?: RandomFn;
     rules?: JourneyRules;
-    rulesetId?: JourneyRuleset["id"];
-    rulesetName?: JourneyRuleset["name"];
+    configId?: string;
+    configName?: string;
   } = {},
 ): JourneyGame {
   const createdAt = getNowIso();
@@ -530,8 +529,8 @@ export function createJourneyGame(
     updatedAt: createdAt,
     moveIndex: 0,
     status: "in_progress",
-    rulesetId,
-    rulesetName,
+    configId,
+    configName,
     rules: normalizedRules,
     map: createMap(normalizedRules, randomFn),
     players: [...new Set(nicknames.map((nickname) => nickname.trim()).filter(Boolean))].map((nickname) =>
@@ -835,7 +834,7 @@ export function getJourneyMoveTypeLabel(type) {
   }
 }
 
-export function getAchievementMetadata(name, rules = oldbk2_rules) {
+export function getAchievementMetadata(name, rules = DEFAULT_JOURNEY_RULES) {
   return getAchievementBonus(name, rules);
 }
 

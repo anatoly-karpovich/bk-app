@@ -19,7 +19,7 @@ export const journeyTexts = {
     notStarted: "Игра не начата",
     active: "Игра активна",
     complete: "Игра завершена",
-    rulesetPrefix: "Ruleset:",
+    rulesetPrefix: "Проект:",
     roundPrefix: "Раунд",
     playersSuffix: "игрока",
   },

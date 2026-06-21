@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Grid, Stack } from "@mui/material";
+import type { AppConfig } from "../configs/types";
 import {
   calculateReceiptsDistribution,
   getJourneyActivePlayers,
@@ -8,7 +9,7 @@ import {
   getJourneyResults,
   isJourneyGameOver,
 } from "./engine";
-import { getJourneyAchievements, getJourneyConfig, getNonJackpotPrizes } from "./config";
+import { DEFAULT_JOURNEY_RULES, getJourneyAchievements, getJourneyConfig, getNonJackpotPrizes } from "./config";
 import { clearJourneyGame, hasStoredJourneyGame, loadJourneyGameId, saveJourneyGameId } from "./storage";
 import {
   createEmptyMoveState,
@@ -39,7 +40,6 @@ import type {
   JourneyPersistedGame,
   JourneyPlayer,
   JourneyReceiptsDistribution,
-  JourneyRuleset,
   JourneySkippedPlayers,
   JourneyStatusChip,
   JourneyTimelineEntry,
@@ -47,14 +47,14 @@ import type {
 
 interface JourneyPageProps {
   djName: string;
-  defaultRuleset: JourneyRuleset;
+  selectedConfig: AppConfig | null;
 }
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Journey request failed";
 }
 
-export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps) {
+export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps) {
   const [game, setGame] = useState<JourneyPersistedGame | null>(null);
   const [playerNames, setPlayerNames] = useState([""]);
   const [playersImportText, setPlayersImportText] = useState("");
@@ -84,11 +84,12 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
   }, [game]);
 
   const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
-  const journeyRules = useMemo(() => game?.rules ?? defaultRuleset.rules, [defaultRuleset.rules, game]);
+  const selectedJourneyRules = selectedConfig?.games.journey ?? null;
+  const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
   const journeyConfig = useMemo(() => getJourneyConfig(journeyRules), [journeyRules]);
   const journeyAchievements = useMemo(() => getJourneyAchievements(journeyRules), [journeyRules]);
   const nonJackpotPrizes = useMemo(() => getNonJackpotPrizes(journeyRules), [journeyRules]);
-  const canStartGame = playerNames.length > 0 && playerNameErrors.every((error) => !error);
+  const canStartGame = Boolean(selectedJourneyRules) && playerNames.length > 0 && playerNameErrors.every((error) => !error);
 
   const activePlayers = useMemo(() => (game ? getJourneyActivePlayers(game) : []), [game]);
   const finishedPlayers = useMemo(() => (game ? getJourneyFinishedPlayers(game) : []), [game]);
@@ -161,7 +162,7 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
 
   const pageStatusChips = useMemo<JourneyStatusChip[]>(() => {
     const rulesetLabel: JourneyStatusChip = {
-      label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.rulesetName : defaultRuleset.name}`,
+      label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.configName : selectedConfig?.name ?? "Не выбран"}`,
       color: "secondary",
     };
 
@@ -183,7 +184,7 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
     }
 
     return chips;
-  }, [activeGame, defaultRuleset.name, game, gameIsOver, totalGamePlayers]);
+  }, [activeGame, game, gameIsOver, selectedConfig?.name, totalGamePlayers]);
 
   function resetRoundUi(players: JourneyPlayer[] = []) {
     setMoveInputs(createEmptyMoveState(players));
@@ -227,7 +228,7 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
 
   async function handleStartGame() {
     const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
-    if (!cleanNames.length) {
+    if (!cleanNames.length || !selectedConfig?.id || !selectedJourneyRules) {
       return;
     }
 
@@ -237,9 +238,7 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
     try {
       const nextGame = await createJourneyGameRequest({
         nicknames: cleanNames,
-        rules: defaultRuleset.rules,
-        rulesetId: defaultRuleset.id,
-        rulesetName: defaultRuleset.name,
+        configId: selectedConfig.id,
       });
 
       setGame(nextGame);
@@ -451,6 +450,12 @@ export default function JourneyPage({ djName, defaultRuleset }: JourneyPageProps
         {!djName.trim() ? (
           <Grid item xs={12}>
             <Alert severity="warning">{journeyTexts.alerts.setDjName}</Alert>
+          </Grid>
+        ) : null}
+
+        {!game && !selectedJourneyRules ? (
+          <Grid item xs={12}>
+            <Alert severity="warning">У выбранного проекта нет Journey-конфига. Запуск новой игры недоступен.</Alert>
           </Grid>
         ) : null}
 

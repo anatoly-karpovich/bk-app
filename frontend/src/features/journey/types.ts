@@ -61,18 +61,6 @@ export type JourneyRulesInput = Omit<Partial<JourneyRules>, "jackpot" | "achieve
   cells?: JourneyRulesCell[];
 };
 
-export interface JourneyRuleset {
-  id: string;
-  name: string;
-  description: string;
-  isBuiltIn: boolean;
-  rules: JourneyRules;
-}
-
-export type JourneyRulesetInput = Omit<Partial<JourneyRuleset>, "rules"> & {
-  rules?: JourneyRulesInput;
-};
-
 export interface JourneyConfig {
   mapSize: number;
   finishPosition: number;
@@ -184,8 +172,8 @@ export interface JourneyGame {
   updatedAt: string;
   moveIndex: number;
   status: JourneyGameStatus;
-  rulesetId: string;
-  rulesetName: string;
+  configId: string;
+  configName: string;
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayer[];
@@ -229,7 +217,8 @@ export interface JourneyRoundDto {
 
 export interface JourneyGameDto {
   id?: string;
-  rulesetName: string;
+  configId: string;
+  configName: string;
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayerDto[];
@@ -239,11 +228,6 @@ export interface JourneyGameDto {
 
 export interface JourneyPersistedGameDto extends JourneyGameDto {
   id: string;
-}
-
-export interface JourneyRulesetState {
-  rulesets: JourneyRuleset[];
-  defaultRulesetId: string;
 }
 
 export type JourneyMoveInputs = Record<string, string>;

@@ -1,5 +1,5 @@
 import { normalizeJourneyGame } from "../engine";
-import type { JourneyMoveInput, JourneyPersistedGame, JourneyPersistedGameDto, JourneyRules } from "../types";
+import type { JourneyMoveInput, JourneyPersistedGame, JourneyPersistedGameDto } from "../types";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
 
@@ -54,9 +54,7 @@ function normalizeJourneyGameResponse(game: JourneyPersistedGameDto): JourneyPer
 
 export function createJourneyGameRequest(payload: {
   nicknames: string[];
-  rules?: JourneyRules;
-  rulesetId?: string;
-  rulesetName?: string;
+  configId: string;
 }) {
   return requestJourneyApi<JourneyPersistedGameDto>("/games", {
     method: "POST",

@@ -25,7 +25,7 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { NavLink, useLocation } from "react-router-dom";
-import type { JourneyRuleset } from "../features/journey/types";
+import type { AppConfig } from "../features/configs/types";
 import { appHeaderTexts } from "../texts/appHeaderTexts";
 import AppPillButton from "./ui/AppPillButton";
 import AppTextInput from "./ui/AppTextInput";
@@ -46,9 +46,9 @@ interface NavMenuButtonProps {
 interface AppHeaderProps {
   djName: string;
   onDjNameChange: (nextValue: string) => void;
-  rulesets: JourneyRuleset[];
-  defaultRulesetId: string;
-  onDefaultRulesetChange: (nextRulesetId: string) => void;
+  configs: AppConfig[];
+  selectedConfigId: string;
+  onSelectedConfigChange: (nextConfigId: string) => void;
 }
 
 const navItems: NavItem[] = [
@@ -104,9 +104,9 @@ function NavMenuButton({ item, active, onClick }: NavMenuButtonProps) {
 export default function AppHeader({
   djName,
   onDjNameChange,
-  rulesets,
-  defaultRulesetId,
-  onDefaultRulesetChange,
+  configs,
+  selectedConfigId,
+  onSelectedConfigChange,
 }: AppHeaderProps) {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -199,8 +199,8 @@ export default function AppHeader({
                   </Typography>
                   <FormControl fullWidth size="small">
                     <Select
-                      value={defaultRulesetId}
-                      onChange={(event: SelectChangeEvent<string>) => onDefaultRulesetChange(event.target.value)}
+                      value={selectedConfigId}
+                      onChange={(event: SelectChangeEvent<string>) => onSelectedConfigChange(event.target.value)}
                       sx={{
                         borderRadius: (theme) => theme.customRadii.pill,
                         backgroundColor: "#fff",
@@ -210,9 +210,14 @@ export default function AppHeader({
                         },
                       }}
                     >
-                      {rulesets.map((ruleset) => (
-                        <MenuItem key={ruleset.id} value={ruleset.id}>
-                          {ruleset.name}
+                      {!configs.length ? (
+                        <MenuItem value="" disabled>
+                          Нет конфигов
+                        </MenuItem>
+                      ) : null}
+                      {configs.map((config) => (
+                        <MenuItem key={config.id} value={config.id}>
+                          {config.name}
                         </MenuItem>
                       ))}
                     </Select>
@@ -221,14 +226,14 @@ export default function AppHeader({
 
                 <IconButton
                   component={NavLink}
-                  to="/journey/config"
+                  to="/config"
                   color="inherit"
                   sx={{
                     width: 40,
                     height: 40,
                     mb: 0.25,
-                    backgroundColor: location.pathname === "/journey/config" ? "rgba(79, 70, 229, 0.10)" : "transparent",
-                    color: location.pathname === "/journey/config" ? "primary.main" : "text.secondary",
+                    backgroundColor: location.pathname === "/config" ? "rgba(79, 70, 229, 0.10)" : "transparent",
+                    color: location.pathname === "/config" ? "primary.main" : "text.secondary",
                     "&:hover": {
                       backgroundColor: "rgba(79, 70, 229, 0.12)",
                     },

@@ -4,15 +4,13 @@ import type {
   JourneyMapCell,
   JourneyRules,
   JourneyRulesInput,
-  JourneyRuleset,
-  JourneyRulesetInput,
 } from "./types";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-export const oldbk2_rules: JourneyRules = {
+export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   currency: "фишек",
   initialPrize: 15,
   minDice: 1,
@@ -39,51 +37,6 @@ export const oldbk2_rules: JourneyRules = {
   },
 };
 
-export const combats_club_rules: JourneyRules = {
-  currency: "екр",
-  initialPrize: 30,
-  minDice: 1,
-  maxDice: 5,
-  maxPrize: null,
-  mapSize: 50,
-  jackpot: {
-    count: 7,
-    prize: 30,
-  },
-  cells: [
-    { id: "bonus_2", kind: "bonus", value: 2, count: 12 },
-    { id: "bonus_3", kind: "bonus", value: 3, count: 5 },
-    { id: "bonus_5", kind: "bonus", value: 5, count: 2 },
-    { id: "trap_3", kind: "trap", value: -3, count: 2 },
-    { id: "trap_2", kind: "trap", value: -2, count: 4 },
-    { id: "trap_1", kind: "trap", value: -1, count: 4 },
-  ],
-  achievements: {
-    unlucky: { prize: 10 },
-    careful: { prize: 10 },
-    collector: { prize: 12 },
-    lucky: { prize: 15 },
-  },
-};
-
-export const DEFAULT_JOURNEY_RULESET: JourneyRuleset = {
-  id: "oldbk2",
-  name: "oldbk2",
-  description: "Базовые правила Карты Мародёров",
-  isBuiltIn: true,
-  rules: oldbk2_rules,
-};
-
-export const COMBATS_CLUB_JOURNEY_RULES: JourneyRuleset = {
-  id: "combatsclub",
-  name: "combatsclub",
-  description: "Правила Карты Мародёров из Combats Club",
-  isBuiltIn: true,
-  rules: combats_club_rules,
-};
-
-export const BUILT_IN_JOURNEY_RULESETS: JourneyRuleset[] = [DEFAULT_JOURNEY_RULESET, COMBATS_CLUB_JOURNEY_RULES];
-
 export const MOVE_TYPES = {
   JACKPOT: "moveWithJackpot",
   EMPTY_JACKPOT: "moveWithEmptyJackpot",
@@ -99,7 +52,7 @@ export const MOVE_TYPES = {
 } as const;
 
 export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
-  const rules = clone(oldbk2_rules);
+  const rules = clone(DEFAULT_JOURNEY_RULES);
 
   return {
     ...rules,
@@ -133,28 +86,7 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
   };
 }
 
-export function normalizeJourneyRuleset(rawRuleset: JourneyRulesetInput = {}): JourneyRuleset {
-  return {
-    id: rawRuleset.id ?? DEFAULT_JOURNEY_RULESET.id,
-    name: rawRuleset.name?.trim?.() || DEFAULT_JOURNEY_RULESET.name,
-    description: rawRuleset.description?.trim?.() || "",
-    isBuiltIn: Boolean(rawRuleset.isBuiltIn),
-    rules: normalizeJourneyRules(rawRuleset.rules ?? DEFAULT_JOURNEY_RULESET.rules),
-  };
-}
-
-export function getBuiltInJourneyRulesets(): JourneyRuleset[] {
-  return BUILT_IN_JOURNEY_RULESETS.map((ruleset) => normalizeJourneyRuleset(ruleset));
-}
-
-export function getJourneyRulesetById(
-  rulesetId: string,
-  rulesets: JourneyRuleset[] = getBuiltInJourneyRulesets(),
-): JourneyRuleset | null {
-  return rulesets.find((ruleset) => ruleset.id === rulesetId) ?? null;
-}
-
-export function getJourneyConfig(rules: JourneyRules = oldbk2_rules): JourneyConfig {
+export function getJourneyConfig(rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyConfig {
   const normalizedRules = normalizeJourneyRules(rules);
 
   return {
@@ -170,7 +102,7 @@ export function getJourneyConfig(rules: JourneyRules = oldbk2_rules): JourneyCon
 }
 
 export function getJourneyBonusCells(
-  rules: JourneyRules = oldbk2_rules,
+  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
 ): Array<{ cell: JourneyMapCell; amount: number }> {
   const normalizedRules = normalizeJourneyRules(rules);
 
@@ -186,7 +118,7 @@ export function getJourneyBonusCells(
   ];
 }
 
-export function getJourneyAchievements(rules: JourneyRules = oldbk2_rules): JourneyAchievementsMap {
+export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyAchievementsMap {
   const normalizedRules = normalizeJourneyRules(rules);
   const config = getJourneyConfig(normalizedRules);
 
@@ -223,7 +155,7 @@ export function getJourneyAchievements(rules: JourneyRules = oldbk2_rules): Jour
   };
 }
 
-export function getNonJackpotPrizes(rules: JourneyRules = oldbk2_rules): number[] {
+export function getNonJackpotPrizes(rules: JourneyRules = DEFAULT_JOURNEY_RULES): number[] {
   return [
     ...new Set(
       getJourneyBonusCells(rules)
@@ -233,7 +165,7 @@ export function getNonJackpotPrizes(rules: JourneyRules = oldbk2_rules): number[
   ];
 }
 
-const normalizedDefaultRules = normalizeJourneyRules(oldbk2_rules);
+const normalizedDefaultRules = normalizeJourneyRules(DEFAULT_JOURNEY_RULES);
 
 export const JOURNEY_CONFIG = getJourneyConfig(normalizedDefaultRules);
 export const JOURNEY_BONUS_CELLS = getJourneyBonusCells(normalizedDefaultRules);

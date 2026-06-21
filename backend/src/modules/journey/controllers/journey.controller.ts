@@ -10,7 +10,7 @@ import {
   replaceJourneyGameSnapshot,
   submitJourneyRound,
 } from "../services/journey.service";
-import type { JourneyGame, JourneyMoveInput, JourneyRules } from "../domain/types";
+import type { JourneyGame, JourneyMoveInput } from "../domain/types";
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -34,7 +34,12 @@ function getErrorMessage(error: unknown): string {
 }
 
 function isJourneyClientError(message: string): boolean {
-  return message === "Invalid game id" || message.startsWith("Journey round validation failed:");
+  return (
+    message === "Invalid game id" ||
+    message === "Journey config not found" ||
+    message.startsWith("Config '") ||
+    message.startsWith("Journey round validation failed:")
+  );
 }
 
 function getSingleRouteParam(value: string | string[] | undefined): string | null {
@@ -42,11 +47,9 @@ function getSingleRouteParam(value: string | string[] | undefined): string | nul
 }
 
 export async function createJourneyGame(req: Request, res: Response) {
-  const { nicknames, rules, rulesetId, rulesetName } = req.body as {
+  const { nicknames, configId } = req.body as {
     nicknames?: unknown;
-    rules?: JourneyRules;
-    rulesetId?: string;
-    rulesetName?: string;
+    configId?: unknown;
   };
 
   if (!isStringArray(nicknames) || nicknames.length === 0) {
@@ -56,12 +59,17 @@ export async function createJourneyGame(req: Request, res: Response) {
     });
   }
 
+  if (typeof configId !== "string" || !configId.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Body field 'configId' must be a non-empty string",
+    });
+  }
+
   try {
     const game = await createJourneyGameSnapshot({
       nicknames,
-      rules,
-      rulesetId,
-      rulesetName,
+      configId,
     });
 
     return res.status(201).json({
@@ -69,10 +77,13 @@ export async function createJourneyGame(req: Request, res: Response) {
       data: game,
     });
   } catch (error) {
-    return res.status(500).json({
+    const message = getErrorMessage(error);
+    const status = message === "Journey config not found" ? 404 : isJourneyClientError(message) ? 400 : 500;
+
+    return res.status(status).json({
       success: false,
       message: "Failed to create journey game",
-      error: getErrorMessage(error),
+      error: message,
     });
   }
 }
