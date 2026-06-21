@@ -13,7 +13,7 @@ Today the only implemented game is `Journey`, but the app shell is already movin
 
 When editing this app, optimize for:
 
-- preserving current game logic
+- preserving current Journey UI behavior while using backend-driven mutations
 - keeping UI consistent through shared components and theme
 - keeping text/configuration out of JSX where practical
 - preparing the codebase for future backend-driven configs and more games
@@ -29,6 +29,7 @@ When editing this app, optimize for:
 - Vite 5
 - TypeScript
 - Browser storage via `localStorage`
+- backend API via fetch
 
 Entry points:
 
@@ -101,7 +102,10 @@ Responsibilities:
 ### Journey Feature
 
 - [src/features/journey/JourneyPage.tsx](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/JourneyPage.tsx:1)
-  Thin page container that owns page-level state, derives feature models, and wires callbacks into feature components.
+  Thin page container that owns page-level state, runs async Journey API actions, derives feature models, and wires callbacks into feature components.
+
+- [src/features/journey/api/journey.client.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/api/journey.client.ts:1)
+  Fetch-based Journey API client. It consumes lean backend DTOs and normalizes them into the richer frontend shape used by existing helpers/components.
 
 - [src/features/journey/journey-page.helpers.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/journey-page.helpers.ts:1)
   Pure UI-focused helpers for validation, compact map labels, history summaries, and achievement progress derivation.
@@ -122,13 +126,13 @@ Feature-local components should stay inside `src/features/journey/components` un
   Transitional config page for rulesets. Still active, but conceptually moving toward a broader config surface.
 
 - [src/features/journey/engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:1)
-  Core game engine. This is the most sensitive file in the frontend.
+  Transitional Journey domain/normalization layer. Frontend no longer owns authoritative Journey mutations, but this file still powers derivations, normalization, and view helpers.
 
 - [src/features/journey/config.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/config.ts:1)
   Built-in rulesets, normalization, config derivation, and achievements metadata.
 
 - [src/features/journey/storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/storage.ts:1)
-  `localStorage` boundary for game snapshots and rulesets.
+  `localStorage` boundary for Journey `gameId`, rulesets, and default ruleset selection.
 
 - [src/features/journey/parsers.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/parsers.ts:1)
   Forum text parsing for players and moves.
@@ -199,7 +203,8 @@ Rule of thumb:
 
 - transient local interaction state should stay as close as practical to the component that uses it
 - durable cross-route state stays in `App`
-- pure game mutations stay in `engine.ts`
+- Journey API mutations stay in `JourneyPage` via `journey.client.ts`
+- pure derivations and normalization stay in `engine.ts`
 - persistence stays in `storage.ts`
 
 ### Ruleset Behavior
@@ -224,10 +229,11 @@ Storage keys in [storage.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/fe
 
 Important behaviors:
 
-- game snapshots are normalized when read
+- only the current `gameId` is stored locally for Journey restore
 - custom rulesets are normalized when read/write
 - built-in rulesets always win on id collisions
 - deleting the default custom ruleset falls back to the built-in default
+- Journey API responses are normalized before entering page state
 
 If you change storage shape:
 
@@ -249,6 +255,12 @@ The domain is centered around:
 - map cells
 - achievements
 
+Important current architecture:
+
+- backend is the source of truth for Journey mutations and stored game state
+- frontend still uses local helpers for display-oriented derivations
+- backend returns a lean DTO, which the frontend normalizes into its richer internal shape
+
 Important engine exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/frontend/src/features/journey/engine.ts:1):
 
 - `normalizeJourneyGame`
@@ -267,9 +279,10 @@ Important engine exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/fron
 
 Guidance:
 
-- treat `engine.ts` as the source of truth for game rules
+- treat backend + backend engine as the source of truth for game mutations
+- treat frontend `engine.ts` as a derived helper/normalization layer
 - keep UI derivations thin
-- if a rule changes, fix the engine first, then adapt UI
+- if a rule changes, update backend domain logic first, then adapt frontend normalization/UI
 - avoid duplicating rule logic in `JourneyPage` or child components
 
 ---
@@ -520,6 +533,8 @@ These areas are intentionally in transition:
 - `/journey/config` is still route-based, but product direction points to broader global config
 - rulesets are currently `localStorage`-based, but expected to move to backend
 - DJ auth/name is inline text today, but expected to become API-driven later
+- Journey page still normalizes richer internal models from a lean backend DTO
+- frontend still carries legacy Journey engine structures for compatibility with existing UI helpers
 
 When editing these areas:
 

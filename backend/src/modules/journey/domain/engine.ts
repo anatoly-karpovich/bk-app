@@ -36,6 +36,10 @@ function getNowIso(): string {
   return new Date().toISOString();
 }
 
+function failJourneyRoundValidation(message: string): never {
+  throw new Error(`Journey round validation failed: ${message}`);
+}
+
 function getGameRules(game: JourneyGame | null | undefined): JourneyRules {
   return normalizeJourneyRules(game?.rules ?? oldbk2_rules);
 }
@@ -219,6 +223,71 @@ function buildMove(
     cell,
     type,
   };
+}
+
+function validateJourneyRoundInput(
+  game: JourneyGame,
+  activePlayers: JourneyPlayer[],
+  inputMoves: JourneyMoveInput[],
+  skippedPlayerIds: string[],
+) {
+  const { minDice, maxDice } = getJourneyConfig(game.rules);
+  const activePlayersById = indexPlayersById(activePlayers);
+  const movePlayerIds = new Set<string>();
+  const skippedPlayerIdSet = new Set<string>();
+
+  inputMoves.forEach(({ playerId, dice }) => {
+    const player = activePlayersById[playerId];
+
+    if (!player) {
+      failJourneyRoundValidation(`Player '${playerId}' is not active in the current round`);
+    }
+
+    if (!Number.isInteger(dice)) {
+      failJourneyRoundValidation(`Dice value for player '${player.nickname}' must be an integer`);
+    }
+
+    if (dice < minDice || dice > maxDice) {
+      failJourneyRoundValidation(
+        `Dice value for player '${player.nickname}' must be between ${minDice} and ${maxDice}`,
+      );
+    }
+
+    if (movePlayerIds.has(playerId)) {
+      failJourneyRoundValidation(`Player '${player.nickname}' has more than one submitted move`);
+    }
+
+    movePlayerIds.add(playerId);
+  });
+
+  skippedPlayerIds.forEach((playerId) => {
+    const player = activePlayersById[playerId];
+
+    if (!player) {
+      failJourneyRoundValidation(`Player '${playerId}' is not active in the current round`);
+    }
+
+    if (skippedPlayerIdSet.has(playerId)) {
+      failJourneyRoundValidation(`Player '${player.nickname}' is listed as skipped more than once`);
+    }
+
+    if (movePlayerIds.has(playerId)) {
+      failJourneyRoundValidation(`Player '${player.nickname}' cannot both move and skip in the same round`);
+    }
+
+    skippedPlayerIdSet.add(playerId);
+  });
+
+  const accountedPlayerIds = new Set([...movePlayerIds, ...skippedPlayerIdSet]);
+  const missingPlayers = activePlayers.filter((player) => !accountedPlayerIds.has(player.id));
+
+  if (missingPlayers.length) {
+    failJourneyRoundValidation(
+      `Round input is incomplete. Missing move or skip decision for: ${missingPlayers
+        .map((player) => player.nickname)
+        .join(", ")}`,
+    );
+  }
 }
 
 function applyJackpots(
@@ -673,6 +742,8 @@ export function makeJourneyRound(
     appendJourneyFinalSummary(nextGame);
     return nextGame;
   }
+
+  validateJourneyRoundInput(nextGame, activePlayers, inputMoves, skippedPlayerIds);
 
   nextGame.moveIndex += 1;
   const roundCreatedAt = getNowIso();

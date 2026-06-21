@@ -33,6 +33,10 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
+function isJourneyClientError(message: string): boolean {
+  return message === "Invalid game id" || message.startsWith("Journey round validation failed:");
+}
+
 function getSingleRouteParam(value: string | string[] | undefined): string | null {
   return typeof value === "string" ? value : null;
 }
@@ -230,7 +234,7 @@ export async function makeJourneyRoundMove(req: Request, res: Response) {
     });
   } catch (error) {
     const message = getErrorMessage(error);
-    const status = message === "Invalid game id" ? 400 : 500;
+    const status = isJourneyClientError(message) ? 400 : 500;
 
     return res.status(status).json({
       success: false,

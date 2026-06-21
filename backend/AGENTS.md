@@ -62,9 +62,14 @@ Minimum verification after meaningful backend changes:
 
 Important behavior:
 
-- `MONGODB_URI` can override the default URI
+- `MONGODB_URI` is required and must come from `backend/.env` or process env
 - `MONGODB_DB_NAME` can override the default DB name
 - connection lifecycle should stay centralized here
+- `process.loadEnvFile()` is used instead of `dotenv`
+
+Environment files:
+
+- [backend/.env.example](/abs/path/C:/Users/anato/git/bk-app/backend/.env.example:1)
 
 ### Forum Topic API
 
@@ -152,15 +157,16 @@ Responsibilities:
 - `POST /api/journey/games`
 - `PUT /api/journey/games/:gameId`
 - `POST /api/journey/games/:gameId/rounds`
-- `DELETE /api/journey/games/:gameId/players/:nickname`
+- `DELETE /api/journey/games/:gameId/players/:playerId`
 - `DELETE /api/journey/games/:gameId`
 - `POST /api/journey/parse/players`
 - `POST /api/journey/parse/moves`
 
 Important note:
 
-- the frontend still has its own local Journey logic and storage flow
-- this backend currently mirrors that behavior; it does not replace frontend state by itself
+- the frontend now uses this backend for Journey game creation, round submission, player removal, and forum parsing
+- the backend returns a lean Journey DTO for UI needs rather than the full internal snapshot shape
+- Mongo still stores a fuller internal snapshot than the public API returns
 
 ---
 
@@ -235,9 +241,15 @@ This means:
 
 This is intentional right now because:
 
-- it mirrors the existing frontend game shape closely
+- it keeps the internal engine/storage model stable
 - it minimizes translation layers
 - it keeps the backend logic aligned with the current game engine
+
+Important distinction:
+
+- stored Mongo documents use the fuller internal `JourneyGame` shape
+- HTTP responses are serialized into a lean public DTO in `journey.service.ts`
+- do not assume the API response shape and storage shape are identical
 
 If you change the snapshot shape:
 
@@ -259,6 +271,7 @@ Key domain concepts:
 - round entries
 - map cells
 - achievements
+- player ids as the primary mutation key
 
 Important exports in [engine.ts](/abs/path/C:/Users/anato/git/bk-app/backend/src/modules/journey/domain/engine.ts:1):
 
@@ -281,6 +294,8 @@ Guidance:
 - treat `engine.ts` as the Journey rulebook
 - do not re-implement move outcomes in controllers or services
 - if a new endpoint needs Journey calculations, prefer calling domain helpers
+- mutations should key players by `playerId`, not `nickname`
+- `nickname` is still valid as display/log snapshot data
 
 ---
 
@@ -358,6 +373,7 @@ Do not:
 - pass raw `req.body` into domain functions without checks
 - trust client-sent snapshots blindly
 - accept malformed game ids or player identifiers
+- reintroduce nickname-based mutation payloads where `playerId` is already available
 
 Current validation style is lightweight and manual.
 
@@ -420,7 +436,7 @@ Current style:
 
 - `/games/:gameId`
 - `/games/:gameId/rounds`
-- `/games/:gameId/players/:nickname`
+- `/games/:gameId/players/:playerId`
 - `/parse/players`
 
 Keep that style consistent unless the whole API design changes.
@@ -443,10 +459,10 @@ Small explicit modules are preferred here.
 
 These areas are intentionally transitional:
 
-- Journey logic is duplicated between frontend and backend
-- frontend still uses local state/storage flow
+- frontend still contains Journey engine helpers for derivation/normalization, but game mutations are backend-driven
 - backend stores snapshot documents rather than a more normalized game model
 - validation is manual rather than schema-driven
+- public API DTOs are leaner than internal Mongo snapshots
 
 When editing these areas:
 
