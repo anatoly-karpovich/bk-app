@@ -202,6 +202,25 @@ export type JourneyPersistedGame = Omit<JourneyGame, "playersById"> & {
   derived: JourneyGameDerivedData;
 };
 
+export interface JourneySavedGamePlayer {
+  id: string;
+  nickname: string;
+  status: JourneyPlayerStatus;
+  position: number;
+  prize: number;
+}
+
+export interface JourneySavedGameSummary {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  status: JourneyGameStatus;
+  configId: string;
+  configName: string;
+  roundsCount: number;
+  players: JourneySavedGamePlayer[];
+}
+
 export type JourneyMoveInputs = Record<string, string>;
 export type JourneySkippedPlayers = Record<string, boolean>;
 export type JourneyReceiptsDistribution = Record<number, number>;

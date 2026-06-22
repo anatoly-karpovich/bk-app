@@ -27,6 +27,22 @@ export class JourneyRepository {
     });
   }
 
+  async findAll(): Promise<Array<WithId<JourneyGameDocument>>> {
+    const collection = await this.getCollection();
+
+    return collection
+      .find(
+        {},
+        {
+          sort: {
+            updatedAt: -1,
+            createdAt: -1,
+          },
+        },
+      )
+      .toArray();
+  }
+
   async create(game: JourneyGame): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
     const insertResult = await collection.insertOne(game);

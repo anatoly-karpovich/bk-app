@@ -8,9 +8,17 @@ import JourneyPlayersSetupCard from "./components/JourneyPlayersSetupCard";
 import JourneyResultsCard from "./components/JourneyResultsCard";
 import JourneyRoundControlsCard from "./components/JourneyRoundControlsCard";
 import JourneyRulesDialog from "./components/JourneyRulesDialog";
+import JourneySavedGamesDialog from "./components/JourneySavedGamesDialog";
 import JourneyStateCard from "./components/JourneyStateCard";
+import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import { useJourneyGame } from "./hooks/useJourneyGame";
 import { journeyTexts } from "../../texts/journeyTexts";
+
+const deleteSavedGameTexts = {
+  title: "Удалить сохраненную игру",
+  description: "Точно удалить сохраненную игру",
+  confirm: "Удалить",
+};
 
 interface JourneyPageProps {
   djName: string;
@@ -26,7 +34,11 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     movesImportText,
     moveInputs,
     skippedPlayers,
-    savedGameAvailable,
+    savedGames,
+    storedGameId,
+    deletingSavedGame,
+    savedGamesDialogOpen,
+    savedGamesError,
     playersImportOpen,
     movesImportOpen,
     rulesDialogOpen,
@@ -59,14 +71,13 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
             pageStatusChips={pageStatusChips}
             canStartGame={canStartGame}
             hasGame={Boolean(game)}
-            savedGameAvailable={savedGameAvailable}
             isStartingGame={loading.isStartingGame}
-            isRestoringGame={loading.isRestoringGame}
+            isLoadingSavedGames={loading.isLoadingSavedGames}
             isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
             onOpenRules={() => actions.setRulesDialogOpen(true)}
             onStartGame={actions.startGame}
-            onRestoreGame={actions.restoreGame}
+            onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
           />
         </Grid>
@@ -177,6 +188,35 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
         helperText={journeyTexts.helperText.movesImport}
         minRows={8}
         loading={loading.isImportingMoves}
+      />
+
+      <JourneySavedGamesDialog
+        open={savedGamesDialogOpen}
+        games={savedGames}
+        currentGameId={storedGameId}
+        loading={loading.isLoadingSavedGames}
+        restoreLoading={loading.isRestoringGame}
+        deletingGameId={loading.isDeletingSavedGame ? deletingSavedGame?.id ?? null : null}
+        error={savedGamesError}
+        onClose={() => actions.setSavedGamesDialogOpen(false)}
+        onRestore={actions.restoreSavedGame}
+        onDelete={actions.requestDeleteSavedGame}
+      />
+
+      <AppConfirmDialog
+        open={Boolean(deletingSavedGame)}
+        title={deleteSavedGameTexts.title}
+        description={
+          deletingSavedGame
+            ? `${deleteSavedGameTexts.description} "${deletingSavedGame.configName}"?`
+            : deleteSavedGameTexts.description
+        }
+        confirmLabel={deleteSavedGameTexts.confirm}
+        cancelLabel={journeyTexts.actions.cancel}
+        confirmColor="error"
+        loading={loading.isDeletingSavedGame}
+        onClose={actions.cancelDeleteSavedGame}
+        onConfirm={actions.confirmDeleteSavedGame}
       />
     </>
   );

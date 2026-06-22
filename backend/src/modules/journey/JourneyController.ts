@@ -78,6 +78,23 @@ export class JourneyController {
     }
   };
 
+  listJourneyGames = async (_req: Request, res: Response) => {
+    try {
+      const games = await this.journeyService.listJourneyGameSnapshots();
+
+      return res.status(200).json({
+        success: true,
+        data: games,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to load journey games",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
   getJourneyGameById = async (req: Request, res: Response) => {
     try {
       const { gameId } = parseRequest(

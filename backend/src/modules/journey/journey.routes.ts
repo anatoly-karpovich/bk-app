@@ -5,6 +5,7 @@ import { JourneyController } from "./JourneyController";
 export function createJourneyRouter(journeyController: JourneyController): Router {
   const router = Router();
 
+  router.get("/games", asyncHandler(journeyController.listJourneyGames));
   router.get("/games/latest", asyncHandler(journeyController.getLatestJourneyGame));
   router.get("/games/:gameId", asyncHandler(journeyController.getJourneyGameById));
   router.post("/games", asyncHandler(journeyController.createJourneyGame));

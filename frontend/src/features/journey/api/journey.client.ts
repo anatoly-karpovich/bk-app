@@ -1,4 +1,4 @@
-import type { JourneyMoveInput, JourneyPersistedGame } from "../types";
+import type { JourneyMoveInput, JourneyPersistedGame, JourneySavedGameSummary } from "../types";
 import { apiClient } from "../../../lib/apiClient";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
@@ -12,6 +12,10 @@ export async function createJourneyGameRequest(payload: {
 
 export async function getJourneyGameByIdRequest(gameId: string): Promise<JourneyPersistedGame> {
   return await apiClient.get<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games/${gameId}`);
+}
+
+export async function listJourneyGamesRequest(): Promise<JourneySavedGameSummary[]> {
+  return await apiClient.get<JourneySavedGameSummary[]>(`${JOURNEY_API_BASE_URL}/games`);
 }
 
 export async function submitJourneyRoundRequest(

@@ -25,7 +25,11 @@ class ApiClient {
     return this.request<T>("DELETE", path, options);
   }
 
-  private async request<T>(method: "GET" | "POST" | "DELETE", path: string, options: ApiRequestOptions = {}): Promise<T> {
+  private async request<T>(
+    method: "GET" | "POST" | "DELETE",
+    path: string,
+    options: ApiRequestOptions = {},
+  ): Promise<T> {
     const { body, headers, ...init } = options;
     const response = await fetch(path, {
       method,

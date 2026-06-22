@@ -5,7 +5,7 @@ import { JourneyEngine } from "./JourneyEngine";
 import { JourneyParser } from "./JourneyParser";
 import { JourneyReadModelFactory } from "./JourneyReadModelFactory";
 import { JourneyRepository, type JourneyGameDocument } from "./JourneyRepository";
-import type { JourneyGameReadModel, JourneyMoveInput } from "./domain/types";
+import type { JourneyGameListItemReadModel, JourneyGameReadModel, JourneyMoveInput } from "./domain/types";
 import {
   JourneyConfigNotFoundError,
   JourneyConfigUnsupportedError,
@@ -14,6 +14,7 @@ import {
 } from "./errors";
 
 export type JourneyGameResponse = JourneyGameReadModel;
+export type JourneyGameListResponse = JourneyGameListItemReadModel[];
 
 interface CreateJourneyGamePayload {
   nicknames: string[];
@@ -71,6 +72,12 @@ export class JourneyService {
     }
 
     return this.serializeJourneyGame(game);
+  }
+
+  async listJourneyGameSnapshots(): Promise<JourneyGameListResponse> {
+    const games = await this.repository.findAll();
+
+    return games.map((game) => this.readModelFactory.createListItem(game));
   }
 
   async getLatestJourneyGameSnapshot(status?: JourneyGameDocument["status"]): Promise<JourneyGameResponse> {

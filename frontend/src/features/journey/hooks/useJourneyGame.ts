@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppConfig } from "../../configs/types";
 import {
   createJourneyGameRequest,
+  deleteJourneyGameRequest,
   getJourneyGameByIdRequest,
+  listJourneyGamesRequest,
   parseJourneyMovesRequest,
   parseJourneyPlayersRequest,
   removeJourneyPlayerRequest,
@@ -23,13 +25,14 @@ import {
   isJourneyGameOver,
 } from "../journey-page.helpers";
 import { mapParsedMovesToPlayerInputs } from "../mappers/journey.mapper";
-import { clearJourneyGame, hasStoredJourneyGame, loadJourneyGameId, saveJourneyGameId } from "../storage";
+import { clearJourneyGame, loadJourneyGameId, saveJourneyGameId } from "../storage";
 import type {
   JourneyMoveInputs,
   JourneyPersistedGame,
   JourneyPlayer,
   JourneyPlayerReadModel,
   JourneyReceiptsDistribution,
+  JourneySavedGameSummary,
   JourneySkippedPlayers,
   JourneyStatusChip,
   JourneyTimelineEntry,
@@ -47,18 +50,24 @@ function getErrorMessage(error: unknown) {
 
 export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams) {
   const [game, setGame] = useState<JourneyPersistedGame | null>(null);
+  const [storedGameId, setStoredGameId] = useState<string | null>(loadJourneyGameId());
   const [playerNames, setPlayerNames] = useState([""]);
   const [playersImportText, setPlayersImportText] = useState("");
   const [movesImportText, setMovesImportText] = useState("");
   const [moveInputs, setMoveInputs] = useState<JourneyMoveInputs>({});
   const [skippedPlayers, setSkippedPlayers] = useState<JourneySkippedPlayers>({});
-  const [savedGameAvailable, setSavedGameAvailable] = useState(hasStoredJourneyGame());
+  const [savedGames, setSavedGames] = useState<JourneySavedGameSummary[]>([]);
+  const [savedGamesDialogOpen, setSavedGamesDialogOpen] = useState(false);
+  const [savedGamesError, setSavedGamesError] = useState<string | null>(null);
   const [playersImportOpen, setPlayersImportOpen] = useState(false);
   const [movesImportOpen, setMovesImportOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isRestoringGame, setIsRestoringGame] = useState(false);
+  const [isLoadingSavedGames, setIsLoadingSavedGames] = useState(false);
+  const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
+  const [isDeletingSavedGame, setIsDeletingSavedGame] = useState(false);
   const [isResettingGame, setIsResettingGame] = useState(false);
   const [isSubmittingRound, setIsSubmittingRound] = useState(false);
   const [isImportingPlayers, setIsImportingPlayers] = useState(false);
@@ -71,7 +80,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     }
 
     saveJourneyGameId(game.id);
-    setSavedGameAvailable(true);
+    setStoredGameId(game.id);
   }, [game]);
 
   const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
@@ -99,6 +108,8 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     () =>
       isStartingGame ||
       isRestoringGame ||
+      isLoadingSavedGames ||
+      isDeletingSavedGame ||
       isResettingGame ||
       isSubmittingRound ||
       isImportingPlayers ||
@@ -107,6 +118,8 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     [
       isImportingMoves,
       isImportingPlayers,
+      isLoadingSavedGames,
+      isDeletingSavedGame,
       isResettingGame,
       isRestoringGame,
       isStartingGame,
@@ -172,35 +185,94 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   function resetJourneyPageState() {
     clearJourneyGame();
-    setSavedGameAvailable(false);
+    setStoredGameId(null);
     setGame(null);
     setPlayerNames([""]);
     setPlayersImportText("");
     resetRoundUi([]);
   }
 
-  async function restoreGame() {
-    const storedGameId = loadJourneyGameId();
+  async function loadSavedGames() {
+    setSavedGamesError(null);
+    setIsLoadingSavedGames(true);
 
-    if (!storedGameId) {
-      setSavedGameAvailable(false);
+    try {
+      const nextSavedGames = await listJourneyGamesRequest();
+      setSavedGames(nextSavedGames);
+      return nextSavedGames;
+    } catch (error) {
+      setSavedGames([]);
+      setSavedGamesError(getErrorMessage(error));
+      return [];
+    } finally {
+      setIsLoadingSavedGames(false);
+    }
+  }
+
+  async function openSavedGamesDialog() {
+    setSavedGamesDialogOpen(true);
+    await loadSavedGames();
+  }
+
+  async function restoreSavedGame(gameId: string) {
+    if (!gameId) {
       return;
     }
 
-    setRequestError(null);
+    setSavedGamesError(null);
     setIsRestoringGame(true);
 
     try {
-      const restoredGame = await getJourneyGameByIdRequest(storedGameId);
+      const restoredGame = await getJourneyGameByIdRequest(gameId);
       setGame(restoredGame);
       resetRoundUi(getJourneyActivePlayers(restoredGame));
-      setSavedGameAvailable(true);
+      setSavedGamesDialogOpen(false);
+      setStoredGameId(restoredGame.id);
     } catch (error) {
-      clearJourneyGame();
-      setSavedGameAvailable(false);
-      setRequestError(getErrorMessage(error));
+      setSavedGamesError(getErrorMessage(error));
     } finally {
       setIsRestoringGame(false);
+    }
+  }
+
+  function requestDeleteSavedGame(gameToDelete: JourneySavedGameSummary) {
+    setDeletingSavedGame(gameToDelete);
+  }
+
+  function cancelDeleteSavedGame() {
+    if (isDeletingSavedGame) {
+      return;
+    }
+
+    setDeletingSavedGame(null);
+  }
+
+  async function confirmDeleteSavedGame() {
+    if (!deletingSavedGame) {
+      return;
+    }
+
+    setSavedGamesError(null);
+    setIsDeletingSavedGame(true);
+
+    try {
+      await deleteJourneyGameRequest(deletingSavedGame.id);
+      setSavedGames((current) => current.filter((gameItem) => gameItem.id !== deletingSavedGame.id));
+
+      if (storedGameId === deletingSavedGame.id) {
+        clearJourneyGame();
+        setStoredGameId(null);
+      }
+
+      if (game?.id === deletingSavedGame.id) {
+        resetJourneyPageState();
+      }
+
+      setDeletingSavedGame(null);
+    } catch (error) {
+      setSavedGamesError(getErrorMessage(error));
+    } finally {
+      setIsDeletingSavedGame(false);
     }
   }
 
@@ -400,7 +472,11 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     movesImportText,
     moveInputs,
     skippedPlayers,
-    savedGameAvailable,
+    savedGames,
+    storedGameId,
+    deletingSavedGame,
+    savedGamesDialogOpen,
+    savedGamesError,
     playersImportOpen,
     movesImportOpen,
     rulesDialogOpen,
@@ -424,6 +500,8 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     loading: {
       isStartingGame,
       isRestoringGame,
+      isLoadingSavedGames,
+      isDeletingSavedGame,
       isResettingGame,
       isSubmittingRound,
       isImportingPlayers,
@@ -431,13 +509,18 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       removingPlayerId,
     },
     actions: {
+      setSavedGamesDialogOpen,
       setPlayersImportOpen,
       setMovesImportOpen,
       setRulesDialogOpen,
       setPlayersImportText,
       setMovesImportText,
       setRequestError,
-      restoreGame,
+      openSavedGamesDialog,
+      restoreSavedGame,
+      requestDeleteSavedGame,
+      cancelDeleteSavedGame,
+      confirmDeleteSavedGame,
       startGame,
       restartGame,
       addPlayerField,

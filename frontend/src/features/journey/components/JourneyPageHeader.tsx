@@ -13,14 +13,13 @@ interface JourneyPageHeaderProps {
   pageStatusChips: JourneyStatusChip[];
   canStartGame: boolean;
   hasGame: boolean;
-  savedGameAvailable: boolean;
   isStartingGame: boolean;
-  isRestoringGame: boolean;
+  isLoadingSavedGames: boolean;
   isResettingGame: boolean;
   actionsDisabled: boolean;
   onOpenRules: () => void;
   onStartGame: () => void;
-  onRestoreGame: () => void;
+  onOpenSavedGames: () => void;
   onRestartGame: () => void;
 }
 
@@ -28,14 +27,13 @@ export default function JourneyPageHeader({
   pageStatusChips,
   canStartGame,
   hasGame,
-  savedGameAvailable,
   isStartingGame,
-  isRestoringGame,
+  isLoadingSavedGames,
   isResettingGame,
   actionsDisabled,
   onOpenRules,
   onStartGame,
-  onRestoreGame,
+  onOpenSavedGames,
   onRestartGame,
 }: JourneyPageHeaderProps) {
   return (
@@ -87,11 +85,11 @@ export default function JourneyPageHeader({
             <AppPillButton
               variant="outlined"
               startIcon={<RestoreRoundedIcon />}
-              onClick={onRestoreGame}
-              disabled={actionsDisabled || !savedGameAvailable}
-              loading={isRestoringGame}
+              onClick={onOpenSavedGames}
+              disabled={actionsDisabled}
+              loading={isLoadingSavedGames}
             >
-              {journeyTexts.actions.restore}
+              {"Сохраненные игры"}
             </AppPillButton>
             <AppPillButton
               variant="text"

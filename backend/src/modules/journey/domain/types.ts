@@ -203,6 +203,25 @@ export type JourneyGameReadModel = Omit<JourneyGame, "playersById"> & {
   derived: JourneyGameDerivedData;
 };
 
+export interface JourneyGameListItemPlayerReadModel {
+  id: string;
+  nickname: string;
+  status: JourneyPlayerStatus;
+  position: number;
+  prize: number;
+}
+
+export interface JourneyGameListItemReadModel {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  status: JourneyGameStatus;
+  configId: string;
+  configName: string;
+  roundsCount: number;
+  players: JourneyGameListItemPlayerReadModel[];
+}
+
 export interface JourneyPlayerDto {
   id: string;
   nickname: string;
