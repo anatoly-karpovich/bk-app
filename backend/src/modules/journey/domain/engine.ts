@@ -23,6 +23,7 @@ import type {
   JourneyRound,
   JourneyRoundEntry,
   JourneyRules,
+  JourneyTimelineEntry,
   RandomFn,
 } from "./types";
 
@@ -933,4 +934,36 @@ export function getJourneyPlayerTimeline(game: JourneyGame, playerIdOrNickname: 
       (entry) => entry.playerId === playerIdOrNickname || entry.nickname === playerIdOrNickname,
     ),
   );
+}
+
+export function getJourneyPlayerTimelines(game: JourneyGame): Record<string, JourneyTimelineEntry[]> {
+  const timelines = game.players.reduce<Record<string, JourneyTimelineEntry[]>>((accumulator, player) => {
+    accumulator[player.id] = [];
+    return accumulator;
+  }, {});
+  const playerIdsByNickname = game.players.reduce<Record<string, string>>((accumulator, player) => {
+    accumulator[player.nickname] = player.id;
+    return accumulator;
+  }, {});
+
+  (game.rounds ?? []).forEach((round) => {
+    (round.entries ?? []).forEach((entry) => {
+      const playerId = entry.playerId ?? playerIdsByNickname[entry.nickname];
+
+      if (!playerId) {
+        return;
+      }
+
+      if (!timelines[playerId]) {
+        timelines[playerId] = [];
+      }
+
+      timelines[playerId].push({
+        ...clone(entry),
+        roundIndex: round.moveIndex,
+      });
+    });
+  });
+
+  return timelines;
 }

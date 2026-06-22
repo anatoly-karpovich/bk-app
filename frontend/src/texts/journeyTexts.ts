@@ -32,7 +32,7 @@ export const journeyTexts = {
     resultsCompleteSuffix: "игрок(ов).",
   },
   rulesDialogTitle: "Правила проекта",
-  rulesSummaryTitle: "Текущее состояние правил, заложенное в engine",
+    rulesSummaryTitle: "Текущее состояние правил игры",
   rulesChips: {
     startPrefix: "Старт",
     mapPrefix: "Карта",

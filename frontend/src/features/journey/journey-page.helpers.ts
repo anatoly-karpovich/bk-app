@@ -3,9 +3,12 @@ import type {
   JourneyAchievementProgress,
   JourneyAchievementsMap,
   JourneyConfig,
+  JourneyPersistedGame,
   JourneyMapCell,
   JourneyMoveInputs,
   JourneyPlayer,
+  JourneyPlayerReadModel,
+  JourneyReceiptsDistribution,
   JourneySkippedPlayers,
   JourneyTimelineEntry,
 } from "./types";
@@ -102,6 +105,134 @@ function isCarefulProgressEntry(entry: JourneyTimelineEntry, finishPosition: num
 
 export function getPrizeBadgeLabel(prize: number): string {
   return prize > 0 ? `+${prize}` : `${prize}`;
+}
+
+export function getJourneyPlayerFullPrize(player: Pick<JourneyPlayer, "prize" | "bonuses">): number {
+  return player.prize + player.bonuses.reduce((sum, bonus) => sum + bonus.prize, 0);
+}
+
+export function getJourneyMapCell(index: number, gameMap: Record<number, JourneyMapCell>): JourneyMapCell | null {
+  return gameMap[index] ?? null;
+}
+
+export function getJourneyCellLabel(cell: JourneyMapCell | null): string {
+  if (!cell) {
+    return "Пусто";
+  }
+
+  if (cell.isJackpot) {
+    return "Сокровище";
+  }
+
+  if (cell.prize > 0) {
+    return `Бонус +${cell.prize}`;
+  }
+
+  return `Ловушка ${cell.prize}`;
+}
+
+export function getJourneyVisiblePlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
+  return (
+    game?.derived?.visiblePlayers ??
+    game?.players
+      .filter((player) => player.status !== "removed")
+      .map(toJourneyPlayerReadModel) ??
+    []
+  );
+}
+
+export function toJourneyPlayerReadModel(player: JourneyPlayer): JourneyPlayerReadModel {
+  return {
+    ...player,
+    fullPrize: getJourneyPlayerFullPrize(player),
+  };
+}
+
+export function getJourneyActivePlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
+  return game?.derived?.activePlayers ?? game?.players.filter((player) => player.status === "active").map(toJourneyPlayerReadModel) ?? [];
+}
+
+export function getJourneyFinishedPlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
+  return game?.derived?.finishedPlayers ?? game?.players.filter((player) => player.status === "finished").map(toJourneyPlayerReadModel) ?? [];
+}
+
+export function getJourneyResults(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
+  if (!game) {
+    return [];
+  }
+
+  return (
+    game?.derived?.results ??
+    game.players
+      .filter((player) => player.status !== "removed")
+      .map(toJourneyPlayerReadModel)
+      .sort((left, right) => right.fullPrize - left.fullPrize)
+  );
+}
+
+export function calculateReceiptsDistribution(game: JourneyPersistedGame | null): JourneyReceiptsDistribution | null {
+  if (!game) {
+    return null;
+  }
+
+  if (game.derived?.receipts) {
+    return game.derived.receipts;
+  }
+
+  const receiptTypes = [200, 100, 50, 20, 10, 5, 1] as const;
+  const result: JourneyReceiptsDistribution = {
+    200: 0,
+    100: 0,
+    50: 0,
+    20: 0,
+    10: 0,
+    5: 0,
+    1: 0,
+  };
+
+  getJourneyResults(game).forEach((player) => {
+    let amount = player.fullPrize;
+
+    receiptTypes.forEach((receipt) => {
+      while (amount - receipt >= 0) {
+        result[receipt] += 1;
+        amount -= receipt;
+      }
+    });
+  });
+
+  return result;
+}
+
+export function isJourneyGameOver(game: JourneyPersistedGame | null): boolean {
+  if (!game) {
+    return false;
+  }
+
+  return game.derived?.gameIsOver ?? getJourneyActivePlayers(game).length === 0;
+}
+
+export function getJourneyPlayerTimelines(game: JourneyPersistedGame | null): Record<string, JourneyTimelineEntry[]> {
+  if (!game) {
+    return {};
+  }
+
+  if (game.derived?.playerTimelines) {
+    return game.derived.playerTimelines;
+  }
+
+  return game.players.reduce<Record<string, JourneyTimelineEntry[]>>((accumulator, player) => {
+    accumulator[player.id] = game.rounds.flatMap((round) =>
+      (round.entries ?? [])
+        .filter((entry) => entry.playerId === player.id || entry.nickname === player.nickname)
+        .map((entry) => ({
+          ...entry,
+          roundIndex: round.moveIndex,
+        })),
+    );
+
+    return accumulator;
+  }, {});
 }
 
 export function getCompactCellLabel(cell: JourneyMapCell | null): string {

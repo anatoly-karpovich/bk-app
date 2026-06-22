@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import { getJourneyConfig } from "../journey/config";
 import type { AppConfig } from "./types";
 
 interface ConfigsPageProps {
@@ -21,26 +20,6 @@ interface ConfigsPageProps {
   onSelectConfig: (configId: string) => void;
   isLoading: boolean;
   error: string | null;
-}
-
-function getJourneySummary(config: AppConfig) {
-  if (!config.games.journey) {
-    return null;
-  }
-
-  const journeyConfig = getJourneyConfig(config.games.journey);
-  const bonusKinds = config.games.journey.cells.filter((cell) => cell.kind === "bonus").length;
-  const trapKinds = config.games.journey.cells.filter((cell) => cell.kind === "trap").length;
-
-  return {
-    currency: journeyConfig.currency,
-    mapSize: journeyConfig.mapSize,
-    diceRange: `${journeyConfig.minDice}-${journeyConfig.maxDice}`,
-    jackpot: `${config.games.journey.jackpot.count} x ${config.games.journey.jackpot.prize}`,
-    bonusKinds,
-    trapKinds,
-    prizeLimit: Number.isFinite(journeyConfig.maxPrize) ? journeyConfig.maxPrize : null,
-  };
 }
 
 export default function ConfigsPage({
@@ -75,7 +54,7 @@ export default function ConfigsPage({
       <Grid container spacing={3}>
         {configs.map((config) => {
           const isSelected = config.id === selectedConfigId;
-          const journeySummary = getJourneySummary(config);
+          const { journeySummary } = config;
 
           return (
             <Grid key={config.id} item xs={12} xl={6}>

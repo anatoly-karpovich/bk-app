@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { Avatar, Box, Card, CardContent, CardHeader, Divider, Fade, Paper, Popper, Stack, Typography } from "@mui/material";
-import { getJourneyCellLabel, getJourneyMapCell, getJourneyVisiblePlayers } from "../engine";
-import { getCompactCellLabel, getCompactCellTone, shortenNickname } from "../journey-page.helpers";
+import {
+  getCompactCellLabel,
+  getCompactCellTone,
+  getJourneyCellLabel,
+  getJourneyMapCell,
+  getJourneyVisiblePlayers,
+  shortenNickname,
+} from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
-import type { HoveredCellState, JourneyConfig, JourneyGame, JourneyPlayer } from "../types";
+import type { HoveredCellState, JourneyConfig, JourneyPersistedGame, JourneyPlayerReadModel } from "../types";
 
 interface JourneyMapCardProps {
-  game: JourneyGame | null;
+  game: JourneyPersistedGame | null;
   journeyConfig: JourneyConfig;
 }
 
-function getPlayersOnCell(game: JourneyGame | null, index: number): JourneyPlayer[] {
+function getPlayersOnCell(game: JourneyPersistedGame | null, index: number): JourneyPlayerReadModel[] {
   if (!game) {
     return [];
   }

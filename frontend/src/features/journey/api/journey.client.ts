@@ -1,109 +1,46 @@
-import { normalizeJourneyGame } from "../engine";
-import type { JourneyMoveInput, JourneyPersistedGame, JourneyPersistedGameDto } from "../types";
+import type { JourneyMoveInput, JourneyPersistedGame } from "../types";
+import { apiClient } from "../../../lib/apiClient";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
 
-interface JourneyApiSuccessResponse<T> {
-  success: true;
-  data: T;
-}
-
-interface JourneyApiErrorResponse {
-  success: false;
-  message?: string;
-  error?: string;
-}
-
-type JourneyApiResponse<T> = JourneyApiSuccessResponse<T> | JourneyApiErrorResponse;
-
-async function requestJourneyApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${JOURNEY_API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
-
-  const responseBody = (await response.json().catch(() => null)) as JourneyApiResponse<T> | null;
-
-  if (!response.ok || !responseBody?.success) {
-    const message =
-      responseBody && responseBody.success === false
-        ? responseBody.error || responseBody.message || "Journey request failed"
-        : `Journey request failed with status ${response.status}`;
-
-    throw new Error(message);
-  }
-
-  return responseBody.data;
-}
-
-function normalizeJourneyGameResponse(game: JourneyPersistedGameDto): JourneyPersistedGame {
-  const normalizedGame = normalizeJourneyGame(game);
-
-  if (!normalizedGame || !game.id) {
-    throw new Error("Journey response normalization failed");
-  }
-
-  return {
-    ...normalizedGame,
-    id: game.id,
-  };
-}
-
-export function createJourneyGameRequest(payload: {
+export async function createJourneyGameRequest(payload: {
   nicknames: string[];
   configId: string;
-}) {
-  return requestJourneyApi<JourneyPersistedGameDto>("/games", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }).then(normalizeJourneyGameResponse);
+}): Promise<JourneyPersistedGame> {
+  return await apiClient.post<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games`, payload);
 }
 
-export function getJourneyGameByIdRequest(gameId: string) {
-  return requestJourneyApi<JourneyPersistedGameDto>(`/games/${gameId}`).then(normalizeJourneyGameResponse);
+export async function getJourneyGameByIdRequest(gameId: string): Promise<JourneyPersistedGame> {
+  return await apiClient.get<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games/${gameId}`);
 }
 
-export function submitJourneyRoundRequest(
+export async function submitJourneyRoundRequest(
   gameId: string,
   payload: {
     moves: JourneyMoveInput[];
     skippedPlayerIds?: string[];
   },
-) {
-  return requestJourneyApi<JourneyPersistedGameDto>(`/games/${gameId}/rounds`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }).then(normalizeJourneyGameResponse);
+): Promise<JourneyPersistedGame> {
+  return await apiClient.post<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games/${gameId}/rounds`, payload);
 }
 
-export function removeJourneyPlayerRequest(gameId: string, playerId: string) {
-  return requestJourneyApi<JourneyPersistedGameDto>(`/games/${gameId}/players/${encodeURIComponent(playerId)}`, {
-    method: "DELETE",
-  }).then(normalizeJourneyGameResponse);
+export async function removeJourneyPlayerRequest(gameId: string, playerId: string): Promise<JourneyPersistedGame> {
+  return await apiClient.delete<JourneyPersistedGame>(
+    `${JOURNEY_API_BASE_URL}/games/${gameId}/players/${encodeURIComponent(playerId)}`,
+  );
 }
 
-export function deleteJourneyGameRequest(gameId: string) {
-  return requestJourneyApi<unknown>(`/games/${gameId}`, {
-    method: "DELETE",
+export async function deleteJourneyGameRequest(gameId: string): Promise<unknown> {
+  return await apiClient.delete<unknown>(`${JOURNEY_API_BASE_URL}/games/${gameId}`);
+}
+
+export async function parseJourneyPlayersRequest(text: string, djName: string): Promise<string[]> {
+  return await apiClient.post<string[]>(`${JOURNEY_API_BASE_URL}/parse/players`, {
+    text,
+    djName,
   });
 }
 
-export function parseJourneyPlayersRequest(text: string, djName: string) {
-  return requestJourneyApi<string[]>("/parse/players", {
-    method: "POST",
-    body: JSON.stringify({
-      text,
-      djName,
-    }),
-  });
-}
-
-export function parseJourneyMovesRequest(text: string) {
-  return requestJourneyApi<Record<string, number>>("/parse/moves", {
-    method: "POST",
-    body: JSON.stringify({ text }),
-  });
+export async function parseJourneyMovesRequest(text: string): Promise<Record<string, number>> {
+  return await apiClient.post<Record<string, number>>(`${JOURNEY_API_BASE_URL}/parse/moves`, { text });
 }

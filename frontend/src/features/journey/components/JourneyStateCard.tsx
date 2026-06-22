@@ -17,14 +17,13 @@ import {
 } from "@mui/material";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import { getJourneyPlayerFullPrize } from "../engine";
-import { getAchievementProgress, getHistoryEntrySummary, getPrizeBadgeLabel } from "../journey-page.helpers";
+import { getAchievementProgress, getHistoryEntrySummary, getJourneyPlayerFullPrize, getPrizeBadgeLabel } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
-import type { JourneyAchievementsMap, JourneyGame, JourneyTimelineEntry } from "../types";
+import type { JourneyAchievementsMap, JourneyPersistedGame, JourneyTimelineEntry } from "../types";
 
 interface JourneyStateCardProps {
-  game: JourneyGame | null;
+  game: JourneyPersistedGame | null;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
   journeyAchievements: JourneyAchievementsMap;
   nonJackpotPrizes: number[];

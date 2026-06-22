@@ -1,5 +1,3 @@
-export type RandomFn = () => number;
-
 export type JourneyCellKind = "bonus" | "trap";
 export type JourneyPlayerStatus = "active" | "finished" | "removed";
 export type JourneyGameStatus = "in_progress" | "finished";
@@ -182,62 +180,30 @@ export interface JourneyGame {
   comments: string[];
 }
 
-export interface JourneyPersistedGame extends JourneyGame {
+export interface JourneyPlayerReadModel extends JourneyPlayer {
+  fullPrize: number;
+}
+
+export interface JourneyGameDerivedData {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+  nonJackpotPrizes: number[];
+  gameIsOver: boolean;
+  activePlayers: JourneyPlayerReadModel[];
+  finishedPlayers: JourneyPlayerReadModel[];
+  visiblePlayers: JourneyPlayerReadModel[];
+  results: JourneyPlayerReadModel[];
+  receipts: JourneyReceiptsDistribution;
+  playerTimelines: Record<string, JourneyTimelineEntry[]>;
+}
+
+export type JourneyPersistedGame = Omit<JourneyGame, "playersById"> & {
   id: string;
-}
-
-export interface JourneyPlayerDto {
-  id: string;
-  nickname: string;
-  status: JourneyPlayerStatus;
-  position: number;
-  prize: number;
-  bonuses: JourneyAchievement[];
-}
-
-export interface JourneyRoundEntryDto {
-  createdAt: string;
-  playerId: string | null;
-  skipped: boolean;
-  previousPosition: number | null;
-  currentPosition: number | null;
-  previousPrize: number | null;
-  prizeAfterMove: number | null;
-  fullPrizeAfterRound: number | null;
-  moveType: JourneyMoveType | JourneySkippedMoveType | null;
-  cell: JourneyMapCell | null;
-  achievementsAwarded: JourneyAchievement[];
-}
-
-export interface JourneyRoundDto {
-  createdAt: string;
-  moveIndex: number;
-  entries: JourneyRoundEntryDto[];
-}
-
-export interface JourneyGameDto {
-  id?: string;
-  configId: string;
-  configName: string;
-  rules: JourneyRules;
-  map: Record<number, JourneyMapCell>;
-  players: JourneyPlayerDto[];
-  rounds: JourneyRoundDto[];
-  comments: string[];
-}
-
-export interface JourneyPersistedGameDto extends JourneyGameDto {
-  id: string;
-}
+  derived: JourneyGameDerivedData;
+};
 
 export type JourneyMoveInputs = Record<string, string>;
 export type JourneySkippedPlayers = Record<string, boolean>;
-export type JourneyPlayersById = Record<string, JourneyPlayer>;
-export type JourneyMovesByPlayerId = Record<string, JourneyMove>;
-export type JourneyAchievementsByPlayerId = Record<string, JourneyAchievement[]>;
-export type JourneyMovesByNickname = Record<string, JourneyMove>;
-export type JourneyAchievementsByNickname = Record<string, JourneyAchievement[]>;
-export type JourneyParsedMoves = Record<string, number>;
 export type JourneyReceiptsDistribution = Record<number, number>;
 
 export interface JourneyTimelineEntry extends JourneyRoundEntry {

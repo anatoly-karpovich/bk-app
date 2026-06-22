@@ -1,68 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
-import { getConfigsRequest } from "./features/configs/api/config.client";
 import ConfigsPage from "./features/configs/ConfigsPage";
-import { loadSelectedConfigId, saveSelectedConfigId } from "./features/configs/storage";
-import type { AppConfig } from "./features/configs/types";
+import { useConfigs } from "./features/configs/hooks/useConfigs";
 import JourneyPage from "./features/journey/JourneyPage";
 
 const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Config request failed";
-}
-
 export default function App() {
   const [djName, setDjName] = useState(() => localStorage.getItem(DJ_NAME_STORAGE_KEY) ?? "");
-  const [configs, setConfigs] = useState<AppConfig[]>([]);
-  const [selectedConfigId, setSelectedConfigId] = useState(() => loadSelectedConfigId() ?? "");
-  const [configsLoading, setConfigsLoading] = useState(true);
-  const [configsError, setConfigsError] = useState<string | null>(null);
+  const { configs, selectedConfig, isLoading, error, actions } = useConfigs();
 
   useEffect(() => {
     localStorage.setItem(DJ_NAME_STORAGE_KEY, djName);
   }, [djName]);
-
-  const loadConfigs = useCallback(async () => {
-    setConfigsLoading(true);
-    setConfigsError(null);
-
-    try {
-      const nextConfigs = await getConfigsRequest();
-      setConfigs(nextConfigs);
-
-      const storedConfigId = loadSelectedConfigId();
-      const fallbackConfigId = nextConfigs[0]?.id ?? "";
-      const resolvedConfigId =
-        (storedConfigId && nextConfigs.some((config) => config.id === storedConfigId) && storedConfigId) || fallbackConfigId;
-
-      setSelectedConfigId(resolvedConfigId);
-
-      if (resolvedConfigId) {
-        saveSelectedConfigId(resolvedConfigId);
-      }
-    } catch (error) {
-      setConfigsError(getErrorMessage(error));
-    } finally {
-      setConfigsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadConfigs();
-  }, [loadConfigs]);
-
-  const handleSelectedConfigChange = useCallback((nextConfigId: string) => {
-    setSelectedConfigId(nextConfigId);
-    saveSelectedConfigId(nextConfigId);
-  }, []);
-
-  const selectedConfig = useMemo(
-    () => configs.find((config) => config.id === selectedConfigId) ?? configs[0] ?? null,
-    [configs, selectedConfigId],
-  );
 
   return (
     <Box
@@ -77,12 +29,12 @@ export default function App() {
         onDjNameChange={setDjName}
         configs={configs}
         selectedConfigId={selectedConfig?.id ?? ""}
-        onSelectedConfigChange={handleSelectedConfigChange}
+        onSelectedConfigChange={actions.selectConfig}
       />
       <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3.5 } }}>
-        {configsError && !configs.length ? (
+        {error && !configs.length ? (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {configsError}
+            {error}
           </Alert>
         ) : null}
 
@@ -95,9 +47,9 @@ export default function App() {
               <ConfigsPage
                 configs={configs}
                 selectedConfigId={selectedConfig?.id ?? ""}
-                onSelectConfig={handleSelectedConfigChange}
-                isLoading={configsLoading}
-                error={configsError}
+                onSelectConfig={actions.selectConfig}
+                isLoading={isLoading}
+                error={error}
               />
             }
           />

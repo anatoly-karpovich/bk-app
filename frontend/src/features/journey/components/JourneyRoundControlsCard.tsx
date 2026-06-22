@@ -2,15 +2,14 @@ import { Alert, Box, Card, CardContent, CardHeader, CircularProgress, IconButton
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import { getJourneyPlayerFullPrize } from "../engine";
 import { isValidDiceValue } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
-import type { JourneyConfig, JourneyMoveInputs, JourneyPlayer, JourneySkippedPlayers } from "../types";
+import type { JourneyConfig, JourneyMoveInputs, JourneyPlayerReadModel, JourneySkippedPlayers } from "../types";
 
 interface JourneyRoundControlsCardProps {
-  activePlayers: JourneyPlayer[];
+  activePlayers: JourneyPlayerReadModel[];
   moveInputs: JourneyMoveInputs;
   skippedPlayers: JourneySkippedPlayers;
   journeyConfig: JourneyConfig;
@@ -59,7 +58,7 @@ export default function JourneyRoundControlsCard({
                 <Box sx={{ minWidth: 160 }}>
                   <Typography fontWeight={700}>{player.nickname}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {journeyTexts.table.cell} {player.position} - {getJourneyPlayerFullPrize(player)} {journeyConfig.currency}
+                    {journeyTexts.table.cell} {player.position} - {player.fullPrize} {journeyConfig.currency}
                   </Typography>
                 </Box>
 

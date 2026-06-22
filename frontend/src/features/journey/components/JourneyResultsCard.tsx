@@ -2,16 +2,12 @@ import { Alert, Box, Card, CardContent, CardHeader, Stack, Typography } from "@m
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
-import type { JourneyPlayer, JourneyReceiptsDistribution } from "../types";
-
-interface JourneyResultPlayer extends JourneyPlayer {
-  fullPrize: number;
-}
+import type { JourneyPlayerReadModel, JourneyReceiptsDistribution } from "../types";
 
 interface JourneyResultsCardProps {
   gameIsOver: boolean;
-  finishedPlayers: JourneyPlayer[];
-  results: JourneyResultPlayer[];
+  finishedPlayers: JourneyPlayerReadModel[];
+  results: JourneyPlayerReadModel[];
   receipts: JourneyReceiptsDistribution | null;
   currency: string;
 }

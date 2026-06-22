@@ -181,6 +181,28 @@ export interface JourneyGame {
   comments: string[];
 }
 
+export interface JourneyPlayerReadModel extends JourneyPlayer {
+  fullPrize: number;
+}
+
+export interface JourneyGameDerivedData {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+  nonJackpotPrizes: number[];
+  gameIsOver: boolean;
+  activePlayers: JourneyPlayerReadModel[];
+  finishedPlayers: JourneyPlayerReadModel[];
+  visiblePlayers: JourneyPlayerReadModel[];
+  results: JourneyPlayerReadModel[];
+  receipts: JourneyReceiptsDistribution;
+  playerTimelines: Record<string, JourneyTimelineEntry[]>;
+}
+
+export type JourneyGameReadModel = Omit<JourneyGame, "playersById"> & {
+  id: string;
+  derived: JourneyGameDerivedData;
+};
+
 export interface JourneyPlayerDto {
   id: string;
   nickname: string;
