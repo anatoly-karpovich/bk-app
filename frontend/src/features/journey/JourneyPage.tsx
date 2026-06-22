@@ -1,4 +1,6 @@
 import { Alert, Grid, Stack } from "@mui/material";
+import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
+import { journeyTexts } from "../../texts/journeyTexts";
 import type { AppConfig } from "../configs/types";
 import JourneyImportDialog from "./components/JourneyImportDialog";
 import JourneyLogCard from "./components/JourneyLogCard";
@@ -10,14 +12,18 @@ import JourneyRoundControlsCard from "./components/JourneyRoundControlsCard";
 import JourneyRulesDialog from "./components/JourneyRulesDialog";
 import JourneySavedGamesDialog from "./components/JourneySavedGamesDialog";
 import JourneyStateCard from "./components/JourneyStateCard";
-import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import { useJourneyGame } from "./hooks/useJourneyGame";
-import { journeyTexts } from "../../texts/journeyTexts";
 
 const deleteSavedGameTexts = {
   title: "Удалить сохраненную игру",
   description: "Точно удалить сохраненную игру",
   confirm: "Удалить",
+};
+
+const removePlayerTexts = {
+  title: "Удалить игрока из партии",
+  description: "Точно удалить игрока из текущей партии",
+  confirm: "Удалить игрока",
 };
 
 interface JourneyPageProps {
@@ -34,6 +40,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     movesImportText,
     moveInputs,
     skippedPlayers,
+    playerPendingRemoval,
     savedGames,
     storedGameId,
     deletingSavedGame,
@@ -125,7 +132,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
                 removingPlayerId={loading.removingPlayerId}
                 onMoveInputChange={actions.changeMoveInput}
                 onSkipToggle={actions.toggleSkip}
-                onRemovePlayer={actions.removePlayerFromGame}
+                onRemovePlayer={actions.requestRemovePlayerFromGame}
                 onOpenImport={() => actions.setMovesImportOpen(true)}
                 onSubmitRound={actions.submitRound}
               />
@@ -217,6 +224,22 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
         loading={loading.isDeletingSavedGame}
         onClose={actions.cancelDeleteSavedGame}
         onConfirm={actions.confirmDeleteSavedGame}
+      />
+
+      <AppConfirmDialog
+        open={Boolean(playerPendingRemoval)}
+        title={removePlayerTexts.title}
+        description={
+          playerPendingRemoval
+            ? `${removePlayerTexts.description} "${playerPendingRemoval.nickname}"?`
+            : removePlayerTexts.description
+        }
+        confirmLabel={removePlayerTexts.confirm}
+        cancelLabel={journeyTexts.actions.cancel}
+        confirmColor="error"
+        loading={Boolean(loading.removingPlayerId)}
+        onClose={actions.cancelRemovePlayerFromGame}
+        onConfirm={actions.confirmRemovePlayerFromGame}
       />
     </>
   );

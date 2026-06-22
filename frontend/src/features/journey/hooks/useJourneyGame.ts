@@ -73,6 +73,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const [isImportingPlayers, setIsImportingPlayers] = useState(false);
   const [isImportingMoves, setIsImportingMoves] = useState(false);
   const [removingPlayerId, setRemovingPlayerId] = useState<string | null>(null);
+  const [playerPendingRemoval, setPlayerPendingRemoval] = useState<JourneyPlayerReadModel | null>(null);
 
   useEffect(() => {
     if (!game?.id) {
@@ -436,7 +437,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   async function removePlayerFromGame(playerId: string) {
     if (!game?.id) {
-      return;
+      return false;
     }
 
     setRequestError(null);
@@ -457,10 +458,42 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
         delete nextSkipped[playerId];
         return nextSkipped;
       });
+      return true;
     } catch (error) {
       setRequestError(getErrorMessage(error));
+      return false;
     } finally {
       setRemovingPlayerId(null);
+    }
+  }
+
+  function requestRemovePlayerFromGame(playerId: string) {
+    const nextPendingPlayer = activePlayers.find((player) => player.id === playerId) ?? null;
+
+    if (!nextPendingPlayer) {
+      return;
+    }
+
+    setPlayerPendingRemoval(nextPendingPlayer);
+  }
+
+  function cancelRemovePlayerFromGame() {
+    if (removingPlayerId) {
+      return;
+    }
+
+    setPlayerPendingRemoval(null);
+  }
+
+  async function confirmRemovePlayerFromGame() {
+    if (!playerPendingRemoval) {
+      return;
+    }
+
+    const removed = await removePlayerFromGame(playerPendingRemoval.id);
+
+    if (removed) {
+      setPlayerPendingRemoval(null);
     }
   }
 
@@ -472,6 +505,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     movesImportText,
     moveInputs,
     skippedPlayers,
+    playerPendingRemoval,
     savedGames,
     storedGameId,
     deletingSavedGame,
@@ -521,6 +555,9 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       requestDeleteSavedGame,
       cancelDeleteSavedGame,
       confirmDeleteSavedGame,
+      requestRemovePlayerFromGame,
+      cancelRemovePlayerFromGame,
+      confirmRemovePlayerFromGame,
       startGame,
       restartGame,
       addPlayerField,
