@@ -32,6 +32,7 @@ export class JourneyEngine {
     options: {
       randomFn?: RandomFn;
       rules?: JourneyRules;
+      djName?: string;
       configId?: string;
       configName?: string;
     } = {},

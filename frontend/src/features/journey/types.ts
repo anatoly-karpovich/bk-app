@@ -170,6 +170,7 @@ export interface JourneyGame {
   updatedAt: string;
   moveIndex: number;
   status: JourneyGameStatus;
+  djName: string;
   configId: string;
   configName: string;
   rules: JourneyRules;
@@ -215,6 +216,7 @@ export interface JourneySavedGameSummary {
   createdAt: string;
   updatedAt: string;
   status: JourneyGameStatus;
+  djName: string;
   configId: string;
   configName: string;
   roundsCount: number;

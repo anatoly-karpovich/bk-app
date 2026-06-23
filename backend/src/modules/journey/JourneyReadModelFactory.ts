@@ -53,6 +53,7 @@ export class JourneyReadModelFactory {
       createdAt: normalizedGame.createdAt,
       updatedAt: normalizedGame.updatedAt,
       status: normalizedGame.status,
+      djName: normalizedGame.djName,
       configId: normalizedGame.configId,
       configName: normalizedGame.configName,
       roundsCount: normalizedGame.rounds.length,

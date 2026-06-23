@@ -525,6 +525,7 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
   game.createdAt = game.createdAt ?? getNowIso();
   game.updatedAt = game.updatedAt ?? game.createdAt;
   game.status = game.status ?? "in_progress";
+  game.djName = game.djName ?? "";
   const legacyGame = game as JourneyGame & { rulesetId?: string; rulesetName?: string };
   game.configId = game.configId ?? legacyGame.rulesetId ?? "oldbk2";
   game.configName = game.configName ?? legacyGame.rulesetName ?? game.configId;
@@ -580,11 +581,13 @@ export function createJourneyGame(
   {
     randomFn = Math.random,
     rules = DEFAULT_JOURNEY_RULES,
+    djName = "",
     configId = "oldbk2",
     configName = configId,
   }: {
     randomFn?: RandomFn;
     rules?: JourneyRules;
+    djName?: string;
     configId?: string;
     configName?: string;
   } = {},
@@ -597,6 +600,7 @@ export function createJourneyGame(
     updatedAt: createdAt,
     moveIndex: 0,
     status: "in_progress",
+    djName: djName.trim(),
     configId,
     configName,
     rules: normalizedRules,

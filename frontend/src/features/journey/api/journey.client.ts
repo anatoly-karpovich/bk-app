@@ -6,6 +6,7 @@ const JOURNEY_API_BASE_URL = "/api/journey";
 export async function createJourneyGameRequest(payload: {
   nicknames: string[];
   configId: string;
+  djName?: string;
 }): Promise<JourneyPersistedGame> {
   return await apiClient.post<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games`, payload);
 }

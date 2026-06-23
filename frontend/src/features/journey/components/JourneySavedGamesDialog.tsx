@@ -31,6 +31,8 @@ const savedGamesTexts = {
   empty: "Сохраненных игр пока нет.",
   current: "Текущая",
   rounds: "Раунды",
+  dj: "Ведущий",
+  djMissing: "Не указан",
   startedAt: "Старт",
   updatedAt: "Последнее обновление",
   restoreTooltip: "Восстановить игру",
@@ -135,6 +137,7 @@ export default function JourneySavedGamesDialog({
                             label={game.status === "finished" ? journeyTexts.statuses.complete : journeyTexts.statuses.active}
                           />
                           <AppChip size="small" variant="outlined" label={`${savedGamesTexts.rounds}: ${game.roundsCount}`} />
+                          <AppChip size="small" variant="outlined" label={`${savedGamesTexts.dj}: ${game.djName || savedGamesTexts.djMissing}`} />
                           {isCurrentGame ? <AppChip size="small" color="secondary" label={savedGamesTexts.current} /> : null}
                         </Stack>
                         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap" useFlexGap>
@@ -199,6 +202,7 @@ export default function JourneySavedGamesDialog({
                             }}
                           >
                             <ListItemText
+                              disableTypography
                               primary={
                                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                                   <Typography variant="body1" fontWeight={600}>

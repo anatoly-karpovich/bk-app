@@ -153,13 +153,18 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const playerTimelines = useMemo<Record<string, JourneyTimelineEntry[]>>(() => getJourneyPlayerTimelines(game), [game]);
 
   const pageStatusChips = useMemo<JourneyStatusChip[]>(() => {
+    const resolvedDjName = game?.djName?.trim() || djName.trim();
     const rulesetLabel: JourneyStatusChip = {
       label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.configName : selectedConfig?.name ?? "Не выбран"}`,
       color: "secondary",
     };
 
     if (!game) {
-      return [{ label: journeyTexts.statuses.notStarted, color: "default" }, rulesetLabel];
+      return [
+        { label: journeyTexts.statuses.notStarted, color: "default" },
+        rulesetLabel,
+        ...(resolvedDjName ? [{ label: `${journeyTexts.statuses.djPrefix} ${resolvedDjName}`, color: "info" as const }] : []),
+      ];
     }
 
     const chips: JourneyStatusChip[] = [
@@ -175,8 +180,12 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       chips.push({ label: `${totalGamePlayers} ${journeyTexts.statuses.playersSuffix}`, color: "info" });
     }
 
+    if (resolvedDjName) {
+      chips.push({ label: `${journeyTexts.statuses.djPrefix} ${resolvedDjName}`, color: "info" });
+    }
+
     return chips;
-  }, [activeGame, game, gameIsOver, selectedConfig?.name, totalGamePlayers]);
+  }, [activeGame, djName, game, gameIsOver, selectedConfig?.name, totalGamePlayers]);
 
   function resetRoundUi(players: JourneyPlayer[] = []) {
     setMoveInputs(createEmptyMoveState(players));
@@ -290,6 +299,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       const nextGame = await createJourneyGameRequest({
         nicknames: cleanNames,
         configId: selectedConfig.id,
+        djName: djName.trim(),
       });
 
       setGame(nextGame);

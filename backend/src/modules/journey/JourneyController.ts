@@ -12,6 +12,7 @@ import {
 } from "./errors";
 import {
   createJourneyGameConfigSchema,
+  createJourneyGameDjNameSchema,
   createJourneyGameNicknamesSchema,
   journeyGameIdParamsSchema,
   journeyParseMovesTextSchema,
@@ -42,9 +43,15 @@ export class JourneyController {
         { configId: req.body?.configId },
         "Body field 'configId' must be a non-empty string",
       );
+      const { djName } = parseRequest(
+        createJourneyGameDjNameSchema,
+        { djName: req.body?.djName },
+        "Body field 'djName' must be a string when provided",
+      );
       const game = await this.journeyService.createJourneyGameSnapshot({
         nicknames,
         configId,
+        djName,
       });
 
       return res.status(201).json({

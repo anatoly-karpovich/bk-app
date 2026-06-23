@@ -19,6 +19,7 @@ export type JourneyGameListResponse = JourneyGameListItemReadModel[];
 interface CreateJourneyGamePayload {
   nicknames: string[];
   configId: string;
+  djName?: string;
 }
 
 interface SaveJourneyRoundPayload {
@@ -48,6 +49,7 @@ export class JourneyService {
 
     const nextGame = this.engine.createGame(payload.nicknames, {
       rules: config.games.journey,
+      djName: payload.djName,
       configId: config.id,
       configName: config.name,
     });

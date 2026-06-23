@@ -20,6 +20,7 @@ export const journeyTexts = {
     active: "Игра активна",
     complete: "Игра завершена",
     rulesetPrefix: "Проект:",
+    djPrefix: "Ведущий:",
     roundPrefix: "Раунд",
     playersSuffix: "игрока",
   },

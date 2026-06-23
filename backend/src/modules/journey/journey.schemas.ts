@@ -17,6 +17,10 @@ export const createJourneyGameConfigSchema = z.object({
   configId: z.string().trim().min(1),
 });
 
+export const createJourneyGameDjNameSchema = z.object({
+  djName: z.string().optional(),
+});
+
 export const journeyMoveInputSchema = z.object({
   playerId: z.string(),
   dice: z.number(),
