@@ -1,3 +1,4 @@
+import { normalizeBattleshipsRules } from "../../battleships/domain/config";
 import { normalizeJourneyRules } from "../../journey/domain/config";
 import type { AppConfig } from "./types";
 
@@ -7,6 +8,31 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
     name: "oldbk2",
     description: "Базовые правила Карты Мародёров",
     games: {
+      battleships: normalizeBattleshipsRules({
+        selectedBoardSize: 6,
+        boards: {
+          6: {
+            boardSize: 6,
+            ships: [
+              { size: 4, amount: 0 },
+              { size: 3, amount: 1 },
+              { size: 2, amount: 2 },
+              { size: 1, amount: 4 },
+            ],
+            maxShots: 17,
+            currency: "фишки",
+            prizes: {
+              shoot: 2,
+              destroyBonus: {
+                1: 1,
+                2: 1,
+                3: 2,
+                4: 2,
+              },
+            },
+          },
+        },
+      }),
       journey: normalizeJourneyRules({
         currency: "фишек",
         initialPrize: 15,
@@ -40,6 +66,31 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
     name: "Combats Club",
     description: "Правила Карты Мародёров для проекта Combats Club",
     games: {
+      battleships: normalizeBattleshipsRules({
+        selectedBoardSize: 6,
+        boards: {
+          6: {
+            boardSize: 6,
+            ships: [
+              { size: 4, amount: 0 },
+              { size: 3, amount: 1 },
+              { size: 2, amount: 2 },
+              { size: 1, amount: 4 },
+            ],
+            maxShots: 17,
+            currency: "екр",
+            prizes: {
+              shoot: 2,
+              destroyBonus: {
+                1: 1,
+                2: 1,
+                3: 2,
+                4: 2,
+              },
+            },
+          },
+        },
+      }),
       journey: normalizeJourneyRules({
         currency: "екр",
         initialPrize: 30,

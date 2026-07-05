@@ -8,6 +8,6 @@ export const appHeaderTexts = {
   nav: {
     journey: "Карта Мародёров",
     lotto: "Лото",
-    battleship: "Battleship",
+    battleship: "Морской бой",
   },
 };

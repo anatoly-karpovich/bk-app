@@ -1,8 +1,9 @@
+import type { BattleshipsRules } from "../../battleships/domain/types";
 import type { JourneyRules } from "../../journey/domain/types";
 
 export interface AppGamesConfig {
   journey?: JourneyRules;
-  battleships?: Record<string, unknown>;
+  battleships?: BattleshipsRules;
   loto?: Record<string, unknown>;
 }
 
@@ -16,6 +17,14 @@ export interface JourneyConfigSummary {
   prizeLimit: number | null;
 }
 
+export interface BattleshipsConfigSummary {
+  boardSize: number;
+  maxShots: number;
+  fleet: string[];
+  hitPrize: number;
+  currency: string;
+}
+
 export interface AppConfig {
   id: string;
   name: string;
@@ -25,4 +34,5 @@ export interface AppConfig {
 
 export interface AppConfigReadModel extends AppConfig {
   journeySummary: JourneyConfigSummary | null;
+  battleshipsSummary: BattleshipsConfigSummary | null;
 }

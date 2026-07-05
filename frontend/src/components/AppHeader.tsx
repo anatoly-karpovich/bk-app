@@ -68,7 +68,7 @@ const navItems: NavItem[] = [
     label: appHeaderTexts.nav.battleship,
     to: "/battleship",
     icon: <DirectionsBoatRoundedIcon />,
-    disabled: true,
+    disabled: false,
   },
 ];
 

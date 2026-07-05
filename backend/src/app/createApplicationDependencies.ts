@@ -1,4 +1,9 @@
 import { getDefaultMongoDatabase } from "../infrastructure/mongo/defaultMongo";
+import { BattleshipsController } from "../modules/battleships/BattleshipsController";
+import { BattleshipsEngine } from "../modules/battleships/BattleshipsEngine";
+import { BattleshipsReadModelFactory } from "../modules/battleships/BattleshipsReadModelFactory";
+import { BattleshipsRepository } from "../modules/battleships/BattleshipsRepository";
+import { BattleshipsService } from "../modules/battleships/BattleshipsService";
 import { ConfigReadModelFactory } from "../modules/configs/ConfigReadModelFactory";
 import { ConfigsController } from "../modules/configs/ConfigsController";
 import { ConfigsRepository } from "../modules/configs/ConfigsRepository";
@@ -13,6 +18,7 @@ import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
 
 export interface ApplicationDependencies {
+  battleshipsController: BattleshipsController;
   configsController: ConfigsController;
   forumTopicController: ForumTopicController;
   journeyController: JourneyController;
@@ -25,6 +31,17 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const configReadModelFactory = new ConfigReadModelFactory();
   const configsService = new ConfigsService(configsRepository, configReadModelFactory);
   const configsController = new ConfigsController(configsService);
+
+  const battleshipsRepository = new BattleshipsRepository();
+  const battleshipsEngine = new BattleshipsEngine();
+  const battleshipsReadModelFactory = new BattleshipsReadModelFactory(battleshipsEngine);
+  const battleshipsService = new BattleshipsService(
+    battleshipsRepository,
+    battleshipsEngine,
+    battleshipsReadModelFactory,
+    configsService,
+  );
+  const battleshipsController = new BattleshipsController(battleshipsService);
 
   const journeyRepository = new JourneyRepository();
   const journeyEngine = new JourneyEngine();
@@ -43,6 +60,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const forumTopicController = new ForumTopicController(forumTopicService);
 
   return {
+    battleshipsController,
     configsController,
     forumTopicController,
     journeyController,

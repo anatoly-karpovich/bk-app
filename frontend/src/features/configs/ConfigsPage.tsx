@@ -36,16 +36,16 @@ export default function ConfigsPage({
           <Stack spacing={1.5}>
             <Typography variant="h4">Глобальные конфиги</Typography>
             <Typography variant="body1" color="text.secondary">
-              Выбор активного проекта для запуска новых игр. Изменение выбора не меняет состояние сервера и влияет
-              только на новые партии в текущем браузере.
+              Выбор активного проекта для запуска новых игр. Изменение выбора не меняет состояние сервера и влияет только
+              на новые партии в текущем браузере.
             </Typography>
           </Stack>
         </CardContent>
       </Card>
 
       <Alert icon={<SettingsRoundedIcon fontSize="inherit" />} severity="info">
-        Journey уже использует backend-конфиги. Следующие игры будут брать правила из выбранного проекта, а текущие
-        партии останутся на своем snapshot-конфиге.
+        Journey и Battleships уже используют backend-конфиги. Следующие игры будут брать правила из выбранного проекта,
+        а текущие партии останутся на своем snapshot-конфиге.
       </Alert>
 
       {error ? <Alert severity="error">{error}</Alert> : null}
@@ -54,7 +54,7 @@ export default function ConfigsPage({
       <Grid container spacing={3}>
         {configs.map((config) => {
           const isSelected = config.id === selectedConfigId;
-          const { journeySummary } = config;
+          const { journeySummary, battleshipsSummary } = config;
 
           return (
             <Grid key={config.id} item xs={12} xl={6}>
@@ -63,34 +63,61 @@ export default function ConfigsPage({
                   title={config.name}
                   subheader={config.description || "Без описания"}
                   action={
-                    <Stack direction="row" spacing={1} sx={{ pr: 2, pt: 2 }}>
+                    <Stack direction="row" spacing={1} sx={{ pr: 2, pt: 2 }} flexWrap="wrap" useFlexGap>
                       {isSelected ? <Chip color="success" label="Выбран" /> : null}
                       <Chip variant="outlined" label={journeySummary ? "Journey" : "Без Journey"} />
+                      <Chip variant="outlined" label={battleshipsSummary ? "Battleships" : "Без Battleships"} />
                     </Stack>
                   }
                 />
                 <CardContent>
                   <Stack spacing={2.5}>
                     {journeySummary ? (
-                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        <Chip label={`Валюта: ${journeySummary.currency}`} />
-                        <Chip label={`Карта: ${journeySummary.mapSize}`} />
-                        <Chip label={`Ход: ${journeySummary.diceRange}`} />
-                        <Chip label={`Сокровище: ${journeySummary.jackpot}`} color="warning" />
-                        <Chip label={`Бонусы: ${journeySummary.bonusKinds}`} color="success" />
-                        <Chip label={`Ловушки: ${journeySummary.trapKinds}`} color="error" />
-                        <Chip
-                          label={
-                            journeySummary.prizeLimit === null
-                              ? "Без лимита"
-                              : `Лимит: ${journeySummary.prizeLimit}`
-                          }
-                        />
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle2">Journey</Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          <Chip label={`Валюта: ${journeySummary.currency}`} />
+                          <Chip label={`Карта: ${journeySummary.mapSize}`} />
+                          <Chip label={`Ход: ${journeySummary.diceRange}`} />
+                          <Chip label={`Сокровище: ${journeySummary.jackpot}`} color="warning" />
+                          <Chip label={`Бонусы: ${journeySummary.bonusKinds}`} color="success" />
+                          <Chip label={`Ловушки: ${journeySummary.trapKinds}`} color="error" />
+                          <Chip
+                            label={
+                              journeySummary.prizeLimit === null
+                                ? "Без лимита"
+                                : `Лимит: ${journeySummary.prizeLimit}`
+                            }
+                          />
+                        </Stack>
                       </Stack>
                     ) : (
                       <Box>
                         <Typography variant="body2" color="text.secondary">
                           Для Journey конфиг пока не задан.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {battleshipsSummary ? (
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle2">Battleships</Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          <Chip label={`Поле: ${battleshipsSummary.boardSize}x${battleshipsSummary.boardSize}`} />
+                          <Chip label={`Попытки: ${battleshipsSummary.maxShots}`} />
+                          <Chip
+                            label={`Попадание: ${battleshipsSummary.hitPrize} ${battleshipsSummary.currency}`}
+                            color="success"
+                          />
+                          {battleshipsSummary.fleet.map((ship) => (
+                            <Chip key={ship} label={ship} variant="outlined" />
+                          ))}
+                        </Stack>
+                      </Stack>
+                    ) : (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Для Battleships конфиг пока не задан.
                         </Typography>
                       </Box>
                     )}

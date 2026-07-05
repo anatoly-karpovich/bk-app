@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
+import BattleshipsPage from "./features/battleships/BattleshipsPage";
 import ConfigsPage from "./features/configs/ConfigsPage";
 import { useConfigs } from "./features/configs/hooks/useConfigs";
 import JourneyPage from "./features/journey/JourneyPage";
@@ -41,6 +42,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/journey" replace />} />
           <Route path="/journey" element={<JourneyPage djName={djName} selectedConfig={selectedConfig} />} />
+          <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedConfig={selectedConfig} />} />
           <Route
             path="/config"
             element={

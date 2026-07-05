@@ -1,13 +1,13 @@
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
+import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import GamePageHeader from "../../../components/GamePageHeader";
-import { journeyTexts } from "../../../texts/journeyTexts";
-import type { JourneyStatusChip } from "../types";
+import { battleshipsTexts } from "../../../texts/battleshipsTexts";
+import type { BattleshipsStatusChip } from "../types";
 
-interface JourneyPageHeaderProps {
-  pageStatusChips: JourneyStatusChip[];
+interface BattleshipsPageHeaderProps {
+  pageStatusChips: BattleshipsStatusChip[];
   canStartGame: boolean;
   hasGame: boolean;
   isStartingGame: boolean;
@@ -20,7 +20,7 @@ interface JourneyPageHeaderProps {
   onRestartGame: () => void;
 }
 
-export default function JourneyPageHeader({
+export default function BattleshipsPageHeader({
   pageStatusChips,
   canStartGame,
   hasGame,
@@ -32,17 +32,21 @@ export default function JourneyPageHeader({
   onStartGame,
   onOpenSavedGames,
   onRestartGame,
-}: JourneyPageHeaderProps) {
+}: BattleshipsPageHeaderProps) {
   return (
     <GamePageHeader
-      breadcrumbs={journeyTexts.breadcrumbs.split(" / ")}
-      title={journeyTexts.pageTitle}
-      description={journeyTexts.pageDescription}
+      breadcrumbs={battleshipsTexts.breadcrumbs.split(" / ")}
+      title={battleshipsTexts.pageTitle}
+      description={battleshipsTexts.pageDescription}
       chips={pageStatusChips}
+      cardSx={{
+        background:
+          "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(236, 253, 245, 0.92) 52%, rgba(224, 242, 254, 0.95) 100%)",
+      }}
       actions={[
         {
           key: "rules",
-          label: journeyTexts.actions.rules,
+          label: battleshipsTexts.actions.rules,
           icon: <MenuBookRoundedIcon />,
           onClick: onOpenRules,
           disabled: actionsDisabled,
@@ -50,8 +54,8 @@ export default function JourneyPageHeader({
         },
         {
           key: "new-game",
-          label: journeyTexts.actions.newGame,
-          icon: <PlayArrowRoundedIcon />,
+          label: battleshipsTexts.actions.newGame,
+          icon: <DirectionsBoatRoundedIcon />,
           onClick: onStartGame,
           disabled: actionsDisabled || hasGame || !canStartGame,
           loading: isStartingGame,
@@ -59,7 +63,7 @@ export default function JourneyPageHeader({
         },
         {
           key: "saved-games",
-          label: "Сохраненные игры",
+          label: battleshipsTexts.actions.savedGames,
           icon: <RestoreRoundedIcon />,
           onClick: onOpenSavedGames,
           disabled: actionsDisabled,
@@ -68,7 +72,7 @@ export default function JourneyPageHeader({
         },
         {
           key: "reset",
-          label: journeyTexts.actions.reset,
+          label: battleshipsTexts.actions.reset,
           icon: <AutorenewRoundedIcon />,
           onClick: onRestartGame,
           disabled: actionsDisabled && !isResettingGame,

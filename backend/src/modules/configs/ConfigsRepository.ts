@@ -20,15 +20,35 @@ export class ConfigsRepository {
     const collection = await this.mongoDatabase.getCollection<AppConfig>(CONFIGS_COLLECTION);
 
     await Promise.all(
-      configs.map((config) =>
-        collection.updateOne(
-          { id: config.id },
-          {
-            $setOnInsert: config,
-          },
-          { upsert: true },
-        ),
-      ),
+      configs.flatMap((config) => {
+        const operations = [
+          collection.updateOne(
+            { id: config.id },
+            {
+              $setOnInsert: config,
+            },
+            { upsert: true },
+          ),
+        ];
+
+        if (config.games.battleships) {
+          operations.push(
+            collection.updateOne(
+              {
+                id: config.id,
+                "games.battleships": { $exists: false },
+              },
+              {
+                $set: {
+                  "games.battleships": config.games.battleships,
+                },
+              },
+            ),
+          );
+        }
+
+        return operations;
+      }),
     );
   }
 }
