@@ -16,12 +16,18 @@ import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
+import { LottoController } from "../modules/lotto/LottoController";
+import { LottoEngine } from "../modules/lotto/LottoEngine";
+import { LottoReadModelFactory } from "../modules/lotto/LottoReadModelFactory";
+import { LottoRepository } from "../modules/lotto/LottoRepository";
+import { LottoService } from "../modules/lotto/LottoService";
 
 export interface ApplicationDependencies {
   battleshipsController: BattleshipsController;
   configsController: ConfigsController;
   forumTopicController: ForumTopicController;
   journeyController: JourneyController;
+  lottoController: LottoController;
 }
 
 export function createApplicationDependencies(): ApplicationDependencies {
@@ -56,6 +62,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const journeyController = new JourneyController(journeyService);
 
+  const lottoRepository = new LottoRepository();
+  const lottoEngine = new LottoEngine();
+  const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
+  const lottoService = new LottoService(lottoRepository, lottoEngine, lottoReadModelFactory, configsService);
+  const lottoController = new LottoController(lottoService);
+
   const forumTopicService = new ForumTopicService();
   const forumTopicController = new ForumTopicController(forumTopicService);
 
@@ -64,5 +76,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
     configsController,
     forumTopicController,
     journeyController,
+    lottoController,
   };
 }

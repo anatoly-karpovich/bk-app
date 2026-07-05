@@ -6,6 +6,7 @@ import BattleshipsPage from "./features/battleships/BattleshipsPage";
 import ConfigsPage from "./features/configs/ConfigsPage";
 import { useConfigs } from "./features/configs/hooks/useConfigs";
 import JourneyPage from "./features/journey/JourneyPage";
+import LottoPage from "./features/lotto/LottoPage";
 
 const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
 
@@ -42,6 +43,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/journey" replace />} />
           <Route path="/journey" element={<JourneyPage djName={djName} selectedConfig={selectedConfig} />} />
+          <Route path="/lotto" element={<LottoPage djName={djName} selectedConfig={selectedConfig} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedConfig={selectedConfig} />} />
           <Route
             path="/config"

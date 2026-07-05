@@ -1,4 +1,4 @@
-# AGENTS.md — Backend
+# AGENTS.md - Backend
 
 ## Project context
 
@@ -9,6 +9,7 @@ The backend must become the source of truth for:
 - game state
 - game rules
 - game configs
+- project currency
 - parsing and domain transformations
 - persistent data
 
@@ -51,6 +52,26 @@ src/
       JourneyService.ts
       journey.routes.ts
       journey.schemas.ts
+      domain/
+      errors/
+    battleships/
+      BattleshipsController.ts
+      BattleshipsEngine.ts
+      BattleshipsReadModelFactory.ts
+      BattleshipsRepository.ts
+      BattleshipsService.ts
+      battleships.routes.ts
+      battleships.schemas.ts
+      domain/
+      errors/
+    lotto/
+      LottoController.ts
+      LottoEngine.ts
+      LottoReadModelFactory.ts
+      LottoRepository.ts
+      LottoService.ts
+      lotto.routes.ts
+      lotto.schemas.ts
       domain/
       errors/
     forumTopic/
@@ -236,6 +257,8 @@ The Journey engine should be the only place that knows how to:
 - refresh indexes
 - calculate final state
 
+The same principle applies to Battleships and Lotto: their engines own the game-result logic, while controllers and services stay at orchestration level.
+
 ---
 
 ## Configs
@@ -248,6 +271,7 @@ This is acceptable during migration, but the long-term direction is:
 - backend validates configs
 - frontend edits configs through API
 - frontend does not hardcode default game rules
+- shared project data such as currency is modeled once in backend config contracts and reused by game modules
 
 Avoid spreading config constants across backend and frontend.
 
@@ -275,6 +299,13 @@ DELETE /api/journey/games/:gameId/players/:playerId
 DELETE /api/journey/games/:gameId
 POST   /api/journey/parse/players
 POST   /api/journey/parse/moves
+
+POST   /api/lotto/games
+GET    /api/lotto/games/:gameId
+GET    /api/lotto/games/latest
+POST   /api/lotto/games/:gameId/draw
+DELETE /api/lotto/games/:gameId/players/:playerId
+DELETE /api/lotto/games/:gameId
 ```
 
 Avoid screen-oriented endpoints:
@@ -286,6 +317,8 @@ GET /main-page-data
 
 Avoid full snapshot overwrite endpoints for Journey game state.
 
+Avoid full snapshot overwrite endpoints for Lotto game state as well.
+
 Journey should be mutated only through business actions such as:
 
 * create game
@@ -293,10 +326,19 @@ Journey should be mutated only through business actions such as:
 * remove player
 * delete game
 
+Lotto should be mutated only through business actions such as:
+
+* create game
+* draw next number
+* remove player
+* delete game
+
 Read-model expansion is acceptable in responses. The backend may return:
 
 * normalized game state
 * derived read-only Journey fields
+* derived read-only Battleships fields
+* derived read-only Lotto fields
 * config summaries for frontend display
 
 ---
@@ -429,7 +471,7 @@ When improving the backend, prioritize:
 2. Preserve composition root discipline when adding modules.
 3. Remove duplicated frontend engine logic.
 4. Introduce shared DTO/types strategy if needed.
-5. Keep adding games as separate backend modules.
+5. Keep adding games as separate backend modules with config snapshots and backend-owned currency/rule sources.
 6. Extract common game abstractions only after at least two or three games exist.
 
 Do not over-engineer a generic game framework too early.

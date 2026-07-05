@@ -62,7 +62,7 @@ const navItems: NavItem[] = [
     label: appHeaderTexts.nav.lotto,
     to: "/lotto",
     icon: <CasinoRoundedIcon />,
-    disabled: true,
+    disabled: false,
   },
   {
     label: appHeaderTexts.nav.battleship,

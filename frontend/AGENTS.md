@@ -1,4 +1,4 @@
-# AGENTS.md — Frontend
+# AGENTS.md - Frontend
 
 ## Project context
 
@@ -23,6 +23,16 @@ features/
   configs/
     hooks/
   journey/
+    api/
+    components/
+    hooks/
+    mappers/
+  battleships/
+    api/
+    components/
+    hooks/
+    mappers/
+  lotto/
     api/
     components/
     hooks/
@@ -142,6 +152,8 @@ const {
 
 The page should mostly compose cards and dialogs.
 
+The same principle applies to `BattleshipsPage.tsx` and `LottoPage.tsx`.
+
 ---
 
 ## Business logic boundary
@@ -171,6 +183,8 @@ refreshGameIndexes(...)
 ```
 
 If a function changes the real game result, move it to backend.
+
+This applies equally to Journey, Battleships, Lotto, and future games.
 
 ---
 
@@ -204,6 +218,8 @@ Current baseline:
 src/lib/apiClient.ts
 features/configs/hooks/useConfigs.ts
 features/journey/hooks/useJourneyGame.ts
+features/battleships/hooks/useBattleshipsGame.ts
+features/lotto/hooks/useLottoGame.ts
 ```
 
 Common HTTP behavior should live in a shared API client:
@@ -252,10 +268,21 @@ Frontend config code should focus on:
 * sending updates to backend
 * mapping backend config read-model into UI-friendly structures
 
+Project currency is part of the backend config contract.
+
+If a feature needs currency for prizes or summaries, prefer reading `config.currency` or the persisted game snapshot field derived from that config rather than hardcoding feature-specific currency defaults.
+
 Journey config summaries should come from backend read-model fields such as:
 
 ```ts
 config.journeySummary
+```
+
+Battleships and Lotto summaries should follow the same pattern:
+
+```ts
+config.battleshipsSummary
+config.lottoSummary
 ```
 
 ---
@@ -343,6 +370,7 @@ Good:
 ```text
 texts/journeyTexts.ts
 texts/appHeaderTexts.ts
+texts/lottoTexts.ts
 ```
 
 ---
@@ -408,11 +436,11 @@ Avoid:
 
 When improving the frontend, prioritize:
 
-1. Keep Journey and Configs orchestration inside feature hooks.
+1. Keep Journey, Battleships, Lotto, and Configs orchestration inside feature hooks.
 2. Prefer backend read-model fields over recreating derived game/config state in React.
 3. Move display transformations into mappers/view-model helpers.
-4. Keep Journey cards presentational.
-5. Keep Configs page focused on config editing, not config ownership.
+4. Keep game cards presentational.
+5. Keep Configs page focused on config display/editing, not config ownership.
 6. Gradually eliminate localStorage except for game id or UI preferences.
 7. Remove stale legacy DTO/helpers when they are no longer referenced.
 

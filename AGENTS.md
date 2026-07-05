@@ -1,4 +1,4 @@
-# AGENTS.md — Repository Entry Point
+# AGENTS.md - Repository Entry Point
 
 ## Project purpose
 
@@ -8,16 +8,22 @@ The project is being migrated from a legacy vanilla JavaScript implementation to
 
 Legacy implementation:
 
-```text id="rohjop"
+```text
 LEGACY/
 ```
 
 Current application:
 
-```text id="oh4n7h"
+```text
 frontend/
 backend/
 ```
+
+Current migrated games in the React + backend application:
+
+- Journey
+- Battleships
+- Lotto
 
 ---
 
@@ -39,13 +45,13 @@ The goal is to build a cleaner architecture where:
 
 Before changing backend code, read:
 
-```text id="ialu38"
+```text
 backend/AGENTS.md
 ```
 
 Before changing frontend code, read:
 
-```text id="t6j1db"
+```text
 frontend/AGENTS.md
 ```
 
@@ -61,6 +67,7 @@ Important principles:
 
 - separate UI, API, domain, persistence, and configuration concerns
 - avoid duplicating game rules between frontend and backend
+- keep project-level config concerns explicit, including shared project currency
 - prefer extracting shared UI/layout components once the same structure appears in more than one feature
 - prefer one shared source of truth for repeated navigation or framing UI such as breadcrumbs, page headers, and saved-game layouts
 - avoid massive files and god objects
@@ -82,13 +89,14 @@ The backend is the source of truth for:
 
 - game state
 - game configs
+- project currency
 - game rules
 - parsing and resolving game actions
 - persistence
 
 Backend modules should move toward:
 
-```text id="j77y77"
+```text
 Controller -> Service -> Repository
                       -> Domain classes / engines / resolvers
 ```
@@ -107,6 +115,8 @@ The frontend is responsible for:
 - storing only lightweight client preferences or identifiers
 
 Frontend must not own final game rules or final game state.
+
+Project-level currency should be read from backend configs, not recreated independently per frontend feature.
 
 ---
 

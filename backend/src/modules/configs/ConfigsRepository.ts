@@ -1,5 +1,5 @@
-import type { AppConfig } from "./domain/types";
 import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
+import type { AppConfig } from "./domain/types";
 
 const CONFIGS_COLLECTION = "configs";
 
@@ -41,6 +41,38 @@ export class ConfigsRepository {
               {
                 $set: {
                   "games.battleships": config.games.battleships,
+                },
+              },
+            ),
+          );
+        }
+
+        if (config.games.lotto) {
+          operations.push(
+            collection.updateOne(
+              {
+                id: config.id,
+                "games.lotto": { $exists: false },
+              },
+              {
+                $set: {
+                  "games.lotto": config.games.lotto,
+                },
+              },
+            ),
+          );
+        }
+
+        if (config.currency) {
+          operations.push(
+            collection.updateOne(
+              {
+                id: config.id,
+                currency: { $exists: false },
+              },
+              {
+                $set: {
+                  currency: config.currency,
                 },
               },
             ),

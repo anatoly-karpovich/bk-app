@@ -1,5 +1,6 @@
 import { normalizeBattleshipsRules } from "../../battleships/domain/config";
 import { normalizeJourneyRules } from "../../journey/domain/config";
+import { normalizeLottoRules } from "../../lotto/domain/config";
 import type { AppConfig } from "./types";
 
 export const DEFAULT_APP_CONFIGS: AppConfig[] = [
@@ -7,6 +8,7 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
     id: "oldbk2",
     name: "oldbk2",
     description: "Базовые правила Карты Мародёров",
+    currency: "фишек",
     games: {
       battleships: normalizeBattleshipsRules({
         selectedBoardSize: 6,
@@ -32,6 +34,14 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
             },
           },
         },
+      }),
+      lotto: normalizeLottoRules({
+        min: 1,
+        max: 50,
+        cardNumbersAmount: 10,
+        firstPlacePrize: 10,
+        secondPlacePrize: 5,
+        rewardDistributionMode: "full_per_winner",
       }),
       journey: normalizeJourneyRules({
         currency: "фишек",
@@ -65,6 +75,7 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
     id: "combatsclub",
     name: "Combats Club",
     description: "Правила Карты Мародёров для проекта Combats Club",
+    currency: "екр",
     games: {
       battleships: normalizeBattleshipsRules({
         selectedBoardSize: 6,
@@ -90,6 +101,14 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
             },
           },
         },
+      }),
+      lotto: normalizeLottoRules({
+        min: 1,
+        max: 50,
+        cardNumbersAmount: 10,
+        firstPlacePrize: 10,
+        secondPlacePrize: 5,
+        rewardDistributionMode: "full_per_winner",
       }),
       journey: normalizeJourneyRules({
         currency: "екр",

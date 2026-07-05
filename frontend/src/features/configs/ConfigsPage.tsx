@@ -1,3 +1,5 @@
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import {
   Alert,
   Box,
@@ -10,8 +12,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import type { AppConfig } from "./types";
 
 interface ConfigsPageProps {
@@ -44,8 +44,8 @@ export default function ConfigsPage({
       </Card>
 
       <Alert icon={<SettingsRoundedIcon fontSize="inherit" />} severity="info">
-        Journey и Battleships уже используют backend-конфиги. Следующие игры будут брать правила из выбранного проекта,
-        а текущие партии останутся на своем snapshot-конфиге.
+        Journey, Battleships и Lotto уже используют backend-конфиги. Новые партии берут правила из выбранного проекта, а
+        сохраненные игры продолжают жить на своем snapshot-конфиге.
       </Alert>
 
       {error ? <Alert severity="error">{error}</Alert> : null}
@@ -54,7 +54,7 @@ export default function ConfigsPage({
       <Grid container spacing={3}>
         {configs.map((config) => {
           const isSelected = config.id === selectedConfigId;
-          const { journeySummary, battleshipsSummary } = config;
+          const { journeySummary, battleshipsSummary, lottoSummary } = config;
 
           return (
             <Grid key={config.id} item xs={12} xl={6}>
@@ -65,8 +65,10 @@ export default function ConfigsPage({
                   action={
                     <Stack direction="row" spacing={1} sx={{ pr: 2, pt: 2 }} flexWrap="wrap" useFlexGap>
                       {isSelected ? <Chip color="success" label="Выбран" /> : null}
+                      <Chip label={`Валюта: ${config.currency}`} />
                       <Chip variant="outlined" label={journeySummary ? "Journey" : "Без Journey"} />
                       <Chip variant="outlined" label={battleshipsSummary ? "Battleships" : "Без Battleships"} />
+                      <Chip variant="outlined" label={lottoSummary ? "Lotto" : "Без Lotto"} />
                     </Stack>
                   }
                 />
@@ -83,11 +85,7 @@ export default function ConfigsPage({
                           <Chip label={`Бонусы: ${journeySummary.bonusKinds}`} color="success" />
                           <Chip label={`Ловушки: ${journeySummary.trapKinds}`} color="error" />
                           <Chip
-                            label={
-                              journeySummary.prizeLimit === null
-                                ? "Без лимита"
-                                : `Лимит: ${journeySummary.prizeLimit}`
-                            }
+                            label={journeySummary.prizeLimit === null ? "Без лимита" : `Лимит: ${journeySummary.prizeLimit}`}
                           />
                         </Stack>
                       </Stack>
@@ -118,6 +116,31 @@ export default function ConfigsPage({
                       <Box>
                         <Typography variant="body2" color="text.secondary">
                           Для Battleships конфиг пока не задан.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {lottoSummary ? (
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle2">Lotto</Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          <Chip label={`Диапазон: ${lottoSummary.range}`} />
+                          <Chip label={`Чисел в карточке: ${lottoSummary.cardNumbersAmount}`} />
+                          <Chip label={`1 место: ${lottoSummary.firstPlacePrize} ${config.currency}`} color="success" />
+                          <Chip label={`2 место: ${lottoSummary.secondPlacePrize} ${config.currency}`} color="info" />
+                          <Chip
+                            label={
+                              lottoSummary.rewardDistributionMode === "split_pool"
+                                ? "Выплаты: делить банк"
+                                : "Выплаты: полный приз каждому"
+                            }
+                          />
+                        </Stack>
+                      </Stack>
+                    ) : (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Для Lotto конфиг пока не задан.
                         </Typography>
                       </Box>
                     )}

@@ -1,10 +1,11 @@
 import type { BattleshipsRules } from "../../battleships/domain/types";
 import type { JourneyRules } from "../../journey/domain/types";
+import type { LottoRules } from "../../lotto/domain/types";
 
 export interface AppGamesConfig {
   journey?: JourneyRules;
   battleships?: BattleshipsRules;
-  loto?: Record<string, unknown>;
+  lotto?: LottoRules;
 }
 
 export interface JourneyConfigSummary {
@@ -25,14 +26,24 @@ export interface BattleshipsConfigSummary {
   currency: string;
 }
 
+export interface LottoConfigSummary {
+  range: string;
+  cardNumbersAmount: number;
+  firstPlacePrize: number;
+  secondPlacePrize: number;
+  rewardDistributionMode: LottoRules["rewardDistributionMode"];
+}
+
 export interface AppConfig {
   id: string;
   name: string;
   description: string;
+  currency: string;
   games: AppGamesConfig;
 }
 
 export interface AppConfigReadModel extends AppConfig {
   journeySummary: JourneyConfigSummary | null;
   battleshipsSummary: BattleshipsConfigSummary | null;
+  lottoSummary: LottoConfigSummary | null;
 }

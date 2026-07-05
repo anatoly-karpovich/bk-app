@@ -1,5 +1,6 @@
 import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig } from "../battleships/domain/config";
 import { getJourneyConfig } from "../journey/domain/config";
+import { getLottoRangeLabel } from "../lotto/domain/config";
 import type { AppConfig, AppConfigReadModel } from "./domain/types";
 
 export class ConfigReadModelFactory {
@@ -36,10 +37,21 @@ export class ConfigReadModelFactory {
         })()
       : null;
 
+    const lottoSummary = config.games.lotto
+      ? {
+          range: getLottoRangeLabel(config.games.lotto),
+          cardNumbersAmount: config.games.lotto.cardNumbersAmount,
+          firstPlacePrize: config.games.lotto.firstPlacePrize,
+          secondPlacePrize: config.games.lotto.secondPlacePrize,
+          rewardDistributionMode: config.games.lotto.rewardDistributionMode,
+        }
+      : null;
+
     return {
       ...config,
       journeySummary,
       battleshipsSummary,
+      lottoSummary,
     };
   }
 }
