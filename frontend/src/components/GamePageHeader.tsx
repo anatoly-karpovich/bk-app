@@ -1,10 +1,10 @@
-import { Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import type { ButtonProps } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
-import AppBreadcrumbs from "./ui/AppBreadcrumbs";
 import AppChip from "./ui/AppChip";
 import AppPillButton from "./ui/AppPillButton";
+import GameBreadcrumbs from "./GameBreadcrumbs";
 
 export interface GamePageHeaderChip {
   label: string;
@@ -23,7 +23,6 @@ export interface GamePageHeaderAction {
 }
 
 interface GamePageHeaderProps {
-  breadcrumbs: string[];
   title: string;
   description: string;
   chips: GamePageHeaderChip[];
@@ -32,7 +31,6 @@ interface GamePageHeaderProps {
 }
 
 export default function GamePageHeader({
-  breadcrumbs,
   title,
   description,
   chips,
@@ -42,38 +40,57 @@ export default function GamePageHeader({
   return (
     <Card
       sx={{
-        backgroundColor: "rgba(255,255,255,0.92)",
+        background:
+          "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(236, 253, 245, 0.92) 52%, rgba(224, 242, 254, 0.95) 100%)",
         boxShadow: "0 18px 42px rgba(15, 23, 42, 0.08)",
         ...cardSx,
       }}
     >
       <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-        <Stack direction={{ xs: "column", xl: "row" }} spacing={3} justifyContent="space-between" alignItems={{ xl: "center" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              xl: "minmax(0, 64%) minmax(0, 36%)",
+            },
+            gap: 3,
+            alignItems: { xl: "center" },
+          }}
+        >
           <Stack spacing={1.25} sx={{ minWidth: 0, maxWidth: { xl: "62%" } }}>
-            <AppBreadcrumbs items={breadcrumbs} />
-            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ md: "center" }} flexWrap="wrap" useFlexGap>
-              <Typography
-                variant="h3"
-                sx={{
-                  lineHeight: 1,
-                  letterSpacing: "-0.04em",
-                  fontSize: { xs: "2.1rem", md: "3rem" },
-                }}
-              >
-                {title}
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {chips.map((chip) => (
-                  <AppChip key={chip.label} label={chip.label} color={chip.color} />
-                ))}
-              </Stack>
+            <GameBreadcrumbs title={title} />
+            <Typography
+              variant="h3"
+              sx={{
+                lineHeight: 1,
+                letterSpacing: "-0.04em",
+                fontSize: { xs: "2.1rem", md: "3rem" },
+              }}
+            >
+              {title}
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {chips.map((chip) => (
+                <AppChip key={chip.label} label={chip.label} color={chip.color} />
+              ))}
             </Stack>
             <Typography variant="body1" color="text.secondary">
               {description}
             </Typography>
           </Stack>
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ width: { xs: "100%", xl: "auto" } }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.25}
+            useFlexGap
+            sx={{
+              width: "100%",
+              justifyContent: { xl: "flex-end" },
+              justifySelf: { xl: "stretch" },
+              flexWrap: "wrap",
+            }}
+          >
             {actions.map((action) => (
               <AppPillButton
                 key={action.key}
@@ -88,7 +105,7 @@ export default function GamePageHeader({
               </AppPillButton>
             ))}
           </Stack>
-        </Stack>
+        </Box>
       </CardContent>
     </Card>
   );

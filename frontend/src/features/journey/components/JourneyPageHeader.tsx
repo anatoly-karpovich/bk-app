@@ -35,7 +35,6 @@ export default function JourneyPageHeader({
 }: JourneyPageHeaderProps) {
   return (
     <GamePageHeader
-      breadcrumbs={journeyTexts.breadcrumbs.split(" / ")}
       title={journeyTexts.pageTitle}
       description={journeyTexts.pageDescription}
       chips={pageStatusChips}

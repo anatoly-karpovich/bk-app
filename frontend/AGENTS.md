@@ -78,6 +78,10 @@ Storage            -> lightweight browser persistence only
 Types              -> frontend DTO/view-model types
 ```
 
+When two or more features share the same page shell, dialog structure, or presentational block, prefer moving that structure into a shared component instead of maintaining near-identical copies under each feature.
+
+If multiple game pages need breadcrumbs or other framing/navigation UI, do not keep separate hardcoded breadcrumb strings in feature texts. Prefer one shared component with consistent logic and shared source labels.
+
 ---
 
 ## React component rules
@@ -355,6 +359,14 @@ components/ui/
 
 when adding buttons, chips, text inputs, breadcrumbs, or repeated UI primitives.
 
+If a repeated structure grows beyond a primitive, for example page headers, saved-game dialogs, summary cards, or other reusable feature shells, extract it into a shared component under:
+
+```text
+src/components/
+```
+
+Feature wrappers may still adapt shared components with feature-specific texts and actions, but should not fork the layout without a clear reason.
+
 Avoid one-off styling unless the component is truly unique.
 
 Keep the current visual style consistent.
@@ -380,6 +392,7 @@ When migrating from `LEGACY/`:
 Avoid:
 
 * duplicating backend engine logic
+* duplicating the same presentational layout across multiple game features after the second occurrence
 * large `useEffect` chains
 * huge page components
 * excessive `useMemo` and `useCallback` without real need

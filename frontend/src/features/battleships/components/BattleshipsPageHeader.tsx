@@ -35,14 +35,9 @@ export default function BattleshipsPageHeader({
 }: BattleshipsPageHeaderProps) {
   return (
     <GamePageHeader
-      breadcrumbs={battleshipsTexts.breadcrumbs.split(" / ")}
       title={battleshipsTexts.pageTitle}
       description={battleshipsTexts.pageDescription}
       chips={pageStatusChips}
-      cardSx={{
-        background:
-          "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(236, 253, 245, 0.92) 52%, rgba(224, 242, 254, 0.95) 100%)",
-      }}
       actions={[
         {
           key: "rules",

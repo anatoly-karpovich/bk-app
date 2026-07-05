@@ -61,6 +61,8 @@ Important principles:
 
 - separate UI, API, domain, persistence, and configuration concerns
 - avoid duplicating game rules between frontend and backend
+- prefer extracting shared UI/layout components once the same structure appears in more than one feature
+- prefer one shared source of truth for repeated navigation or framing UI such as breadcrumbs, page headers, and saved-game layouts
 - avoid massive files and god objects
 - prefer small classes/services with clear ownership
 - use functional helpers only when they are simple utilities
@@ -150,6 +152,7 @@ Legacy code may contain useful domain ideas, but the new implementation should u
 Avoid:
 
 - duplicating backend engine logic in frontend
+- duplicating the same page/layout/component structure across multiple game features when it can live in a shared component
 - putting business logic into React pages
 - adding new games by copy-pasting existing game modules blindly
 - creating one huge engine class that knows everything
