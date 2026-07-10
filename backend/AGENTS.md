@@ -259,6 +259,55 @@ The Journey engine should be the only place that knows how to:
 
 The same principle applies to Battleships and Lotto: their engines own the game-result logic, while controllers and services stay at orchestration level.
 
+## Battleships module expectations
+
+Battleships should keep the same ownership split:
+
+```text
+modules/battleships/
+  BattleshipsController.ts
+  BattleshipsService.ts
+  BattleshipsRepository.ts
+  BattleshipsEngine.ts
+  BattleshipsReadModelFactory.ts
+```
+
+The Battleships engine should be the only place that knows how to:
+
+- normalize battleships rules
+- generate the board and ship placement
+- apply a shot
+- undo the last shot
+- calculate prize deltas
+- determine attempts left and finished state
+
+The Battleships read-model factory is the correct place for host-facing derived fields such as visible board cells, coordinate labels, fleet summary, and current prize snapshots.
+
+## Lotto module expectations
+
+Lotto should keep the same ownership split:
+
+```text
+modules/lotto/
+  LottoController.ts
+  LottoService.ts
+  LottoRepository.ts
+  LottoEngine.ts
+  LottoReadModelFactory.ts
+```
+
+The Lotto engine should be the only place that knows how to:
+
+- normalize lotto rules
+- validate player cards against range and uniqueness rules
+- maintain the available-number pool and draw order
+- remove players from an active game
+- determine when the game is finished
+- resolve first-place and second-place winners
+- build the legacy grouped summary of remaining numbers
+
+The Lotto read-model factory is the correct place for host-facing derived fields such as prize tables, visible winner groups, event ordering for UI, and saved-game metadata.
+
 ---
 
 ## Configs
@@ -291,6 +340,13 @@ Good:
 GET    /api/configs
 GET    /api/configs/:configId
 
+POST   /api/battleships/games
+GET    /api/battleships/games/:gameId
+GET    /api/battleships/games/latest
+POST   /api/battleships/games/:gameId/shots
+POST   /api/battleships/games/:gameId/shots/undo
+DELETE /api/battleships/games/:gameId
+
 POST   /api/journey/games
 GET    /api/journey/games/:gameId
 GET    /api/journey/games/latest
@@ -317,6 +373,8 @@ GET /main-page-data
 
 Avoid full snapshot overwrite endpoints for Journey game state.
 
+Avoid full snapshot overwrite endpoints for Battleships game state.
+
 Avoid full snapshot overwrite endpoints for Lotto game state as well.
 
 Journey should be mutated only through business actions such as:
@@ -324,6 +382,13 @@ Journey should be mutated only through business actions such as:
 * create game
 * submit round
 * remove player
+* delete game
+
+Battleships should be mutated only through business actions such as:
+
+* create game
+* apply shot
+* undo shot
 * delete game
 
 Lotto should be mutated only through business actions such as:
@@ -340,6 +405,8 @@ Read-model expansion is acceptable in responses. The backend may return:
 * derived read-only Battleships fields
 * derived read-only Lotto fields
 * config summaries for frontend display
+
+For Lotto specifically, backend responses may expose host-facing derived data such as legacy result summary text, prize tables, and saved-game DJ metadata because these are read-model concerns, not frontend-owned rules.
 
 ---
 
@@ -473,5 +540,6 @@ When improving the backend, prioritize:
 4. Introduce shared DTO/types strategy if needed.
 5. Keep adding games as separate backend modules with config snapshots and backend-owned currency/rule sources.
 6. Extract common game abstractions only after at least two or three games exist.
+7. Preserve module-specific product rules already encoded in Battleships and Lotto instead of flattening them into a premature generic game framework.
 
 Do not over-engineer a generic game framework too early.

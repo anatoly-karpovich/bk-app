@@ -104,7 +104,16 @@ export default function LottoSavedGamesDialog({
                           <Typography variant="subtitle1" fontWeight={700}>
                             {game.configName}
                           </Typography>
-                          <AppChip size="small" color={game.status === "finished" ? "success" : "info"} label={getLottoSavedGameStatusLabel(game)} />
+                          <AppChip
+                            size="small"
+                            color={game.status === "finished" ? "success" : "info"}
+                            label={getLottoSavedGameStatusLabel(game)}
+                          />
+                          <AppChip
+                            size="small"
+                            variant="outlined"
+                            label={`${savedGamesTexts.dj}: ${game.djName || "Не указан"}`}
+                          />
                           <AppChip size="small" variant="outlined" label={`${savedGamesTexts.draws}: ${game.drawCount}`} />
                           <AppChip size="small" variant="outlined" label={`Игроков: ${game.playersCount}`} />
                           {isCurrentGame ? <AppChip size="small" color="secondary" label={savedGamesTexts.current} /> : null}
@@ -161,9 +170,6 @@ export default function LottoSavedGamesDialog({
                         backgroundColor: "rgba(15, 23, 42, 0.02)",
                       }}
                     >
-                      <Typography variant="body2" color="text.secondary">
-                        {savedGamesTexts.dj}: {game.djName || "Не указан"}
-                      </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Валюта: {game.currency}
                       </Typography>

@@ -27,17 +27,24 @@ features/
     components/
     hooks/
     mappers/
+    storage.ts
+    types.ts
   battleships/
     api/
     components/
     hooks/
     mappers/
+    storage.ts
+    types.ts
   lotto/
     api/
     components/
     hooks/
     mappers/
+    storage.ts
+    types.ts
 components/
+  players/
 texts/
 theme.ts
 ```
@@ -91,6 +98,8 @@ Types              -> frontend DTO/view-model types
 When two or more features share the same page shell, dialog structure, or presentational block, prefer moving that structure into a shared component instead of maintaining near-identical copies under each feature.
 
 If multiple game pages need breadcrumbs or other framing/navigation UI, do not keep separate hardcoded breadcrumb strings in feature texts. Prefer one shared component with consistent logic and shared source labels.
+
+When multiple setup flows need the same visual treatment for player nickname fields, prefer one shared component for that visual primitive. At the moment `components/players/GamePlayerNameInput.tsx` is the shared source for the player-name input look.
 
 ---
 
@@ -154,6 +163,15 @@ The page should mostly compose cards and dialogs.
 
 The same principle applies to `BattleshipsPage.tsx` and `LottoPage.tsx`.
 
+For Battleships and Lotto, page-level orchestration should continue living in:
+
+```text
+features/battleships/hooks/useBattleshipsGame.ts
+features/lotto/hooks/useLottoGame.ts
+```
+
+Do not let `BattleshipsPage.tsx` or `LottoPage.tsx` accumulate engine-like decision logic.
+
 ---
 
 ## Business logic boundary
@@ -185,6 +203,12 @@ refreshGameIndexes(...)
 If a function changes the real game result, move it to backend.
 
 This applies equally to Journey, Battleships, Lotto, and future games.
+
+Specific frontend boundary reminders:
+
+* Battleships frontend must not generate the final board, resolve hits, calculate prizes, or decide when the game is over.
+* Lotto frontend must not decide draw order, winner placement, prize allocation, or final legacy summary text.
+* Lotto may contain setup-only helpers for host convenience, for example draft number generation before game creation, but backend validation and final rules remain authoritative.
 
 ---
 
@@ -285,6 +309,8 @@ config.battleshipsSummary
 config.lottoSummary
 ```
 
+Lotto currently uses project-level `config.currency` for prize display. Battleships still exposes board-level reward information in its own rules/read-model. Preserve these current contracts unless the task explicitly changes them.
+
 ---
 
 ## OOP preference
@@ -325,6 +351,7 @@ Good hook responsibilities:
 * manage loading/error state
 * expose UI actions
 * coordinate dialogs and forms
+* coordinate host tools such as saved games dialogs, remove-player confirms, and draft setup inputs
 
 Bad hook responsibilities:
 
@@ -373,6 +400,8 @@ texts/appHeaderTexts.ts
 texts/lottoTexts.ts
 ```
 
+Keep Battleships and Lotto copy in their dedicated text files rather than scattering strings through cards or dialogs.
+
 ---
 
 ## Styling and UI
@@ -398,6 +427,13 @@ Feature wrappers may still adapt shared components with feature-specific texts a
 Avoid one-off styling unless the component is truly unique.
 
 Keep the current visual style consistent.
+
+Current shared UI patterns that should stay consistent across Battleships and Lotto unless a task explicitly changes them:
+
+* shared page header structure via `GamePageHeader`
+* shared player-name input styling via `GamePlayerNameInput`
+* shared confirm dialog and saved-game action vocabulary
+* saved-games presentation that surfaces project/config context and host metadata clearly
 
 ---
 
@@ -443,6 +479,7 @@ When improving the frontend, prioritize:
 5. Keep Configs page focused on config display/editing, not config ownership.
 6. Gradually eliminate localStorage except for game id or UI preferences.
 7. Remove stale legacy DTO/helpers when they are no longer referenced.
+8. Preserve host-facing UX details already implemented in Battleships and Lotto, such as restore/delete flows, visible DJ metadata, and copy-friendly result surfaces.
 
 The goal is not to make React clever.
 
