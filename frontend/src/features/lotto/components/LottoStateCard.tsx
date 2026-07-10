@@ -1,16 +1,33 @@
-import { Alert, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
-import type { LottoPersistedGame } from "../types";
+import { Alert, Button, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
 import { lottoTexts } from "../../../texts/lottoTexts";
+import type { LottoPersistedGame } from "../types";
 
 interface LottoStateCardProps {
   game: LottoPersistedGame | null;
-  currency: string;
+  canDrawNextNumber: boolean;
+  actionsDisabled: boolean;
+  onDrawNextNumber: () => void;
 }
 
-export default function LottoStateCard({ game, currency }: LottoStateCardProps) {
+export default function LottoStateCard({
+  game,
+  canDrawNextNumber,
+  actionsDisabled,
+  onDrawNextNumber,
+}: LottoStateCardProps) {
   return (
     <Card>
-      <CardHeader title={lottoTexts.cards.stateTitle} subheader={lottoTexts.cards.stateSubtitle} />
+      <CardHeader
+        title={lottoTexts.cards.stateTitle}
+        subheader={lottoTexts.cards.stateSubtitle}
+        action={
+          canDrawNextNumber ? (
+            <Button variant="outlined" color="primary" onClick={onDrawNextNumber} disabled={actionsDisabled}>
+              {lottoTexts.actions.draw}
+            </Button>
+          ) : null
+        }
+      />
       <CardContent>
         {!game ? (
           <Alert severity="info">{lottoTexts.alerts.stateEmpty}</Alert>
@@ -24,21 +41,6 @@ export default function LottoStateCard({ game, currency }: LottoStateCardProps) 
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Последнее число: {game.derived.lastDrawnNumber ?? "—"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Диапазон: {game.rules.min}-{game.rules.max}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Чисел в карточке: {game.rules.cardNumbersAmount}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              1 место: {game.rules.firstPlacePrize} {currency}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              2 место: {game.rules.secondPlacePrize} {currency}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Режим выплат: {game.rules.rewardDistributionMode === "split_pool" ? "делить банк" : "полная выплата каждому"}
             </Typography>
           </Stack>
         )}

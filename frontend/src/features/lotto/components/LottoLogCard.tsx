@@ -8,15 +8,17 @@ interface LottoLogCardProps {
 }
 
 export default function LottoLogCard({ events }: LottoLogCardProps) {
+  const sortedEvents = events ? [...events].reverse() : [];
+
   return (
     <Card>
       <CardHeader title={lottoTexts.cards.logTitle} subheader={lottoTexts.cards.logSubtitle} />
       <CardContent>
-        {!events?.length ? (
+        {!sortedEvents.length ? (
           <Alert severity="info">{lottoTexts.alerts.logEmpty}</Alert>
         ) : (
           <Stack spacing={1.5}>
-            {events.map((event, index) => (
+            {sortedEvents.map((event, index) => (
               <Stack
                 key={`${event.createdAt}-${index}`}
                 spacing={0.5}

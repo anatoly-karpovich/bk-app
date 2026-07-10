@@ -1,4 +1,4 @@
-import { Alert, Button, Grid, Stack } from "@mui/material";
+import { Alert, Grid, Stack } from "@mui/material";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import { lottoTexts } from "../../texts/lottoTexts";
 import type { AppConfig } from "../configs/types";
@@ -108,33 +108,21 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
                 onAddPlayerField={actions.addPlayerField}
               />
             ) : (
-              <LottoStateCard game={game} currency={resolvedCurrency} />
+              <LottoStateCard
+                game={game}
+                canDrawNextNumber={!game.derived.gameIsOver}
+                actionsDisabled={boardActionsDisabled}
+                onDrawNextNumber={actions.drawNextNumber}
+              />
             )}
 
-            <LottoResultsCard game={game} currency={resolvedCurrency} />
+            {game?.derived.gameIsOver ? <LottoResultsCard game={game} currency={resolvedCurrency} /> : null}
             <LottoLogCard events={game?.events} />
           </Stack>
         </Grid>
 
         <Grid item xs={12} lg={8}>
           <Stack spacing={3}>
-            {game ? (
-              <Alert
-                severity={game.derived.gameIsOver ? "success" : "info"}
-                action={
-                  game.derived.gameIsOver ? undefined : (
-                    <Button color="inherit" onClick={() => actions.drawNextNumber()} disabled={boardActionsDisabled}>
-                        {lottoTexts.actions.draw}
-                    </Button>
-                  )
-                }
-              >
-                {game.derived.gameIsOver
-                  ? `Партия завершена. Выпало чисел: ${game.derived.drawCount}.`
-                  : `Розыгрыш активен. Последнее число: ${game.derived.lastDrawnNumber ?? "—"}.`}
-              </Alert>
-            ) : null}
-
             <LottoCardsCard
               game={game}
               actionsDisabled={boardActionsDisabled}
