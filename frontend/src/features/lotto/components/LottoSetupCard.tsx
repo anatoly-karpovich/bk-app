@@ -2,6 +2,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { Card, CardContent, CardHeader, Grid, IconButton, Stack, Typography } from "@mui/material";
+import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { lottoTexts } from "../../../texts/lottoTexts";
@@ -60,14 +61,12 @@ export default function LottoSetupCard({
                       backgroundColor: "rgba(248, 250, 252, 0.92)",
                     }}
                   >
-                    <AppTextInput
+                    <GamePlayerNameInput
                       label="Игрок"
                       value={player.nickname}
-                      onChange={(event) => onPlayerNameChange(index, event.target.value)}
-                      placeholder="Введите ник игрока"
-                      error={Boolean(errors?.nickname)}
-                      helperText={errors?.nickname ?? " "}
-                      fullWidth
+                      onChange={(nextValue) => onPlayerNameChange(index, nextValue)}
+                      errorText={errors?.nickname ?? null}
+                      helperTextMode="hidden"
                       disabled={actionsDisabled}
                     />
 

@@ -1,10 +1,10 @@
-import { Card, CardContent, CardHeader, IconButton, Stack } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import { journeyTexts } from "../../../texts/journeyTexts";
+import { Card, CardContent, CardHeader, IconButton, Stack } from "@mui/material";
+import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import AppTextInput from "../../../components/ui/AppTextInput";
+import { journeyTexts } from "../../../texts/journeyTexts";
 
 interface JourneyPlayersSetupCardProps {
   playerNames: string[];
@@ -32,14 +32,12 @@ export default function JourneyPlayersSetupCard({
         <Stack spacing={2}>
           {playerNames.map((playerName, index) => (
             <Stack key={index} direction="row" spacing={1} alignItems="center">
-              <AppTextInput
-                fullWidth
+              <GamePlayerNameInput
                 label={`${journeyTexts.fields.playerPrefix} ${index + 1}`}
                 value={playerName}
-                onChange={(event) => onPlayerNameChange(index, event.target.value)}
-                error={Boolean(playerNameErrors[index])}
-                placeholder={playerNameErrors[index] || ""}
-                FormHelperTextProps={{ sx: { display: "none" } }}
+                onChange={(nextValue) => onPlayerNameChange(index, nextValue)}
+                errorText={playerNameErrors[index] || null}
+                helperTextMode="hidden"
                 disabled={actionsDisabled}
               />
               <IconButton color="error" onClick={() => onRemovePlayerField(index)} disabled={actionsDisabled}>

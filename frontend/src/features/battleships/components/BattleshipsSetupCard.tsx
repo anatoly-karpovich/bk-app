@@ -1,7 +1,7 @@
 import SailingRoundedIcon from "@mui/icons-material/SailingRounded";
 import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppChip from "../../../components/ui/AppChip";
-import AppTextInput from "../../../components/ui/AppTextInput";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardRules } from "../types";
 
@@ -25,14 +25,7 @@ export default function BattleshipsSetupCard({
       <CardHeader title={battleshipsTexts.cards.setupTitle} subheader={battleshipsTexts.cards.setupSubtitle} />
       <CardContent>
         <Stack spacing={2}>
-          <AppTextInput
-            label="Ник игрока"
-            placeholder="Введите ник игрока"
-            value={playerName}
-            onChange={(event) => onPlayerNameChange(event.target.value)}
-            disabled={actionsDisabled}
-            fullWidth
-          />
+          <GamePlayerNameInput label="Ник игрока" value={playerName} onChange={onPlayerNameChange} disabled={actionsDisabled} />
 
           {boardConfig ? (
             <Stack spacing={1.5}>
