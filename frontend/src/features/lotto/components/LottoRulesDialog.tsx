@@ -34,7 +34,13 @@ export default function LottoRulesDialog({ open, onClose, rules, currency }: Lot
               Приз за 2 место: {rules.secondPlacePrize} {currency}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Режим распределения: {rules.rewardDistributionMode === "split_pool" ? "делить банк между победителями" : "полная выплата каждому победителю"}
+              Приз остальным активным игрокам: {rules.otherActivePlayersPrize} {currency}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Режим распределения:{" "}
+              {rules.rewardDistributionMode === "split_pool"
+                ? "делить банк между победителями группы"
+                : "полная выплата каждому победителю"}
             </Typography>
           </Stack>
         )}

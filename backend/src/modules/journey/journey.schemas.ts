@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { objectIdSchema } from "../../common/validation/objectIdSchema";
 
 export const journeyGameIdParamsSchema = z.object({
   gameId: z.string().trim().min(1),
@@ -14,7 +15,7 @@ export const createJourneyGameNicknamesSchema = z.object({
 });
 
 export const createJourneyGameConfigSchema = z.object({
-  configId: z.string().trim().min(1),
+  configId: objectIdSchema,
 });
 
 export const createJourneyGameDjNameSchema = z.object({

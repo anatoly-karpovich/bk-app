@@ -278,13 +278,13 @@ export class LottoEngine {
 
   private finalizeGame(game: LottoGame): LottoGame {
     game.updatedAt = new Date().toISOString();
-    const winners = this.resolveWinners(game);
+    const prizeGroups = this.resolvePrizeGroups(game);
 
-    if (winners) {
-      this.applyWinnerStatuses(game, winners.firstPlaceIds, winners.secondPlaceIds);
+    if (prizeGroups) {
+      this.applyWinnerStatuses(game, prizeGroups.firstPlaceIds, prizeGroups.secondPlaceIds);
       game.status = "finished";
       game.finishedAt = game.updatedAt;
-      this.appendFinishEvents(game);
+      this.appendFinishEvents(game, prizeGroups);
       return game;
     }
 
@@ -313,10 +313,12 @@ export class LottoEngine {
       return "finished";
     }
 
-    return this.resolveWinners(game) ? "finished" : "in_progress";
+    return this.resolvePrizeGroups(game) ? "finished" : "in_progress";
   }
 
-  private resolveWinners(game: LottoGame): { firstPlaceIds: string[]; secondPlaceIds: string[] } | null {
+  private resolvePrizeGroups(
+    game: LottoGame,
+  ): { firstPlaceIds: string[]; secondPlaceIds: string[]; otherPrizeIds: string[] } | null {
     const playerViews = this.getPlayerViews(game).filter((player) => player.status !== "removed");
 
     if (!playerViews.length) {
@@ -335,10 +337,13 @@ export class LottoEngine {
       minRemainingCount === Number.POSITIVE_INFINITY
         ? []
         : runnerUps.filter((player) => player.remainingCount === minRemainingCount);
+    const secondPlaceIdSet = new Set(secondPlaceWinners.map((player) => player.id));
+    const otherPrizePlayers = runnerUps.filter((player) => !secondPlaceIdSet.has(player.id));
 
     return {
       firstPlaceIds: firstPlaceWinners.map((player) => player.id),
       secondPlaceIds: secondPlaceWinners.map((player) => player.id),
+      otherPrizeIds: otherPrizePlayers.map((player) => player.id),
     };
   }
 
@@ -365,10 +370,18 @@ export class LottoEngine {
     });
   }
 
-  private appendFinishEvents(game: LottoGame): void {
+  private appendFinishEvents(
+    game: LottoGame,
+    prizeGroups: { firstPlaceIds: string[]; secondPlaceIds: string[]; otherPrizeIds: string[] },
+  ): void {
     const legacySummaryText = this.getLegacySummaryText(game);
-    const firstPlaceWinners = this.getFirstPlaceWinners(game);
-    const secondPlaceWinners = this.getSecondPlaceWinners(game);
+    const playerViews = this.getPlayerViews(game);
+    const firstPlaceIdSet = new Set(prizeGroups.firstPlaceIds);
+    const secondPlaceIdSet = new Set(prizeGroups.secondPlaceIds);
+    const otherPrizeIdSet = new Set(prizeGroups.otherPrizeIds);
+    const firstPlaceWinners = playerViews.filter((player) => firstPlaceIdSet.has(player.id));
+    const secondPlaceWinners = playerViews.filter((player) => secondPlaceIdSet.has(player.id));
+    const otherPrizePlayers = playerViews.filter((player) => otherPrizeIdSet.has(player.id));
     const finishTimestamp = game.finishedAt ?? game.updatedAt;
 
     game.events.push({
@@ -400,6 +413,19 @@ export class LottoEngine {
         createdAt: finishTimestamp,
         type: "prizes_awarded",
         message: `2 место: ${secondPlaceWinners.map((player) => player.nickname).join(", ")} — по ${prize} ${game.currency}.`,
+      });
+    }
+
+    if (otherPrizePlayers.length && game.rules.otherActivePlayersPrize > 0) {
+      const prize = this.resolvePrizePerWinner(
+        game.rules.otherActivePlayersPrize,
+        otherPrizePlayers.length,
+        game.rules.rewardDistributionMode,
+      );
+      game.events.push({
+        createdAt: finishTimestamp,
+        type: "prizes_awarded",
+        message: `Остальные: ${otherPrizePlayers.map((player) => player.nickname).join(", ")} — по ${prize} ${game.currency}.`,
       });
     }
   }

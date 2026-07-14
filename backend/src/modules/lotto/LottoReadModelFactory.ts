@@ -17,6 +17,15 @@ export class LottoReadModelFactory {
     const players = this.engine.getPlayerViews(normalizedGame);
     const firstPlaceWinners = players.filter((player) => player.status === "winner_first");
     const secondPlaceWinners = players.filter((player) => player.status === "winner_second");
+    const otherPrizePlayers =
+      normalizedGame.status === "finished" && normalizedGame.rules.otherActivePlayersPrize > 0
+        ? players.filter(
+            (player) =>
+              player.status === "active" &&
+              !firstPlaceWinners.some((winner) => winner.id === player.id) &&
+              !secondPlaceWinners.some((winner) => winner.id === player.id),
+          )
+        : [];
 
     return {
       id: _id.toHexString(),
@@ -30,8 +39,9 @@ export class LottoReadModelFactory {
         removedPlayers: players.filter((player) => player.status === "removed"),
         firstPlaceWinners,
         secondPlaceWinners,
+        otherPrizePlayers,
         legacySummaryText: this.engine.getLegacySummaryText(normalizedGame),
-        prizeTable: this.buildPrizeTable(normalizedGame, firstPlaceWinners, secondPlaceWinners),
+        prizeTable: this.buildPrizeTable(normalizedGame, firstPlaceWinners, secondPlaceWinners, otherPrizePlayers),
       },
     };
   }
@@ -64,6 +74,7 @@ export class LottoReadModelFactory {
     game: LottoGameDocument,
     firstPlaceWinners: LottoGameReadModel["derived"]["firstPlaceWinners"],
     secondPlaceWinners: LottoGameReadModel["derived"]["secondPlaceWinners"],
+    otherPrizePlayers: LottoGameReadModel["derived"]["otherPrizePlayers"],
   ): LottoPrizeTableEntry[] {
     if (game.status !== "finished") {
       return [];
@@ -76,6 +87,7 @@ export class LottoReadModelFactory {
     return [
       ...firstPlaceWinners.map<LottoPrizeTableEntry>((player) => ({
         place: 1,
+        placeLabel: "1 место",
         playerId: player.id,
         nickname: player.nickname,
         remainingCount: player.remainingCount,
@@ -84,10 +96,20 @@ export class LottoReadModelFactory {
       })),
       ...secondPlaceWinners.map<LottoPrizeTableEntry>((player) => ({
         place: 2,
+        placeLabel: "2 место",
         playerId: player.id,
         nickname: player.nickname,
         remainingCount: player.remainingCount,
         prize: resolvePrize(game.rules.secondPlacePrize, secondPlaceWinners.length),
+        payoutStatus: rewardMode === "split_pool" ? "Доля банка" : "Полная выплата",
+      })),
+      ...otherPrizePlayers.map<LottoPrizeTableEntry>((player) => ({
+        place: 3,
+        placeLabel: "Остальные",
+        playerId: player.id,
+        nickname: player.nickname,
+        remainingCount: player.remainingCount,
+        prize: resolvePrize(game.rules.otherActivePlayersPrize, otherPrizePlayers.length),
         payoutStatus: rewardMode === "split_pool" ? "Доля банка" : "Полная выплата",
       })),
     ];

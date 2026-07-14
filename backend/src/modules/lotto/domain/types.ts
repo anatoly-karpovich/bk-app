@@ -9,6 +9,7 @@ export interface LottoRules {
   cardNumbersAmount: number;
   firstPlacePrize: number;
   secondPlacePrize: number;
+  otherActivePlayersPrize: number;
   rewardDistributionMode: LottoRewardDistributionMode;
 }
 
@@ -52,7 +53,8 @@ export interface LottoPlayerReadModel extends LottoPlayer {
 }
 
 export interface LottoPrizeTableEntry {
-  place: 1 | 2;
+  place: 1 | 2 | 3;
+  placeLabel: string;
   playerId: string;
   nickname: string;
   remainingCount: number;
@@ -68,6 +70,7 @@ export interface LottoGameDerivedData {
   removedPlayers: LottoPlayerReadModel[];
   firstPlaceWinners: LottoPlayerReadModel[];
   secondPlaceWinners: LottoPlayerReadModel[];
+  otherPrizePlayers: LottoPlayerReadModel[];
   legacySummaryText: string;
   prizeTable: LottoPrizeTableEntry[];
 }

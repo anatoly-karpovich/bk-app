@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { objectIdSchema } from "../../common/validation/objectIdSchema";
 
 export const lottoGameIdParamsSchema = z.object({
   gameId: z.string().trim().min(1),
@@ -9,7 +10,7 @@ export const lottoPlayerIdParamsSchema = z.object({
 });
 
 export const createLottoGameConfigSchema = z.object({
-  configId: z.string().trim().min(1),
+  configId: objectIdSchema,
 });
 
 export const createLottoGameDjNameSchema = z.object({

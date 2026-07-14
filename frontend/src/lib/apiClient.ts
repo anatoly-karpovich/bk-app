@@ -21,12 +21,19 @@ class ApiClient {
     });
   }
 
+  async put<T>(path: string, body?: unknown, options?: Omit<ApiRequestOptions, "body">): Promise<T> {
+    return this.request<T>("PUT", path, {
+      ...options,
+      body,
+    });
+  }
+
   async delete<T>(path: string, options?: Omit<ApiRequestOptions, "body">): Promise<T> {
     return this.request<T>("DELETE", path, options);
   }
 
   private async request<T>(
-    method: "GET" | "POST" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     options: ApiRequestOptions = {},
   ): Promise<T> {

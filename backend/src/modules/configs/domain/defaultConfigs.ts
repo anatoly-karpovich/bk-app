@@ -1,11 +1,10 @@
 import { normalizeBattleshipsRules } from "../../battleships/domain/config";
 import { normalizeJourneyRules } from "../../journey/domain/config";
 import { normalizeLottoRules } from "../../lotto/domain/config";
-import type { AppConfig } from "./types";
+import type { AppConfigSeed } from "./types";
 
-export const DEFAULT_APP_CONFIGS: AppConfig[] = [
+export const DEFAULT_APP_CONFIGS: AppConfigSeed[] = [
   {
-    id: "oldbk2",
     name: "oldbk2",
     description: "Базовые правила Карты Мародёров",
     currency: "фишек",
@@ -22,7 +21,6 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
               { size: 1, amount: 4 },
             ],
             maxShots: 17,
-            currency: "фишки",
             prizes: {
               shoot: 2,
               destroyBonus: {
@@ -41,10 +39,10 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
         cardNumbersAmount: 10,
         firstPlacePrize: 10,
         secondPlacePrize: 5,
+        otherActivePlayersPrize: 0,
         rewardDistributionMode: "full_per_winner",
       }),
       journey: normalizeJourneyRules({
-        currency: "фишек",
         initialPrize: 15,
         minDice: 1,
         maxDice: 5,
@@ -72,7 +70,6 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
     },
   },
   {
-    id: "combatsclub",
     name: "Combats Club",
     description: "Правила Карты Мародёров для проекта Combats Club",
     currency: "екр",
@@ -89,7 +86,6 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
               { size: 1, amount: 4 },
             ],
             maxShots: 17,
-            currency: "екр",
             prizes: {
               shoot: 2,
               destroyBonus: {
@@ -108,10 +104,10 @@ export const DEFAULT_APP_CONFIGS: AppConfig[] = [
         cardNumbersAmount: 10,
         firstPlacePrize: 10,
         secondPlacePrize: 5,
+        otherActivePlayersPrize: 0,
         rewardDistributionMode: "full_per_winner",
       }),
       journey: normalizeJourneyRules({
-        currency: "екр",
         initialPrize: 30,
         minDice: 1,
         maxDice: 5,

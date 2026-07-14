@@ -22,17 +22,44 @@ interface LottoCardsCardProps {
   onRemovePlayer: (player: LottoPlayer) => void;
 }
 
-function getPlayerStatusLabel(player: LottoPlayer): string {
-  switch (player.status) {
-    case "winner_first":
-      return "1 место";
-    case "winner_second":
-      return "2 место";
-    case "removed":
-      return "Исключен";
-    default:
-      return `Осталось ${player.remainingCount}`;
+function getPlayerStatusLabel(player: LottoPlayer, game: LottoPersistedGame): string {
+  if (player.status === "winner_first") {
+    return "1 место";
   }
+
+  if (player.status === "winner_second") {
+    return "2 место";
+  }
+
+  if (player.status === "removed") {
+    return "Исключен";
+  }
+
+  if (game.derived.otherPrizePlayers.some((otherPlayer) => otherPlayer.id === player.id)) {
+    return "Остальные";
+  }
+
+  return `Осталось ${player.remainingCount}`;
+}
+
+function getPlayerStatusColor(player: LottoPlayer, game: LottoPersistedGame) {
+  if (player.status === "winner_first") {
+    return "success" as const;
+  }
+
+  if (player.status === "winner_second") {
+    return "info" as const;
+  }
+
+  if (player.status === "removed") {
+    return "default" as const;
+  }
+
+  if (game.derived.otherPrizePlayers.some((otherPlayer) => otherPlayer.id === player.id)) {
+    return "warning" as const;
+  }
+
+  return "secondary" as const;
 }
 
 export default function LottoCardsCard({
@@ -69,7 +96,7 @@ export default function LottoCardsCard({
                         >
                           {player.nickname}
                         </Typography>
-                        <Chip size="small" label={getPlayerStatusLabel(player)} color={player.status === "winner_first" ? "success" : player.status === "winner_second" ? "info" : player.status === "removed" ? "default" : "secondary"} />
+                        <Chip size="small" label={getPlayerStatusLabel(player, game)} color={getPlayerStatusColor(player, game)} />
                       </Stack>
                     }
                     action={

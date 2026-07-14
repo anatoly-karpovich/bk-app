@@ -133,7 +133,7 @@ function normalizeBattleshipsBoardRules(
     maxShots: normalizeNonNegativeInteger(input.maxShots ?? DEFAULT_BOARD_RULES.maxShots),
     currency: input.currency?.trim() || DEFAULT_BOARD_RULES.currency,
     prizes: {
-      shoot: normalizeNonNegativeInteger(input.prizes?.shoot ?? DEFAULT_BOARD_RULES.prizes.shoot),
+      shoot: normalizeNonNegativeSingleDecimal(input.prizes?.shoot ?? DEFAULT_BOARD_RULES.prizes.shoot),
       destroyBonus,
     },
   };
@@ -159,7 +159,7 @@ function normalizeDestroyBonus(
 
   return Array.from(sizes).reduce<Record<number, number>>((result, size) => {
     const value = input?.[size] ?? input?.[String(size)] ?? DEFAULT_BOARD_RULES.prizes.destroyBonus[size] ?? 0;
-    result[size] = normalizeNonNegativeInteger(value);
+    result[size] = normalizeNonNegativeHalfStep(value);
     return result;
   }, {});
 }
@@ -170,4 +170,14 @@ function normalizePositiveInteger(value: number): number {
 
 function normalizeNonNegativeInteger(value: number): number {
   return Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+}
+
+function normalizeNonNegativeSingleDecimal(value: number): number {
+  const normalizedValue = Number.isFinite(value) ? value : 0;
+  return Math.max(0, Math.round(normalizedValue * 10) / 10);
+}
+
+function normalizeNonNegativeHalfStep(value: number): number {
+  const normalizedValue = Number.isFinite(value) ? value : 0;
+  return Math.max(0, Math.round(normalizedValue * 2) / 2);
 }

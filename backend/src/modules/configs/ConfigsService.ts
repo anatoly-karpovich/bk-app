@@ -1,7 +1,7 @@
 import { ConfigReadModelFactory } from "./ConfigReadModelFactory";
-import { ConfigNotFoundError } from "./errors";
-import { DEFAULT_APP_CONFIGS } from "./domain/defaultConfigs";
-import type { AppConfigReadModel } from "./domain/types";
+import { ConfigNameConflictError, ConfigNotFoundError } from "./errors";
+import { buildPersistedAppConfig, normalizeAppConfigInput, normalizeStoredAppConfig } from "./domain/normalizeConfig";
+import type { AppConfigMutationInput, AppConfigReadModel } from "./domain/types";
 import { ConfigsRepository } from "./ConfigsRepository";
 
 export class ConfigsService {
@@ -12,28 +12,10 @@ export class ConfigsService {
 
   async listConfigs(): Promise<AppConfigReadModel[]> {
     const configs = await this.repository.findAll();
-    const preferredOrder = new Map(DEFAULT_APP_CONFIGS.map((config, index) => [config.id, index]));
 
     return configs
-      .sort((left, right) => {
-        const leftIndex = preferredOrder.get(left.id);
-        const rightIndex = preferredOrder.get(right.id);
-
-        if (leftIndex !== undefined && rightIndex !== undefined) {
-          return leftIndex - rightIndex;
-        }
-
-        if (leftIndex !== undefined) {
-          return -1;
-        }
-
-        if (rightIndex !== undefined) {
-          return 1;
-        }
-
-        return left.name.localeCompare(right.name, "ru");
-      })
-      .map((config) => this.readModelFactory.create(config));
+      .map((config) => this.readModelFactory.create(config))
+      .sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
 
   async findConfigById(configId: string): Promise<AppConfigReadModel | null> {
@@ -49,5 +31,66 @@ export class ConfigsService {
     }
 
     return config;
+  }
+
+  async createConfig(payload: AppConfigMutationInput): Promise<AppConfigReadModel> {
+    const normalizedInput = normalizeAppConfigInput(payload);
+    await this.assertConfigNameAvailable(normalizedInput.name);
+
+    const createdConfig = await this.repository.create(buildPersistedAppConfig(payload));
+
+    if (!createdConfig) {
+      throw new Error("Failed to load created config");
+    }
+
+    return this.readModelFactory.create(createdConfig);
+  }
+
+  async updateConfig(configId: string, payload: AppConfigMutationInput): Promise<AppConfigReadModel> {
+    const currentConfig = await this.repository.findById(configId);
+
+    if (!currentConfig) {
+      throw new ConfigNotFoundError(configId);
+    }
+
+    const fallbackTimestamp = currentConfig._id.getTimestamp().toISOString();
+    const normalizedCurrentConfig = normalizeStoredAppConfig(currentConfig, fallbackTimestamp);
+    const normalizedInput = normalizeAppConfigInput(payload);
+
+    if (normalizedInput.name !== normalizedCurrentConfig.name) {
+      const existingConfigWithSameName = await this.repository.findByName(normalizedInput.name);
+
+      if (existingConfigWithSameName && existingConfigWithSameName._id.toHexString() !== configId) {
+        throw new ConfigNameConflictError(normalizedInput.name);
+      }
+    }
+
+    const updatedConfig = await this.repository.update(configId, {
+      ...normalizedInput,
+      createdAt: normalizedCurrentConfig.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (!updatedConfig) {
+      throw new ConfigNotFoundError(configId);
+    }
+
+    return this.readModelFactory.create(updatedConfig);
+  }
+
+  async deleteConfig(configId: string): Promise<void> {
+    const deleted = await this.repository.delete(configId);
+
+    if (!deleted) {
+      throw new ConfigNotFoundError(configId);
+    }
+  }
+
+  private async assertConfigNameAvailable(configName: string): Promise<void> {
+    const existingConfig = await this.repository.findByName(configName);
+
+    if (existingConfig) {
+      throw new ConfigNameConflictError(configName);
+    }
   }
 }

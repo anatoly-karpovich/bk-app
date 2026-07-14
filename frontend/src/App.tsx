@@ -52,6 +52,7 @@ export default function App() {
                 configs={configs}
                 selectedConfigId={selectedConfig?.id ?? ""}
                 onSelectConfig={actions.selectConfig}
+                onReload={actions.loadConfigs}
                 isLoading={isLoading}
                 error={error}
               />

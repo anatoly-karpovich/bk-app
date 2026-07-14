@@ -41,7 +41,7 @@ export class JourneyController {
       const { configId } = parseRequest(
         createJourneyGameConfigSchema,
         { configId: req.body?.configId },
-        "Body field 'configId' must be a non-empty string",
+        "Body field 'configId' must be a valid config id",
       );
       const { djName } = parseRequest(
         createJourneyGameDjNameSchema,

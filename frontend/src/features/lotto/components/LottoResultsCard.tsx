@@ -50,7 +50,7 @@ export default function LottoResultsCard({ game, currency }: LottoResultsCardPro
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Место</TableCell>
+                    <TableCell>Группа</TableCell>
                     <TableCell>Игрок</TableCell>
                     <TableCell>Осталось чисел</TableCell>
                     <TableCell>Приз</TableCell>
@@ -61,7 +61,7 @@ export default function LottoResultsCard({ game, currency }: LottoResultsCardPro
                   {game.derived.prizeTable.length ? (
                     game.derived.prizeTable.map((entry) => (
                       <TableRow key={`${entry.place}-${entry.playerId}`}>
-                        <TableCell>{entry.place}</TableCell>
+                        <TableCell>{entry.placeLabel}</TableCell>
                         <TableCell>{entry.nickname}</TableCell>
                         <TableCell>{entry.remainingCount}</TableCell>
                         <TableCell>
@@ -74,7 +74,7 @@ export default function LottoResultsCard({ game, currency }: LottoResultsCardPro
                     <TableRow>
                       <TableCell colSpan={5}>
                         <Typography variant="body2" color="text.secondary">
-                          Призовые места в этой партии не определены.
+                          Призовые группы в этой партии не определены.
                         </Typography>
                       </TableCell>
                     </TableRow>

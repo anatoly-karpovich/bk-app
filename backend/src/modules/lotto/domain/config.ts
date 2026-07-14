@@ -6,6 +6,7 @@ export const DEFAULT_LOTTO_RULES: LottoRules = {
   cardNumbersAmount: 10,
   firstPlacePrize: 10,
   secondPlacePrize: 5,
+  otherActivePlayersPrize: 0,
   rewardDistributionMode: "full_per_winner",
 };
 
@@ -25,6 +26,9 @@ export function normalizeLottoRules(input: LottoRulesInput = {}): LottoRules {
     ),
     firstPlacePrize: normalizeNonNegativeInteger(input.firstPlacePrize ?? DEFAULT_LOTTO_RULES.firstPlacePrize),
     secondPlacePrize: normalizeNonNegativeInteger(input.secondPlacePrize ?? DEFAULT_LOTTO_RULES.secondPlacePrize),
+    otherActivePlayersPrize: normalizeNonNegativeInteger(
+      input.otherActivePlayersPrize ?? DEFAULT_LOTTO_RULES.otherActivePlayersPrize,
+    ),
     rewardDistributionMode:
       input.rewardDistributionMode === "split_pool" ? "split_pool" : DEFAULT_LOTTO_RULES.rewardDistributionMode,
   };
