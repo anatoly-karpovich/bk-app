@@ -39,7 +39,7 @@ export class BattleshipsReadModelFactory {
         boardConfig: this.clone(boardConfig),
         gameIsOver: this.engine.isGameOver(normalizedGame),
         attemptsLeft: this.engine.getAttemptsLeft(normalizedGame),
-        currentPrize: this.engine.getCurrentPrize(normalizedGame),
+        currentPrize: this.clone(this.engine.getCurrentPrize(normalizedGame)),
         boardLetters: getBattleshipsBoardLetters(boardConfig.boardSize),
         destroyedShipsCount: this.engine.getDestroyedShipsCount(normalizedGame),
         totalShipsCount: normalizedGame.ships.length,
@@ -71,8 +71,8 @@ export class BattleshipsReadModelFactory {
       boardSize: boardConfig.boardSize,
       maxShots: boardConfig.maxShots,
       attemptsLeft: this.engine.getAttemptsLeft(normalizedGame),
-      currentPrize: this.engine.getCurrentPrize(normalizedGame),
-      currency: boardConfig.currency,
+      currentPrize: this.clone(this.engine.getCurrentPrize(normalizedGame)),
+      currencies: this.clone(normalizedGame.currencies),
       shotsCount: normalizedGame.shots.length,
     };
   }

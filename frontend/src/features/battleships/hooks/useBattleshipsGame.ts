@@ -53,6 +53,7 @@ export function useBattleshipsGame({ djName, selectedConfig }: UseBattleshipsGam
   }, [game]);
 
   const selectedBattleshipsRules = selectedConfig?.games.battleships ?? null;
+  const resolvedCurrencies = game?.currencies ?? selectedConfig?.currencies ?? [];
   const boardConfig = useMemo(
     () => game?.derived.boardConfig ?? (selectedBattleshipsRules ? getBattleshipsBoardConfig(selectedBattleshipsRules) : null),
     [game, selectedBattleshipsRules],
@@ -257,6 +258,7 @@ export function useBattleshipsGame({ djName, selectedConfig }: UseBattleshipsGam
     savedGamesError,
     requestError,
     selectedBattleshipsRules,
+    resolvedCurrencies,
     boardConfig,
     fleetSummary,
     canStartGame,

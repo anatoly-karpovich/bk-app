@@ -13,15 +13,16 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoPersistedGame } from "../types";
 
 interface LottoResultsCardProps {
   game: LottoPersistedGame | null;
-  currency: string;
+  currencies: CurrencyDefinition[];
 }
 
-export default function LottoResultsCard({ game, currency }: LottoResultsCardProps) {
+export default function LottoResultsCard({ game, currencies }: LottoResultsCardProps) {
   return (
     <Card>
       <CardHeader title={lottoTexts.cards.resultsTitle} subheader={lottoTexts.cards.resultsSubtitle} />
@@ -64,9 +65,7 @@ export default function LottoResultsCard({ game, currency }: LottoResultsCardPro
                         <TableCell>{entry.placeLabel}</TableCell>
                         <TableCell>{entry.nickname}</TableCell>
                         <TableCell>{entry.remainingCount}</TableCell>
-                        <TableCell>
-                          {entry.prize} {currency}
-                        </TableCell>
+                        <TableCell>{formatCurrencyValues(entry.prize, currencies, { includeZero: false }) || "0"}</TableCell>
                         <TableCell>{entry.payoutStatus}</TableCell>
                       </TableRow>
                     ))

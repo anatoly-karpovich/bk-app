@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate:configs": "tsx src/scripts/migrateConfigs.ts"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

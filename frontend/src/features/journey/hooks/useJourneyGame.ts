@@ -10,9 +10,8 @@ import {
   removeJourneyPlayerRequest,
   submitJourneyRoundRequest,
 } from "../api/journey.client";
-import { DEFAULT_JOURNEY_RULES, getJourneyAchievements, getJourneyConfig, getNonJackpotPrizes } from "../config";
+import { DEFAULT_JOURNEY_RULES, getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "../config";
 import {
-  calculateReceiptsDistribution,
   createEmptyMoveState,
   createEmptySkipState,
   getJourneyActivePlayers,
@@ -31,7 +30,7 @@ import type {
   JourneyPersistedGame,
   JourneyPlayer,
   JourneyPlayerReadModel,
-  JourneyReceiptsDistribution,
+  JourneyRulesCell,
   JourneySavedGameSummary,
   JourneySkippedPlayers,
   JourneyStatusChip,
@@ -86,14 +85,19 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
   const selectedJourneyRules = selectedConfig?.games.journey ?? null;
+  const selectedCurrencies = selectedConfig?.currencies ?? [{ id: "default", label: "фишек" }];
   const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
-  const journeyConfig = useMemo(() => game?.derived?.journeyConfig ?? getJourneyConfig(journeyRules), [game, journeyRules]);
+  const journeyCurrencies = useMemo(() => game?.currencies ?? selectedCurrencies, [game, selectedCurrencies]);
+  const journeyConfig = useMemo(
+    () => game?.derived?.journeyConfig ?? getJourneyConfig(journeyRules, journeyCurrencies),
+    [game, journeyCurrencies, journeyRules],
+  );
   const journeyAchievements = useMemo(
     () => game?.derived?.journeyAchievements ?? getJourneyAchievements(journeyRules),
     [game, journeyRules],
   );
-  const nonJackpotPrizes = useMemo(
-    () => game?.derived?.nonJackpotPrizes ?? getNonJackpotPrizes(journeyRules),
+  const collectibleCells = useMemo<JourneyRulesCell[]>(
+    () => game?.derived?.collectibleCells ?? getCollectibleJourneyCells(journeyRules),
     [game, journeyRules],
   );
   const canStartGame = Boolean(selectedJourneyRules) && playerNames.length > 0 && playerNameErrors.every((error) => !error);
@@ -101,7 +105,6 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const activePlayers = useMemo<JourneyPlayerReadModel[]>(() => getJourneyActivePlayers(game), [game]);
   const finishedPlayers = useMemo<JourneyPlayerReadModel[]>(() => getJourneyFinishedPlayers(game), [game]);
   const results = useMemo<JourneyPlayerReadModel[]>(() => getJourneyResults(game), [game]);
-  const receipts = useMemo<JourneyReceiptsDistribution | null>(() => calculateReceiptsDistribution(game), [game]);
   const gameIsOver = isJourneyGameOver(game);
   const activeGame = Boolean(game && !gameIsOver);
   const totalGamePlayers = useMemo(() => getJourneyVisiblePlayers(game).length, [game]);
@@ -528,12 +531,11 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
-    nonJackpotPrizes,
+    collectibleCells,
     canStartGame,
     activePlayers,
     finishedPlayers,
     results,
-    receipts,
     gameIsOver,
     headerActionsDisabled,
     setupActionsDisabled,

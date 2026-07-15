@@ -1,3 +1,4 @@
+import { divideCurrencyValues, hasAnyNonZeroCurrencyValues, normalizeCurrencyValues } from "../../common/currencyValues";
 import type { WithId } from "mongodb";
 import { LottoEngine } from "./LottoEngine";
 import type { LottoGameListItemReadModel, LottoGameReadModel, LottoPrizeTableEntry } from "./domain/types";
@@ -18,7 +19,7 @@ export class LottoReadModelFactory {
     const firstPlaceWinners = players.filter((player) => player.status === "winner_first");
     const secondPlaceWinners = players.filter((player) => player.status === "winner_second");
     const otherPrizePlayers =
-      normalizedGame.status === "finished" && normalizedGame.rules.otherActivePlayersPrize > 0
+      normalizedGame.status === "finished" && hasAnyNonZeroCurrencyValues(normalizedGame.rules.otherActivePlayersPrize)
         ? players.filter(
             (player) =>
               player.status === "active" &&
@@ -63,7 +64,7 @@ export class LottoReadModelFactory {
       djName: normalizedGame.djName,
       configId: normalizedGame.configId,
       configName: normalizedGame.configName,
-      currency: normalizedGame.currency,
+      currencies: this.clone(normalizedGame.currencies),
       drawCount: normalizedGame.drawnNumbers.length,
       playersCount: normalizedGame.players.filter((player) => player.status !== "removed").length,
       firstPlaceWinners: this.engine.getFirstPlaceWinners(normalizedGame).map((player) => player.nickname),
@@ -81,8 +82,8 @@ export class LottoReadModelFactory {
     }
 
     const rewardMode = game.rules.rewardDistributionMode;
-    const resolvePrize = (totalPrize: number, winnersCount: number) =>
-      rewardMode === "split_pool" && winnersCount > 0 ? Number((totalPrize / winnersCount).toFixed(2)) : totalPrize;
+    const resolvePrize = (totalPrize: LottoPrizeTableEntry["prize"], winnersCount: number) =>
+      rewardMode === "split_pool" && winnersCount > 0 ? divideCurrencyValues(totalPrize, winnersCount) : normalizeCurrencyValues(totalPrize);
 
     return [
       ...firstPlaceWinners.map<LottoPrizeTableEntry>((player) => ({

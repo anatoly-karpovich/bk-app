@@ -42,7 +42,7 @@ export class LottoService {
 
     const nextGame = this.engine.createGame(payload.players, {
       rules: config.games.lotto,
-      currency: config.currency,
+      currencies: config.currencies,
       djName: payload.djName,
       configId: config.id,
       configName: config.name,

@@ -1,12 +1,13 @@
-import type { LottoRules, LottoRulesInput } from "./types";
+import { normalizeCurrencyValues } from "../../../common/currencyValues";
+import type { LottoCurrencyValue, LottoRules, LottoRulesInput } from "./types";
 
 export const DEFAULT_LOTTO_RULES: LottoRules = {
   min: 1,
   max: 50,
   cardNumbersAmount: 10,
-  firstPlacePrize: 10,
-  secondPlacePrize: 5,
-  otherActivePlayersPrize: 0,
+  firstPlacePrize: [{ currencyId: "default", value: 10 }],
+  secondPlacePrize: [{ currencyId: "default", value: 5 }],
+  otherActivePlayersPrize: [{ currencyId: "default", value: 0 }],
   rewardDistributionMode: "full_per_winner",
 };
 
@@ -22,12 +23,16 @@ export function normalizeLottoRules(input: LottoRulesInput = {}): LottoRules {
     max,
     cardNumbersAmount: Math.max(
       1,
-      Math.min(rangeSize, normalizeInteger(input.cardNumbersAmount ?? DEFAULT_LOTTO_RULES.cardNumbersAmount, DEFAULT_LOTTO_RULES.cardNumbersAmount)),
+      Math.min(
+        rangeSize,
+        normalizeInteger(input.cardNumbersAmount ?? DEFAULT_LOTTO_RULES.cardNumbersAmount, DEFAULT_LOTTO_RULES.cardNumbersAmount),
+      ),
     ),
-    firstPlacePrize: normalizeNonNegativeInteger(input.firstPlacePrize ?? DEFAULT_LOTTO_RULES.firstPlacePrize),
-    secondPlacePrize: normalizeNonNegativeInteger(input.secondPlacePrize ?? DEFAULT_LOTTO_RULES.secondPlacePrize),
-    otherActivePlayersPrize: normalizeNonNegativeInteger(
+    firstPlacePrize: normalizePrizeValues(input.firstPlacePrize ?? DEFAULT_LOTTO_RULES.firstPlacePrize, DEFAULT_LOTTO_RULES.firstPlacePrize),
+    secondPlacePrize: normalizePrizeValues(input.secondPlacePrize ?? DEFAULT_LOTTO_RULES.secondPlacePrize, DEFAULT_LOTTO_RULES.secondPlacePrize),
+    otherActivePlayersPrize: normalizePrizeValues(
       input.otherActivePlayersPrize ?? DEFAULT_LOTTO_RULES.otherActivePlayersPrize,
+      DEFAULT_LOTTO_RULES.otherActivePlayersPrize,
     ),
     rewardDistributionMode:
       input.rewardDistributionMode === "split_pool" ? "split_pool" : DEFAULT_LOTTO_RULES.rewardDistributionMode,
@@ -53,4 +58,13 @@ function normalizeNonNegativeInteger(value: number): number {
   }
 
   return Math.max(0, Math.trunc(value));
+}
+
+function normalizePrizeValues(values: LottoCurrencyValue[], fallback: LottoCurrencyValue[]): LottoCurrencyValue[] {
+  const normalizedValues = normalizeCurrencyValues(values).map((entry) => ({
+    currencyId: entry.currencyId,
+    value: normalizeNonNegativeInteger(entry.value),
+  }));
+
+  return normalizedValues.length ? normalizedValues : structuredClone(fallback);
 }

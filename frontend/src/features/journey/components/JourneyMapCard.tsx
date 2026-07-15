@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Avatar, Box, Card, CardContent, CardHeader, Divider, Fade, Paper, Popper, Stack, Typography } from "@mui/material";
 import {
+  formatJourneyCurrencyValues,
   getCompactCellLabel,
   getCompactCellTone,
   getJourneyCellLabel,
   getJourneyMapCell,
   getJourneyVisiblePlayers,
+  hasNegativeJourneyRewards,
+  hasPositiveJourneyRewards,
   shortenNickname,
 } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
@@ -88,7 +91,7 @@ export default function JourneyMapCard({ game, journeyConfig }: JourneyMapCardPr
                   {cellIndex}
                 </Typography>
                 <Typography variant="body2" sx={{ textAlign: "center", fontWeight: 700 }}>
-                  {getCompactCellLabel(cell)}
+                  {getCompactCellLabel(cell, journeyConfig.currencies)}
                 </Typography>
                 <Stack direction="row" spacing={0.25} justifyContent="center" flexWrap="wrap" useFlexGap>
                   {playersOnCell.slice(0, 3).map((player) => (
@@ -114,13 +117,13 @@ export default function JourneyMapCard({ game, journeyConfig }: JourneyMapCardPr
                     </Typography>
                     <AppChip
                       size="small"
-                      label={getJourneyCellLabel(hoveredCell?.cell)}
+                      label={getJourneyCellLabel(hoveredCell?.cell, journeyConfig.currencies)}
                       color={
                         hoveredCell?.cell?.isJackpot
                           ? "warning"
-                          : hoveredCell?.cell?.prize > 0
+                          : hoveredCell?.cell && hasPositiveJourneyRewards(hoveredCell.cell.rewards)
                             ? "success"
-                            : hoveredCell?.cell?.prize < 0
+                            : hoveredCell?.cell && hasNegativeJourneyRewards(hoveredCell.cell.rewards)
                               ? "error"
                               : "default"
                       }
@@ -131,15 +134,22 @@ export default function JourneyMapCard({ game, journeyConfig }: JourneyMapCardPr
                   {hoveredCell?.cell?.isJackpot ? (
                     <Typography variant="body2" color="text.secondary">
                       {hoveredCell.cell?.winner?.nickname
-                        ? `${journeyTexts.hover.jackpotFoundPrefix} ${hoveredCell.cell.winner.nickname}.`
-                        : journeyTexts.hover.jackpotNotFound}
+                        ? `${journeyTexts.hover.jackpotFoundPrefix} ${hoveredCell.cell.winner.nickname}. ${formatJourneyCurrencyValues(hoveredCell.cell.rewards, journeyConfig.currencies, {
+                            showPlus: true,
+                            includeZero: false,
+                          })}.`
+                        : `${journeyTexts.hover.jackpotNotFound} ${formatJourneyCurrencyValues(hoveredCell.cell.rewards, journeyConfig.currencies, {
+                            showPlus: true,
+                            includeZero: false,
+                          })}.`}
                     </Typography>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
                       {hoveredCell?.cell
-                        ? hoveredCell.cell.prize > 0
-                          ? `${journeyTexts.hover.bonusPrefix} ${hoveredCell.cell.prize} ${journeyConfig.currency}.`
-                          : `${journeyTexts.hover.trapPrefix} ${hoveredCell.cell.prize} ${journeyConfig.currency}.`
+                        ? `${hoveredCell.cell.kind === "bonus" ? journeyTexts.hover.bonusPrefix : journeyTexts.hover.trapPrefix} ${formatJourneyCurrencyValues(hoveredCell.cell.rewards, journeyConfig.currencies, {
+                            showPlus: hoveredCell.cell.kind === "bonus",
+                            includeZero: false,
+                          })}.`
                         : journeyTexts.hover.cellEmpty}
                     </Typography>
                   )}

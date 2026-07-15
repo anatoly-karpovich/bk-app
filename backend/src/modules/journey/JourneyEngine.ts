@@ -1,9 +1,8 @@
+import type { ConfigCurrency } from "../configs/domain/types";
 import {
-  calculateReceiptsDistribution as calculateReceiptsDistributionFn,
   createJourneyGame as createJourneyGameFn,
   getJourneyActivePlayers as getJourneyActivePlayersFn,
   getJourneyFinishedPlayers as getJourneyFinishedPlayersFn,
-  getJourneyPlayerFullPrize as getJourneyPlayerFullPrizeFn,
   getJourneyPlayerTimelines as getJourneyPlayerTimelinesFn,
   getJourneyResults as getJourneyResultsFn,
   getJourneyVisiblePlayers as getJourneyVisiblePlayersFn,
@@ -32,6 +31,7 @@ export class JourneyEngine {
     options: {
       randomFn?: RandomFn;
       rules?: JourneyRules;
+      currencies?: ConfigCurrency[];
       djName?: string;
       configId?: string;
       configName?: string;
@@ -80,16 +80,8 @@ export class JourneyEngine {
     return getJourneyVisiblePlayersFn(game);
   }
 
-  getPlayerFullPrize(player: JourneyPlayer): number {
-    return getJourneyPlayerFullPrizeFn(player);
-  }
-
-  getResults(game: JourneyGame): Array<JourneyPlayer & { fullPrize: number }> {
+  getResults(game: JourneyGame): JourneyPlayer[] {
     return getJourneyResultsFn(game);
-  }
-
-  calculateReceiptsDistribution(game: JourneyGame): Record<number, number> {
-    return calculateReceiptsDistributionFn(game);
   }
 
   getPlayerTimelines(game: JourneyGame): Record<string, JourneyTimelineEntry[]> {

@@ -57,9 +57,6 @@ export default function JourneyRoundControlsCard({
               >
                 <Box sx={{ minWidth: 160 }}>
                   <Typography fontWeight={700}>{player.nickname}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {journeyTexts.table.cell} {player.position} - {player.fullPrize} {journeyConfig.currency}
-                  </Typography>
                 </Box>
 
                 <AppTextInput

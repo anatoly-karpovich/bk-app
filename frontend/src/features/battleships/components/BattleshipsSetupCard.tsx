@@ -2,12 +2,14 @@ import SailingRoundedIcon from "@mui/icons-material/SailingRounded";
 import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppChip from "../../../components/ui/AppChip";
+import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardRules } from "../types";
 
 interface BattleshipsSetupCardProps {
   playerName: string;
   boardConfig: BattleshipsBoardRules | null;
+  currencies: CurrencyDefinition[];
   fleetSummary: string[];
   actionsDisabled: boolean;
   onPlayerNameChange: (nextValue: string) => void;
@@ -16,6 +18,7 @@ interface BattleshipsSetupCardProps {
 export default function BattleshipsSetupCard({
   playerName,
   boardConfig,
+  currencies,
   fleetSummary,
   actionsDisabled,
   onPlayerNameChange,
@@ -32,7 +35,10 @@ export default function BattleshipsSetupCard({
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <AppChip label={`Поле: ${boardConfig.boardSize}x${boardConfig.boardSize}`} color="secondary" />
                 <AppChip label={`Попытки: ${boardConfig.maxShots}`} color="info" />
-                <AppChip label={`Попадание: +${boardConfig.prizes.shoot} ${boardConfig.currency}`} color="success" />
+                <AppChip
+                  label={`Попадание: ${formatCurrencyValues(boardConfig.prizes.shoot, currencies, { showPlus: true, includeZero: false }) || "0"}`}
+                  color="success"
+                />
               </Stack>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {fleetSummary.map((item) => (

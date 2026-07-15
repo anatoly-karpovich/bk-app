@@ -49,6 +49,7 @@ export class BattleshipsService {
 
     const nextGame = this.engine.createGame(payload.playerName, {
       rules: config.games.battleships,
+      currencies: config.currencies,
       djName: payload.djName,
       configId: config.id,
       configName: config.name,

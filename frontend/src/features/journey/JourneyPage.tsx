@@ -53,12 +53,11 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
-    nonJackpotPrizes,
+    collectibleCells,
     canStartGame,
     activePlayers,
     finishedPlayers,
     results,
-    receipts,
     gameIsOver,
     headerActionsDisabled,
     setupActionsDisabled,
@@ -115,8 +114,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
               gameIsOver={gameIsOver}
               finishedPlayers={finishedPlayers}
               results={results}
-              receipts={receipts}
-              currency={journeyConfig.currency}
+              currencies={journeyConfig.currencies}
             />
 
             {game ? (
@@ -159,7 +157,8 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
               game={game}
               playerTimelines={playerTimelines}
               journeyAchievements={journeyAchievements}
-              nonJackpotPrizes={nonJackpotPrizes}
+              journeyCurrencies={journeyConfig.currencies}
+              collectibleCells={collectibleCells}
               finishPosition={journeyConfig.finishPosition}
             />
           </Stack>

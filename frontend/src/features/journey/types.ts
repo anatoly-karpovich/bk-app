@@ -15,15 +15,27 @@ export type JourneyMoveType =
   | "moveWithZeroPrize"
   | "moveToAchievement";
 
+export interface JourneyCurrencyDefinition {
+  id: string;
+  label: string;
+}
+
+export interface JourneyCurrencyValue {
+  currencyId: string;
+  value: number;
+}
+
+export type JourneyBalance = Record<string, number>;
+
 export interface JourneyRulesCell {
   id: string;
   kind: JourneyCellKind;
-  value: number;
+  rewards: JourneyCurrencyValue[];
   count: number;
 }
 
 export interface JourneyRulesAchievementConfig {
-  prize: number;
+  rewards: JourneyCurrencyValue[];
 }
 
 export interface JourneyRulesAchievements {
@@ -34,15 +46,14 @@ export interface JourneyRulesAchievements {
 }
 
 export interface JourneyRules {
-  currency: string;
-  initialPrize: number;
+  initialRewards: JourneyCurrencyValue[];
   minDice: number;
   maxDice: number;
-  maxPrize: number | null;
+  maxPrizes: JourneyCurrencyValue[] | null;
   mapSize: number;
   jackpot: {
     count: number;
-    prize: number;
+    rewards: JourneyCurrencyValue[];
   };
   cells: JourneyRulesCell[];
   achievements: JourneyRulesAchievements;
@@ -62,18 +73,18 @@ export type JourneyRulesInput = Omit<Partial<JourneyRules>, "jackpot" | "achieve
 export interface JourneyConfig {
   mapSize: number;
   finishPosition: number;
-  initialPrize: number;
+  initialRewards: JourneyCurrencyValue[];
   minDice: number;
   maxDice: number;
-  maxPrize: number | null;
-  jackpotPrize: number;
-  currency: string;
+  maxPrizes: JourneyCurrencyValue[] | null;
+  jackpotRewards: JourneyCurrencyValue[];
+  currencies: JourneyCurrencyDefinition[];
 }
 
 export interface JourneyAchievement {
   name: string;
   title?: string;
-  prize: number;
+  rewards: JourneyCurrencyValue[];
   description?: string;
 }
 
@@ -90,7 +101,9 @@ export interface JourneyMapCellWinner {
 }
 
 export interface JourneyMapCell {
-  prize: number;
+  id: string;
+  kind: JourneyCellKind;
+  rewards: JourneyCurrencyValue[];
   isJackpot?: boolean;
   winner?: JourneyMapCellWinner | null;
 }
@@ -108,9 +121,8 @@ export interface JourneyPlayer {
   removedAt: string | null;
   removedReason: string | null;
   position: number;
-  previousPosition: number;
-  previousPrize: number;
-  prize: number;
+  previousBalance: JourneyBalance;
+  balance: JourneyBalance;
   bonuses: JourneyAchievement[];
   movesHistory: JourneyPlayerMoveHistoryEntry[];
 }
@@ -120,9 +132,11 @@ export interface JourneyMove {
   playerNickname: string;
   dice: number;
   previousPosition: number;
-  previousPrize: number;
+  previousBalance: JourneyBalance;
   currentPosition: number;
-  prize: number;
+  balanceAfterMove: JourneyBalance;
+  requestedRewards: JourneyCurrencyValue[];
+  appliedRewards: JourneyCurrencyValue[];
   cell: JourneyMapCell | null;
   type: JourneyMoveType;
 }
@@ -132,6 +146,7 @@ export interface JourneyAchievementMove {
   playerId: string;
   playerNickname: string;
   achievement: JourneyAchievement;
+  appliedRewards: JourneyCurrencyValue[];
 }
 
 export interface JourneyRoundEntry {
@@ -144,9 +159,10 @@ export interface JourneyRoundEntry {
   dice: number | null;
   previousPosition: number | null;
   currentPosition: number | null;
-  previousPrize: number | null;
-  prizeAfterMove: number | null;
-  fullPrizeAfterRound: number | null;
+  previousBalance: JourneyCurrencyValue[] | null;
+  appliedRewards: JourneyCurrencyValue[];
+  balanceAfterMove: JourneyCurrencyValue[] | null;
+  balanceAfterRound: JourneyCurrencyValue[] | null;
   moveType: JourneyMoveType | JourneySkippedMoveType | null;
   cell: JourneyMapCell | null;
   achievementsAwarded: JourneyAchievement[];
@@ -165,7 +181,6 @@ export interface JourneyRound {
 }
 
 export interface JourneyGame {
-  id?: string;
   createdAt: string;
   updatedAt: string;
   moveIndex: number;
@@ -173,28 +188,28 @@ export interface JourneyGame {
   djName: string;
   configId: string;
   configName: string;
+  currencies: JourneyCurrencyDefinition[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayer[];
-  playersById: Record<string, JourneyPlayer>;
+  playersById?: Record<string, JourneyPlayer>;
   rounds: JourneyRound[];
   comments: string[];
 }
 
 export interface JourneyPlayerReadModel extends JourneyPlayer {
-  fullPrize: number;
+  balanceEntries: JourneyCurrencyValue[];
 }
 
 export interface JourneyGameDerivedData {
   journeyConfig: JourneyConfig;
   journeyAchievements: JourneyAchievementsMap;
-  nonJackpotPrizes: number[];
+  collectibleCells: JourneyRulesCell[];
   gameIsOver: boolean;
   activePlayers: JourneyPlayerReadModel[];
   finishedPlayers: JourneyPlayerReadModel[];
   visiblePlayers: JourneyPlayerReadModel[];
   results: JourneyPlayerReadModel[];
-  receipts: JourneyReceiptsDistribution;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
 }
 
@@ -208,7 +223,7 @@ export interface JourneySavedGamePlayer {
   nickname: string;
   status: JourneyPlayerStatus;
   position: number;
-  prize: number;
+  balanceEntries: JourneyCurrencyValue[];
 }
 
 export interface JourneySavedGameSummary {
@@ -219,13 +234,13 @@ export interface JourneySavedGameSummary {
   djName: string;
   configId: string;
   configName: string;
+  currencies: JourneyCurrencyDefinition[];
   roundsCount: number;
   players: JourneySavedGamePlayer[];
 }
 
 export type JourneyMoveInputs = Record<string, string>;
 export type JourneySkippedPlayers = Record<string, boolean>;
-export type JourneyReceiptsDistribution = Record<number, number>;
 
 export interface JourneyTimelineEntry extends JourneyRoundEntry {
   roundIndex: number | string;
@@ -252,8 +267,8 @@ export interface HoveredCellState {
 
 export interface JourneyCollectorProgress {
   achieved: boolean;
-  obtainedPrizes: number[];
-  missingPrizes: number[];
+  obtainedCellIds: string[];
+  missingCellIds: string[];
 }
 
 export interface JourneyStreakProgress {

@@ -1,3 +1,5 @@
+import type { CurrencyDefinition, CurrencyValue } from "../../lib/currencyValues";
+
 export type BattleshipsGameStatus = "in_progress" | "finished";
 export type BattleshipsShotResult = "miss" | "hit" | "kill";
 export type BattleshipsChipColor = "default" | "primary" | "secondary" | "success" | "error" | "info" | "warning";
@@ -7,16 +9,17 @@ export interface BattleshipsShipConfig {
   amount: number;
 }
 
+export interface BattleshipsCurrencyValue extends CurrencyValue {}
+
 export interface BattleshipsPrizes {
-  shoot: number;
-  destroyBonus: Record<number, number>;
+  shoot: BattleshipsCurrencyValue[];
+  destroyBonus: Record<number, BattleshipsCurrencyValue[]>;
 }
 
 export interface BattleshipsBoardRules {
   boardSize: number;
   ships: BattleshipsShipConfig[];
   maxShots: number;
-  currency: string;
   prizes: BattleshipsPrizes;
 }
 
@@ -39,8 +42,8 @@ export interface BattleshipsShot {
   row: number;
   column: number;
   result: BattleshipsShotResult;
-  prizeDelta: number;
-  totalPrize: number;
+  prizeDelta: BattleshipsCurrencyValue[];
+  totalPrize: BattleshipsCurrencyValue[];
   shipSize: number | null;
   coordinateLabel: string;
   resultLabel: string;
@@ -50,7 +53,7 @@ export interface BattleshipsGameDerivedData {
   boardConfig: BattleshipsBoardRules;
   gameIsOver: boolean;
   attemptsLeft: number;
-  currentPrize: number;
+  currentPrize: BattleshipsCurrencyValue[];
   boardLetters: string[];
   destroyedShipsCount: number;
   totalShipsCount: number;
@@ -67,6 +70,7 @@ export interface BattleshipsPersistedGame {
   djName: string;
   configId: string;
   configName: string;
+  currencies: CurrencyDefinition[];
   rules: BattleshipsRules;
   board: BattleshipsBoardCell[][];
   ships: Array<{
@@ -93,8 +97,8 @@ export interface BattleshipsSavedGameSummary {
   boardSize: number;
   maxShots: number;
   attemptsLeft: number;
-  currentPrize: number;
-  currency: string;
+  currentPrize: BattleshipsCurrencyValue[];
+  currencies: CurrencyDefinition[];
   shotsCount: number;
 }
 

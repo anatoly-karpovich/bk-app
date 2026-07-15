@@ -1,23 +1,21 @@
 import { Alert, Box, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import { journeyTexts } from "../../../texts/journeyTexts";
-import AppChip from "../../../components/ui/AppChip";
-import type { JourneyPlayerReadModel, JourneyReceiptsDistribution } from "../types";
+import { getJourneyPlayerBalanceLabel } from "../journey-page.helpers";
+import type { JourneyCurrencyDefinition, JourneyPlayerReadModel } from "../types";
 
 interface JourneyResultsCardProps {
   gameIsOver: boolean;
   finishedPlayers: JourneyPlayerReadModel[];
   results: JourneyPlayerReadModel[];
-  receipts: JourneyReceiptsDistribution | null;
-  currency: string;
+  currencies: JourneyCurrencyDefinition[];
 }
 
 export default function JourneyResultsCard({
   gameIsOver,
   finishedPlayers,
   results,
-  receipts,
-  currency,
+  currencies,
 }: JourneyResultsCardProps) {
   if (!gameIsOver) {
     return null;
@@ -32,36 +30,22 @@ export default function JourneyResultsCard({
             {journeyTexts.alerts.resultsCompletePrefix} {finishedPlayers.length} {journeyTexts.alerts.resultsCompleteSuffix}
           </Alert>
           <Stack spacing={1}>
-            {results.map((player, index) => (
+            {results.map((player) => (
               <Box
                 key={player.nickname}
                 sx={{
                   p: 1.5,
                   borderRadius: (theme) => theme.customRadii.md,
-                  backgroundColor: index === 0 ? "rgba(245, 158, 11, 0.14)" : "rgba(255,255,255,0.64)",
+                  backgroundColor: "rgba(255,255,255,0.64)",
                 }}
               >
-                <Typography fontWeight={700}>
-                  {index + 1}. {player.nickname}
-                </Typography>
+                <Typography fontWeight={700}>{player.nickname}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {player.fullPrize} {currency}
+                  [{getJourneyPlayerBalanceLabel(player, currencies)}]
                 </Typography>
               </Box>
             ))}
           </Stack>
-          {receipts ? (
-            <Box>
-              <Typography fontWeight={700} sx={{ mb: 1 }}>
-                {journeyTexts.results.receiptsTitle}
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {Object.entries(receipts).map(([amount, count]) => (
-                  <AppChip key={amount} label={`${amount}: ${count}`} />
-                ))}
-              </Stack>
-            </Box>
-          ) : null}
         </Stack>
       </CardContent>
     </Card>

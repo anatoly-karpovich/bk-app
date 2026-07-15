@@ -97,7 +97,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
 
   const selectedLottoRules = selectedConfig?.games.lotto ?? null;
   const resolvedRules = game?.rules ?? selectedLottoRules ?? null;
-  const resolvedCurrency = game?.currency ?? selectedConfig?.currency ?? "";
+  const resolvedCurrencies = game?.currencies ?? selectedConfig?.currencies ?? [];
   const playerErrors = useMemo(
     () => getPlayerSetupErrors(players, game, selectedConfig),
     [game, players, selectedConfig],
@@ -360,7 +360,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     requestError,
     selectedLottoRules,
     resolvedRules,
-    resolvedCurrency,
+    resolvedCurrencies,
     canStartGame,
     gameIsOver,
     pageStatusChips,

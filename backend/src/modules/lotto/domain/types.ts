@@ -1,15 +1,20 @@
+import type { CurrencyValue } from "../../../common/currencyValues";
+import type { ConfigCurrency } from "../../configs/domain/types";
+
 export type LottoRewardDistributionMode = "full_per_winner" | "split_pool";
 export type LottoGameStatus = "in_progress" | "finished";
 export type LottoPlayerStatus = "active" | "removed" | "winner_first" | "winner_second";
 export type LottoEventType = "number_drawn" | "player_removed" | "game_finished" | "prizes_awarded";
 
+export interface LottoCurrencyValue extends CurrencyValue {}
+
 export interface LottoRules {
   min: number;
   max: number;
   cardNumbersAmount: number;
-  firstPlacePrize: number;
-  secondPlacePrize: number;
-  otherActivePlayersPrize: number;
+  firstPlacePrize: LottoCurrencyValue[];
+  secondPlacePrize: LottoCurrencyValue[];
+  otherActivePlayersPrize: LottoCurrencyValue[];
   rewardDistributionMode: LottoRewardDistributionMode;
 }
 
@@ -38,7 +43,7 @@ export interface LottoGame {
   djName: string;
   configId: string;
   configName: string;
-  currency: string;
+  currencies: ConfigCurrency[];
   rules: LottoRules;
   drawnNumbers: number[];
   availableNumbers: number[];
@@ -58,7 +63,7 @@ export interface LottoPrizeTableEntry {
   playerId: string;
   nickname: string;
   remainingCount: number;
-  prize: number;
+  prize: LottoCurrencyValue[];
   payoutStatus: string;
 }
 
@@ -90,7 +95,7 @@ export interface LottoGameListItemReadModel {
   djName: string;
   configId: string;
   configName: string;
-  currency: string;
+  currencies: ConfigCurrency[];
   drawCount: number;
   playersCount: number;
   firstPlaceWinners: string[];

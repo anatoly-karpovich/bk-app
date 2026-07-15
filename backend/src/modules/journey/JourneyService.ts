@@ -49,6 +49,7 @@ export class JourneyService {
 
     const nextGame = this.engine.createGame(payload.nicknames, {
       rules: config.games.journey,
+      currencies: config.currencies,
       djName: payload.djName,
       configId: config.id,
       configName: config.name,

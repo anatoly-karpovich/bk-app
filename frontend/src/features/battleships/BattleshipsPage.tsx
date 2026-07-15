@@ -34,6 +34,7 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
     savedGamesError,
     requestError,
     selectedBattleshipsRules,
+    resolvedCurrencies,
     boardConfig,
     fleetSummary,
     canStartGame,
@@ -98,13 +99,14 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
               <BattleshipsSetupCard
                 playerName={playerName}
                 boardConfig={boardConfig}
+                currencies={resolvedCurrencies}
                 fleetSummary={fleetSummary}
                 actionsDisabled={loading.isStartingGame || loading.isResettingGame}
                 onPlayerNameChange={actions.setPlayerName}
               />
             )}
 
-            <BattleshipsLogCard shots={game?.shots ?? []} currency={boardConfig?.currency ?? ""} />
+            <BattleshipsLogCard shots={game?.shots ?? []} currencies={resolvedCurrencies} />
           </Stack>
         </Grid>
 
@@ -117,6 +119,7 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
         open={rulesDialogOpen}
         onClose={() => actions.setRulesDialogOpen(false)}
         boardConfig={boardConfig}
+        currencies={resolvedCurrencies}
         fleetSummary={fleetSummary}
       />
 

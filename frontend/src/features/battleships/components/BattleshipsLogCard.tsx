@@ -1,16 +1,17 @@
 import HistoryEduRoundedIcon from "@mui/icons-material/HistoryEduRounded";
 import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
+import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import { formatBattleshipsTimestamp } from "../mappers/battleships.mapper";
 import type { BattleshipsShot } from "../types";
 
 interface BattleshipsLogCardProps {
   shots: BattleshipsShot[];
-  currency: string;
+  currencies: CurrencyDefinition[];
 }
 
-export default function BattleshipsLogCard({ shots, currency }: BattleshipsLogCardProps) {
+export default function BattleshipsLogCard({ shots, currencies }: BattleshipsLogCardProps) {
   return (
     <Card>
       <CardHeader title={battleshipsTexts.cards.logTitle} subheader={battleshipsTexts.cards.logSubtitle} />
@@ -43,11 +44,10 @@ export default function BattleshipsLogCard({ shots, currency }: BattleshipsLogCa
                 </Stack>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap" useFlexGap>
                   <Typography variant="body2" color="text.secondary">
-                    Изменение приза: {shot.prizeDelta >= 0 ? "+" : ""}
-                    {shot.prizeDelta} {currency}
+                    Изменение приза: {formatCurrencyValues(shot.prizeDelta, currencies, { showPlus: true, includeZero: false }) || "0"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Накоплено: {shot.totalPrize} {currency}
+                    Накоплено: {formatCurrencyValues(shot.totalPrize, currencies, { includeZero: false }) || "0"}
                   </Typography>
                 </Stack>
               </Stack>

@@ -1,6 +1,12 @@
 import type { BattleshipsBoardRules, BattleshipsRules, BattleshipsShipConfig } from "../battleships/types";
 import type { JourneyRules } from "../journey/types";
+import type { CurrencyValue } from "../../lib/currencyValues";
 import type { LottoRewardDistributionMode, LottoRules } from "../lotto/types";
+
+export interface ConfigCurrency {
+  id: string;
+  label: string;
+}
 
 export interface AppGamesConfig {
   journey: JourneyRules;
@@ -8,11 +14,11 @@ export interface AppGamesConfig {
   lotto: LottoRules;
 }
 
-export type JourneyConfigEditorState = Omit<JourneyRules, "currency">;
+export type JourneyConfigEditorState = JourneyRules;
 
 export interface BattleshipsDestroyBonusEditorItem {
   size: number;
-  bonus: number;
+  rewards: CurrencyValue[];
 }
 
 export interface BattleshipsBoardEditorState {
@@ -20,7 +26,7 @@ export interface BattleshipsBoardEditorState {
   ships: BattleshipsShipConfig[];
   maxShots: number;
   prizes: {
-    shoot: number;
+    shoot: CurrencyValue[];
     destroyBonus: BattleshipsDestroyBonusEditorItem[];
   };
 }
@@ -33,7 +39,7 @@ export interface BattleshipsConfigEditorState {
 export interface AppConfigEditorState {
   name: string;
   description: string;
-  currency: string;
+  currencies: ConfigCurrency[];
   games: {
     journey: JourneyConfigEditorState;
     battleships: BattleshipsConfigEditorState;
@@ -44,12 +50,12 @@ export interface AppConfigEditorState {
 export interface AppConfigMutationPayload {
   name: string;
   description: string;
-  currency: string;
+  currencies: ConfigCurrency[];
   games: {
     journey: JourneyConfigEditorState;
     battleships: {
       selectedBoardSize: number;
-      boards: Record<string, Omit<BattleshipsBoardRules, "currency">>;
+      boards: Record<string, BattleshipsBoardRules>;
     };
     lotto: LottoRules;
   };
@@ -62,23 +68,22 @@ export interface JourneyConfigSummary {
   jackpot: string;
   bonusKinds: number;
   trapKinds: number;
-  prizeLimit: number | null;
+  prizeLimit: string | null;
 }
 
 export interface BattleshipsConfigSummary {
   boardSize: number;
   maxShots: number;
   fleet: string[];
-  hitPrize: number;
-  currency: string;
+  hitPrizeLabel: string;
 }
 
 export interface LottoConfigSummary {
   range: string;
   cardNumbersAmount: number;
-  firstPlacePrize: number;
-  secondPlacePrize: number;
-  otherActivePlayersPrize: number;
+  firstPlacePrizeLabel: string;
+  secondPlacePrizeLabel: string;
+  otherActivePlayersPrizeLabel: string;
   rewardDistributionMode: LottoRewardDistributionMode;
 }
 
@@ -86,6 +91,7 @@ export interface AppConfig {
   id: string;
   name: string;
   description: string;
+  currencies: ConfigCurrency[];
   currency: string;
   createdAt: string;
   updatedAt: string;

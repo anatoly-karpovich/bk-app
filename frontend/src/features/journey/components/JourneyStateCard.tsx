@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -17,16 +17,28 @@ import {
 } from "@mui/material";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import { getAchievementProgress, getHistoryEntrySummary, getJourneyPlayerFullPrize, getPrizeBadgeLabel } from "../journey-page.helpers";
+import {
+  getAchievementProgress,
+  getCollectibleCellLabel,
+  getHistoryEntrySummary,
+  getJourneyPlayerBalanceLabel,
+} from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
-import type { JourneyAchievementsMap, JourneyPersistedGame, JourneyTimelineEntry } from "../types";
+import type {
+  JourneyAchievementsMap,
+  JourneyCurrencyDefinition,
+  JourneyPersistedGame,
+  JourneyRulesCell,
+  JourneyTimelineEntry,
+} from "../types";
 
 interface JourneyStateCardProps {
   game: JourneyPersistedGame | null;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
   journeyAchievements: JourneyAchievementsMap;
-  nonJackpotPrizes: number[];
+  journeyCurrencies: JourneyCurrencyDefinition[];
+  collectibleCells: JourneyRulesCell[];
   finishPosition: number;
 }
 
@@ -34,10 +46,18 @@ export default function JourneyStateCard({
   game,
   playerTimelines,
   journeyAchievements,
-  nonJackpotPrizes,
+  journeyCurrencies,
+  collectibleCells,
   finishPosition,
 }: JourneyStateCardProps) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const collectibleCellsById = useMemo(
+    () =>
+      Object.fromEntries(
+        collectibleCells.map((cell) => [cell.id, getCollectibleCellLabel(cell, journeyCurrencies)]),
+      ),
+    [collectibleCells, journeyCurrencies],
+  );
 
   return (
     <Card>
@@ -50,8 +70,7 @@ export default function JourneyStateCard({
                 <TableCell width={56}></TableCell>
                 <TableCell>{journeyTexts.table.player}</TableCell>
                 <TableCell align="right">{journeyTexts.table.cell}</TableCell>
-                <TableCell align="right">{journeyTexts.table.base}</TableCell>
-                <TableCell align="right">{journeyTexts.table.withBonuses}</TableCell>
+                <TableCell align="right">Баланс</TableCell>
                 <TableCell align="right">{journeyTexts.table.achievements}</TableCell>
               </TableRow>
             </TableHead>
@@ -62,7 +81,7 @@ export default function JourneyStateCard({
                 const achievementProgress = getAchievementProgress(
                   player,
                   timeline,
-                  nonJackpotPrizes,
+                  collectibleCells,
                   journeyAchievements,
                   finishPosition,
                 );
@@ -86,15 +105,14 @@ export default function JourneyStateCard({
                         </Stack>
                       </TableCell>
                       <TableCell align="right">{player.position}</TableCell>
-                      <TableCell align="right">{player.prize}</TableCell>
-                      <TableCell align="right">{getJourneyPlayerFullPrize(player)}</TableCell>
+                      <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyCurrencies)}]</TableCell>
                       <TableCell align="right">
                         {Math.max(player.bonuses.length - Number(player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name)), 0)}
                       </TableCell>
                     </TableRow>
 
                     <TableRow>
-                      <TableCell colSpan={6} sx={{ py: 0, borderBottom: isExpanded ? undefined : 0 }}>
+                      <TableCell colSpan={5} sx={{ py: 0, borderBottom: isExpanded ? undefined : 0 }}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                           <Box sx={{ px: 2, py: 1.5, backgroundColor: "rgba(15, 23, 42, 0.03)" }}>
                             <Stack spacing={2}>
@@ -122,7 +140,7 @@ export default function JourneyStateCard({
                                         label={
                                           achievementProgress.collector.achieved
                                             ? journeyTexts.progress.obtained
-                                            : `${achievementProgress.collector.obtainedPrizes.length} ${journeyTexts.progress.of} ${nonJackpotPrizes.length}`
+                                            : `${achievementProgress.collector.obtainedCellIds.length} ${journeyTexts.progress.of} ${collectibleCells.length}`
                                         }
                                       />
                                     </Stack>
@@ -131,9 +149,14 @@ export default function JourneyStateCard({
                                       {journeyTexts.progress.obtained}:
                                     </Typography>
                                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                                      {achievementProgress.collector.obtainedPrizes.length ? (
-                                        achievementProgress.collector.obtainedPrizes.map((prize) => (
-                                          <AppChip key={`${player.id}-obtained-${prize}`} size="small" color="success" label={getPrizeBadgeLabel(prize)} />
+                                      {achievementProgress.collector.obtainedCellIds.length ? (
+                                        achievementProgress.collector.obtainedCellIds.map((cellId) => (
+                                          <AppChip
+                                            key={`${player.id}-obtained-${cellId}`}
+                                            size="small"
+                                            color="success"
+                                            label={collectibleCellsById[cellId] ?? cellId}
+                                          />
                                         ))
                                       ) : (
                                         <Typography variant="body2" color="text.secondary">
@@ -146,9 +169,14 @@ export default function JourneyStateCard({
                                       {journeyTexts.progress.missing}:
                                     </Typography>
                                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                                      {achievementProgress.collector.missingPrizes.length ? (
-                                        achievementProgress.collector.missingPrizes.map((prize) => (
-                                          <AppChip key={`${player.id}-missing-${prize}`} size="small" variant="outlined" label={getPrizeBadgeLabel(prize)} />
+                                      {achievementProgress.collector.missingCellIds.length ? (
+                                        achievementProgress.collector.missingCellIds.map((cellId) => (
+                                          <AppChip
+                                            key={`${player.id}-missing-${cellId}`}
+                                            size="small"
+                                            variant="outlined"
+                                            label={collectibleCellsById[cellId] ?? cellId}
+                                          />
                                         ))
                                       ) : (
                                         <Typography variant="body2" color="text.secondary">
@@ -211,7 +239,7 @@ export default function JourneyStateCard({
                                           border: "1px solid rgba(15, 23, 42, 0.08)",
                                         }}
                                       >
-                                        <Typography variant="body2">{getHistoryEntrySummary(entry)}</Typography>
+                                        <Typography variant="body2">{getHistoryEntrySummary(entry, journeyCurrencies)}</Typography>
                                         {entry.achievementsAwarded?.length ? (
                                           <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
                                             {entry.achievementsAwarded.map((achievement) => (

@@ -2,14 +2,19 @@ import type { BattleshipsBoardRules, BattleshipsRules } from "../../battleships/
 import type { JourneyRules } from "../../journey/domain/types";
 import type { LottoRules } from "../../lotto/domain/types";
 
+export interface ConfigCurrency {
+  id: string;
+  label: string;
+}
+
 export interface AppGamesConfig {
   journey: JourneyRules;
   battleships: BattleshipsRules;
   lotto: LottoRules;
 }
 
-export type JourneyConfigInput = Omit<JourneyRules, "currency">;
-export type BattleshipsBoardConfigInput = Omit<BattleshipsBoardRules, "currency">;
+export type JourneyConfigInput = JourneyRules;
+export type BattleshipsBoardConfigInput = BattleshipsBoardRules;
 
 export interface BattleshipsConfigInput {
   selectedBoardSize: number;
@@ -25,7 +30,7 @@ export interface AppGamesConfigInput {
 export interface AppConfigMutationInput {
   name: string;
   description: string;
-  currency: string;
+  currencies: ConfigCurrency[];
   games: AppGamesConfigInput;
 }
 
@@ -34,7 +39,7 @@ export type AppConfigSeed = AppConfigMutationInput;
 export interface AppConfig {
   name: string;
   description: string;
-  currency: string;
+  currencies: ConfigCurrency[];
   games: AppGamesConfig;
   createdAt: string;
   updatedAt: string;
@@ -47,28 +52,28 @@ export interface JourneyConfigSummary {
   jackpot: string;
   bonusKinds: number;
   trapKinds: number;
-  prizeLimit: number | null;
+  prizeLimit: string | null;
 }
 
 export interface BattleshipsConfigSummary {
   boardSize: number;
   maxShots: number;
   fleet: string[];
-  hitPrize: number;
-  currency: string;
+  hitPrizeLabel: string;
 }
 
 export interface LottoConfigSummary {
   range: string;
   cardNumbersAmount: number;
-  firstPlacePrize: number;
-  secondPlacePrize: number;
-  otherActivePlayersPrize: number;
+  firstPlacePrizeLabel: string;
+  secondPlacePrizeLabel: string;
+  otherActivePlayersPrizeLabel: string;
   rewardDistributionMode: LottoRules["rewardDistributionMode"];
 }
 
 export interface AppConfigReadModel extends AppConfig {
   id: string;
+  currency: string;
   journeySummary: JourneyConfigSummary | null;
   battleshipsSummary: BattleshipsConfigSummary | null;
   lottoSummary: LottoConfigSummary | null;

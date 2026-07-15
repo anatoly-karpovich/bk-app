@@ -41,6 +41,10 @@ interface PendingDeleteConfigState {
   name: string;
 }
 
+function formatConfigCurrencies(config: AppConfig): string {
+  return config.currencies.map((currency) => currency.label).join(", ");
+}
+
 interface ConfigsPageProps {
   configs: AppConfig[];
   selectedConfigId: string;
@@ -182,7 +186,7 @@ export default function ConfigsPage({
                     <Stack alignItems="flex-end" spacing={1} sx={{ pr: 2, pt: 2 }}>
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end">
                         {isSelected ? <Chip color="success" label="Выбран" /> : null}
-                        <Chip label={`Валюта: ${config.currency}`} />
+                        <Chip label={`Валюты: ${formatConfigCurrencies(config)}`} />
                         <Chip variant="outlined" label="Journey" />
                         <Chip variant="outlined" label="Battleships" />
                         <Chip variant="outlined" label="Lotto" />
@@ -229,7 +233,7 @@ export default function ConfigsPage({
                         <Chip label={`Поле: ${battleshipsSummary?.boardSize ?? "-"}x${battleshipsSummary?.boardSize ?? "-"}`} />
                         <Chip label={`Попытки: ${battleshipsSummary?.maxShots ?? "-"}`} />
                         <Chip
-                          label={`Попадание: ${battleshipsSummary?.hitPrize ?? "-"} ${battleshipsSummary?.currency ?? config.currency}`}
+                          label={`Попадание: ${battleshipsSummary?.hitPrizeLabel ?? "-"}`}
                           color="success"
                         />
                         {(battleshipsSummary?.fleet ?? []).map((ship) => (
@@ -243,9 +247,9 @@ export default function ConfigsPage({
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         <Chip label={`Диапазон: ${lottoSummary?.range ?? "-"}`} />
                         <Chip label={`Чисел в карточке: ${lottoSummary?.cardNumbersAmount ?? "-"}`} />
-                        <Chip label={`1 место: ${lottoSummary?.firstPlacePrize ?? "-"} ${config.currency}`} color="success" />
-                        <Chip label={`2 место: ${lottoSummary?.secondPlacePrize ?? "-"} ${config.currency}`} color="info" />
-                        <Chip label={`Остальные: ${lottoSummary?.otherActivePlayersPrize ?? "-"} ${config.currency}`} variant="outlined" />
+                        <Chip label={`1 место: ${lottoSummary?.firstPlacePrizeLabel ?? "-"}`} color="success" />
+                        <Chip label={`2 место: ${lottoSummary?.secondPlacePrizeLabel ?? "-"}`} color="info" />
+                        <Chip label={`Остальные: ${lottoSummary?.otherActivePlayersPrizeLabel ?? "-"}`} variant="outlined" />
                         <Chip
                           label={
                             lottoSummary?.rewardDistributionMode === "split_pool"

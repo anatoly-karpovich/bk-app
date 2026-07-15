@@ -1,6 +1,6 @@
 import { ObjectId, type WithId } from "mongodb";
 import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
-import type { AppConfig } from "./domain/types";
+import type { AppConfig, ConfigCurrency } from "./domain/types";
 
 const CONFIGS_COLLECTION = "configs";
 const CASE_INSENSITIVE_COLLATION = {
@@ -9,6 +9,17 @@ const CASE_INSENSITIVE_COLLATION = {
 } as const;
 
 export interface AppConfigDocument extends Omit<AppConfig, "createdAt" | "updatedAt"> {
+  createdAt?: string;
+  updatedAt?: string;
+  id?: string;
+}
+
+export interface LegacyAppConfigDocument {
+  name?: string;
+  description?: string;
+  currency?: string;
+  currencies?: ConfigCurrency[];
+  games?: AppConfig["games"];
   createdAt?: string;
   updatedAt?: string;
   id?: string;
@@ -57,6 +68,7 @@ export class ConfigsRepository {
         $set: config,
         $unset: {
           id: "",
+          currency: "",
         },
       },
       {
@@ -84,6 +96,15 @@ export class ConfigsRepository {
 
     const collection = await this.getCollection();
     await collection.insertMany(configs);
+  }
+
+  async findLegacyCurrencyConfigs(): Promise<Array<WithId<LegacyAppConfigDocument>>> {
+    const collection = await this.mongoDatabase.getCollection<LegacyAppConfigDocument>(CONFIGS_COLLECTION);
+
+    return collection.find({
+      currencies: { $exists: false },
+      currency: { $type: "string" },
+    }).toArray();
   }
 
   private async getCollection() {

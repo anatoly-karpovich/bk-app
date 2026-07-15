@@ -55,8 +55,15 @@ function createDefaultJourneyCell(index: number) {
   return {
     id: `cell_${index + 1}`,
     kind: "bonus" as const,
-    value: 1,
+    rewards: [{ currencyId: "default", value: 1 }],
     count: 1,
+  };
+}
+
+function createDefaultJourneyReward(currencyId = "default", value = 0) {
+  return {
+    currencyId,
+    value,
   };
 }
 
@@ -71,14 +78,21 @@ function createDefaultBattleshipsBoard(boardSize: number): BattleshipsBoardEdito
     ],
     maxShots: 17,
     prizes: {
-      shoot: 2,
+      shoot: [{ currencyId: "default", value: 2 }],
       destroyBonus: [
-        { size: 1, bonus: 1 },
-        { size: 2, bonus: 1 },
-        { size: 3, bonus: 2 },
-        { size: 4, bonus: 2 },
+        { size: 1, rewards: [{ currencyId: "default", value: 1 }] },
+        { size: 2, rewards: [{ currencyId: "default", value: 1 }] },
+        { size: 3, rewards: [{ currencyId: "default", value: 2 }] },
+        { size: 4, rewards: [{ currencyId: "default", value: 2 }] },
       ],
     },
+  };
+}
+
+function createDefaultCurrency(index: number) {
+  return {
+    id: index === 0 ? "default" : `currency_${index + 1}`,
+    label: "",
   };
 }
 
@@ -113,6 +127,87 @@ export default function ConfigEditorCard({
     }
 
     await onSubmit(draft);
+  }
+
+  function renderRewardsEditor(params: {
+    label: string;
+    rewards: Array<{ currencyId: string; value: number }>;
+    onChange: (rewards: Array<{ currencyId: string; value: number }>) => void;
+    defaultValue?: number;
+    step?: number;
+    parseValue?: (value: string, fallback?: number) => number;
+  }) {
+    const { label, rewards, onChange, defaultValue = 0, step = 1, parseValue = parseIntegerInput } = params;
+    const fallbackCurrencyId = draft.currencies[0]?.id ?? "default";
+
+    return (
+      <Stack spacing={1.25}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="subtitle2">{label}</Typography>
+          <AppPillButton
+            size="small"
+            variant="outlined"
+            startIcon={<AddRoundedIcon />}
+            onClick={() =>
+              onChange([...rewards, createDefaultJourneyReward(fallbackCurrencyId, defaultValue)])
+            }
+          >
+            Добавить валюту
+          </AppPillButton>
+        </Stack>
+
+        {rewards.map((reward, rewardIndex) => (
+          <Grid key={`${reward.currencyId}-${rewardIndex}`} container spacing={2} alignItems="center">
+            <Grid item xs={12} md={5}>
+              <AppTextInput
+                select
+                label="Валюта"
+                value={reward.currencyId}
+                onChange={(event) =>
+                  onChange(
+                    rewards.map((item, index) =>
+                      index === rewardIndex ? { ...item, currencyId: event.target.value } : item,
+                    ),
+                  )
+                }
+                fullWidth
+              >
+                {draft.currencies.map((currency) => (
+                  <MenuItem key={currency.id} value={currency.id}>
+                    {currency.label || currency.id}
+                  </MenuItem>
+                ))}
+              </AppTextInput>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <AppTextInput
+                label="Значение"
+                type="number"
+                value={reward.value}
+                inputProps={{ step }}
+                onChange={(event) =>
+                  onChange(
+                    rewards.map((item, index) =>
+                      index === rewardIndex ? { ...item, value: parseValue(event.target.value) } : item,
+                    ),
+                  )
+                }
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} md={2} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+              <IconButton
+                color="error"
+                onClick={() => onChange(rewards.filter((_, index) => index !== rewardIndex))}
+                disabled={rewards.length === 1}
+              >
+                <DeleteOutlineRoundedIcon />
+              </IconButton>
+            </Grid>
+          </Grid>
+        ))}
+      </Stack>
+    );
   }
 
   return (
@@ -152,8 +247,17 @@ export default function ConfigEditorCard({
                   <Grid item xs={12} md={3}>
                     <AppTextInput
                       label="Валюта"
-                      value={draft.currency}
-                      onChange={(event) => updateDraft((current) => ({ ...current, currency: event.target.value }))}
+                      value={draft.currencies[0]?.label ?? ""}
+                      onChange={(event) =>
+                        updateDraft((current) => {
+                          if (!current.currencies.length) {
+                            current.currencies.push(createDefaultCurrency(0));
+                          }
+
+                          current.currencies[0].label = event.target.value;
+                          return current;
+                        })
+                      }
                       fullWidth
                     />
                   </Grid>
@@ -166,6 +270,74 @@ export default function ConfigEditorCard({
                     />
                   </Grid>
                 </Grid>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle1">Пул валют</Typography>
+                    <AppPillButton
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AddRoundedIcon />}
+                      onClick={() =>
+                        updateDraft((current) => ({
+                          ...current,
+                          currencies: [...current.currencies, createDefaultCurrency(current.currencies.length)],
+                        }))
+                      }
+                    >
+                      Добавить валюту
+                    </AppPillButton>
+                  </Stack>
+
+                  {draft.currencies.map((currency, currencyIndex) => (
+                    <Grid key={`${currency.id}-${currencyIndex}`} container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={4}>
+                        <AppTextInput
+                          label="ID валюты"
+                          value={currency.id}
+                          onChange={(event) =>
+                            updateDraft((current) => {
+                              current.currencies[currencyIndex].id = event.target.value;
+                              return current;
+                            })
+                          }
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <AppTextInput
+                          label="Название валюты"
+                          value={currency.label}
+                          onChange={(event) =>
+                            updateDraft((current) => {
+                              current.currencies[currencyIndex].label = event.target.value;
+                              return current;
+                            })
+                          }
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={2} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+                        <IconButton
+                          color="error"
+                          onClick={() =>
+                            updateDraft((current) => {
+                              current.currencies = current.currencies.filter((_, index) => index !== currencyIndex);
+
+                              if (!current.currencies.length) {
+                                current.currencies = [createDefaultCurrency(0)];
+                              }
+
+                              return current;
+                            })
+                          }
+                          disabled={draft.currencies.length === 1}
+                        >
+                          <DeleteOutlineRoundedIcon />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  ))}
+                </Stack>
               </Stack>
             </Box>
 
@@ -174,26 +346,6 @@ export default function ConfigEditorCard({
                 <Typography variant="h6">Journey</Typography>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={2}>
-                    <AppTextInput
-                      label="Стартовый приз"
-                      type="number"
-                      value={draft.games.journey.initialPrize}
-                      onChange={(event) =>
-                        updateDraft((current) => ({
-                          ...current,
-                          games: {
-                            ...current.games,
-                            journey: {
-                              ...current.games.journey,
-                              initialPrize: parseIntegerInput(event.target.value),
-                            },
-                          },
-                        }))
-                      }
-                      fullWidth
-                    />
-                  </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <AppTextInput
                       label="Мин. кубик"
@@ -277,78 +429,67 @@ export default function ConfigEditorCard({
                       fullWidth
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={2}>
-                    <AppTextInput
-                      label="Сокровище: приз"
-                      type="number"
-                      value={draft.games.journey.jackpot.prize}
-                      onChange={(event) =>
-                        updateDraft((current) => ({
-                          ...current,
-                          games: {
-                            ...current.games,
-                            journey: {
-                              ...current.games.journey,
-                              jackpot: {
-                                ...current.games.journey.jackpot,
-                                prize: parseIntegerInput(event.target.value),
-                              },
-                            },
-                          },
-                        }))
-                      }
-                      fullWidth
-                    />
-                  </Grid>
                 </Grid>
+
+                {renderRewardsEditor({
+                  label: "Стартовый баланс",
+                  rewards: draft.games.journey.initialRewards,
+                  onChange: (rewards) =>
+                    updateDraft((current) => {
+                      current.games.journey.initialRewards = rewards;
+                      return current;
+                    }),
+                  defaultValue: 0,
+                })}
 
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={draft.games.journey.maxPrize === null}
+                        checked={draft.games.journey.maxPrizes === null}
                         onChange={(event) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            games: {
-                              ...current.games,
-                              journey: {
-                                ...current.games.journey,
-                                maxPrize: event.target.checked ? null : 0,
-                              },
-                            },
-                          }))
+                          updateDraft((current) => {
+                            current.games.journey.maxPrizes = event.target.checked
+                              ? null
+                              : [createDefaultJourneyReward(current.currencies[0]?.id ?? "default", 0)];
+                            return current;
+                          })
                         }
                       />
                     }
-                    label="Без лимита приза"
-                  />
-                  <AppTextInput
-                    label="Лимит приза"
-                    type="number"
-                    value={draft.games.journey.maxPrize ?? ""}
-                    disabled={draft.games.journey.maxPrize === null}
-                    onChange={(event) =>
-                      updateDraft((current) => ({
-                        ...current,
-                        games: {
-                          ...current.games,
-                          journey: {
-                            ...current.games.journey,
-                            maxPrize: event.target.value === "" ? 0 : parseIntegerInput(event.target.value),
-                          },
-                        },
-                      }))
-                    }
-                    sx={{ width: { xs: "100%", md: 220 } }}
+                    label="Без лимита баланса"
                   />
                 </Stack>
+
+                {draft.games.journey.maxPrizes
+                  ? renderRewardsEditor({
+                      label: "Лимит баланса",
+                      rewards: draft.games.journey.maxPrizes,
+                      onChange: (rewards) =>
+                        updateDraft((current) => {
+                          current.games.journey.maxPrizes = rewards;
+                          return current;
+                        }),
+                      defaultValue: 0,
+                    })
+                  : null}
+
+                {renderRewardsEditor({
+                  label: "Награда сокровища",
+                  rewards: draft.games.journey.jackpot.rewards,
+                  onChange: (rewards) =>
+                    updateDraft((current) => {
+                      current.games.journey.jackpot.rewards = rewards;
+                      return current;
+                    }),
+                  defaultValue: 0,
+                })}
 
                 <Divider />
 
                 <Stack spacing={1.5}>
                   <Typography variant="subtitle1">Достижения</Typography>
-                  <Grid container spacing={2}>
+                  <Stack spacing={1.5}>
                     {(
                       [
                         ["unlucky", "Невезучий"],
@@ -357,33 +498,20 @@ export default function ConfigEditorCard({
                         ["lucky", "Счастливчик"],
                       ] as const
                     ).map(([key, label]) => (
-                      <Grid key={key} item xs={12} sm={6} md={3}>
-                        <AppTextInput
-                          label={label}
-                          type="number"
-                          value={draft.games.journey.achievements[key].prize}
-                          onChange={(event) =>
-                            updateDraft((current) => ({
-                              ...current,
-                              games: {
-                                ...current.games,
-                                journey: {
-                                  ...current.games.journey,
-                                  achievements: {
-                                    ...current.games.journey.achievements,
-                                    [key]: {
-                                      prize: parseIntegerInput(event.target.value),
-                                    },
-                                  },
-                                },
-                              },
-                            }))
-                          }
-                          fullWidth
-                        />
-                      </Grid>
+                      <Box key={key} sx={{ p: 2, borderRadius: 3, backgroundColor: "#fff" }}>
+                        {renderRewardsEditor({
+                          label,
+                          rewards: draft.games.journey.achievements[key].rewards,
+                          onChange: (rewards) =>
+                            updateDraft((current) => {
+                              current.games.journey.achievements[key].rewards = rewards;
+                              return current;
+                            }),
+                          defaultValue: 0,
+                        })}
+                      </Box>
                     ))}
-                  </Grid>
+                  </Stack>
                 </Stack>
 
                 <Divider />
@@ -395,16 +523,12 @@ export default function ConfigEditorCard({
                       variant="outlined"
                       startIcon={<AddRoundedIcon />}
                       onClick={() =>
-                        updateDraft((current) => ({
-                          ...current,
-                          games: {
-                            ...current.games,
-                            journey: {
-                              ...current.games.journey,
-                              cells: [...current.games.journey.cells, createDefaultJourneyCell(current.games.journey.cells.length)],
-                            },
-                          },
-                        }))
+                        updateDraft((current) => {
+                          const nextCell = createDefaultJourneyCell(current.games.journey.cells.length);
+                          nextCell.rewards[0].currencyId = current.currencies[0]?.id ?? "default";
+                          current.games.journey.cells.push(nextCell);
+                          return current;
+                        })
                       }
                     >
                       Добавить клетку
@@ -435,7 +559,19 @@ export default function ConfigEditorCard({
                               value={cell.kind}
                               onChange={(event) =>
                                 updateDraft((current) => {
-                                  current.games.journey.cells[cellIndex].kind = event.target.value as "bonus" | "trap";
+                                  const nextKind = event.target.value as "bonus" | "trap";
+                                  current.games.journey.cells[cellIndex].kind = nextKind;
+                                  current.games.journey.cells[cellIndex].rewards = current.games.journey.cells[cellIndex].rewards.map(
+                                    (reward) => ({
+                                      ...reward,
+                                      value:
+                                        nextKind === "bonus"
+                                          ? Math.abs(reward.value)
+                                          : reward.value > 0
+                                            ? -reward.value
+                                            : reward.value,
+                                    }),
+                                  );
                                   return current;
                                 })
                               }
@@ -444,20 +580,6 @@ export default function ConfigEditorCard({
                               <MenuItem value="bonus">Бонус</MenuItem>
                               <MenuItem value="trap">Ловушка</MenuItem>
                             </AppTextInput>
-                          </Grid>
-                          <Grid item xs={12} md={2}>
-                            <AppTextInput
-                              label="Значение"
-                              type="number"
-                              value={cell.value}
-                              onChange={(event) =>
-                                updateDraft((current) => {
-                                  current.games.journey.cells[cellIndex].value = parseIntegerInput(event.target.value);
-                                  return current;
-                                })
-                              }
-                              fullWidth
-                            />
                           </Grid>
                           <Grid item xs={12} md={2}>
                             <AppTextInput
@@ -493,6 +615,17 @@ export default function ConfigEditorCard({
                             </IconButton>
                           </Grid>
                         </Grid>
+
+                        {renderRewardsEditor({
+                          label: cell.kind === "bonus" ? "Награды клетки" : "Списания клетки",
+                          rewards: cell.rewards,
+                          onChange: (rewards) =>
+                            updateDraft((current) => {
+                              current.games.journey.cells[cellIndex].rewards = rewards;
+                              return current;
+                            }),
+                          defaultValue: cell.kind === "bonus" ? 1 : -1,
+                        })}
                       </Box>
                     ))}
                   </Stack>
@@ -624,20 +757,19 @@ export default function ConfigEditorCard({
                               fullWidth
                             />
                           </Grid>
-                          <Grid item xs={12} md={3}>
-                            <AppTextInput
-                              label="Приз за попадание"
-                              type="number"
-                              value={board.prizes.shoot}
-                              inputProps={{ step: 0.1, min: 0 }}
-                              onChange={(event) =>
+                          <Grid item xs={12}>
+                            {renderRewardsEditor({
+                              label: "Приз за попадание",
+                              rewards: board.prizes.shoot,
+                              onChange: (rewards) =>
                                 updateDraft((current) => {
-                                  current.games.battleships.boards[boardIndex].prizes.shoot = parseNumberInput(event.target.value);
+                                  current.games.battleships.boards[boardIndex].prizes.shoot = rewards;
                                   return current;
-                                })
-                              }
-                              fullWidth
-                            />
+                                }),
+                              defaultValue: 0,
+                              step: 0.1,
+                              parseValue: parseNumberInput,
+                            })}
                           </Grid>
                         </Grid>
 
@@ -723,7 +855,7 @@ export default function ConfigEditorCard({
                                 updateDraft((current) => {
                                   const bonusRows = current.games.battleships.boards[boardIndex].prizes.destroyBonus;
                                   const nextSize = Math.max(...bonusRows.map((bonus) => bonus.size), 0) + 1;
-                                  bonusRows.push({ size: nextSize, bonus: 0 });
+                                  bonusRows.push({ size: nextSize, rewards: [createDefaultJourneyReward(draft.currencies[0]?.id ?? "default", 0)] });
                                   return current;
                                 })
                               }
@@ -748,22 +880,21 @@ export default function ConfigEditorCard({
                                   fullWidth
                                 />
                               </Grid>
-                              <Grid item xs={12} md={4}>
-                                <AppTextInput
-                                  label="Бонус"
-                                  type="number"
-                                  value={bonusItem.bonus}
-                                  inputProps={{ step: 0.5, min: 0 }}
-                                  onChange={(event) =>
+                              <Grid item xs={12} md={8}>
+                                {renderRewardsEditor({
+                                  label: "Бонус",
+                                  rewards: bonusItem.rewards,
+                                  onChange: (rewards) =>
                                     updateDraft((current) => {
-                                      current.games.battleships.boards[boardIndex].prizes.destroyBonus[bonusIndex].bonus = parseNumberInput(event.target.value);
+                                      current.games.battleships.boards[boardIndex].prizes.destroyBonus[bonusIndex].rewards = rewards;
                                       return current;
-                                    })
-                                  }
-                                  fullWidth
-                                />
+                                    }),
+                                  defaultValue: 0,
+                                  step: 0.5,
+                                  parseValue: parseNumberInput,
+                                })}
                               </Grid>
-                              <Grid item xs={12} md={4} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+                              <Grid item xs={12} md={12} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
                                 <IconButton
                                   color="error"
                                   onClick={() =>
@@ -852,65 +983,56 @@ export default function ConfigEditorCard({
                       fullWidth
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={2}>
-                    <AppTextInput
-                      label="Приз за 1 место"
-                      type="number"
-                      value={draft.games.lotto.firstPlacePrize}
-                      onChange={(event) =>
+                  <Grid item xs={12} md={4}>
+                    {renderRewardsEditor({
+                      label: "Приз за 1 место",
+                      rewards: draft.games.lotto.firstPlacePrize,
+                      onChange: (rewards) =>
                         updateDraft((current) => ({
                           ...current,
                           games: {
                             ...current.games,
                             lotto: {
                               ...current.games.lotto,
-                              firstPlacePrize: parseIntegerInput(event.target.value),
+                              firstPlacePrize: rewards,
                             },
                           },
-                        }))
-                      }
-                      fullWidth
-                    />
+                        })),
+                    })}
                   </Grid>
-                  <Grid item xs={12} sm={6} md={2}>
-                    <AppTextInput
-                      label="Приз за 2 место"
-                      type="number"
-                      value={draft.games.lotto.secondPlacePrize}
-                      onChange={(event) =>
+                  <Grid item xs={12} md={4}>
+                    {renderRewardsEditor({
+                      label: "Приз за 2 место",
+                      rewards: draft.games.lotto.secondPlacePrize,
+                      onChange: (rewards) =>
                         updateDraft((current) => ({
                           ...current,
                           games: {
                             ...current.games,
                             lotto: {
                               ...current.games.lotto,
-                              secondPlacePrize: parseIntegerInput(event.target.value),
+                              secondPlacePrize: rewards,
                             },
                           },
-                        }))
-                      }
-                      fullWidth
-                    />
+                        })),
+                    })}
                   </Grid>
-                  <Grid item xs={12} sm={6} md={2}>
-                    <AppTextInput
-                      label="Приз остальным"
-                      type="number"
-                      value={draft.games.lotto.otherActivePlayersPrize}
-                      onChange={(event) =>
+                  <Grid item xs={12} md={4}>
+                    {renderRewardsEditor({
+                      label: "Приз остальным",
+                      rewards: draft.games.lotto.otherActivePlayersPrize,
+                      onChange: (rewards) =>
                         updateDraft((current) => ({
                           ...current,
                           games: {
                             ...current.games,
                             lotto: {
                               ...current.games.lotto,
-                              otherActivePlayersPrize: parseIntegerInput(event.target.value),
+                              otherActivePlayersPrize: rewards,
                             },
                           },
-                        }))
-                      }
-                      fullWidth
-                    />
+                        })),
+                    })}
                   </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <AppTextInput

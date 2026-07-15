@@ -109,11 +109,7 @@ export default function LottoSavedGamesDialog({
                             color={game.status === "finished" ? "success" : "info"}
                             label={getLottoSavedGameStatusLabel(game)}
                           />
-                          <AppChip
-                            size="small"
-                            variant="outlined"
-                            label={`${savedGamesTexts.dj}: ${game.djName || "Не указан"}`}
-                          />
+                          <AppChip size="small" variant="outlined" label={`${savedGamesTexts.dj}: ${game.djName || "Не указан"}`} />
                           <AppChip size="small" variant="outlined" label={`${savedGamesTexts.draws}: ${game.drawCount}`} />
                           <AppChip size="small" variant="outlined" label={`Игроков: ${game.playersCount}`} />
                           {isCurrentGame ? <AppChip size="small" color="secondary" label={savedGamesTexts.current} /> : null}
@@ -171,7 +167,7 @@ export default function LottoSavedGamesDialog({
                       }}
                     >
                       <Typography variant="body2" color="text.secondary">
-                        Валюта: {game.currency}
+                        Валюты: {game.currencies.map((currency) => currency.label).join(", ")}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {savedGamesTexts.winners}: {game.firstPlaceWinners.length ? game.firstPlaceWinners.join(", ") : "Пока нет"}

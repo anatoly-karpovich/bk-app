@@ -1,5 +1,7 @@
 import type { WithId } from "mongodb";
-import { getJourneyAchievements, getJourneyConfig, getNonJackpotPrizes } from "./domain/config";
+import type { ConfigCurrency } from "../configs/domain/types";
+import { balanceToJourneyCurrencyValues } from "./domain/currency";
+import { getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "./domain/config";
 import { JourneyEngine } from "./JourneyEngine";
 import type {
   JourneyGameListItemReadModel,
@@ -26,15 +28,14 @@ export class JourneyReadModelFactory {
       id: _id.toHexString(),
       ...this.clone(publicGame),
       derived: {
-        journeyConfig: getJourneyConfig(normalizedGame.rules),
+        journeyConfig: getJourneyConfig(normalizedGame.rules, normalizedGame.currencies),
         journeyAchievements: getJourneyAchievements(normalizedGame.rules),
-        nonJackpotPrizes: getNonJackpotPrizes(normalizedGame.rules),
+        collectibleCells: getCollectibleJourneyCells(normalizedGame.rules),
         gameIsOver: this.engine.isGameOver(normalizedGame),
-        activePlayers: this.buildJourneyPlayerReadModels(this.engine.getActivePlayers(normalizedGame)),
-        finishedPlayers: this.buildJourneyPlayerReadModels(this.engine.getFinishedPlayers(normalizedGame)),
-        visiblePlayers: this.buildJourneyPlayerReadModels(this.engine.getVisiblePlayers(normalizedGame)),
-        results: this.engine.getResults(normalizedGame).map((player) => this.clone(player)),
-        receipts: this.engine.calculateReceiptsDistribution(normalizedGame),
+        activePlayers: this.buildJourneyPlayerReadModels(this.engine.getActivePlayers(normalizedGame), normalizedGame.currencies),
+        finishedPlayers: this.buildJourneyPlayerReadModels(this.engine.getFinishedPlayers(normalizedGame), normalizedGame.currencies),
+        visiblePlayers: this.buildJourneyPlayerReadModels(this.engine.getVisiblePlayers(normalizedGame), normalizedGame.currencies),
+        results: this.buildJourneyPlayerReadModels(this.engine.getResults(normalizedGame), normalizedGame.currencies),
         playerTimelines: this.engine.getPlayerTimelines(normalizedGame),
       },
     };
@@ -56,21 +57,25 @@ export class JourneyReadModelFactory {
       djName: normalizedGame.djName,
       configId: normalizedGame.configId,
       configName: normalizedGame.configName,
+      currencies: this.clone(normalizedGame.currencies),
       roundsCount: normalizedGame.rounds.length,
       players: normalizedGame.players.map((player) => ({
         id: player.id,
         nickname: player.nickname,
         status: player.status,
         position: player.position,
-        prize: player.prize,
+        balanceEntries: balanceToJourneyCurrencyValues(player.balance, normalizedGame.currencies),
       })),
     };
   }
 
-  private buildJourneyPlayerReadModels(players: JourneyPlayer[]): JourneyPlayerReadModel[] {
+  private buildJourneyPlayerReadModels(
+    players: JourneyPlayer[],
+    currencies: ConfigCurrency[],
+  ): JourneyPlayerReadModel[] {
     return players.map((player) => ({
       ...this.clone(player),
-      fullPrize: this.engine.getPlayerFullPrize(player),
+      balanceEntries: balanceToJourneyCurrencyValues(player.balance, currencies),
     }));
   }
 

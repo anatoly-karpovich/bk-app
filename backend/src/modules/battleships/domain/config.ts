@@ -1,6 +1,8 @@
+import { normalizeCurrencyValues } from "../../../common/currencyValues";
 import type {
   BattleshipsBoardRules,
   BattleshipsBoardRulesInput,
+  BattleshipsCurrencyValue,
   BattleshipsRules,
   BattleshipsRulesInput,
   BattleshipsShipConfig,
@@ -49,14 +51,13 @@ const DEFAULT_BOARD_RULES: BattleshipsBoardRules = {
     { size: 1, amount: 4 },
   ],
   maxShots: 17,
-  currency: "фишки",
   prizes: {
-    shoot: 2,
+    shoot: [{ currencyId: "default", value: 2 }],
     destroyBonus: {
-      1: 1,
-      2: 1,
-      3: 2,
-      4: 2,
+      1: [{ currencyId: "default", value: 1 }],
+      2: [{ currencyId: "default", value: 1 }],
+      3: [{ currencyId: "default", value: 2 }],
+      4: [{ currencyId: "default", value: 2 }],
     },
   },
 };
@@ -131,9 +132,8 @@ function normalizeBattleshipsBoardRules(
     boardSize: resolvedBoardSize,
     ships,
     maxShots: normalizeNonNegativeInteger(input.maxShots ?? DEFAULT_BOARD_RULES.maxShots),
-    currency: input.currency?.trim() || DEFAULT_BOARD_RULES.currency,
     prizes: {
-      shoot: normalizeNonNegativeSingleDecimal(input.prizes?.shoot ?? DEFAULT_BOARD_RULES.prizes.shoot),
+      shoot: normalizeSingleDecimalRewardSet(input.prizes?.shoot ?? DEFAULT_BOARD_RULES.prizes.shoot, DEFAULT_BOARD_RULES.prizes.shoot),
       destroyBonus,
     },
   };
@@ -149,17 +149,18 @@ function normalizeShips(ships: BattleshipsShipConfig[]): BattleshipsShipConfig[]
 }
 
 function normalizeDestroyBonus(
-  input: Record<string | number, number> | undefined,
+  input: Record<string | number, BattleshipsCurrencyValue[]> | undefined,
   ships: BattleshipsShipConfig[],
-): Record<number, number> {
+): Record<number, BattleshipsCurrencyValue[]> {
   const sizes = new Set<number>([
     ...Object.keys(DEFAULT_BOARD_RULES.prizes.destroyBonus).map((value) => Number(value)),
     ...ships.map((ship) => ship.size),
   ]);
 
-  return Array.from(sizes).reduce<Record<number, number>>((result, size) => {
-    const value = input?.[size] ?? input?.[String(size)] ?? DEFAULT_BOARD_RULES.prizes.destroyBonus[size] ?? 0;
-    result[size] = normalizeNonNegativeHalfStep(value);
+  return Array.from(sizes).reduce<Record<number, BattleshipsCurrencyValue[]>>((result, size) => {
+    const fallback = DEFAULT_BOARD_RULES.prizes.destroyBonus[size] ?? DEFAULT_BOARD_RULES.prizes.destroyBonus[1];
+    const value = input?.[size] ?? input?.[String(size)] ?? fallback ?? [];
+    result[size] = normalizeHalfStepRewardSet(value, fallback);
     return result;
   }, {});
 }
@@ -170,6 +171,24 @@ function normalizePositiveInteger(value: number): number {
 
 function normalizeNonNegativeInteger(value: number): number {
   return Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+}
+
+function normalizeSingleDecimalRewardSet(values: BattleshipsCurrencyValue[], fallback: BattleshipsCurrencyValue[]): BattleshipsCurrencyValue[] {
+  const normalizedValues = normalizeCurrencyValues(values).map((entry) => ({
+    currencyId: entry.currencyId,
+    value: normalizeNonNegativeSingleDecimal(entry.value),
+  }));
+
+  return normalizedValues.length ? normalizedValues : structuredClone(fallback);
+}
+
+function normalizeHalfStepRewardSet(values: BattleshipsCurrencyValue[], fallback: BattleshipsCurrencyValue[]): BattleshipsCurrencyValue[] {
+  const normalizedValues = normalizeCurrencyValues(values).map((entry) => ({
+    currencyId: entry.currencyId,
+    value: normalizeNonNegativeHalfStep(entry.value),
+  }));
+
+  return normalizedValues.length ? normalizedValues : structuredClone(fallback);
 }
 
 function normalizeNonNegativeSingleDecimal(value: number): number {

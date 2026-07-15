@@ -1,7 +1,16 @@
 import { randomUUID } from "node:crypto";
+import {
+  divideCurrencyValues,
+  formatCurrencyValues,
+  hasAnyNonZeroCurrencyValues,
+  normalizeCurrencyValues,
+} from "../../common/currencyValues";
+import type { ConfigCurrency } from "../configs/domain/types";
+import { createDefaultConfigCurrency, normalizeConfigCurrencies } from "../configs/domain/normalizeConfig";
 import { normalizeLottoRules } from "./domain/config";
 import type {
   LottoCreatePlayerInput,
+  LottoCurrencyValue,
   LottoEvent,
   LottoGame,
   LottoPlayer,
@@ -10,18 +19,40 @@ import type {
 } from "./domain/types";
 import { LottoValidationError } from "./errors";
 
+type LegacyLottoRules = {
+  min: number;
+  max: number;
+  cardNumbersAmount: number;
+  firstPlacePrize?: LottoCurrencyValue[] | number;
+  secondPlacePrize?: LottoCurrencyValue[] | number;
+  otherActivePlayersPrize?: LottoCurrencyValue[] | number;
+  rewardDistributionMode: LottoRules["rewardDistributionMode"];
+};
+
+type LegacyLottoGame = Omit<LottoGame, "rules" | "currencies"> & {
+  currency?: string;
+  currencies?: ConfigCurrency[];
+  rules: LegacyLottoRules;
+};
+
 export class LottoEngine {
   normalizeGame(game: LottoGame | null): LottoGame | null {
     if (!game) {
       return null;
     }
 
-    const normalizedGame = this.clone(game);
-    normalizedGame.djName = normalizedGame.djName.trim();
-    normalizedGame.configId = normalizedGame.configId.trim();
-    normalizedGame.configName = normalizedGame.configName.trim();
-    normalizedGame.currency = normalizedGame.currency.trim();
-    normalizedGame.rules = normalizeLottoRules(normalizedGame.rules);
+    const legacyGame = this.clone(game) as LegacyLottoGame;
+    const currencies = this.normalizeCurrencies(legacyGame.currencies, legacyGame.currency);
+    const defaultCurrencyId = currencies[0]?.id ?? "default";
+    const normalizedGame: LottoGame = {
+      ...legacyGame,
+      djName: legacyGame.djName.trim(),
+      configId: legacyGame.configId.trim(),
+      configName: legacyGame.configName.trim(),
+      currencies,
+      rules: normalizeLottoRules(this.normalizeLegacyRules(legacyGame.rules, defaultCurrencyId)),
+    };
+
     normalizedGame.drawnNumbers = this.uniqueNumbers(normalizedGame.drawnNumbers);
     normalizedGame.availableNumbers = this.normalizeAvailableNumbers(
       normalizedGame.rules,
@@ -42,13 +73,14 @@ export class LottoEngine {
     players: LottoCreatePlayerInput[],
     options: {
       rules: LottoRules;
-      currency: string;
+      currencies: ConfigCurrency[];
       djName?: string;
       configId?: string;
       configName?: string;
     },
   ): LottoGame {
     const now = new Date().toISOString();
+    const currencies = this.normalizeCurrencies(options.currencies);
     const rules = normalizeLottoRules(options.rules);
     const normalizedPlayers = this.createPlayers(players, rules);
 
@@ -60,7 +92,7 @@ export class LottoEngine {
       djName: options.djName?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
-      currency: options.currency.trim(),
+      currencies,
       rules,
       drawnNumbers: [],
       availableNumbers: this.createAvailableNumbers(rules),
@@ -403,7 +435,7 @@ export class LottoEngine {
       game.events.push({
         createdAt: finishTimestamp,
         type: "prizes_awarded",
-        message: `1 место: ${firstPlaceWinners.map((player) => player.nickname).join(", ")} — по ${prize} ${game.currency}.`,
+        message: `1 место: ${firstPlaceWinners.map((player) => player.nickname).join(", ")} - по ${formatCurrencyValues(prize, game.currencies, { includeZero: false })}.`,
       });
     }
 
@@ -412,11 +444,11 @@ export class LottoEngine {
       game.events.push({
         createdAt: finishTimestamp,
         type: "prizes_awarded",
-        message: `2 место: ${secondPlaceWinners.map((player) => player.nickname).join(", ")} — по ${prize} ${game.currency}.`,
+        message: `2 место: ${secondPlaceWinners.map((player) => player.nickname).join(", ")} - по ${formatCurrencyValues(prize, game.currencies, { includeZero: false })}.`,
       });
     }
 
-    if (otherPrizePlayers.length && game.rules.otherActivePlayersPrize > 0) {
+    if (otherPrizePlayers.length && hasAnyNonZeroCurrencyValues(game.rules.otherActivePlayersPrize)) {
       const prize = this.resolvePrizePerWinner(
         game.rules.otherActivePlayersPrize,
         otherPrizePlayers.length,
@@ -425,21 +457,21 @@ export class LottoEngine {
       game.events.push({
         createdAt: finishTimestamp,
         type: "prizes_awarded",
-        message: `Остальные: ${otherPrizePlayers.map((player) => player.nickname).join(", ")} — по ${prize} ${game.currency}.`,
+        message: `Остальные: ${otherPrizePlayers.map((player) => player.nickname).join(", ")} - по ${formatCurrencyValues(prize, game.currencies, { includeZero: false })}.`,
       });
     }
   }
 
   private resolvePrizePerWinner(
-    totalPrize: number,
+    totalPrize: LottoCurrencyValue[],
     winnersCount: number,
     rewardDistributionMode: LottoRules["rewardDistributionMode"],
-  ): number {
+  ): LottoCurrencyValue[] {
     if (rewardDistributionMode === "split_pool" && winnersCount > 0) {
-      return Number((totalPrize / winnersCount).toFixed(2));
+      return divideCurrencyValues(totalPrize, winnersCount);
     }
 
-    return totalPrize;
+    return normalizeCurrencyValues(totalPrize);
   }
 
   private createAvailableNumbers(rules: LottoRules): number[] {
@@ -484,6 +516,41 @@ export class LottoEngine {
 
   private uniqueNumbers(values: number[]): number[] {
     return Array.from(new Set(values.map((value) => Math.trunc(value))));
+  }
+
+  private normalizeLegacyRules(rules: LegacyLottoRules, defaultCurrencyId: string): LottoRules {
+    return {
+      min: rules.min,
+      max: rules.max,
+      cardNumbersAmount: rules.cardNumbersAmount,
+      firstPlacePrize: this.toCurrencyValues(rules.firstPlacePrize, defaultCurrencyId),
+      secondPlacePrize: this.toCurrencyValues(rules.secondPlacePrize, defaultCurrencyId),
+      otherActivePlayersPrize: this.toCurrencyValues(rules.otherActivePlayersPrize, defaultCurrencyId),
+      rewardDistributionMode: rules.rewardDistributionMode,
+    };
+  }
+
+  private toCurrencyValues(values: LottoCurrencyValue[] | number | undefined, defaultCurrencyId: string): LottoCurrencyValue[] {
+    if (Array.isArray(values)) {
+      return normalizeCurrencyValues(values);
+    }
+
+    if (!Number.isFinite(values)) {
+      return [];
+    }
+
+    const numericValue = Number(values);
+    return [{ currencyId: defaultCurrencyId, value: Math.max(0, Math.trunc(numericValue)) }];
+  }
+
+  private normalizeCurrencies(currencies: ConfigCurrency[] | undefined, legacyCurrencyLabel?: string): ConfigCurrency[] {
+    const normalizedCurrencies = normalizeConfigCurrencies(currencies ?? []);
+
+    if (normalizedCurrencies.length) {
+      return normalizedCurrencies;
+    }
+
+    return [createDefaultConfigCurrency(legacyCurrencyLabel)];
   }
 
   private clone<T>(value: T): T {

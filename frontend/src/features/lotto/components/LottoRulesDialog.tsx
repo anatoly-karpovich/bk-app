@@ -1,5 +1,6 @@
 import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, Typography } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
+import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoRules } from "../types";
 
@@ -7,10 +8,10 @@ interface LottoRulesDialogProps {
   open: boolean;
   onClose: () => void;
   rules: LottoRules | null;
-  currency: string;
+  currencies: CurrencyDefinition[];
 }
 
-export default function LottoRulesDialog({ open, onClose, rules, currency }: LottoRulesDialogProps) {
+export default function LottoRulesDialog({ open, onClose, rules, currencies }: LottoRulesDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{lottoTexts.rulesDialogTitle}</DialogTitle>
@@ -28,13 +29,13 @@ export default function LottoRulesDialog({ open, onClose, rules, currency }: Lot
               Чисел в карточке: {rules.cardNumbersAmount}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Приз за 1 место: {rules.firstPlacePrize} {currency}
+              Приз за 1 место: {formatCurrencyValues(rules.firstPlacePrize, currencies, { includeZero: false }) || "0"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Приз за 2 место: {rules.secondPlacePrize} {currency}
+              Приз за 2 место: {formatCurrencyValues(rules.secondPlacePrize, currencies, { includeZero: false }) || "0"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Приз остальным активным игрокам: {rules.otherActivePlayersPrize} {currency}
+              Приз остальным активным игрокам: {formatCurrencyValues(rules.otherActivePlayersPrize, currencies, { includeZero: false }) || "0"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Режим распределения:{" "}

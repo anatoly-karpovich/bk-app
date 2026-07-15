@@ -1,3 +1,6 @@
+import type { CurrencyValue } from "../../../common/currencyValues";
+import type { ConfigCurrency } from "../../configs/domain/types";
+
 export type RandomFn = () => number;
 
 export type BattleshipsGameStatus = "in_progress" | "finished";
@@ -8,16 +11,17 @@ export interface BattleshipsShipConfig {
   amount: number;
 }
 
+export interface BattleshipsCurrencyValue extends CurrencyValue {}
+
 export interface BattleshipsPrizes {
-  shoot: number;
-  destroyBonus: Record<number, number>;
+  shoot: BattleshipsCurrencyValue[];
+  destroyBonus: Record<number, BattleshipsCurrencyValue[]>;
 }
 
 export interface BattleshipsBoardRules {
   boardSize: number;
   ships: BattleshipsShipConfig[];
   maxShots: number;
-  currency: string;
   prizes: BattleshipsPrizes;
 }
 
@@ -25,10 +29,9 @@ export interface BattleshipsBoardRulesInput {
   boardSize?: number;
   ships?: BattleshipsShipConfig[];
   maxShots?: number;
-  currency?: string;
   prizes?: {
-    shoot?: number;
-    destroyBonus?: Record<string | number, number>;
+    shoot?: BattleshipsCurrencyValue[];
+    destroyBonus?: Record<string | number, BattleshipsCurrencyValue[]>;
   };
 }
 
@@ -58,8 +61,8 @@ export interface BattleshipsShot {
   row: number;
   column: number;
   result: BattleshipsShotResult;
-  prizeDelta: number;
-  totalPrize: number;
+  prizeDelta: BattleshipsCurrencyValue[];
+  totalPrize: BattleshipsCurrencyValue[];
   shipSize: number | null;
 }
 
@@ -71,6 +74,7 @@ export interface BattleshipsGame {
   djName: string;
   configId: string;
   configName: string;
+  currencies: ConfigCurrency[];
   rules: BattleshipsRules;
   board: number[][];
   ships: BattleshipsShip[];
@@ -95,7 +99,7 @@ export interface BattleshipsGameDerivedData {
   boardConfig: BattleshipsBoardRules;
   gameIsOver: boolean;
   attemptsLeft: number;
-  currentPrize: number;
+  currentPrize: BattleshipsCurrencyValue[];
   boardLetters: string[];
   destroyedShipsCount: number;
   totalShipsCount: number;
@@ -122,8 +126,8 @@ export interface BattleshipsGameListItemReadModel {
   boardSize: number;
   maxShots: number;
   attemptsLeft: number;
-  currentPrize: number;
-  currency: string;
+  currentPrize: BattleshipsCurrencyValue[];
+  currencies: ConfigCurrency[];
   shotsCount: number;
 }
 

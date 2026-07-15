@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
+import { formatCurrencyValues } from "../../../lib/currencyValues";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import { formatBattleshipsTimestamp, getBattleshipsSavedGameStatusLabel } from "../mappers/battleships.mapper";
 import type { BattleshipsSavedGameSummary } from "../types";
@@ -112,7 +113,11 @@ export default function BattleshipsSavedGamesDialog({
                             label={getBattleshipsSavedGameStatusLabel(game)}
                           />
                           <AppChip size="small" variant="outlined" label={`${savedGamesTexts.player}: ${game.playerName}`} />
-                          <AppChip size="small" variant="outlined" label={`${savedGamesTexts.prize}: ${game.currentPrize} ${game.currency}`} />
+                          <AppChip
+                            size="small"
+                            variant="outlined"
+                            label={`${savedGamesTexts.prize}: ${formatCurrencyValues(game.currentPrize, game.currencies, { includeZero: false }) || "0"}`}
+                          />
                           {isCurrentGame ? <AppChip size="small" color="secondary" label={savedGamesTexts.current} /> : null}
                         </Stack>
                         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap" useFlexGap>
@@ -169,6 +174,9 @@ export default function BattleshipsSavedGamesDialog({
                     >
                       <Typography variant="body2" color="text.secondary">
                         {savedGamesTexts.dj}: {game.djName || "Не указан"}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Валюты: {game.currencies.map((currency) => currency.label).join(", ")}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {savedGamesTexts.board}: {game.boardSize}x{game.boardSize}
