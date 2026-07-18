@@ -13,6 +13,14 @@ export const createLottoGameConfigSchema = z.object({
   configId: objectIdSchema,
 });
 
+export const createLottoGameProjectParamsSchema = z.object({
+  projectId: objectIdSchema,
+});
+
+export const createLottoGamePresetSchema = z.object({
+  gameConfigId: objectIdSchema,
+});
+
 export const createLottoGameDjNameSchema = z.object({
   djName: z.string().optional(),
 });

@@ -13,6 +13,14 @@ export const createBattleshipsGameConfigSchema = z.object({
   configId: objectIdSchema,
 });
 
+export const createBattleshipsGameProjectParamsSchema = z.object({
+  projectId: objectIdSchema,
+});
+
+export const createBattleshipsGamePresetSchema = z.object({
+  gameConfigId: objectIdSchema,
+});
+
 export const createBattleshipsGameDjNameSchema = z.object({
   djName: z.string().optional(),
 });

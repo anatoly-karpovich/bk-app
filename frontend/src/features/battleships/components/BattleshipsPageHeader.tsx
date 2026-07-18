@@ -1,35 +1,29 @@
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
-import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import type { ReactNode } from "react";
 import GamePageHeader from "../../../components/GamePageHeader";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsStatusChip } from "../types";
 
 interface BattleshipsPageHeaderProps {
   pageStatusChips: BattleshipsStatusChip[];
-  canStartGame: boolean;
-  hasGame: boolean;
-  isStartingGame: boolean;
   isLoadingSavedGames: boolean;
   isResettingGame: boolean;
   actionsDisabled: boolean;
+  controls?: ReactNode;
   onOpenRules: () => void;
-  onStartGame: () => void;
   onOpenSavedGames: () => void;
   onRestartGame: () => void;
 }
 
 export default function BattleshipsPageHeader({
   pageStatusChips,
-  canStartGame,
-  hasGame,
-  isStartingGame,
   isLoadingSavedGames,
   isResettingGame,
   actionsDisabled,
+  controls,
   onOpenRules,
-  onStartGame,
   onOpenSavedGames,
   onRestartGame,
 }: BattleshipsPageHeaderProps) {
@@ -38,6 +32,7 @@ export default function BattleshipsPageHeader({
       title={battleshipsTexts.pageTitle}
       description={battleshipsTexts.pageDescription}
       chips={pageStatusChips}
+      controls={controls}
       actions={[
         {
           key: "rules",
@@ -46,15 +41,6 @@ export default function BattleshipsPageHeader({
           onClick: onOpenRules,
           disabled: actionsDisabled,
           variant: "outlined",
-        },
-        {
-          key: "new-game",
-          label: battleshipsTexts.actions.newGame,
-          icon: <DirectionsBoatRoundedIcon />,
-          onClick: onStartGame,
-          disabled: actionsDisabled || hasGame || !canStartGame,
-          loading: isStartingGame,
-          variant: "contained",
         },
         {
           key: "saved-games",

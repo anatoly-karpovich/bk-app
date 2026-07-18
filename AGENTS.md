@@ -68,6 +68,7 @@ Important principles:
 - separate UI, API, domain, persistence, and configuration concerns
 - avoid duplicating game rules between frontend and backend
 - keep project-level config concerns explicit, including shared project currency
+- treat `Project` and project-owned `GameConfig` presets as the active configuration model
 - prefer shared source components for repeated host-facing UI patterns such as player-name inputs, page headers, and saved-game actions
 - prefer extracting shared UI/layout components once the same structure appears in more than one feature
 - prefer one shared source of truth for repeated navigation or framing UI such as breadcrumbs, page headers, and saved-game layouts
@@ -89,8 +90,7 @@ Use it to keep responsibilities clean and avoid mixing unrelated concerns.
 The backend is the source of truth for:
 
 - game state
-- game configs
-- project currency
+- projects, project-owned game-config presets, and project currency
 - game rules
 - parsing and resolving game actions
 - persistence
@@ -117,7 +117,7 @@ The frontend is responsible for:
 
 Frontend must not own final game rules or final game state.
 
-Project-level currency should be read from backend configs, not recreated independently per frontend feature.
+Project-level currency and preset rules must be read from project-scoped backend APIs, not recreated independently per frontend feature.
 
 Current host-facing pages such as Journey, Battleships, and Lotto should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
 
@@ -139,7 +139,7 @@ Not allowed:
 - full game state
 - rounds
 - players
-- configs
+- project/preset definitions
 - calculated game results
 
 ---

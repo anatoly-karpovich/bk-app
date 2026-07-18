@@ -47,6 +47,7 @@ export class LottoEngine {
     const normalizedGame: LottoGame = {
       ...legacyGame,
       djName: legacyGame.djName.trim(),
+      projectId: legacyGame.projectId?.trim() ?? "",
       configId: legacyGame.configId.trim(),
       configName: legacyGame.configName.trim(),
       currencies,
@@ -75,6 +76,7 @@ export class LottoEngine {
       rules: LottoRules;
       currencies: ConfigCurrency[];
       djName?: string;
+      projectId?: string;
       configId?: string;
       configName?: string;
     },
@@ -90,6 +92,7 @@ export class LottoEngine {
       finishedAt: null,
       status: "in_progress",
       djName: options.djName?.trim() ?? "",
+      projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
       currencies,

@@ -72,6 +72,7 @@ export interface BattleshipsGame {
   status: BattleshipsGameStatus;
   playerName: string;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: ConfigCurrency[];
@@ -121,6 +122,7 @@ export interface BattleshipsGameListItemReadModel {
   status: BattleshipsGameStatus;
   playerName: string;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   boardSize: number;

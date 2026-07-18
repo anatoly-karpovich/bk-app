@@ -761,6 +761,7 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
   game.updatedAt = game.updatedAt ?? game.createdAt;
   game.status = game.status ?? "in_progress";
   game.djName = game.djName ?? "";
+  game.projectId = game.projectId ?? "";
   game.configId = game.configId ?? game.rulesetId ?? "oldbk2";
   game.configName = game.configName ?? game.rulesetName ?? game.configId;
 
@@ -868,6 +869,7 @@ export function createJourneyGame(
     rules = DEFAULT_JOURNEY_RULES,
     currencies = [createDefaultJourneyCurrency()],
     djName = "",
+    projectId = "",
     configId = "oldbk2",
     configName = configId,
   }: {
@@ -875,6 +877,7 @@ export function createJourneyGame(
     rules?: JourneyRules;
     currencies?: ConfigCurrency[];
     djName?: string;
+    projectId?: string;
     configId?: string;
     configName?: string;
   } = {},
@@ -889,6 +892,7 @@ export function createJourneyGame(
     moveIndex: 0,
     status: "in_progress",
     djName: djName.trim(),
+    projectId: projectId.trim(),
     configId,
     configName,
     currencies: normalizedCurrencies,

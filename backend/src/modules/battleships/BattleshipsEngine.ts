@@ -56,6 +56,7 @@ export class BattleshipsEngine {
       ...legacyGame,
       playerName: legacyGame.playerName.trim(),
       djName: legacyGame.djName.trim(),
+      projectId: legacyGame.projectId?.trim() ?? "",
       configId: legacyGame.configId.trim(),
       configName: legacyGame.configName.trim(),
       currencies,
@@ -75,6 +76,7 @@ export class BattleshipsEngine {
       rules: BattleshipsRules;
       currencies: ConfigCurrency[];
       djName?: string;
+      projectId?: string;
       configId?: string;
       configName?: string;
     },
@@ -91,6 +93,7 @@ export class BattleshipsEngine {
       status: "in_progress",
       playerName: playerName.trim(),
       djName: options.djName?.trim() ?? "",
+      projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
       currencies,

@@ -1,7 +1,8 @@
 import { Alert, Grid, Stack } from "@mui/material";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
+import GameConfigSelectField from "../../components/GameConfigSelectField";
 import { battleshipsTexts } from "../../texts/battleshipsTexts";
-import type { AppConfig } from "../configs/types";
+import type { Project } from "../projects/types";
 import BattleshipsBoardCard from "./components/BattleshipsBoardCard";
 import BattleshipsLogCard from "./components/BattleshipsLogCard";
 import BattleshipsPageHeader from "./components/BattleshipsPageHeader";
@@ -19,12 +20,14 @@ const deleteSavedGameTexts = {
 
 interface BattleshipsPageProps {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
 
-export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsPageProps) {
+export default function BattleshipsPage({ djName, selectedProject }: BattleshipsPageProps) {
   const {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     playerName,
     savedGames,
     storedGameId,
@@ -33,6 +36,7 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
     rulesDialogOpen,
     savedGamesError,
     requestError,
+    gameConfigsError,
     selectedBattleshipsRules,
     resolvedCurrencies,
     boardConfig,
@@ -44,7 +48,7 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
     boardActionsDisabled,
     loading,
     actions,
-  } = useBattleshipsGame({ djName, selectedConfig });
+  } = useBattleshipsGame({ djName, selectedProject });
 
   return (
     <>
@@ -52,14 +56,21 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
         <Grid item xs={12}>
           <BattleshipsPageHeader
             pageStatusChips={pageStatusChips}
-            canStartGame={canStartGame}
-            hasGame={Boolean(game)}
-            isStartingGame={loading.isStartingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
             isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            controls={
+              <GameConfigSelectField
+                label="Пресет Battleships"
+                gameConfigs={gameConfigs}
+                selectedGameConfigId={selectedGameConfigId}
+                onSelectedGameConfigChange={actions.selectGameConfig}
+                loading={loading.isLoadingGameConfigs}
+                hideHelperText
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
+              />
+            }
             onOpenRules={() => actions.setRulesDialogOpen(true)}
-            onStartGame={actions.startGame}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
           />
@@ -71,7 +82,7 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
           </Grid>
         ) : null}
 
-        {!game && !selectedBattleshipsRules ? (
+        {!game && !selectedBattleshipsRules && !gameConfigsError && !loading.isLoadingGameConfigs ? (
           <Grid item xs={12}>
             <Alert severity="warning">{battleshipsTexts.alerts.missingConfig}</Alert>
           </Grid>
@@ -82,6 +93,12 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
             <Alert severity="error" onClose={() => actions.setRequestError(null)}>
               {requestError}
             </Alert>
+          </Grid>
+        ) : null}
+
+        {!game && gameConfigsError ? (
+          <Grid item xs={12}>
+            <Alert severity="error">{gameConfigsError}</Alert>
           </Grid>
         ) : null}
 
@@ -102,6 +119,9 @@ export default function BattleshipsPage({ djName, selectedConfig }: BattleshipsP
                 currencies={resolvedCurrencies}
                 fleetSummary={fleetSummary}
                 actionsDisabled={loading.isStartingGame || loading.isResettingGame}
+                canStartGame={canStartGame}
+                isStartingGame={loading.isStartingGame}
+                onStartGame={actions.startGame}
                 onPlayerNameChange={actions.setPlayerName}
               />
             )}

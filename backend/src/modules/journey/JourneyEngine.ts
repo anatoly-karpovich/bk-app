@@ -33,6 +33,7 @@ export class JourneyEngine {
       rules?: JourneyRules;
       currencies?: ConfigCurrency[];
       djName?: string;
+      projectId?: string;
       configId?: string;
       configName?: string;
     } = {},

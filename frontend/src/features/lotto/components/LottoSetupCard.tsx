@@ -1,5 +1,6 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { Card, CardContent, CardHeader, Grid, IconButton, Stack, Typography } from "@mui/material";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
@@ -14,6 +15,9 @@ interface LottoSetupCardProps {
   playerErrors: LottoSetupPlayerInputError[];
   rules: LottoRules | null;
   actionsDisabled: boolean;
+  canStartGame: boolean;
+  isStartingGame: boolean;
+  onStartGame: () => void;
   onPlayerNameChange: (index: number, value: string) => void;
   onPlayerNumbersChange: (index: number, value: string) => void;
   onGenerateCard: (index: number) => void;
@@ -26,6 +30,9 @@ export default function LottoSetupCard({
   playerErrors,
   rules,
   actionsDisabled,
+  canStartGame,
+  isStartingGame,
+  onStartGame,
   onPlayerNameChange,
   onPlayerNumbersChange,
   onGenerateCard,
@@ -34,7 +41,23 @@ export default function LottoSetupCard({
 }: LottoSetupCardProps) {
   return (
     <Card>
-      <CardHeader title={lottoTexts.cards.setupTitle} subheader={lottoTexts.cards.setupSubtitle} />
+      <CardHeader
+        title={lottoTexts.cards.setupTitle}
+        subheader={lottoTexts.cards.setupSubtitle}
+        action={
+          <AppPillButton
+            variant="contained"
+            size="small"
+            startIcon={<CasinoRoundedIcon />}
+            onClick={onStartGame}
+            disabled={actionsDisabled || !canStartGame}
+            loading={isStartingGame}
+            sx={{ mt: 0.5 }}
+          >
+            {lottoTexts.actions.newGame}
+          </AppPillButton>
+        }
+      />
       <CardContent>
         <Stack spacing={2.5}>
           {rules ? (

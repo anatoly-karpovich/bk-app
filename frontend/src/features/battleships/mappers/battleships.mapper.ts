@@ -33,11 +33,11 @@ export function formatBattleshipsTimestamp(value: string): string {
 export function createBattleshipsStatusChips(params: {
   game: BattleshipsPersistedGame | null;
   djName: string;
-  selectedConfigName?: string;
+  selectedGameConfigName?: string;
 }): BattleshipsStatusChip[] {
-  const { game, djName, selectedConfigName } = params;
+  const { game, djName, selectedGameConfigName } = params;
   const resolvedDjName = game?.djName?.trim() || djName.trim();
-  const rulesetLabel = `${battleshipsTexts.statuses.rulesetPrefix} ${game?.configName ?? selectedConfigName ?? "Не выбран"}`;
+  const rulesetLabel = `${battleshipsTexts.statuses.rulesetPrefix} ${game?.configName ?? selectedGameConfigName ?? "Не выбран"}`;
 
   if (!game) {
     return [

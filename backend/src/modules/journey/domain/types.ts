@@ -185,6 +185,7 @@ export interface JourneyGame {
   moveIndex: number;
   status: JourneyGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: ConfigCurrency[];
@@ -231,6 +232,7 @@ export interface JourneyGameListItemReadModel {
   updatedAt: string;
   status: JourneyGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: ConfigCurrency[];
@@ -270,6 +272,7 @@ export interface JourneyRoundDto {
 
 export interface JourneyGameDto {
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: ConfigCurrency[];

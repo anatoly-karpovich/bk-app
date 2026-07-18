@@ -62,6 +62,7 @@ export class LottoReadModelFactory {
       finishedAt: normalizedGame.finishedAt,
       status: normalizedGame.status,
       djName: normalizedGame.djName,
+      projectId: normalizedGame.projectId,
       configId: normalizedGame.configId,
       configName: normalizedGame.configName,
       currencies: this.clone(normalizedGame.currencies),

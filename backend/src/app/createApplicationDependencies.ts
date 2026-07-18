@@ -4,10 +4,10 @@ import { BattleshipsEngine } from "../modules/battleships/BattleshipsEngine";
 import { BattleshipsReadModelFactory } from "../modules/battleships/BattleshipsReadModelFactory";
 import { BattleshipsRepository } from "../modules/battleships/BattleshipsRepository";
 import { BattleshipsService } from "../modules/battleships/BattleshipsService";
-import { ConfigReadModelFactory } from "../modules/configs/ConfigReadModelFactory";
-import { ConfigsController } from "../modules/configs/ConfigsController";
-import { ConfigsRepository } from "../modules/configs/ConfigsRepository";
-import { ConfigsService } from "../modules/configs/ConfigsService";
+import { GameConfigReadModelFactory } from "../modules/gameConfigs/GameConfigReadModelFactory";
+import { GameConfigsController } from "../modules/gameConfigs/GameConfigsController";
+import { GameConfigsRepository } from "../modules/gameConfigs/GameConfigsRepository";
+import { GameConfigsService } from "../modules/gameConfigs/GameConfigsService";
 import { ForumTopicController } from "../modules/forumTopic/ForumTopicController";
 import { ForumTopicService } from "../modules/forumTopic/ForumTopicService";
 import { JourneyController } from "../modules/journey/JourneyController";
@@ -21,35 +21,54 @@ import { LottoEngine } from "../modules/lotto/LottoEngine";
 import { LottoReadModelFactory } from "../modules/lotto/LottoReadModelFactory";
 import { LottoRepository } from "../modules/lotto/LottoRepository";
 import { LottoService } from "../modules/lotto/LottoService";
+import { ProjectsController } from "../modules/projects/ProjectsController";
+import { ProjectsRepository } from "../modules/projects/ProjectsRepository";
+import { ProjectsService } from "../modules/projects/ProjectsService";
 
 export interface ApplicationDependencies {
   battleshipsController: BattleshipsController;
-  configsController: ConfigsController;
   forumTopicController: ForumTopicController;
+  gameConfigsController: GameConfigsController;
   journeyController: JourneyController;
   lottoController: LottoController;
+  projectsController: ProjectsController;
 }
 
 export function createApplicationDependencies(): ApplicationDependencies {
   const mongoDatabase = getDefaultMongoDatabase();
 
-  const configsRepository = new ConfigsRepository(mongoDatabase);
-  const configReadModelFactory = new ConfigReadModelFactory();
-  const configsService = new ConfigsService(configsRepository, configReadModelFactory);
-  const configsController = new ConfigsController(configsService);
-
+  const projectsRepository = new ProjectsRepository(mongoDatabase);
+  const gameConfigsRepository = new GameConfigsRepository(mongoDatabase);
   const battleshipsRepository = new BattleshipsRepository();
+  const journeyRepository = new JourneyRepository();
+  const lottoRepository = new LottoRepository();
+  const projectsService = new ProjectsService(
+    projectsRepository,
+    gameConfigsRepository,
+    journeyRepository,
+    battleshipsRepository,
+    lottoRepository,
+  );
+  const projectsController = new ProjectsController(projectsService);
+
+  const gameConfigReadModelFactory = new GameConfigReadModelFactory();
+  const gameConfigsService = new GameConfigsService(
+    gameConfigsRepository,
+    projectsRepository,
+    gameConfigReadModelFactory,
+  );
+  const gameConfigsController = new GameConfigsController(gameConfigsService);
+
   const battleshipsEngine = new BattleshipsEngine();
   const battleshipsReadModelFactory = new BattleshipsReadModelFactory(battleshipsEngine);
   const battleshipsService = new BattleshipsService(
     battleshipsRepository,
     battleshipsEngine,
     battleshipsReadModelFactory,
-    configsService,
+    gameConfigsService,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
 
-  const journeyRepository = new JourneyRepository();
   const journeyEngine = new JourneyEngine();
   const journeyReadModelFactory = new JourneyReadModelFactory(journeyEngine);
   const journeyParser = new JourneyParser();
@@ -58,14 +77,18 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyEngine,
     journeyReadModelFactory,
     journeyParser,
-    configsService,
+    gameConfigsService,
   );
   const journeyController = new JourneyController(journeyService);
 
-  const lottoRepository = new LottoRepository();
   const lottoEngine = new LottoEngine();
   const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
-  const lottoService = new LottoService(lottoRepository, lottoEngine, lottoReadModelFactory, configsService);
+  const lottoService = new LottoService(
+    lottoRepository,
+    lottoEngine,
+    lottoReadModelFactory,
+    gameConfigsService,
+  );
   const lottoController = new LottoController(lottoService);
 
   const forumTopicService = new ForumTopicService();
@@ -73,9 +96,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
 
   return {
     battleshipsController,
-    configsController,
     forumTopicController,
+    gameConfigsController,
     journeyController,
     lottoController,
+    projectsController,
   };
 }

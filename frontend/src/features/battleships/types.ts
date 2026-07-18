@@ -68,6 +68,7 @@ export interface BattleshipsPersistedGame {
   status: BattleshipsGameStatus;
   playerName: string;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: CurrencyDefinition[];
@@ -92,6 +93,7 @@ export interface BattleshipsSavedGameSummary {
   status: BattleshipsGameStatus;
   playerName: string;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   boardSize: number;

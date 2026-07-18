@@ -1,5 +1,5 @@
 export const battleshipsTexts = {
-  breadcrumbs: "Игры / Морской бой",
+  breadcrumbs: "Combats DJ / Морской бой",
   pageTitle: "Морской бой",
   pageDescription:
     "Открытая доска для ведущего: поле и корабли видны сразу, а клики по клеткам применяют выстрел, пересчитывают приз и пополняют лог ходов.",
@@ -15,7 +15,7 @@ export const battleshipsTexts = {
   },
   alerts: {
     setDjName: "Ник ведущего не указан. Игру можно запустить, но лучше заполнить шапку проекта.",
-    missingConfig: "У выбранного проекта нет battleships-конфига. Запуск новой игры недоступен.",
+    missingConfig: "У выбранного проекта нет Battleships-конфига. Запуск новой игры недоступен.",
     logEmpty: "Лог выстрелов пока пуст.",
     boardEmpty: "Запустите новую игру или восстановите сохраненную, чтобы открыть поле.",
   },
@@ -33,7 +33,7 @@ export const battleshipsTexts = {
     notStarted: "Не начата",
     active: "В процессе",
     complete: "Завершена",
-    rulesetPrefix: "Проект:",
+    rulesetPrefix: "Пресет:",
     djPrefix: "Ведущий:",
     playerPrefix: "Игрок:",
     attemptsPrefix: "Попыток:",

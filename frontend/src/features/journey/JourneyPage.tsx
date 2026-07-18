@@ -1,7 +1,8 @@
 import { Alert, Grid, Stack } from "@mui/material";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
+import GameConfigSelectField from "../../components/GameConfigSelectField";
+import type { Project } from "../projects/types";
 import { journeyTexts } from "../../texts/journeyTexts";
-import type { AppConfig } from "../configs/types";
 import JourneyImportDialog from "./components/JourneyImportDialog";
 import JourneyLogCard from "./components/JourneyLogCard";
 import JourneyMapCard from "./components/JourneyMapCard";
@@ -28,12 +29,14 @@ const removePlayerTexts = {
 
 interface JourneyPageProps {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
 
-export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps) {
+export default function JourneyPage({ djName, selectedProject }: JourneyPageProps) {
   const {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     playerNames,
     playerNameErrors,
     playersImportText,
@@ -50,6 +53,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     movesImportOpen,
     rulesDialogOpen,
     requestError,
+    gameConfigsError,
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
@@ -67,7 +71,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     pageStatusChips,
     loading,
     actions,
-  } = useJourneyGame({ djName, selectedConfig });
+  } = useJourneyGame({ djName, selectedProject });
 
   return (
     <>
@@ -75,14 +79,21 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
         <Grid item xs={12}>
           <JourneyPageHeader
             pageStatusChips={pageStatusChips}
-            canStartGame={canStartGame}
-            hasGame={Boolean(game)}
-            isStartingGame={loading.isStartingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
             isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            controls={
+              <GameConfigSelectField
+                label="Пресет Journey"
+                gameConfigs={gameConfigs}
+                selectedGameConfigId={selectedGameConfigId}
+                onSelectedGameConfigChange={actions.selectGameConfig}
+                loading={loading.isLoadingGameConfigs}
+                hideHelperText
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
+              />
+            }
             onOpenRules={() => actions.setRulesDialogOpen(true)}
-            onStartGame={actions.startGame}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
           />
@@ -94,7 +105,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
           </Grid>
         ) : null}
 
-        {!game && !selectedJourneyRules ? (
+        {!game && !selectedJourneyRules && !gameConfigsError && !loading.isLoadingGameConfigs ? (
           <Grid item xs={12}>
             <Alert severity="warning">У выбранного проекта нет Journey-конфига. Запуск новой игры недоступен.</Alert>
           </Grid>
@@ -105,6 +116,12 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
             <Alert severity="error" onClose={() => actions.setRequestError(null)}>
               {requestError}
             </Alert>
+          </Grid>
+        ) : null}
+
+        {!game && gameConfigsError ? (
+          <Grid item xs={12}>
+            <Alert severity="error">{gameConfigsError}</Alert>
           </Grid>
         ) : null}
 
@@ -139,6 +156,9 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
                 playerNames={playerNames}
                 playerNameErrors={playerNameErrors}
                 actionsDisabled={setupActionsDisabled}
+                canStartGame={canStartGame}
+                isStartingGame={loading.isStartingGame}
+                onStartGame={actions.startGame}
                 onPlayerNameChange={actions.changePlayerName}
                 onRemovePlayerField={actions.removePlayerField}
                 onAddPlayerField={actions.addPlayerField}

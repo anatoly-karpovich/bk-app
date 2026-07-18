@@ -1,7 +1,8 @@
 import { Alert, Grid, Stack } from "@mui/material";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
+import GameConfigSelectField from "../../components/GameConfigSelectField";
 import { lottoTexts } from "../../texts/lottoTexts";
-import type { AppConfig } from "../configs/types";
+import type { Project } from "../projects/types";
 import LottoCardsCard from "./components/LottoCardsCard";
 import LottoLogCard from "./components/LottoLogCard";
 import LottoPageHeader from "./components/LottoPageHeader";
@@ -26,12 +27,14 @@ const removePlayerTexts = {
 
 interface LottoPageProps {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
 
-export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
+export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
   const {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     players,
     playerErrors,
     savedGames,
@@ -42,6 +45,7 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
     rulesDialogOpen,
     savedGamesError,
     requestError,
+    gameConfigsError,
     selectedLottoRules,
     resolvedRules,
     resolvedCurrencies,
@@ -52,7 +56,7 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
     pageStatusChips,
     loading,
     actions,
-  } = useLottoGame({ djName, selectedConfig });
+  } = useLottoGame({ djName, selectedProject });
 
   return (
     <>
@@ -60,14 +64,21 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
         <Grid item xs={12}>
           <LottoPageHeader
             pageStatusChips={pageStatusChips}
-            canStartGame={canStartGame}
-            hasGame={Boolean(game)}
-            isStartingGame={loading.isStartingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
             isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            controls={
+              <GameConfigSelectField
+                label="Пресет Lotto"
+                gameConfigs={gameConfigs}
+                selectedGameConfigId={selectedGameConfigId}
+                onSelectedGameConfigChange={actions.selectGameConfig}
+                loading={loading.isLoadingGameConfigs}
+                hideHelperText
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
+              />
+            }
             onOpenRules={() => actions.setRulesDialogOpen(true)}
-            onStartGame={actions.startGame}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
           />
@@ -79,7 +90,7 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
           </Grid>
         ) : null}
 
-        {!game && !selectedLottoRules ? (
+        {!game && !selectedLottoRules && !gameConfigsError && !loading.isLoadingGameConfigs ? (
           <Grid item xs={12}>
             <Alert severity="warning">{lottoTexts.alerts.missingConfig}</Alert>
           </Grid>
@@ -93,6 +104,12 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
           </Grid>
         ) : null}
 
+        {!game && gameConfigsError ? (
+          <Grid item xs={12}>
+            <Alert severity="error">{gameConfigsError}</Alert>
+          </Grid>
+        ) : null}
+
         <Grid item xs={12} lg={4}>
           <Stack spacing={3}>
             {!game ? (
@@ -101,6 +118,9 @@ export default function LottoPage({ djName, selectedConfig }: LottoPageProps) {
                 playerErrors={playerErrors}
                 rules={resolvedRules}
                 actionsDisabled={setupActionsDisabled}
+                canStartGame={canStartGame}
+                isStartingGame={loading.isStartingGame}
+                onStartGame={actions.startGame}
                 onPlayerNameChange={actions.changePlayerName}
                 onPlayerNumbersChange={actions.changePlayerNumbers}
                 onGenerateCard={actions.generatePlayerCard}

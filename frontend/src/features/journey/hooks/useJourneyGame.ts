@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppConfig } from "../../configs/types";
+import {
+  getJourneyGameConfigsRequest,
+  getSelectedGameConfigStorageKey,
+} from "../../projects/api/projects.client";
+import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
+import type { JourneyGameConfig, Project } from "../../projects/types";
 import {
   createJourneyGameRequest,
   deleteJourneyGameRequest,
@@ -16,12 +21,12 @@ import {
   createEmptySkipState,
   getJourneyActivePlayers,
   getJourneyFinishedPlayers,
-  getPlayerNameErrors,
   getJourneyPlayerTimelines,
   getJourneyResults,
   getJourneyVisiblePlayers,
-  isValidDiceValue,
+  getPlayerNameErrors,
   isJourneyGameOver,
+  isValidDiceValue,
 } from "../journey-page.helpers";
 import { mapParsedMovesToPlayerInputs } from "../mappers/journey.mapper";
 import { clearJourneyGame, loadJourneyGameId, saveJourneyGameId } from "../storage";
@@ -40,14 +45,28 @@ import { journeyTexts } from "../../../texts/journeyTexts";
 
 interface UseJourneyGameParams {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
+
+const JOURNEY_GAME_CONFIG_STORAGE_KEY = getSelectedGameConfigStorageKey("journey");
+const SAVED_GAME_PROJECT_MISMATCH_ERROR = "Saved game belongs to another project.";
+const NO_PRESET_SELECTED_LABEL = "No preset selected";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Journey request failed";
 }
 
-export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams) {
+function resolveSelectedGameConfigId(gameConfigs: JourneyGameConfig[]) {
+  const storedGameConfigId = loadSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY);
+  const fallbackGameConfigId = gameConfigs[0]?.id ?? "";
+
+  return (
+    (storedGameConfigId && gameConfigs.some((gameConfig) => gameConfig.id === storedGameConfigId) && storedGameConfigId) ||
+    fallbackGameConfigId
+  );
+}
+
+export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams) {
   const [game, setGame] = useState<JourneyPersistedGame | null>(null);
   const [storedGameId, setStoredGameId] = useState<string | null>(loadJourneyGameId());
   const [playerNames, setPlayerNames] = useState([""]);
@@ -62,15 +81,19 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const [movesImportOpen, setMovesImportOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [gameConfigsError, setGameConfigsError] = useState<string | null>(null);
+  const [gameConfigs, setGameConfigs] = useState<JourneyGameConfig[]>([]);
+  const [selectedGameConfigId, setSelectedGameConfigId] = useState(() => loadSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY) ?? "");
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isRestoringGame, setIsRestoringGame] = useState(false);
   const [isLoadingSavedGames, setIsLoadingSavedGames] = useState(false);
-  const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
+  const [isLoadingGameConfigs, setIsLoadingGameConfigs] = useState(false);
   const [isDeletingSavedGame, setIsDeletingSavedGame] = useState(false);
   const [isResettingGame, setIsResettingGame] = useState(false);
   const [isSubmittingRound, setIsSubmittingRound] = useState(false);
   const [isImportingPlayers, setIsImportingPlayers] = useState(false);
   const [isImportingMoves, setIsImportingMoves] = useState(false);
+  const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
   const [removingPlayerId, setRemovingPlayerId] = useState<string | null>(null);
   const [playerPendingRemoval, setPlayerPendingRemoval] = useState<JourneyPlayerReadModel | null>(null);
 
@@ -83,9 +106,74 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setStoredGameId(game.id);
   }, [game]);
 
+  useEffect(() => {
+    if (!selectedProject?.id) {
+      setGameConfigs([]);
+      setSelectedGameConfigId("");
+      setGameConfigsError(null);
+      setIsLoadingGameConfigs(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGameConfigs() {
+      setGameConfigsError(null);
+      setIsLoadingGameConfigs(true);
+
+      try {
+        const nextGameConfigs = await getJourneyGameConfigsRequest(selectedProject.id);
+
+        if (cancelled) {
+          return;
+        }
+
+        const resolvedGameConfigId = resolveSelectedGameConfigId(nextGameConfigs);
+        setGameConfigs(nextGameConfigs);
+        setSelectedGameConfigId(resolvedGameConfigId);
+
+        if (resolvedGameConfigId) {
+          saveSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY, resolvedGameConfigId);
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setGameConfigs([]);
+        setSelectedGameConfigId("");
+        setGameConfigsError(getErrorMessage(error));
+      } finally {
+        if (!cancelled) {
+          setIsLoadingGameConfigs(false);
+        }
+      }
+    }
+
+    void loadGameConfigs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProject?.id]);
+
+  useEffect(() => {
+    if (!game) {
+      return;
+    }
+
+    if (game.projectId !== (selectedProject?.id ?? "")) {
+      resetJourneyPageState();
+    }
+  }, [game, selectedProject?.id]);
+
   const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
-  const selectedJourneyRules = selectedConfig?.games.journey ?? null;
-  const selectedCurrencies = selectedConfig?.currencies ?? [{ id: "default", label: "фишек" }];
+  const selectedJourneyGameConfig = useMemo(
+    () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
+    [gameConfigs, selectedGameConfigId],
+  );
+  const selectedJourneyRules = selectedJourneyGameConfig?.rules ?? null;
+  const selectedCurrencies = selectedProject?.currencies ?? [];
   const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
   const journeyCurrencies = useMemo(() => game?.currencies ?? selectedCurrencies, [game, selectedCurrencies]);
   const journeyConfig = useMemo(
@@ -100,7 +188,11 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     () => game?.derived?.collectibleCells ?? getCollectibleJourneyCells(journeyRules),
     [game, journeyRules],
   );
-  const canStartGame = Boolean(selectedJourneyRules) && playerNames.length > 0 && playerNameErrors.every((error) => !error);
+  const canStartGame =
+    Boolean(selectedProject?.id) &&
+    Boolean(selectedJourneyGameConfig) &&
+    playerNames.length > 0 &&
+    playerNameErrors.every((error) => !error);
 
   const activePlayers = useMemo<JourneyPlayerReadModel[]>(() => getJourneyActivePlayers(game), [game]);
   const finishedPlayers = useMemo<JourneyPlayerReadModel[]>(() => getJourneyFinishedPlayers(game), [game]);
@@ -113,6 +205,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       isStartingGame ||
       isRestoringGame ||
       isLoadingSavedGames ||
+      isLoadingGameConfigs ||
       isDeletingSavedGame ||
       isResettingGame ||
       isSubmittingRound ||
@@ -120,10 +213,11 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       isImportingMoves ||
       Boolean(removingPlayerId),
     [
+      isDeletingSavedGame,
       isImportingMoves,
       isImportingPlayers,
+      isLoadingGameConfigs,
       isLoadingSavedGames,
-      isDeletingSavedGame,
       isResettingGame,
       isRestoringGame,
       isStartingGame,
@@ -132,8 +226,8 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     ],
   );
   const setupActionsDisabled = useMemo(
-    () => isStartingGame || isImportingPlayers || isRestoringGame || isResettingGame,
-    [isImportingPlayers, isResettingGame, isRestoringGame, isStartingGame],
+    () => isStartingGame || isImportingPlayers || isLoadingGameConfigs || isRestoringGame || isResettingGame,
+    [isImportingPlayers, isLoadingGameConfigs, isResettingGame, isRestoringGame, isStartingGame],
   );
   const roundActionsDisabled = useMemo(
     () => isSubmittingRound || isImportingMoves || isResettingGame || isRestoringGame || Boolean(removingPlayerId),
@@ -158,7 +252,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const pageStatusChips = useMemo<JourneyStatusChip[]>(() => {
     const resolvedDjName = game?.djName?.trim() || djName.trim();
     const rulesetLabel: JourneyStatusChip = {
-      label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.configName : selectedConfig?.name ?? "Не выбран"}`,
+      label: `${journeyTexts.statuses.rulesetPrefix} ${game?.configName ?? selectedJourneyGameConfig?.name ?? NO_PRESET_SELECTED_LABEL}`,
       color: "secondary",
     };
 
@@ -188,7 +282,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     }
 
     return chips;
-  }, [activeGame, djName, game, gameIsOver, selectedConfig?.name, totalGamePlayers]);
+  }, [activeGame, djName, game, gameIsOver, selectedJourneyGameConfig?.name, totalGamePlayers]);
 
   function resetRoundUi(players: JourneyPlayer[] = []) {
     setMoveInputs(createEmptyMoveState(players));
@@ -205,14 +299,20 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     resetRoundUi([]);
   }
 
+  function selectGameConfig(nextGameConfigId: string) {
+    setSelectedGameConfigId(nextGameConfigId);
+    saveSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY, nextGameConfigId);
+  }
+
   async function loadSavedGames() {
     setSavedGamesError(null);
     setIsLoadingSavedGames(true);
 
     try {
-      const nextSavedGames = await listJourneyGamesRequest();
-      setSavedGames(nextSavedGames);
-      return nextSavedGames;
+      const filteredSavedGames = selectedProject?.id ? await listJourneyGamesRequest(selectedProject.id) : [];
+
+      setSavedGames(filteredSavedGames);
+      return filteredSavedGames;
     } catch (error) {
       setSavedGames([]);
       setSavedGamesError(getErrorMessage(error));
@@ -228,7 +328,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   }
 
   async function restoreSavedGame(gameId: string) {
-    if (!gameId) {
+    if (!gameId || !selectedProject?.id) {
       return;
     }
 
@@ -236,11 +336,22 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsRestoringGame(true);
 
     try {
-      const restoredGame = await getJourneyGameByIdRequest(gameId);
+      const restoredGame = await getJourneyGameByIdRequest(selectedProject.id, gameId);
+
+      if (selectedProject?.id && restoredGame.projectId !== selectedProject.id) {
+        setSavedGamesError(SAVED_GAME_PROJECT_MISMATCH_ERROR);
+        return;
+      }
+
       setGame(restoredGame);
       resetRoundUi(getJourneyActivePlayers(restoredGame));
       setSavedGamesDialogOpen(false);
       setStoredGameId(restoredGame.id);
+
+      if (gameConfigs.some((gameConfig) => gameConfig.id === restoredGame.configId)) {
+        setSelectedGameConfigId(restoredGame.configId);
+        saveSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY, restoredGame.configId);
+      }
     } catch (error) {
       setSavedGamesError(getErrorMessage(error));
     } finally {
@@ -269,7 +380,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsDeletingSavedGame(true);
 
     try {
-      await deleteJourneyGameRequest(deletingSavedGame.id);
+      await deleteJourneyGameRequest(deletingSavedGame.projectId, deletingSavedGame.id);
       setSavedGames((current) => current.filter((gameItem) => gameItem.id !== deletingSavedGame.id));
 
       if (storedGameId === deletingSavedGame.id) {
@@ -291,7 +402,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   async function startGame() {
     const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
-    if (!cleanNames.length || !selectedConfig?.id || !selectedJourneyRules) {
+    if (!cleanNames.length || !selectedProject?.id || !selectedJourneyGameConfig || !selectedJourneyRules) {
       return;
     }
 
@@ -300,8 +411,9 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
     try {
       const nextGame = await createJourneyGameRequest({
+        projectId: selectedProject.id,
+        gameConfigId: selectedJourneyGameConfig.id,
         nicknames: cleanNames,
-        configId: selectedConfig.id,
         djName: djName.trim(),
       });
 
@@ -434,7 +546,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsSubmittingRound(true);
 
     try {
-      const nextGame = await submitJourneyRoundRequest(game.id, {
+      const nextGame = await submitJourneyRoundRequest(game.projectId, game.id, {
         moves,
         skippedPlayerIds,
       });
@@ -457,7 +569,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setRemovingPlayerId(playerId);
 
     try {
-      const nextGame = await removeJourneyPlayerRequest(game.id, playerId);
+      const nextGame = await removeJourneyPlayerRequest(game.projectId, game.id, playerId);
       setGame(nextGame);
 
       setMoveInputs((current) => {
@@ -512,6 +624,8 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   return {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     playerNames,
     playerNameErrors,
     playersImportText,
@@ -528,6 +642,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     movesImportOpen,
     rulesDialogOpen,
     requestError,
+    gameConfigsError,
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
@@ -547,6 +662,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       isStartingGame,
       isRestoringGame,
       isLoadingSavedGames,
+      isLoadingGameConfigs,
       isDeletingSavedGame,
       isResettingGame,
       isSubmittingRound,
@@ -562,6 +678,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       setPlayersImportText,
       setMovesImportText,
       setRequestError,
+      selectGameConfig,
       openSavedGamesDialog,
       restoreSavedGame,
       requestDeleteSavedGame,

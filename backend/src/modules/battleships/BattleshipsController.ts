@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import { RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
+import { GameConfigNotFoundError } from "../gameConfigs/errors";
+import { ProjectNotFoundError } from "../projects/errors";
 import {
-  BattleshipsConfigNotFoundError,
-  BattleshipsConfigUnsupportedError,
   BattleshipsGameNotFoundError,
   BattleshipsGamesNotFoundError,
   BattleshipsShotValidationError,
@@ -12,9 +12,10 @@ import {
 import {
   battleshipsGameIdParamsSchema,
   battleshipsShotSchema,
-  createBattleshipsGameConfigSchema,
   createBattleshipsGameDjNameSchema,
   createBattleshipsGamePlayerNameSchema,
+  createBattleshipsGamePresetSchema,
+  createBattleshipsGameProjectParamsSchema,
   latestBattleshipsGameQuerySchema,
 } from "./battleships.schemas";
 import { BattleshipsService } from "./BattleshipsService";
@@ -23,29 +24,42 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
+function getProjectId(req: Request): string {
+  return parseRequest(
+    createBattleshipsGameProjectParamsSchema,
+    req.params,
+    "Route parameter 'projectId' must be a valid project id",
+  ).projectId;
+}
+
 export class BattleshipsController {
   constructor(private readonly battleshipsService: BattleshipsService) {}
 
-  createBattleshipsGame = async (req: Request, res: Response) => {
+  createBattleshipsGameInProject = async (req: Request, res: Response) => {
     try {
+      const { projectId } = parseRequest(
+        createBattleshipsGameProjectParamsSchema,
+        req.params,
+        "Route parameter 'projectId' must be a valid project id",
+      );
       const { playerName } = parseRequest(
         createBattleshipsGamePlayerNameSchema,
         { playerName: req.body?.playerName },
         "Body field 'playerName' must be a non-empty string",
       );
-      const { configId } = parseRequest(
-        createBattleshipsGameConfigSchema,
-        { configId: req.body?.configId },
-        "Body field 'configId' must be a valid config id",
+      const { gameConfigId } = parseRequest(
+        createBattleshipsGamePresetSchema,
+        { gameConfigId: req.body?.gameConfigId },
+        "Body field 'gameConfigId' must be a valid game config id",
       );
       const { djName } = parseRequest(
         createBattleshipsGameDjNameSchema,
         { djName: req.body?.djName },
         "Body field 'djName' must be a string when provided",
       );
-      const game = await this.battleshipsService.createBattleshipsGameSnapshot({
+      const game = await this.battleshipsService.createBattleshipsGameSnapshotInProject(projectId, {
         playerName,
-        configId,
+        gameConfigId,
         djName,
       });
 
@@ -62,8 +76,8 @@ export class BattleshipsController {
       }
 
       if (
-        error instanceof BattleshipsConfigNotFoundError ||
-        error instanceof BattleshipsConfigUnsupportedError
+        error instanceof ProjectNotFoundError ||
+        error instanceof GameConfigNotFoundError
       ) {
         return res.status(error.statusCode).json({
           success: false,
@@ -82,7 +96,7 @@ export class BattleshipsController {
 
   listBattleshipsGames = async (_req: Request, res: Response) => {
     try {
-      const games = await this.battleshipsService.listBattleshipsGameSnapshots();
+      const games = await this.battleshipsService.listBattleshipsGameSnapshots(getProjectId(_req));
 
       return res.status(200).json({
         success: true,
@@ -104,7 +118,7 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const game = await this.battleshipsService.getBattleshipsGameSnapshot(gameId);
+      const game = await this.battleshipsService.getBattleshipsGameSnapshot(getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -148,7 +162,7 @@ export class BattleshipsController {
         req.query,
         "Query parameter 'status' must be either 'in_progress' or 'finished'",
       );
-      const game = await this.battleshipsService.getLatestBattleshipsGameSnapshot(status);
+      const game = await this.battleshipsService.getLatestBattleshipsGameSnapshot(getProjectId(req), status);
 
       return res.status(200).json({
         success: true,
@@ -189,7 +203,7 @@ export class BattleshipsController {
         req.body,
         "Body fields 'row' and 'column' must be positive integers",
       );
-      const updatedGame = await this.battleshipsService.submitBattleshipsShot(gameId, shot);
+      const updatedGame = await this.battleshipsService.submitBattleshipsShot(getProjectId(req), gameId, shot);
 
       return res.status(200).json({
         success: true,
@@ -236,7 +250,7 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const updatedGame = await this.battleshipsService.undoBattleshipsShot(gameId);
+      const updatedGame = await this.battleshipsService.undoBattleshipsShot(getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -283,7 +297,7 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      await this.battleshipsService.deleteBattleshipsGameSnapshot(gameId);
+      await this.battleshipsService.deleteBattleshipsGameSnapshot(getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,

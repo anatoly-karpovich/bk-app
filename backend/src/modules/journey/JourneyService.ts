@@ -1,14 +1,12 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
-import type { ConfigsService } from "../configs/ConfigsService";
+import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
 import { JourneyEngine } from "./JourneyEngine";
 import { JourneyParser } from "./JourneyParser";
 import { JourneyReadModelFactory } from "./JourneyReadModelFactory";
 import { JourneyRepository, type JourneyGameDocument } from "./JourneyRepository";
 import type { JourneyGameListItemReadModel, JourneyGameReadModel, JourneyMoveInput } from "./domain/types";
 import {
-  JourneyConfigNotFoundError,
-  JourneyConfigUnsupportedError,
   JourneyGameNotFoundError,
   JourneyGamesNotFoundError,
 } from "./errors";
@@ -33,26 +31,22 @@ export class JourneyService {
     private readonly engine: JourneyEngine,
     private readonly readModelFactory: JourneyReadModelFactory,
     private readonly parser: JourneyParser,
-    private readonly configsService: ConfigsService,
+    private readonly gameConfigsService: GameConfigsService,
   ) {}
 
-  async createJourneyGameSnapshot(payload: CreateJourneyGamePayload): Promise<JourneyGameResponse> {
-    const config = await this.configsService.findConfigById(payload.configId);
-
-    if (!config) {
-      throw new JourneyConfigNotFoundError(payload.configId);
-    }
-
-    if (!config.games.journey) {
-      throw new JourneyConfigUnsupportedError(config.id, config.name);
-    }
+  async createJourneyGameSnapshotInProject(
+    projectId: string,
+    payload: Omit<CreateJourneyGamePayload, "configId"> & { gameConfigId: string },
+  ): Promise<JourneyGameResponse> {
+    const gameConfigContext = await this.gameConfigsService.getJourneyGameConfigContext(projectId, payload.gameConfigId);
 
     const nextGame = this.engine.createGame(payload.nicknames, {
-      rules: config.games.journey,
-      currencies: config.currencies,
+      rules: gameConfigContext.config.rules,
+      currencies: gameConfigContext.projectCurrencies,
       djName: payload.djName,
-      configId: config.id,
-      configName: config.name,
+      projectId,
+      configId: payload.gameConfigId,
+      configName: gameConfigContext.config.name,
     });
 
     const createdGame = await this.repository.create(nextGame);
@@ -67,8 +61,8 @@ export class JourneyService {
     return this.serializeJourneyGame(createdGame);
   }
 
-  async getJourneyGameSnapshot(gameId: string): Promise<JourneyGameResponse> {
-    const game = await this.repository.findById(gameId);
+  async getJourneyGameSnapshot(projectId: string, gameId: string): Promise<JourneyGameResponse> {
+    const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!game) {
       throw new JourneyGameNotFoundError(gameId);
@@ -77,14 +71,14 @@ export class JourneyService {
     return this.serializeJourneyGame(game);
   }
 
-  async listJourneyGameSnapshots(): Promise<JourneyGameListResponse> {
-    const games = await this.repository.findAll();
+  async listJourneyGameSnapshots(projectId: string): Promise<JourneyGameListResponse> {
+    const games = await this.repository.findByProjectId(projectId);
 
     return games.map((game) => this.readModelFactory.createListItem(game));
   }
 
-  async getLatestJourneyGameSnapshot(status?: JourneyGameDocument["status"]): Promise<JourneyGameResponse> {
-    const latestGame = await this.repository.findLatest(status);
+  async getLatestJourneyGameSnapshot(projectId: string, status?: JourneyGameDocument["status"]): Promise<JourneyGameResponse> {
+    const latestGame = await this.repository.findLatest(projectId, status);
 
     if (!latestGame) {
       throw new JourneyGamesNotFoundError(status);
@@ -94,17 +88,18 @@ export class JourneyService {
   }
 
   async submitJourneyRound(
+    projectId: string,
     gameId: string,
     payload: SaveJourneyRoundPayload,
   ): Promise<JourneyGameResponse> {
-    const currentGame = await this.repository.findById(gameId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new JourneyGameNotFoundError(gameId);
     }
 
     const nextGame = this.engine.makeRound(currentGame, payload.moves, payload.skippedPlayerIds ?? []);
-    const updatedGame = await this.saveJourneyGameDocument(gameId, nextGame);
+    const updatedGame = await this.saveJourneyGameDocument(projectId, gameId, nextGame);
 
     if (!updatedGame) {
       throw new JourneyGameNotFoundError(gameId);
@@ -114,17 +109,18 @@ export class JourneyService {
   }
 
   async removeJourneyPlayerFromSnapshot(
+    projectId: string,
     gameId: string,
     playerId: string,
   ): Promise<JourneyGameResponse> {
-    const currentGame = await this.repository.findById(gameId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new JourneyGameNotFoundError(gameId);
     }
 
     const nextGame = this.engine.removePlayer(currentGame, playerId);
-    const updatedGame = await this.saveJourneyGameDocument(gameId, nextGame);
+    const updatedGame = await this.saveJourneyGameDocument(projectId, gameId, nextGame);
 
     if (!updatedGame) {
       throw new JourneyGameNotFoundError(gameId);
@@ -133,8 +129,8 @@ export class JourneyService {
     return updatedGame;
   }
 
-  async deleteJourneyGameSnapshot(gameId: string): Promise<void> {
-    const deleted = await this.repository.delete(gameId);
+  async deleteJourneyGameSnapshot(projectId: string, gameId: string): Promise<void> {
+    const deleted = await this.repository.delete(gameId, projectId);
 
     if (!deleted) {
       throw new JourneyGameNotFoundError(gameId);
@@ -154,6 +150,7 @@ export class JourneyService {
   }
 
   private async saveJourneyGameDocument(
+    projectId: string,
     gameId: string,
     game: JourneyGameDocument,
   ): Promise<JourneyGameResponse | null> {
@@ -163,7 +160,7 @@ export class JourneyService {
       return null;
     }
 
-    const updateResult = await this.repository.update(gameId, normalizedGame);
+    const updateResult = await this.repository.update(gameId, projectId, normalizedGame);
 
     return updateResult ? this.serializeJourneyGame(updateResult) : null;
   }

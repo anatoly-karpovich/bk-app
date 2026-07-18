@@ -11,15 +11,15 @@ export interface JourneyGameDocument extends JourneyGame {
 }
 
 export class JourneyRepository {
-  async findById(gameId: string): Promise<WithId<JourneyGameDocument> | null> {
+  async findByIdAndProjectId(gameId: string, projectId: string): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
-    return collection.findOne({ _id: this.toObjectId(gameId) });
+    return collection.findOne({ _id: this.toObjectId(gameId), projectId });
   }
 
-  async findLatest(status?: JourneyGame["status"]): Promise<WithId<JourneyGameDocument> | null> {
+  async findLatest(projectId: string, status?: JourneyGame["status"]): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
 
-    return collection.findOne(status ? { status } : {}, {
+    return collection.findOne(status ? { projectId, status } : { projectId }, {
       sort: {
         updatedAt: -1,
         createdAt: -1,
@@ -27,12 +27,12 @@ export class JourneyRepository {
     });
   }
 
-  async findAll(): Promise<Array<WithId<JourneyGameDocument>>> {
+  async findByProjectId(projectId: string): Promise<Array<WithId<JourneyGameDocument>>> {
     const collection = await this.getCollection();
 
     return collection
       .find(
-        {},
+        { projectId },
         {
           sort: {
             updatedAt: -1,
@@ -50,12 +50,12 @@ export class JourneyRepository {
     return collection.findOne({ _id: insertResult.insertedId });
   }
 
-  async update(gameId: string, game: JourneyGame): Promise<WithId<JourneyGameDocument> | null> {
+  async update(gameId: string, projectId: string, game: JourneyGame): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
     const persistedGame = this.toPersistedGame(game);
 
     return collection.findOneAndUpdate(
-      { _id: this.toObjectId(gameId) },
+      { _id: this.toObjectId(gameId), projectId },
       {
         $set: persistedGame,
       },
@@ -65,10 +65,15 @@ export class JourneyRepository {
     );
   }
 
-  async delete(gameId: string): Promise<boolean> {
+  async delete(gameId: string, projectId: string): Promise<boolean> {
     const collection = await this.getCollection();
-    const deleteResult = await collection.deleteOne({ _id: this.toObjectId(gameId) });
+    const deleteResult = await collection.deleteOne({ _id: this.toObjectId(gameId), projectId });
     return deleteResult.deletedCount > 0;
+  }
+
+  async deleteByProjectId(projectId: string): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.deleteMany({ projectId });
   }
 
   private async getCollection() {

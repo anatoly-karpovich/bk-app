@@ -3,40 +3,50 @@ import { apiClient } from "../../../lib/apiClient";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
 
+function getProjectJourneyApiBaseUrl(projectId: string) {
+  return `/api/projects/${encodeURIComponent(projectId)}/journey`;
+}
+
 export async function createJourneyGameRequest(payload: {
+  projectId: string;
+  gameConfigId: string;
   nicknames: string[];
-  configId: string;
   djName?: string;
 }): Promise<JourneyPersistedGame> {
-  return await apiClient.post<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games`, payload);
+  const { projectId, ...body } = payload;
+  return await apiClient.post<JourneyPersistedGame>(
+    `${getProjectJourneyApiBaseUrl(projectId)}/games`,
+    body,
+  );
 }
 
-export async function getJourneyGameByIdRequest(gameId: string): Promise<JourneyPersistedGame> {
-  return await apiClient.get<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games/${gameId}`);
+export async function getJourneyGameByIdRequest(projectId: string, gameId: string): Promise<JourneyPersistedGame> {
+  return await apiClient.get<JourneyPersistedGame>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}`);
 }
 
-export async function listJourneyGamesRequest(): Promise<JourneySavedGameSummary[]> {
-  return await apiClient.get<JourneySavedGameSummary[]>(`${JOURNEY_API_BASE_URL}/games`);
+export async function listJourneyGamesRequest(projectId: string): Promise<JourneySavedGameSummary[]> {
+  return await apiClient.get<JourneySavedGameSummary[]>(`${getProjectJourneyApiBaseUrl(projectId)}/games`);
 }
 
 export async function submitJourneyRoundRequest(
+  projectId: string,
   gameId: string,
   payload: {
     moves: JourneyMoveInput[];
     skippedPlayerIds?: string[];
   },
 ): Promise<JourneyPersistedGame> {
-  return await apiClient.post<JourneyPersistedGame>(`${JOURNEY_API_BASE_URL}/games/${gameId}/rounds`, payload);
+  return await apiClient.post<JourneyPersistedGame>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/rounds`, payload);
 }
 
-export async function removeJourneyPlayerRequest(gameId: string, playerId: string): Promise<JourneyPersistedGame> {
+export async function removeJourneyPlayerRequest(projectId: string, gameId: string, playerId: string): Promise<JourneyPersistedGame> {
   return await apiClient.delete<JourneyPersistedGame>(
-    `${JOURNEY_API_BASE_URL}/games/${gameId}/players/${encodeURIComponent(playerId)}`,
+    `${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/players/${encodeURIComponent(playerId)}`,
   );
 }
 
-export async function deleteJourneyGameRequest(gameId: string): Promise<unknown> {
-  return await apiClient.delete<unknown>(`${JOURNEY_API_BASE_URL}/games/${gameId}`);
+export async function deleteJourneyGameRequest(projectId: string, gameId: string): Promise<unknown> {
+  return await apiClient.delete<unknown>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}`);
 }
 
 export async function parseJourneyPlayersRequest(text: string, djName: string): Promise<string[]> {

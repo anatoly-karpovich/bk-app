@@ -8,15 +8,15 @@ const LOTTO_GAMES_COLLECTION = "lotto_games";
 export interface LottoGameDocument extends LottoGame {}
 
 export class LottoRepository {
-  async findById(gameId: string): Promise<WithId<LottoGameDocument> | null> {
+  async findByIdAndProjectId(gameId: string, projectId: string): Promise<WithId<LottoGameDocument> | null> {
     const collection = await this.getCollection();
-    return collection.findOne({ _id: this.toObjectId(gameId) });
+    return collection.findOne({ _id: this.toObjectId(gameId), projectId });
   }
 
-  async findLatest(status?: LottoGame["status"]): Promise<WithId<LottoGameDocument> | null> {
+  async findLatest(projectId: string, status?: LottoGame["status"]): Promise<WithId<LottoGameDocument> | null> {
     const collection = await this.getCollection();
 
-    return collection.findOne(status ? { status } : {}, {
+    return collection.findOne(status ? { projectId, status } : { projectId }, {
       sort: {
         updatedAt: -1,
         createdAt: -1,
@@ -24,12 +24,12 @@ export class LottoRepository {
     });
   }
 
-  async findAll(): Promise<Array<WithId<LottoGameDocument>>> {
+  async findByProjectId(projectId: string): Promise<Array<WithId<LottoGameDocument>>> {
     const collection = await this.getCollection();
 
     return collection
       .find(
-        {},
+        { projectId },
         {
           sort: {
             updatedAt: -1,
@@ -47,12 +47,12 @@ export class LottoRepository {
     return collection.findOne({ _id: insertResult.insertedId });
   }
 
-  async update(gameId: string, game: LottoGame): Promise<WithId<LottoGameDocument> | null> {
+  async update(gameId: string, projectId: string, game: LottoGame): Promise<WithId<LottoGameDocument> | null> {
     const collection = await this.getCollection();
     const persistedGame = this.toPersistedGame(game);
 
     return collection.findOneAndUpdate(
-      { _id: this.toObjectId(gameId) },
+      { _id: this.toObjectId(gameId), projectId },
       {
         $set: persistedGame,
       },
@@ -62,10 +62,15 @@ export class LottoRepository {
     );
   }
 
-  async delete(gameId: string): Promise<boolean> {
+  async delete(gameId: string, projectId: string): Promise<boolean> {
     const collection = await this.getCollection();
-    const deleteResult = await collection.deleteOne({ _id: this.toObjectId(gameId) });
+    const deleteResult = await collection.deleteOne({ _id: this.toObjectId(gameId), projectId });
     return deleteResult.deletedCount > 0;
+  }
+
+  async deleteByProjectId(projectId: string): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.deleteMany({ projectId });
   }
 
   private async getCollection() {

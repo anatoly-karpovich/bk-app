@@ -20,7 +20,8 @@ Current feature structure includes:
 
 ```text
 features/
-  configs/
+  projects/
+    api/
     hooks/
   journey/
     api/
@@ -233,14 +234,14 @@ Long-term direction:
 ```text
 src/lib/apiClient.ts
 features/journey/api/journey.client.ts
-features/configs/api/config.client.ts
+features/projects/api/projects.client.ts
 ```
 
 Current baseline:
 
 ```text
 src/lib/apiClient.ts
-features/configs/hooks/useConfigs.ts
+features/projects/hooks/useProjects.ts
 features/journey/hooks/useJourneyGame.ts
 features/battleships/hooks/useBattleshipsGame.ts
 features/lotto/hooks/useLottoGame.ts
@@ -279,37 +280,15 @@ The backend is the source of truth for game data.
 
 ---
 
-## Configs
+## Projects and presets
 
-Frontend may edit and display configs, but should not own default game configs.
+The frontend consumes project-scoped APIs; the old `features/configs` layer and `/api/configs` do not exist.
 
-Avoid duplicating backend config defaults in frontend.
-
-Frontend config code should focus on:
-
-* loading configs
-* rendering config forms
-* sending updates to backend
-* mapping backend config read-model into UI-friendly structures
-
-Project currency is part of the backend config contract.
-
-If a feature needs currency for prizes or summaries, prefer reading `config.currency` or the persisted game snapshot field derived from that config rather than hardcoding feature-specific currency defaults.
-
-Journey config summaries should come from backend read-model fields such as:
-
-```ts
-config.journeySummary
-```
-
-Battleships and Lotto summaries should follow the same pattern:
-
-```ts
-config.battleshipsSummary
-config.lottoSummary
-```
-
-Lotto currently uses project-level `config.currency` for prize display. Battleships still exposes board-level reward information in its own rules/read-model. Preserve these current contracts unless the task explicitly changes them.
+- Load the active project through `features/projects` and load presets by project + game type.
+- Create, restore, mutate, and delete games only through `/api/projects/:projectId/...` routes.
+- Persist only lightweight selected project/preset identifiers; never persist project data, preset rules, currencies, or game state as a source of truth.
+- Display currencies from the project or a game snapshot returned by backend. Do not recreate currency defaults per feature.
+- If project/preset management UI is added, it must use Project/GameConfig CRUD and permanent-delete semantics. Archive, restore, duplicate, versioning, and optimistic locking are out of MVP.
 
 ---
 
@@ -322,9 +301,9 @@ For services and clients, classes are preferred when they improve ownership and 
 Good:
 
 ```ts
-export class ConfigApiClient {
-  async getConfigs() {}
-  async updateConfig(key: string, payload: unknown) {}
+export class ProjectsApiClient {
+  async getProjects() {}
+  async updateProject(projectId: string, payload: unknown) {}
 }
 ```
 
@@ -472,11 +451,11 @@ Avoid:
 
 When improving the frontend, prioritize:
 
-1. Keep Journey, Battleships, Lotto, and Configs orchestration inside feature hooks.
+1. Keep Journey, Battleships, Lotto, and project/preset orchestration inside feature hooks.
 2. Prefer backend read-model fields over recreating derived game/config state in React.
 3. Move display transformations into mappers/view-model helpers.
 4. Keep game cards presentational.
-5. Keep Configs page focused on config display/editing, not config ownership.
+5. Keep future project/preset management UI focused on API-backed editing, not config ownership.
 6. Gradually eliminate localStorage except for game id or UI preferences.
 7. Remove stale legacy DTO/helpers when they are no longer referenced.
 8. Preserve host-facing UX details already implemented in Battleships and Lotto, such as restore/delete flows, visible DJ metadata, and copy-friendly result surfaces.

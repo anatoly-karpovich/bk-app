@@ -1,6 +1,6 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
-import type { ConfigsService } from "../configs/ConfigsService";
+import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
 import { BattleshipsEngine } from "./BattleshipsEngine";
 import { BattleshipsReadModelFactory } from "./BattleshipsReadModelFactory";
 import { BattleshipsRepository, type BattleshipsGameDocument } from "./BattleshipsRepository";
@@ -11,8 +11,6 @@ import type {
   BattleshipsShotInput,
 } from "./domain/types";
 import {
-  BattleshipsConfigNotFoundError,
-  BattleshipsConfigUnsupportedError,
   BattleshipsGameNotFoundError,
   BattleshipsGamesNotFoundError,
 } from "./errors";
@@ -31,28 +29,22 @@ export class BattleshipsService {
     private readonly repository: BattleshipsRepository,
     private readonly engine: BattleshipsEngine,
     private readonly readModelFactory: BattleshipsReadModelFactory,
-    private readonly configsService: ConfigsService,
+    private readonly gameConfigsService: GameConfigsService,
   ) {}
 
-  async createBattleshipsGameSnapshot(
-    payload: CreateBattleshipsGamePayload,
+  async createBattleshipsGameSnapshotInProject(
+    projectId: string,
+    payload: Omit<CreateBattleshipsGamePayload, "configId"> & { gameConfigId: string },
   ): Promise<BattleshipsGameResponse> {
-    const config = await this.configsService.findConfigById(payload.configId);
-
-    if (!config) {
-      throw new BattleshipsConfigNotFoundError(payload.configId);
-    }
-
-    if (!config.games.battleships) {
-      throw new BattleshipsConfigUnsupportedError(config.id, config.name);
-    }
+    const gameConfigContext = await this.gameConfigsService.getBattleshipsGameConfigContext(projectId, payload.gameConfigId);
 
     const nextGame = this.engine.createGame(payload.playerName, {
-      rules: config.games.battleships,
-      currencies: config.currencies,
+      rules: gameConfigContext.config.rules,
+      currencies: gameConfigContext.projectCurrencies,
       djName: payload.djName,
-      configId: config.id,
-      configName: config.name,
+      projectId,
+      configId: payload.gameConfigId,
+      configName: gameConfigContext.config.name,
     });
 
     const createdGame = await this.repository.create(nextGame);
@@ -67,8 +59,8 @@ export class BattleshipsService {
     return this.serializeBattleshipsGame(createdGame);
   }
 
-  async getBattleshipsGameSnapshot(gameId: string): Promise<BattleshipsGameResponse> {
-    const game = await this.repository.findById(gameId);
+  async getBattleshipsGameSnapshot(projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+    const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!game) {
       throw new BattleshipsGameNotFoundError(gameId);
@@ -77,15 +69,16 @@ export class BattleshipsService {
     return this.serializeBattleshipsGame(game);
   }
 
-  async listBattleshipsGameSnapshots(): Promise<BattleshipsGameListResponse> {
-    const games = await this.repository.findAll();
+  async listBattleshipsGameSnapshots(projectId: string): Promise<BattleshipsGameListResponse> {
+    const games = await this.repository.findByProjectId(projectId);
     return games.map((game) => this.readModelFactory.createListItem(game));
   }
 
   async getLatestBattleshipsGameSnapshot(
+    projectId: string,
     status?: BattleshipsGameDocument["status"],
   ): Promise<BattleshipsGameResponse> {
-    const latestGame = await this.repository.findLatest(status);
+    const latestGame = await this.repository.findLatest(projectId, status);
 
     if (!latestGame) {
       throw new BattleshipsGamesNotFoundError(status);
@@ -94,15 +87,15 @@ export class BattleshipsService {
     return this.serializeBattleshipsGame(latestGame);
   }
 
-  async submitBattleshipsShot(gameId: string, shot: BattleshipsShotInput): Promise<BattleshipsGameResponse> {
-    const currentGame = await this.repository.findById(gameId);
+  async submitBattleshipsShot(projectId: string, gameId: string, shot: BattleshipsShotInput): Promise<BattleshipsGameResponse> {
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new BattleshipsGameNotFoundError(gameId);
     }
 
     const nextGame = this.engine.makeShot(currentGame, shot);
-    const updatedGame = await this.saveBattleshipsGameDocument(gameId, nextGame);
+    const updatedGame = await this.saveBattleshipsGameDocument(projectId, gameId, nextGame);
 
     if (!updatedGame) {
       throw new BattleshipsGameNotFoundError(gameId);
@@ -111,15 +104,15 @@ export class BattleshipsService {
     return updatedGame;
   }
 
-  async undoBattleshipsShot(gameId: string): Promise<BattleshipsGameResponse> {
-    const currentGame = await this.repository.findById(gameId);
+  async undoBattleshipsShot(projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new BattleshipsGameNotFoundError(gameId);
     }
 
     const nextGame = this.engine.undoLastShot(currentGame);
-    const updatedGame = await this.saveBattleshipsGameDocument(gameId, nextGame);
+    const updatedGame = await this.saveBattleshipsGameDocument(projectId, gameId, nextGame);
 
     if (!updatedGame) {
       throw new BattleshipsGameNotFoundError(gameId);
@@ -128,8 +121,8 @@ export class BattleshipsService {
     return updatedGame;
   }
 
-  async deleteBattleshipsGameSnapshot(gameId: string): Promise<void> {
-    const deleted = await this.repository.delete(gameId);
+  async deleteBattleshipsGameSnapshot(projectId: string, gameId: string): Promise<void> {
+    const deleted = await this.repository.delete(gameId, projectId);
 
     if (!deleted) {
       throw new BattleshipsGameNotFoundError(gameId);
@@ -141,6 +134,7 @@ export class BattleshipsService {
   }
 
   private async saveBattleshipsGameDocument(
+    projectId: string,
     gameId: string,
     game: BattleshipsGame,
   ): Promise<BattleshipsGameResponse | null> {
@@ -150,7 +144,7 @@ export class BattleshipsService {
       return null;
     }
 
-    const updateResult = await this.repository.update(gameId, normalizedGame);
+    const updateResult = await this.repository.update(gameId, projectId, normalizedGame);
 
     return updateResult ? this.serializeBattleshipsGame(updateResult) : null;
   }

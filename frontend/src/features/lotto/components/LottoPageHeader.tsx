@@ -1,35 +1,29 @@
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
-import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import type { ReactNode } from "react";
 import GamePageHeader from "../../../components/GamePageHeader";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoStatusChip } from "../types";
 
 interface LottoPageHeaderProps {
   pageStatusChips: LottoStatusChip[];
-  canStartGame: boolean;
-  hasGame: boolean;
-  isStartingGame: boolean;
   isLoadingSavedGames: boolean;
   isResettingGame: boolean;
   actionsDisabled: boolean;
+  controls?: ReactNode;
   onOpenRules: () => void;
-  onStartGame: () => void;
   onOpenSavedGames: () => void;
   onRestartGame: () => void;
 }
 
 export default function LottoPageHeader({
   pageStatusChips,
-  canStartGame,
-  hasGame,
-  isStartingGame,
   isLoadingSavedGames,
   isResettingGame,
   actionsDisabled,
+  controls,
   onOpenRules,
-  onStartGame,
   onOpenSavedGames,
   onRestartGame,
 }: LottoPageHeaderProps) {
@@ -38,6 +32,7 @@ export default function LottoPageHeader({
       title={lottoTexts.pageTitle}
       description={lottoTexts.pageDescription}
       chips={pageStatusChips}
+      controls={controls}
       actions={[
         {
           key: "rules",
@@ -46,15 +41,6 @@ export default function LottoPageHeader({
           onClick: onOpenRules,
           disabled: actionsDisabled,
           variant: "outlined",
-        },
-        {
-          key: "new-game",
-          label: lottoTexts.actions.newGame,
-          icon: <CasinoRoundedIcon />,
-          onClick: onStartGame,
-          disabled: actionsDisabled || hasGame || !canStartGame,
-          loading: isStartingGame,
-          variant: "contained",
         },
         {
           key: "saved-games",

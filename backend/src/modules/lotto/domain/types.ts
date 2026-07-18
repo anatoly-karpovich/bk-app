@@ -41,6 +41,7 @@ export interface LottoGame {
   finishedAt: string | null;
   status: LottoGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: ConfigCurrency[];
@@ -93,6 +94,7 @@ export interface LottoGameListItemReadModel {
   finishedAt: string | null;
   status: LottoGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: ConfigCurrency[];
