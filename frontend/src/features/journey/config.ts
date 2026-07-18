@@ -74,9 +74,7 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
     ...rawRules,
     initialRewards: normalizeCurrencyValues(rawRules.initialRewards ?? rules.initialRewards),
     maxPrizes:
-      rawRules.maxPrizes === null
-        ? null
-        : normalizeCurrencyValues(rawRules.maxPrizes ?? rules.maxPrizes ?? []),
+      rawRules.maxPrizes === null ? null : normalizeCurrencyValues(rawRules.maxPrizes ?? rules.maxPrizes ?? []),
     jackpot: {
       ...rules.jackpot,
       ...(rawRules.jackpot ?? {}),
@@ -84,13 +82,19 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
     },
     achievements: {
       unlucky: {
-        rewards: normalizeAchievementRewards(rawRules.achievements?.unlucky?.rewards ?? rules.achievements.unlucky.rewards),
+        rewards: normalizeAchievementRewards(
+          rawRules.achievements?.unlucky?.rewards ?? rules.achievements.unlucky.rewards,
+        ),
       },
       careful: {
-        rewards: normalizeAchievementRewards(rawRules.achievements?.careful?.rewards ?? rules.achievements.careful.rewards),
+        rewards: normalizeAchievementRewards(
+          rawRules.achievements?.careful?.rewards ?? rules.achievements.careful.rewards,
+        ),
       },
       collector: {
-        rewards: normalizeAchievementRewards(rawRules.achievements?.collector?.rewards ?? rules.achievements.collector.rewards),
+        rewards: normalizeAchievementRewards(
+          rawRules.achievements?.collector?.rewards ?? rules.achievements.collector.rewards,
+        ),
       },
       lucky: {
         rewards: normalizeAchievementRewards(rawRules.achievements?.lucky?.rewards ?? rules.achievements.lucky.rewards),
@@ -172,7 +176,7 @@ export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RUL
       name: "Careful",
       title: "Осторожный",
       rewards: normalizedRules.achievements.careful.rewards,
-      description: "Попадание на 3 пустые клетки подряд",
+      description: "Попадание на 4 пустые клетки подряд",
     },
     COLLECTOR: {
       name: "Collector",

@@ -446,7 +446,7 @@ export function getAchievementProgress(
       achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.CAREFUL.name),
       current: getCurrentStreak(timeline, (entry) => isCarefulProgressEntry(entry, finishPosition)),
       best: getBestStreak(timeline, (entry) => isCarefulProgressEntry(entry, finishPosition)),
-      target: 3,
+      target: 4,
     },
     lucky: {
       achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.LUCKY.name),

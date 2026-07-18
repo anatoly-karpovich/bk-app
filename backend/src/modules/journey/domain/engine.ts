@@ -416,7 +416,9 @@ function getAchievementMovesForPlayer(
 
   if (
     player.movesHistory.length >= 2 &&
-    player.movesHistory.slice(-2).every((historyMove) => historyMove.cell && hasNegativeJourneyRewards(historyMove.cell.rewards)) &&
+    player.movesHistory
+      .slice(-2)
+      .every((historyMove) => historyMove.cell && hasNegativeJourneyRewards(historyMove.cell.rewards)) &&
     isTrapMove(move) &&
     !playerHasBonus(player, journeyAchievements.UNLUCKY.name)
   ) {
@@ -424,8 +426,8 @@ function getAchievementMovesForPlayer(
   }
 
   if (
-    player.movesHistory.length >= 2 &&
-    [...player.movesHistory.slice(-2), move].every((historyMove) =>
+    player.movesHistory.length >= 3 &&
+    [...player.movesHistory.slice(-3), move].every((historyMove) =>
       isCarefulEligibleMove(historyMove, finishPosition),
     ) &&
     !playerHasBonus(player, journeyAchievements.CAREFUL.name)
@@ -439,7 +441,9 @@ function getAchievementMovesForPlayer(
   ) {
     const historyWithCurrentMove = [...player.movesHistory, { cell: move.cell }];
     const hasAllCellTypes = collectibleCellIds.every((cellId) =>
-      historyWithCurrentMove.some((historyMove) => historyMove.cell && !historyMove.cell.isJackpot && historyMove.cell.id === cellId),
+      historyWithCurrentMove.some(
+        (historyMove) => historyMove.cell && !historyMove.cell.isJackpot && historyMove.cell.id === cellId,
+      ),
     );
 
     if (hasAllCellTypes) {
@@ -449,7 +453,9 @@ function getAchievementMovesForPlayer(
 
   if (
     player.movesHistory.length >= 4 &&
-    player.movesHistory.slice(-4).every((historyMove) => historyMove.cell && hasPositiveJourneyRewards(historyMove.cell.rewards)) &&
+    player.movesHistory
+      .slice(-4)
+      .every((historyMove) => historyMove.cell && hasPositiveJourneyRewards(historyMove.cell.rewards)) &&
     isPositiveRewardMove(move) &&
     !playerHasBonus(player, journeyAchievements.LUCKY.name)
   ) {
@@ -523,7 +529,9 @@ function buildRoundEntry({
     currentPosition: skipped ? playerAfterRound.position : (move?.currentPosition ?? null),
     previousBalance: balanceToJourneyCurrencyValues(playerBeforeRound.balance, currencies),
     appliedRewards: skipped ? [] : clone(move?.appliedRewards ?? []),
-    balanceAfterMove: skipped ? balanceToJourneyCurrencyValues(playerAfterRound.balance, currencies) : balanceToJourneyCurrencyValues(move?.balanceAfterMove ?? playerAfterRound.balance, currencies),
+    balanceAfterMove: skipped
+      ? balanceToJourneyCurrencyValues(playerAfterRound.balance, currencies)
+      : balanceToJourneyCurrencyValues(move?.balanceAfterMove ?? playerAfterRound.balance, currencies),
     balanceAfterRound: balanceToJourneyCurrencyValues(playerAfterRound.balance, currencies),
     moveType: skipped ? "skipped" : (move?.type ?? null),
     cell: skipped ? null : clone(move?.cell ?? null),
@@ -551,7 +559,8 @@ function createEntriesFromLegacyRound(
   currencies: ConfigCurrency[],
 ): JourneyRoundEntry[] {
   const defaultCurrencyId = currencies[0]?.id ?? "default";
-  const movesByNickname: Record<string, JourneyMove & { previousPrize?: number; prize?: number }> = round.movesByNickname ?? {};
+  const movesByNickname: Record<string, JourneyMove & { previousPrize?: number; prize?: number }> =
+    round.movesByNickname ?? {};
   const achievementMovesByNickname = (round.achievementMoves ?? []).reduce<Record<string, JourneyAchievement[]>>(
     (accumulator, achievementMove) => {
       if (!accumulator[achievementMove.playerNickname]) {
@@ -577,9 +586,13 @@ function createEntriesFromLegacyRound(
       dice: move.dice ?? null,
       previousPosition: move.previousPosition ?? null,
       currentPosition: move.currentPosition ?? null,
-      previousBalance: move.previousBalance ? balanceToJourneyCurrencyValues(move.previousBalance, currencies) : toLegacyJourneyCurrencyValues((move as { previousPrize?: number }).previousPrize, defaultCurrencyId),
+      previousBalance: move.previousBalance
+        ? balanceToJourneyCurrencyValues(move.previousBalance, currencies)
+        : toLegacyJourneyCurrencyValues((move as { previousPrize?: number }).previousPrize, defaultCurrencyId),
       appliedRewards: clone(move.appliedRewards ?? []),
-      balanceAfterMove: move.balanceAfterMove ? balanceToJourneyCurrencyValues(move.balanceAfterMove, currencies) : toLegacyJourneyCurrencyValues((move as { prize?: number }).prize, defaultCurrencyId),
+      balanceAfterMove: move.balanceAfterMove
+        ? balanceToJourneyCurrencyValues(move.balanceAfterMove, currencies)
+        : toLegacyJourneyCurrencyValues((move as { prize?: number }).prize, defaultCurrencyId),
       balanceAfterRound: player ? balanceToJourneyCurrencyValues(player.balance, currencies) : null,
       moveType: (move.type as JourneyMoveType | null) ?? null,
       cell: move.cell ? clone(move.cell) : null,
@@ -603,10 +616,16 @@ function createEntriesFromLegacyRound(
       dice: null,
       previousPosition: player?.position ?? null,
       currentPosition: player?.position ?? null,
-      previousBalance: player ? balanceToJourneyCurrencyValues(player.balance, currencies) : toLegacyJourneyCurrencyValues(0, defaultCurrencyId),
+      previousBalance: player
+        ? balanceToJourneyCurrencyValues(player.balance, currencies)
+        : toLegacyJourneyCurrencyValues(0, defaultCurrencyId),
       appliedRewards: [],
-      balanceAfterMove: player ? balanceToJourneyCurrencyValues(player.balance, currencies) : toLegacyJourneyCurrencyValues(0, defaultCurrencyId),
-      balanceAfterRound: player ? balanceToJourneyCurrencyValues(player.balance, currencies) : toLegacyJourneyCurrencyValues(0, defaultCurrencyId),
+      balanceAfterMove: player
+        ? balanceToJourneyCurrencyValues(player.balance, currencies)
+        : toLegacyJourneyCurrencyValues(0, defaultCurrencyId),
+      balanceAfterRound: player
+        ? balanceToJourneyCurrencyValues(player.balance, currencies)
+        : toLegacyJourneyCurrencyValues(0, defaultCurrencyId),
       moveType: "skipped" as const,
       cell: null,
       achievementsAwarded: [],
@@ -674,7 +693,9 @@ function migrateLegacyJourneyRules(
         rewards: [{ currencyId: defaultCurrencyId, value: Math.trunc(legacyRules.achievements?.careful?.prize ?? 5) }],
       },
       collector: {
-        rewards: [{ currencyId: defaultCurrencyId, value: Math.trunc(legacyRules.achievements?.collector?.prize ?? 5) }],
+        rewards: [
+          { currencyId: defaultCurrencyId, value: Math.trunc(legacyRules.achievements?.collector?.prize ?? 5) },
+        ],
       },
       lucky: {
         rewards: [{ currencyId: defaultCurrencyId, value: Math.trunc(legacyRules.achievements?.lucky?.prize ?? 5) }],
@@ -747,7 +768,10 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
     typeof (rawRules as { currency?: string } | undefined)?.currency === "string"
       ? String((rawRules as { currency?: string }).currency)
       : "фишек";
-  game.currencies = Array.isArray(game.currencies) && game.currencies.length ? game.currencies : [createDefaultJourneyCurrency(legacyCurrencyLabel)];
+  game.currencies =
+    Array.isArray(game.currencies) && game.currencies.length
+      ? game.currencies
+      : [createDefaultJourneyCurrency(legacyCurrencyLabel)];
   game.rules = migrateLegacyJourneyRules(rawRules, game.currencies);
   game.map = Object.fromEntries(
     Object.entries(game.map ?? {}).flatMap(([position, cell]) => {
@@ -779,7 +803,9 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
         : createJourneyBalance(game.currencies, [
             {
               currencyId: defaultCurrencyId,
-              value: Math.trunc(legacyPlayer.previousPrize ?? balance[defaultCurrencyId] ?? initialBalance[defaultCurrencyId] ?? 0),
+              value: Math.trunc(
+                legacyPlayer.previousPrize ?? balance[defaultCurrencyId] ?? initialBalance[defaultCurrencyId] ?? 0,
+              ),
             },
           ]);
 
@@ -819,7 +845,15 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
         balanceAfterMove: clone(entry.balanceAfterMove ?? []),
         balanceAfterRound: clone(entry.balanceAfterRound ?? []),
         cell: entry.cell ? clone(entry.cell) : null,
-      })) ?? createEntriesFromLegacyRound(round as JourneyRound & { movesByNickname?: Record<string, JourneyMove & { previousPrize?: number; prize?: number }> }, playersByNickname, game.updatedAt ?? game.createdAt, game.currencies),
+      })) ??
+      createEntriesFromLegacyRound(
+        round as JourneyRound & {
+          movesByNickname?: Record<string, JourneyMove & { previousPrize?: number; prize?: number }>;
+        },
+        playersByNickname,
+        game.updatedAt ?? game.createdAt,
+        game.currencies,
+      ),
   }));
 
   game.status = isJourneyGameOver(game) ? "finished" : "in_progress";
@@ -905,7 +939,10 @@ function appendJourneyFinalSummary(game: JourneyGame): JourneyGame {
   const results = getJourneyResults(game);
   const finalComments = [
     "==================== Итоги ====================",
-    ...results.map((player) => `${player.nickname} — [${formatJourneyCurrencyValues(balanceToJourneyCurrencyValues(player.balance, game.currencies), game.currencies)}]`),
+    ...results.map(
+      (player) =>
+        `${player.nickname} — [${formatJourneyCurrencyValues(balanceToJourneyCurrencyValues(player.balance, game.currencies), game.currencies)}]`,
+    ),
     `Финишировали: ${getJourneyFinishedPlayers(game).length}`,
   ];
 
@@ -1004,10 +1041,16 @@ export function makeJourneyRound(
       player.bonuses.push(clone(journeyAchievements.JACKPOT));
       const jackpotMove = achievementMoves.find(
         (achievementMove) =>
-          achievementMove.playerId === player.id && achievementMove.achievement.name === journeyAchievements.JACKPOT.name,
+          achievementMove.playerId === player.id &&
+          achievementMove.achievement.name === journeyAchievements.JACKPOT.name,
       );
 
-      const appliedRewards = applyBonusRewardsToPlayer(player, journeyAchievements.JACKPOT, nextGame.rules, nextGame.currencies);
+      const appliedRewards = applyBonusRewardsToPlayer(
+        player,
+        journeyAchievements.JACKPOT,
+        nextGame.rules,
+        nextGame.currencies,
+      );
 
       if (jackpotMove) {
         jackpotMove.appliedRewards = appliedRewards;
@@ -1174,7 +1217,10 @@ export function getJourneyMoveTypeLabel(type: JourneyMoveType | null): string {
   }
 }
 
-export function getAchievementMetadata(name: string, rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyAchievement | null {
+export function getAchievementMetadata(
+  name: string,
+  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
+): JourneyAchievement | null {
   return getAchievementBonus(name, rules);
 }
 
