@@ -7,22 +7,6 @@ const GAME_CONFIGS_COLLECTION = "game_configs";
 export class GameConfigsRepository {
   constructor(private readonly mongoDatabase: MongoDatabase) {}
 
-  async ensureIndexes(): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.createIndex(
-      { projectId: 1, gameType: 1, name: 1 },
-      { unique: true, name: "project_game_type_name_unique" },
-    );
-    await collection.createIndex(
-      { projectId: 1, gameType: 1, legacyConfigId: 1 },
-      {
-        unique: true,
-        sparse: true,
-        name: "project_game_type_legacy_config_unique",
-      },
-    );
-  }
-
   async findByProjectIdAndGameType(
     projectId: string,
     gameType: GameType,
@@ -30,6 +14,11 @@ export class GameConfigsRepository {
     const collection = await this.getCollection();
 
     return collection.find({ projectId, gameType }).toArray();
+  }
+
+  async findByProjectId(projectId: string): Promise<Array<WithId<GameConfigDocument>>> {
+    const collection = await this.getCollection();
+    return collection.find({ projectId }).toArray();
   }
 
   async findByIdAndProjectId(

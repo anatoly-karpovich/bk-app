@@ -6,7 +6,7 @@ Version: Draft 1.0
 
 ## MVP decisions (2026-07-18)
 
-The following decisions supersede earlier sections of this draft where they conflict:
+The following decisions are the binding MVP specification. Earlier sections of this draft are historical design context only; when they conflict with this block, they must not be implemented or used as rollout criteria.
 
 - Project and game-config lifecycle uses physical deletion in the MVP. Archive and restore flows are out of scope.
 - `GameConfig.version` and optimistic locking are out of scope for the MVP. A game still keeps its complete rules and currency snapshots.
@@ -14,6 +14,8 @@ The following decisions supersede earlier sections of this draft where they conf
 - The legacy `configs` runtime API is not a compatibility target. The application must use only Project and project-owned GameConfig flows after the data cutover.
 - Production data will be rebuilt from a curated backup import. The migration path must therefore support a deterministic import, not preserve every malformed legacy record in place.
 - Automated tests are deferred. Typechecking and a documented manual smoke checklist remain required before rollout.
+
+In particular, all later references to archive/restore, duplicate flows, status fields, `GameConfig.version`, optimistic locking, or extra MongoDB indexes are out of scope for this MVP.
 
 ---
 
@@ -4661,14 +4663,14 @@ currency used with incompatible precision
 4. Отображаются три типа GameConfig.
 5. Открывается старый Journey game.
 6. Его результаты и логи не изменились.
-7. Создаётся копия Journey config.
-8. В копии изменяется награда.
-9. Создаётся новая Journey по копии.
+7. Через project-scoped API создаётся отдельный Journey config.
+8. В нём изменяется награда.
+9. Создаётся новая Journey по этому config.
 10. Новая партия использует изменённую награду.
-11. Старая партия использует старую.
-12. Config архивируется.
-13. Он исчезает из create-game selector.
-14. Созданная по нему партия продолжает открываться.
+11. Старая партия использует старую snapshot.
+12. Preset удаляется физически.
+13. Существующая партия, созданная по удалённому preset, продолжает открываться из своего snapshot.
+14. Попытка удалить валюту, на которую ссылается preset этого Project, отклоняется; API возвращает для неё `canDelete: false`.
 
 ---
 
@@ -4681,18 +4683,17 @@ currency used with incompatible precision
 - [ ] существуют project-owned currencies;
 - [ ] существуют independent GameConfig;
 - [ ] поддерживаются несколько конфигов одного GameType;
-- [ ] существуют duplicate/archive/restore flows;
+- [ ] Project и GameConfig удаляются физически; archive/restore и duplicate flows отсутствуют;
 - [ ] Game хранит immutable snapshots;
 - [ ] backend API project-scoped;
 - [ ] frontend разделён на Project и game-specific pages;
 - [ ] миграция production данных подготовлена и протестирована;
 - [ ] миграция не запускается автоматически;
-- [ ] unique indexes созданы;
-- [ ] optimistic locking реализован либо явно вынесен в отдельную обязательную ближайшую задачу;
+- [ ] дополнительные MongoDB indexes и optimistic locking не введены в MVP;
 - [ ] legacy games читаются;
 - [ ] новые games создаются только через новый flow;
-- [ ] typecheck, lint, tests и build проходят;
-- [ ] README содержит команды локальной Mongo, seed и migration;
+- [ ] typecheck и build проходят; выполнен документированный manual smoke checklist;
+- [ ] backup README содержит команды локальной Mongo и детерминированного backup import/restore;
 - [ ] Codex перечислил все оставшиеся compatibility fallbacks.
 
 ---

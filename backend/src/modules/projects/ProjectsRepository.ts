@@ -9,19 +9,6 @@ export interface ProjectDocument extends Project {}
 export class ProjectsRepository {
   constructor(private readonly mongoDatabase: MongoDatabase) {}
 
-  async ensureIndexes(): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.createIndex({ code: 1 }, { unique: true, name: "project_code_unique" });
-    await collection.createIndex(
-      { legacyConfigId: 1 },
-      {
-        unique: true,
-        sparse: true,
-        name: "project_legacy_config_id_unique",
-      },
-    );
-  }
-
   async findAll(): Promise<Array<WithId<ProjectDocument>>> {
     const collection = await this.getCollection();
     return collection.find({}).toArray();

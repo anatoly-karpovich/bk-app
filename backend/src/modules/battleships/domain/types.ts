@@ -1,5 +1,5 @@
 import type { CurrencyValue } from "../../../common/currencyValues";
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot } from "../../../common/currency";
 
 export type RandomFn = () => number;
 
@@ -75,7 +75,7 @@ export interface BattleshipsGame {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   rules: BattleshipsRules;
   board: number[][];
   ships: BattleshipsShip[];
@@ -129,7 +129,7 @@ export interface BattleshipsGameListItemReadModel {
   maxShots: number;
   attemptsLeft: number;
   currentPrize: BattleshipsCurrencyValue[];
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   shotsCount: number;
 }
 

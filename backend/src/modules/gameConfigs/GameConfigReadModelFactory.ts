@@ -3,7 +3,7 @@ import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig } from "../batt
 import { getJourneyConfig } from "../journey/domain/config";
 import { formatJourneyCurrencyValues } from "../journey/domain/currency";
 import { getLottoRangeLabel } from "../lotto/domain/config";
-import type { ConfigCurrency } from "../configs/domain/types";
+import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import type {
   AnyGameConfig,
   AnyGameConfigReadModel,

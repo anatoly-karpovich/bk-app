@@ -1,4 +1,4 @@
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import type { JourneyBalance, JourneyCurrencyValue } from "./types";
 
 function getCurrencyOrder(currencies: ConfigCurrency[]): string[] {

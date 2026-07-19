@@ -12,13 +12,14 @@ export interface ProjectCurrency {
   precision: number;
   createdAt: string;
   updatedAt: string;
+  canDelete: boolean;
 }
 
 export interface ProjectMutationInput {
   code: string;
   name: string;
   description: string;
-  currencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt">>;
+  currencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt" | "canDelete">>;
 }
 
 export interface Project {

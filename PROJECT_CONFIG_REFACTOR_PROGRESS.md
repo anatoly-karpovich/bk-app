@@ -15,11 +15,12 @@ Updated: 2026-07-18
 The project/preset runtime is switched to the new model.
 
 - `Project` and project-owned `GameConfig` CRUD APIs exist.
-- Project currencies have complete metadata and preset saving validates currency IDs, values, and precision.
+- Project currencies have complete metadata; preset saving validates currency IDs, values, and precision, and a currency referenced by any project preset cannot be deleted. Project read models expose `currencies[].canDelete` for host UI.
 - All Journey, Battleships, and Lotto game routes, services, repositories, and frontend clients are project-scoped.
 - Deleting a preset does not delete saved games; deleting a project permanently deletes its presets and games.
 - `/api/configs`, the legacy config service/controller/routes, old create-game endpoints, frontend `features/configs`, bootstrap and seed scripts are removed from runtime.
-- The legacy config repository, types and normalizer remain only as an offline backup-import adapter. They are not mounted or wired into runtime DI.
+- The legacy config repository, types and normalizer remain only as an offline backup-import adapter. They are not mounted, imported, or wired into runtime DI; game runtime uses shared currency snapshot types/helpers.
+- The only supported migration path is the explicit offline EJSON backup conversion and restore flow below; the legacy in-place migration runner is removed.
 - Backend and frontend TypeScript builds have passed after the cleanup.
 
 ## Deterministic backup conversion

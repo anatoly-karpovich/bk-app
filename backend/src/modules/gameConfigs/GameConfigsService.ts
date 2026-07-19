@@ -9,6 +9,7 @@ import { normalizeLottoRules } from "../lotto/domain/config";
 import type { LottoRulesInput } from "../lotto/domain/types";
 import { GameConfigReadModelFactory } from "./GameConfigReadModelFactory";
 import { GameConfigsRepository } from "./GameConfigsRepository";
+import { collectCurrencyIdsFromRules } from "./domain/currencyReferences";
 import type {
   AnyGameConfig,
   AnyGameConfigReadModel,
@@ -204,6 +205,13 @@ export class GameConfigsService {
   private assertRulesUseProjectCurrencies(rules: unknown, currencies: ProjectCurrency[]): void {
     const currenciesById = new Map(currencies.map((currency) => [currency.id, currency]));
     const visited = new Set<unknown>();
+    const currencyIds = collectCurrencyIdsFromRules(rules);
+
+    for (const currencyId of currencyIds) {
+      if (!currenciesById.has(currencyId)) {
+        throw new GameConfigCurrencyValidationError(`Unknown project currency "${currencyId}" in game rules`);
+      }
+    }
 
     const visit = (value: unknown): void => {
       if (!value || typeof value !== "object" || visited.has(value)) {
@@ -217,23 +225,17 @@ export class GameConfigsService {
       }
 
       const record = value as Record<string, unknown>;
-      if (typeof record.currencyId === "string") {
-        const currency = currenciesById.get(record.currencyId);
-        if (!currency) {
-          throw new GameConfigCurrencyValidationError(`Unknown project currency "${record.currencyId}" in game rules`);
+      if (typeof record.currencyId === "string" && typeof record.value === "number") {
+        const currency = currenciesById.get(record.currencyId)!;
+        if (!Number.isFinite(record.value)) {
+          throw new GameConfigCurrencyValidationError(`Currency value for "${record.currencyId}" must be finite`);
         }
 
-        if (typeof record.value === "number") {
-          if (!Number.isFinite(record.value)) {
-            throw new GameConfigCurrencyValidationError(`Currency value for "${record.currencyId}" must be finite`);
-          }
-
-          const scaledValue = record.value * 10 ** currency.precision;
-          if (!Number.isInteger(scaledValue)) {
-            throw new GameConfigCurrencyValidationError(
-              `Currency value for "${record.currencyId}" exceeds precision ${currency.precision}`,
-            );
-          }
+        const scaledValue = record.value * 10 ** currency.precision;
+        if (!Number.isInteger(scaledValue)) {
+          throw new GameConfigCurrencyValidationError(
+            `Currency value for "${record.currencyId}" exceeds precision ${currency.precision}`,
+          );
         }
       }
 

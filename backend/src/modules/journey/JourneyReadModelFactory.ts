@@ -1,5 +1,5 @@
 import type { WithId } from "mongodb";
-import type { ConfigCurrency } from "../configs/domain/types";
+import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import { balanceToJourneyCurrencyValues } from "./domain/currency";
 import { getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "./domain/config";
 import { JourneyEngine } from "./JourneyEngine";

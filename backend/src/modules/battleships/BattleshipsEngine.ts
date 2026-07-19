@@ -1,6 +1,9 @@
 import { addCurrencyValues, normalizeCurrencyValues } from "../../common/currencyValues";
-import type { ConfigCurrency } from "../configs/domain/types";
-import { createDefaultConfigCurrency, normalizeConfigCurrencies } from "../configs/domain/normalizeConfig";
+import {
+  createDefaultCurrencySnapshot,
+  normalizeCurrencySnapshots,
+  type CurrencySnapshot,
+} from "../../common/currency";
 import { getBattleshipsBoardConfig, normalizeBattleshipsRules } from "./domain/config";
 import type {
   BattleshipsBoardRules,
@@ -37,7 +40,7 @@ type LegacyBattleshipsShot = Omit<BattleshipsShot, "prizeDelta" | "totalPrize"> 
 };
 
 type LegacyBattleshipsGame = Omit<BattleshipsGame, "rules" | "currencies" | "shots"> & {
-  currencies?: ConfigCurrency[];
+  currencies?: CurrencySnapshot[];
   rules: LegacyBattleshipsRules;
   shots: LegacyBattleshipsShot[];
 };
@@ -74,7 +77,7 @@ export class BattleshipsEngine {
     options: {
       randomFn?: RandomFn;
       rules: BattleshipsRules;
-      currencies: ConfigCurrency[];
+      currencies: CurrencySnapshot[];
       djName?: string;
       projectId?: string;
       configId?: string;
@@ -390,14 +393,14 @@ export class BattleshipsEngine {
     return [{ currencyId: defaultCurrencyId, value: Number(numericValue.toFixed(2)) }];
   }
 
-  private normalizeCurrencies(currencies: ConfigCurrency[] | undefined, legacyCurrencyLabel?: string): ConfigCurrency[] {
-    const normalizedCurrencies = normalizeConfigCurrencies(currencies ?? []);
+  private normalizeCurrencies(currencies: CurrencySnapshot[] | undefined, legacyCurrencyLabel?: string): CurrencySnapshot[] {
+    const normalizedCurrencies = normalizeCurrencySnapshots(currencies ?? []);
 
     if (normalizedCurrencies.length) {
       return normalizedCurrencies;
     }
 
-    return [createDefaultConfigCurrency(legacyCurrencyLabel)];
+    return [createDefaultCurrencySnapshot(legacyCurrencyLabel)];
   }
 
   private resolveLegacyCurrencyLabel(rules: LegacyBattleshipsRules): string | undefined {

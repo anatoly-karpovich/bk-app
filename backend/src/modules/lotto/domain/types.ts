@@ -1,5 +1,5 @@
 import type { CurrencyValue } from "../../../common/currencyValues";
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot } from "../../../common/currency";
 
 export type LottoRewardDistributionMode = "full_per_winner" | "split_pool";
 export type LottoGameStatus = "in_progress" | "finished";
@@ -44,7 +44,7 @@ export interface LottoGame {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   rules: LottoRules;
   drawnNumbers: number[];
   availableNumbers: number[];
@@ -97,7 +97,7 @@ export interface LottoGameListItemReadModel {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   drawCount: number;
   playersCount: number;
   firstPlaceWinners: string[];

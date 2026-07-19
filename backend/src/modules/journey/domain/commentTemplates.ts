@@ -1,4 +1,4 @@
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import { balanceToJourneyCurrencyValues, formatJourneyCurrencyValues, hasNegativeJourneyRewards } from "./currency";
 import { MOVE_TYPES } from "./config";
 import type {

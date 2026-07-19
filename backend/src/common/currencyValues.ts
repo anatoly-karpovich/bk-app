@@ -1,4 +1,4 @@
-import type { ConfigCurrency } from "../modules/configs/domain/types";
+import type { CurrencySnapshot } from "./currency";
 
 export interface CurrencyValue {
   currencyId: string;
@@ -64,7 +64,7 @@ export function formatCurrencyNumber(value: number): string {
 
 export function formatCurrencyValues(
   values: CurrencyValue[],
-  currencies: ConfigCurrency[],
+  currencies: CurrencySnapshot[],
   options: {
     showPlus?: boolean;
     includeZero?: boolean;

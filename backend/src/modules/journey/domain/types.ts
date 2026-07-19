@@ -1,4 +1,4 @@
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot } from "../../../common/currency";
 
 export type RandomFn = () => number;
 
@@ -77,7 +77,7 @@ export interface JourneyConfig {
   maxDice: number;
   maxPrizes: JourneyCurrencyValue[] | null;
   jackpotRewards: JourneyCurrencyValue[];
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
 }
 
 export interface JourneyAchievement {
@@ -188,7 +188,7 @@ export interface JourneyGame {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayer[];
@@ -235,7 +235,7 @@ export interface JourneyGameListItemReadModel {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   roundsCount: number;
   players: JourneyGameListItemPlayerReadModel[];
 }
@@ -275,7 +275,7 @@ export interface JourneyGameDto {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayerDto[];

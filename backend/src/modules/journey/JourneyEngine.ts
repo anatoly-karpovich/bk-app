@@ -1,4 +1,4 @@
-import type { ConfigCurrency } from "../configs/domain/types";
+import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import {
   createJourneyGame as createJourneyGameFn,
   getJourneyActivePlayers as getJourneyActivePlayersFn,

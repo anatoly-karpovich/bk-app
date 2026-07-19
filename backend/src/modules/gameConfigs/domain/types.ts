@@ -1,7 +1,7 @@
 import type { BattleshipsRules } from "../../battleships/domain/types";
 import type { JourneyRules } from "../../journey/domain/types";
 import type { LottoRules } from "../../lotto/domain/types";
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot } from "../../../common/currency";
 
 export type GameType = "journey" | "battleships" | "lotto";
 export interface JourneyGameConfigSummary {
@@ -73,6 +73,6 @@ export type AnyGameConfigReadModel =
   | LottoGameConfigReadModel;
 
 export interface GameConfigContext<TConfig extends AnyGameConfig = AnyGameConfig> {
-  projectCurrencies: ConfigCurrency[];
+  projectCurrencies: CurrencySnapshot[];
   config: TConfig;
 }

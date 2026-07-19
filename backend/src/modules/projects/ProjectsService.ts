@@ -1,6 +1,7 @@
-import { ProjectCodeConflictError, ProjectNotFoundError } from "./errors";
+import { ProjectCodeConflictError, ProjectCurrencyInUseError, ProjectNotFoundError } from "./errors";
 import { BattleshipsRepository } from "../battleships/BattleshipsRepository";
 import { GameConfigsRepository } from "../gameConfigs/GameConfigsRepository";
+import { collectCurrencyIdsFromRules } from "../gameConfigs/domain/currencyReferences";
 import { JourneyRepository } from "../journey/JourneyRepository";
 import { LottoRepository } from "../lotto/LottoRepository";
 import { normalizeProjectCurrencies } from "./domain/normalizeProjectCurrencies";
@@ -19,18 +20,8 @@ export class ProjectsService {
   async listProjects(): Promise<ProjectReadModel[]> {
     const projects = await this.repository.findAll();
 
-    return projects
-      .map((project) => ({
-        id: project._id.toHexString(),
-        code: project.code,
-        name: project.name,
-        description: project.description,
-        currencies: structuredClone(project.currencies),
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
-        legacyConfigId: project.legacyConfigId ?? null,
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name, "ru"));
+    const readModels = await Promise.all(projects.map((project) => this.toReadModel(project)));
+    return readModels.sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
 
   async getProjectByIdOrThrow(projectId: string): Promise<ProjectReadModel> {
@@ -40,7 +31,7 @@ export class ProjectsService {
       throw new ProjectNotFoundError(projectId);
     }
 
-    return this.toReadModel(project);
+    return await this.toReadModel(project);
   }
 
   async createProject(input: {
@@ -71,7 +62,7 @@ export class ProjectsService {
       throw new Error("Failed to load created project");
     }
 
-    return this.toReadModel(created);
+    return await this.toReadModel(created);
   }
 
   async updateProject(
@@ -97,6 +88,8 @@ export class ProjectsService {
       }
     }
 
+    await this.assertUsedCurrenciesAreNotRemoved(projectId, current.currencies, input.currencies);
+
     const updated = await this.repository.update(projectId, {
       code,
       name: input.name.trim(),
@@ -116,7 +109,7 @@ export class ProjectsService {
       throw new ProjectNotFoundError(projectId);
     }
 
-    return this.toReadModel(updated);
+    return await this.toReadModel(updated);
   }
 
   async deleteProject(projectId: string): Promise<void> {
@@ -138,13 +131,42 @@ export class ProjectsService {
     }
   }
 
-  private toReadModel(project: { _id: { toHexString(): string } } & Project): ProjectReadModel {
+  private async assertUsedCurrenciesAreNotRemoved(
+    projectId: string,
+    currentCurrencies: ProjectCurrency[],
+    nextCurrencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt">>,
+  ): Promise<void> {
+    const nextCurrencyIds = new Set(nextCurrencies.map((currency) => currency.id.trim()));
+    const removedCurrencyIds = currentCurrencies
+      .map((currency) => currency.id)
+      .filter((currencyId) => !nextCurrencyIds.has(currencyId));
+
+    if (!removedCurrencyIds.length) {
+      return;
+    }
+
+    const configs = await this.gameConfigsRepository.findByProjectId(projectId);
+    const usedCurrencyIds = new Set(configs.flatMap((config) => [...collectCurrencyIdsFromRules(config.rules)]));
+    const inUseCurrencyIds = removedCurrencyIds.filter((currencyId) => usedCurrencyIds.has(currencyId));
+
+    if (inUseCurrencyIds.length) {
+      throw new ProjectCurrencyInUseError(inUseCurrencyIds);
+    }
+  }
+
+  private async toReadModel(project: { _id: { toHexString(): string } } & Project): Promise<ProjectReadModel> {
+    const configs = await this.gameConfigsRepository.findByProjectId(project._id.toHexString());
+    const usedCurrencyIds = new Set(configs.flatMap((config) => [...collectCurrencyIdsFromRules(config.rules)]));
+
     return {
       id: project._id.toHexString(),
       code: project.code,
       name: project.name,
       description: project.description,
-      currencies: structuredClone(project.currencies),
+      currencies: project.currencies.map((currency) => ({
+        ...structuredClone(currency),
+        canDelete: !usedCurrencyIds.has(currency.id),
+      })),
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       legacyConfigId: project.legacyConfigId ?? null,

@@ -22,6 +22,11 @@ export interface ProjectCurrency {
   updatedAt: string;
 }
 
+export interface ProjectCurrencyReadModel extends ProjectCurrency {
+  canDelete: boolean;
+}
+
 export interface ProjectReadModel extends Project {
   id: string;
+  currencies: ProjectCurrencyReadModel[];
 }
