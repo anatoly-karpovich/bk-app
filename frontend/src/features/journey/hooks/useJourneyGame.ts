@@ -32,8 +32,7 @@ import { mapParsedMovesToPlayerInputs } from "../mappers/journey.mapper";
 import { clearJourneyGame, loadJourneyGameId, saveJourneyGameId } from "../storage";
 import type {
   JourneyMoveInputs,
-  JourneyPersistedGame,
-  JourneyPlayer,
+  JourneyPageGame,
   JourneyPlayerReadModel,
   JourneySavedGameSummary,
   JourneySkippedPlayers,
@@ -66,7 +65,7 @@ function resolveSelectedGameConfigId(gameConfigs: JourneyGameConfig[]) {
 }
 
 export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams) {
-  const [game, setGame] = useState<JourneyPersistedGame | null>(null);
+  const [game, setGame] = useState<JourneyPageGame | null>(null);
   const [storedGameId, setStoredGameId] = useState<string | null>(loadJourneyGameId());
   const [playerNames, setPlayerNames] = useState([""]);
   const [playersImportText, setPlayersImportText] = useState("");
@@ -176,15 +175,15 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
   const journeyCurrencies = useMemo(() => game?.currencies ?? selectedCurrencies, [game, selectedCurrencies]);
   const journeyConfig = useMemo(
-    () => game?.derived?.journeyConfig ?? getJourneyConfig(journeyRules, journeyCurrencies),
+    () => game?.journeyConfig ?? getJourneyConfig(journeyRules, journeyCurrencies),
     [game, journeyCurrencies, journeyRules],
   );
   const journeyAchievements = useMemo(
-    () => game?.derived?.journeyAchievements ?? getJourneyAchievements(journeyRules),
+    () => game?.journeyAchievements ?? getJourneyAchievements(journeyRules),
     [game, journeyRules],
   );
-  const collectorTargets = game?.derived?.collectorTargets ?? [];
-  const achievementProgressByPlayerId = game?.derived?.achievementProgressByPlayerId ?? {};
+  const collectorTargets = game?.collectorTargets ?? [];
+  const achievementProgressByPlayerId = game?.achievementProgressByPlayerId ?? {};
   const canStartGame =
     Boolean(selectedProject?.id) &&
     Boolean(selectedJourneyGameConfig) &&
@@ -270,7 +269,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     ];
 
     if (activeGame) {
-      chips.push({ label: `${journeyTexts.statuses.roundPrefix} ${game.rounds.length}`, color: "primary" });
+      chips.push({ label: `${journeyTexts.statuses.roundPrefix} ${game.roundsCount}`, color: "primary" });
       chips.push({ label: `${totalGamePlayers} ${journeyTexts.statuses.playersSuffix}`, color: "info" });
     }
 
@@ -281,7 +280,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     return chips;
   }, [activeGame, djName, game, gameIsOver, selectedJourneyGameConfig?.name, totalGamePlayers]);
 
-  function resetRoundUi(players: JourneyPlayer[] = []) {
+  function resetRoundUi(players: Array<{ id: string }> = []) {
     setMoveInputs(createEmptyMoveState(players));
     setSkippedPlayers(createEmptySkipState(players));
     setMovesImportText("");

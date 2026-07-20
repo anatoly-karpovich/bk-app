@@ -1,3 +1,7 @@
+/**
+ * Offline legacy Journey normalizer used only by backup import.
+ * It is deliberately excluded from the application runtime.
+ */
 import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import {
   applyJourneyRewardsToBalance,
@@ -1072,7 +1076,20 @@ export function makeJourneyRound(
     const player = getPlayerById(nextGame, move.playerId);
 
     if (player) {
-      roundComments.push(buildJourneyComment({ move, player, currencies: nextGame.currencies, randomFn }));
+      roundComments.push(
+        buildJourneyComment({
+          event: {
+            kind: "move",
+            playerNickname: player.nickname,
+            moveType: move.type,
+            requestedRewards: move.requestedRewards,
+            appliedRewards: move.appliedRewards,
+            balanceAfter: balanceToJourneyCurrencyValues(player.balance, nextGame.currencies),
+          },
+          currencies: nextGame.currencies,
+          randomFn,
+        }),
+      );
     }
   });
 
@@ -1082,10 +1099,14 @@ export function makeJourneyRound(
     if (player) {
       roundComments.push(
         buildJourneyComment({
-          achievement: achievementMove.achievement,
-          player,
+          event: {
+            kind: "achievement",
+            playerNickname: player.nickname,
+            achievement: achievementMove.achievement,
+            appliedRewards: achievementMove.appliedRewards,
+            balanceAfter: balanceToJourneyCurrencyValues(player.balance, nextGame.currencies),
+          },
           currencies: nextGame.currencies,
-          appliedRewards: achievementMove.appliedRewards,
           randomFn,
         }),
       );

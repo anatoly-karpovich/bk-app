@@ -1,4 +1,5 @@
-import type { JourneyMoveInput, JourneyPersistedGame, JourneySavedGameSummary } from "../types";
+import { journeyGameViewMapper } from "../mappers/JourneyGameViewMapper";
+import type { JourneyGameView, JourneyMoveInput, JourneyPageGame, JourneySavedGameSummary } from "../types";
 import { apiClient } from "../../../lib/apiClient";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
@@ -12,16 +13,18 @@ export async function createJourneyGameRequest(payload: {
   gameConfigId: string;
   nicknames: string[];
   djName?: string;
-}): Promise<JourneyPersistedGame> {
+}): Promise<JourneyPageGame> {
   const { projectId, ...body } = payload;
-  return await apiClient.post<JourneyPersistedGame>(
+  const game = await apiClient.post<JourneyGameView>(
     `${getProjectJourneyApiBaseUrl(projectId)}/games`,
     body,
   );
+  return journeyGameViewMapper.toPageGame(game);
 }
 
-export async function getJourneyGameByIdRequest(projectId: string, gameId: string): Promise<JourneyPersistedGame> {
-  return await apiClient.get<JourneyPersistedGame>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}`);
+export async function getJourneyGameByIdRequest(projectId: string, gameId: string): Promise<JourneyPageGame> {
+  const game = await apiClient.get<JourneyGameView>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}`);
+  return journeyGameViewMapper.toPageGame(game);
 }
 
 export async function listJourneyGamesRequest(projectId: string): Promise<JourneySavedGameSummary[]> {
@@ -35,14 +38,16 @@ export async function submitJourneyRoundRequest(
     moves: JourneyMoveInput[];
     skippedPlayerIds?: string[];
   },
-): Promise<JourneyPersistedGame> {
-  return await apiClient.post<JourneyPersistedGame>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/rounds`, payload);
+): Promise<JourneyPageGame> {
+  const game = await apiClient.post<JourneyGameView>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/rounds`, payload);
+  return journeyGameViewMapper.toPageGame(game);
 }
 
-export async function removeJourneyPlayerRequest(projectId: string, gameId: string, playerId: string): Promise<JourneyPersistedGame> {
-  return await apiClient.delete<JourneyPersistedGame>(
+export async function removeJourneyPlayerRequest(projectId: string, gameId: string, playerId: string): Promise<JourneyPageGame> {
+  const game = await apiClient.delete<JourneyGameView>(
     `${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/players/${encodeURIComponent(playerId)}`,
   );
+  return journeyGameViewMapper.toPageGame(game);
 }
 
 export async function deleteJourneyGameRequest(projectId: string, gameId: string): Promise<unknown> {

@@ -1,14 +1,11 @@
 import { ObjectId, type WithId } from "mongodb";
 import { getDefaultMongoDatabase } from "../../infrastructure/mongo/defaultMongo";
-import type { JourneyGame } from "./domain/types";
+import type { JourneyGameStatus, JourneyV2Game } from "./domain/types";
 import { InvalidJourneyGameIdError } from "./errors";
 
 const JOURNEY_GAMES_COLLECTION = "journey_games";
 
-export interface JourneyGameDocument extends JourneyGame {
-  createdAt: string;
-  updatedAt: string;
-}
+export type JourneyGameDocument = JourneyV2Game;
 
 export class JourneyRepository {
   async findByIdAndProjectId(gameId: string, projectId: string): Promise<WithId<JourneyGameDocument> | null> {
@@ -16,10 +13,11 @@ export class JourneyRepository {
     return collection.findOne({ _id: this.toObjectId(gameId), projectId });
   }
 
-  async findLatest(projectId: string, status?: JourneyGame["status"]): Promise<WithId<JourneyGameDocument> | null> {
+  async findLatest(projectId: string, status?: JourneyGameStatus): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
+    const query = status ? { projectId, "stateV2.status": status } : { projectId };
 
-    return collection.findOne(status ? { projectId, status } : { projectId }, {
+    return collection.findOne(query, {
       sort: {
         updatedAt: -1,
         createdAt: -1,
@@ -43,14 +41,14 @@ export class JourneyRepository {
       .toArray();
   }
 
-  async create(game: JourneyGame): Promise<WithId<JourneyGameDocument> | null> {
+  async create(game: JourneyGameDocument): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
     const insertResult = await collection.insertOne(game);
 
     return collection.findOne({ _id: insertResult.insertedId });
   }
 
-  async update(gameId: string, projectId: string, game: JourneyGame): Promise<WithId<JourneyGameDocument> | null> {
+  async update(gameId: string, projectId: string, game: JourneyGameDocument): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
     const persistedGame = this.toPersistedGame(game);
 
@@ -88,12 +86,12 @@ export class JourneyRepository {
     return new ObjectId(gameId);
   }
 
-  private toPersistedGame(game: JourneyGame): JourneyGameDocument {
+  private toPersistedGame(game: JourneyGameDocument): JourneyGameDocument {
     const {
       _id: _ignoredId,
       id: _ignoredPublicId,
       ...persistedGame
-    } = game as JourneyGame & {
+    } = game as JourneyGameDocument & {
       _id?: ObjectId;
       id?: string;
     };

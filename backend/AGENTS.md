@@ -51,7 +51,7 @@ src/
       errors/
     journey/
       JourneyController.ts
-      JourneyEngine.ts
+      JourneyV2Engine.ts
       JourneyParser.ts
       JourneyReadModelFactory.ts
       JourneyRepository.ts
@@ -176,12 +176,12 @@ Good:
 export class JourneyService {
   constructor(
     private readonly repository: JourneyRepository,
-    private readonly engine: JourneyEngine,
+    private readonly engine: JourneyV2Engine,
   ) {}
 
   async submitRound(gameId: string, input: SubmitRoundDto) {
     const game = await this.repository.findById(gameId);
-    const updatedGame = this.engine.makeRound(game, input);
+    const updatedGame = this.engine.makeRound(game, input.moves, input.skippedPlayerIds);
     return this.repository.save(updatedGame);
   }
 }
@@ -247,12 +247,12 @@ modules/journey/
   JourneyController.ts
   JourneyService.ts
   JourneyRepository.ts
-  JourneyEngine.ts
+  JourneyV2Engine.ts
 ```
 
-The old `domain/engine.ts` and `domain/parsers.ts` files may remain as low-level implementation detail, but `JourneyService` and `JourneyController` should depend on `JourneyEngine`, `JourneyParser`, `JourneyRepository`, and read-model classes rather than on procedural service wrappers.
+`JourneyService` and `JourneyController` should depend on `JourneyV2Engine`, `JourneyParser`, `JourneyRepository`, and read-model classes rather than on procedural service wrappers. `domain/engine.ts` is offline legacy normalization code for backup import only.
 
-The Journey engine should be the only place that knows how to:
+`JourneyV2Engine` should be the only runtime place that knows how to:
 
 - create a Journey game
 - create the map
@@ -262,6 +262,12 @@ The Journey engine should be the only place that knows how to:
 - resolve rounds
 - refresh indexes
 - calculate final state
+
+Runtime Journey games use only `JourneyV2Game`. The legacy Journey normalizer exists solely for the offline backup-import script and must not be injected into the application or used to serve/mutate games.
+
+All Journey game reads return `JourneyGameView`, built from compact V2 state. Do not expose raw persisted `rounds`, player `movesHistory`, V1 aliases, or a storage discriminator. `JourneyReadModelFactory` owns API projection; the frontend must receive ready-made player groupings, achievement progress, timelines, and forum log.
+
+`domain/commentTemplates.ts` accepts storage-agnostic move/achievement comment events. Keep templates gender-inclusive for player actions (`нашёл(-ла)`, `потерял(-а)`, `осмотрелся(-ась)`); do not make a template depend on a V1 or V2 player object.
 
 The same principle applies to Battleships and Lotto: their engines own the game-result logic, while controllers and services stay at orchestration level.
 

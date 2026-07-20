@@ -11,7 +11,7 @@ import { GameConfigsService } from "../modules/gameConfigs/GameConfigsService";
 import { ForumTopicController } from "../modules/forumTopic/ForumTopicController";
 import { ForumTopicService } from "../modules/forumTopic/ForumTopicService";
 import { JourneyController } from "../modules/journey/JourneyController";
-import { JourneyEngine } from "../modules/journey/JourneyEngine";
+import { JourneyV2Engine } from "../modules/journey/JourneyV2Engine";
 import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
@@ -69,12 +69,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
 
-  const journeyEngine = new JourneyEngine();
-  const journeyReadModelFactory = new JourneyReadModelFactory(journeyEngine);
+  const journeyV2Engine = new JourneyV2Engine();
+  const journeyReadModelFactory = new JourneyReadModelFactory();
   const journeyParser = new JourneyParser();
   const journeyService = new JourneyService(
     journeyRepository,
-    journeyEngine,
+    journeyV2Engine,
     journeyReadModelFactory,
     journeyParser,
     gameConfigsService,

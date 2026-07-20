@@ -1,27 +1,25 @@
 import { journeyTexts } from "../../texts/journeyTexts";
 import type {
-  JourneyBalance,
   JourneyCollectorTarget,
   JourneyConfig,
   JourneyCurrencyDefinition,
   JourneyCurrencyValue,
-  JourneyPersistedGame,
+  JourneyPageGame,
   JourneyMapCell,
   JourneyMoveInputs,
-  JourneyPlayer,
   JourneyPlayerReadModel,
   JourneySkippedPlayers,
   JourneyTimelineEntry,
 } from "./types";
 
-export function createEmptyMoveState(players: JourneyPlayer[] = []): JourneyMoveInputs {
+export function createEmptyMoveState(players: Array<{ id: string }> = []): JourneyMoveInputs {
   return players.reduce<JourneyMoveInputs>((accumulator, player) => {
     accumulator[player.id] = "";
     return accumulator;
   }, {});
 }
 
-export function createEmptySkipState(players: JourneyPlayer[] = []): JourneySkippedPlayers {
+export function createEmptySkipState(players: Array<{ id: string }> = []): JourneySkippedPlayers {
   return players.reduce<JourneySkippedPlayers>((accumulator, player) => {
     accumulator[player.id] = false;
     return accumulator;
@@ -91,29 +89,15 @@ export function formatJourneyCurrencyValues(
     .join(", ");
 }
 
-export function getJourneyBalanceEntries(
-  balance: JourneyBalance,
-  currencies: JourneyCurrencyDefinition[],
-): JourneyCurrencyValue[] {
-  return currencies.map((currency) => ({
-    currencyId: currency.id,
-    value: Math.trunc(balance[currency.id] ?? 0),
-  }));
-}
-
 export function getJourneyPlayerBalanceEntries(
-  player: JourneyPlayer | JourneyPlayerReadModel,
-  currencies: JourneyCurrencyDefinition[],
+  player: JourneyPlayerReadModel,
+  _currencies: JourneyCurrencyDefinition[],
 ): JourneyCurrencyValue[] {
-  if ("balanceEntries" in player && Array.isArray(player.balanceEntries)) {
-    return player.balanceEntries;
-  }
-
-  return getJourneyBalanceEntries(player.balance, currencies);
+  return player.balanceEntries;
 }
 
 export function getJourneyPlayerBalanceLabel(
-  player: JourneyPlayer | JourneyPlayerReadModel,
+  player: JourneyPlayerReadModel,
   currencies: JourneyCurrencyDefinition[],
 ): string {
   return formatJourneyCurrencyValues(getJourneyPlayerBalanceEntries(player, currencies), currencies, {
@@ -185,94 +169,28 @@ export function getCollectorTargetLabel(target: JourneyCollectorTarget, currenci
   })}`;
 }
 
-export function getJourneyVisiblePlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.visiblePlayers ??
-    game.players
-      .filter((player) => player.status !== "removed")
-      .map((player) => toJourneyPlayerReadModel(player, game.currencies))
-  );
+export function getJourneyVisiblePlayers(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.visiblePlayers ?? [];
 }
 
-export function toJourneyPlayerReadModel(
-  player: JourneyPlayer,
-  currencies: JourneyCurrencyDefinition[],
-): JourneyPlayerReadModel {
-  return {
-    ...player,
-    balanceEntries: getJourneyBalanceEntries(player.balance, currencies),
-  };
+export function getJourneyActivePlayers(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.activePlayers ?? [];
 }
 
-export function getJourneyActivePlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.activePlayers ??
-    game.players.filter((player) => player.status === "active").map((player) => toJourneyPlayerReadModel(player, game.currencies))
-  );
+export function getJourneyFinishedPlayers(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.finishedPlayers ?? [];
 }
 
-export function getJourneyFinishedPlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.finishedPlayers ??
-    game.players.filter((player) => player.status === "finished").map((player) => toJourneyPlayerReadModel(player, game.currencies))
-  );
+export function getJourneyResults(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.results ?? [];
 }
 
-export function getJourneyResults(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.results ??
-    game.players
-      .filter((player) => player.status !== "removed")
-      .map((player) => toJourneyPlayerReadModel(player, game.currencies))
-      .sort((left, right) => left.nickname.localeCompare(right.nickname, "ru"))
-  );
+export function isJourneyGameOver(game: JourneyPageGame | null): boolean {
+  return game?.gameIsOver ?? false;
 }
 
-export function isJourneyGameOver(game: JourneyPersistedGame | null): boolean {
-  if (!game) {
-    return false;
-  }
-
-  return game.derived?.gameIsOver ?? getJourneyActivePlayers(game).length === 0;
-}
-
-export function getJourneyPlayerTimelines(game: JourneyPersistedGame | null): Record<string, JourneyTimelineEntry[]> {
-  if (!game) {
-    return {};
-  }
-
-  if (game.derived?.playerTimelines) {
-    return game.derived.playerTimelines;
-  }
-
-  return game.players.reduce<Record<string, JourneyTimelineEntry[]>>((accumulator, player) => {
-    accumulator[player.id] = game.rounds.flatMap((round) =>
-      (round.entries ?? [])
-        .filter((entry) => entry.playerId === player.id || entry.nickname === player.nickname)
-        .map((entry) => ({
-          ...entry,
-          roundIndex: round.moveIndex,
-        })),
-    );
-
-    return accumulator;
-  }, {});
+export function getJourneyPlayerTimelines(game: JourneyPageGame | null): Record<string, JourneyTimelineEntry[]> {
+  return game?.playerTimelines ?? {};
 }
 
 export function getCompactCellLabel(

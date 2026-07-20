@@ -102,6 +102,10 @@ Controller -> Service -> Repository
                       -> Domain classes / engines / resolvers
 ```
 
+Journey runtime supports only `JourneyV2Game`. Legacy Journey normalization is an offline backup-import concern and must not be wired into application dependencies, routes, or normal game reads/mutations.
+
+Journey exposes one public `JourneyGameView` read model for every game endpoint. Do not reintroduce raw persisted rounds, player move history, duplicate player collections, or storage-format details into the API or UI.
+
 ---
 
 ## Frontend responsibility
@@ -120,6 +124,8 @@ Frontend must not own final game rules or final game state.
 Project-level currency and preset rules must be read from project-scoped backend APIs, not recreated independently per frontend feature.
 
 Current host-facing pages such as Journey, Battleships, and Lotto should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
+
+Journey forum messages are backend-generated from compact comment events. Keep player-action wording gender-neutral with forms such as `нашёл(-ла)` and `угодил(-а)`.
 
 ---
 

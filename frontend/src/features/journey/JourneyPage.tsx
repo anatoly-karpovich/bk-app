@@ -167,7 +167,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               />
             )}
 
-            <JourneyLogCard comments={game?.comments} />
+            <JourneyLogCard comments={game?.forumLog} />
           </Stack>
         </Grid>
 

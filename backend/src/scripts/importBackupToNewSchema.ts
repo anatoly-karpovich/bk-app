@@ -5,7 +5,7 @@ import { BSON, Int32, ObjectId } from "mongodb";
 import { normalizeStoredAppConfig } from "../modules/configs/domain/normalizeConfig";
 import { normalizeProjectCurrencies } from "../modules/projects/domain/normalizeProjectCurrencies";
 import { BattleshipsEngine } from "../modules/battleships/BattleshipsEngine";
-import { JourneyEngine } from "../modules/journey/JourneyEngine";
+import { normalizeJourneyGame } from "../modules/journey/domain/engine";
 import { LottoEngine } from "../modules/lotto/LottoEngine";
 import type { GameType } from "../modules/gameConfigs/domain/types";
 
@@ -87,7 +87,6 @@ function normalizeGameCollection(
   mappingsByName: Map<string, LegacyConfigMapping[]>,
 ): { documents: LegacyDocument[]; unresolved: UnresolvedGame[] } {
   const unresolved: UnresolvedGame[] = [];
-  const journeyEngine = new JourneyEngine();
   const battleshipsEngine = new BattleshipsEngine();
   const lottoEngine = new LottoEngine();
   const gameType: GameType = collectionName.startsWith("journey")
@@ -112,7 +111,7 @@ function normalizeGameCollection(
     };
     try {
       const normalized = gameType === "journey"
-        ? journeyEngine.normalizeGame(mapped as never)
+        ? normalizeJourneyGame(mapped as never)
         : gameType === "battleships"
           ? battleshipsEngine.normalizeGame(mapped as never)
           : lottoEngine.normalizeGame(mapped as never);

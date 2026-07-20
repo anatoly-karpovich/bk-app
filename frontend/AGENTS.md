@@ -96,6 +96,8 @@ Storage            -> lightweight browser persistence only
 Types              -> frontend DTO/view-model types
 ```
 
+Journey full-game responses use `JourneyGameView`. The API client maps it structurally to the page model; this mapping must not recreate player groups, results, achievement progress, timelines, or other game rules from raw rounds.
+
 When two or more features share the same page shell, dialog structure, or presentational block, prefer moving that structure into a shared component instead of maintaining near-identical copies under each feature.
 
 If multiple game pages need breadcrumbs or other framing/navigation UI, do not keep separate hardcoded breadcrumb strings in feature texts. Prefer one shared component with consistent logic and shared source labels.
@@ -356,6 +358,8 @@ types.ts
 Avoid using `any`.
 
 Avoid creating frontend types that silently diverge from backend response shape.
+
+Do not restore Journey's removed legacy DTOs (`JourneyGame`, `JourneyRound`, `movesHistory`, `derived`) or infer storage format in the frontend. Consume the public view contract and its page-local structural mapper instead.
 
 If backend DTOs become stable, consider a shared contract package later.
 

@@ -28,13 +28,13 @@ import type {
   JourneyAchievementsMap,
   JourneyAchievementProgress,
   JourneyCurrencyDefinition,
-  JourneyPersistedGame,
+  JourneyPageGame,
   JourneyCollectorTarget,
   JourneyTimelineEntry,
 } from "../types";
 
 interface JourneyStateCardProps {
-  game: JourneyPersistedGame | null;
+  game: JourneyPageGame | null;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
   journeyAchievements: JourneyAchievementsMap;
   journeyCurrencies: JourneyCurrencyDefinition[];
