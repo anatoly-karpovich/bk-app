@@ -9,6 +9,9 @@ import { createLottoRouter } from "../modules/lotto/lotto.routes";
 import { createProjectsRouter } from "../modules/projects/projects.routes";
 
 export function registerRoutes(app: Express, dependencies: ApplicationDependencies): void {
+  app.get("/api/health", (_request, response) => {
+    response.status(200).json({ success: true, data: { status: "ok" } });
+  });
   app.use("/api/forum/topic", createForumTopicRouter(dependencies.forumTopicController));
   app.use("/api/projects", createProjectsRouter(dependencies.projectsController));
   app.use("/api/projects/:projectId/game-configs", createGameConfigsRouter(dependencies.gameConfigsController));

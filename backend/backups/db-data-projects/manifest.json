@@ -1,0 +1,41 @@
+{
+  "exportedAt": "2026-07-20T22:43:37.923Z",
+  "dbName": "bk-app-local",
+  "collections": [
+    {
+      "name": "projects",
+      "documents": 3,
+      "indexes": 1,
+      "dataFile": "projects.data.ejson",
+      "indexesFile": "projects.indexes.ejson"
+    },
+    {
+      "name": "game_configs",
+      "documents": 9,
+      "indexes": 1,
+      "dataFile": "game_configs.data.ejson",
+      "indexesFile": "game_configs.indexes.ejson"
+    },
+    {
+      "name": "journey_games",
+      "documents": 0,
+      "indexes": 1,
+      "dataFile": "journey_games.data.ejson",
+      "indexesFile": "journey_games.indexes.ejson"
+    },
+    {
+      "name": "battleships_games",
+      "documents": 0,
+      "indexes": 1,
+      "dataFile": "battleships_games.data.ejson",
+      "indexesFile": "battleships_games.indexes.ejson"
+    },
+    {
+      "name": "lotto_games",
+      "documents": 0,
+      "indexes": 1,
+      "dataFile": "lotto_games.data.ejson",
+      "indexesFile": "lotto_games.indexes.ejson"
+    }
+  ]
+}
