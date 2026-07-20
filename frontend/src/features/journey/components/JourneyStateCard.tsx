@@ -18,8 +18,7 @@ import {
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import {
-  getAchievementProgress,
-  getCollectibleCellLabel,
+  getCollectorTargetLabel,
   getHistoryEntrySummary,
   getJourneyPlayerBalanceLabel,
 } from "../journey-page.helpers";
@@ -27,9 +26,10 @@ import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
 import type {
   JourneyAchievementsMap,
+  JourneyAchievementProgress,
   JourneyCurrencyDefinition,
   JourneyPersistedGame,
-  JourneyRulesCell,
+  JourneyCollectorTarget,
   JourneyTimelineEntry,
 } from "../types";
 
@@ -38,8 +38,8 @@ interface JourneyStateCardProps {
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
   journeyAchievements: JourneyAchievementsMap;
   journeyCurrencies: JourneyCurrencyDefinition[];
-  collectibleCells: JourneyRulesCell[];
-  finishPosition: number;
+  collectorTargets: JourneyCollectorTarget[];
+  achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
 }
 
 export default function JourneyStateCard({
@@ -47,16 +47,16 @@ export default function JourneyStateCard({
   playerTimelines,
   journeyAchievements,
   journeyCurrencies,
-  collectibleCells,
-  finishPosition,
+  collectorTargets,
+  achievementProgressByPlayerId,
 }: JourneyStateCardProps) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const collectibleCellsById = useMemo(
+  const collectorTargetsById = useMemo(
     () =>
       Object.fromEntries(
-        collectibleCells.map((cell) => [cell.id, getCollectibleCellLabel(cell, journeyCurrencies)]),
+        collectorTargets.map((target) => [target.id, getCollectorTargetLabel(target, journeyCurrencies)]),
       ),
-    [collectibleCells, journeyCurrencies],
+    [collectorTargets, journeyCurrencies],
   );
 
   return (
@@ -78,13 +78,7 @@ export default function JourneyStateCard({
               {game.players.map((player) => {
                 const isExpanded = expandedPlayerId === player.id;
                 const timeline = playerTimelines[player.id] ?? [];
-                const achievementProgress = getAchievementProgress(
-                  player,
-                  timeline,
-                  collectibleCells,
-                  journeyAchievements,
-                  finishPosition,
-                );
+                const achievementProgress = achievementProgressByPlayerId[player.id];
 
                 return (
                   <Fragment key={player.id}>
@@ -140,7 +134,7 @@ export default function JourneyStateCard({
                                         label={
                                           achievementProgress.collector.achieved
                                             ? journeyTexts.progress.obtained
-                                            : `${achievementProgress.collector.obtainedCellIds.length} ${journeyTexts.progress.of} ${collectibleCells.length}`
+                                            : `${achievementProgress.collector.obtainedCellIds.length} ${journeyTexts.progress.of} ${collectorTargets.length}`
                                         }
                                       />
                                     </Stack>
@@ -155,7 +149,7 @@ export default function JourneyStateCard({
                                             key={`${player.id}-obtained-${cellId}`}
                                             size="small"
                                             color="success"
-                                            label={collectibleCellsById[cellId] ?? cellId}
+                                            label={collectorTargetsById[cellId] ?? cellId}
                                           />
                                         ))
                                       ) : (
@@ -175,7 +169,7 @@ export default function JourneyStateCard({
                                             key={`${player.id}-missing-${cellId}`}
                                             size="small"
                                             variant="outlined"
-                                            label={collectibleCellsById[cellId] ?? cellId}
+                                            label={collectorTargetsById[cellId] ?? cellId}
                                           />
                                         ))
                                       ) : (

@@ -34,6 +34,14 @@ export interface JourneyRulesCell {
   count: number;
 }
 
+export type JourneyCollectorTargetKind = JourneyCellKind | "empty";
+
+export interface JourneyCollectorTarget {
+  id: string;
+  kind: JourneyCollectorTargetKind;
+  rewards: JourneyCurrencyValue[];
+}
+
 export interface JourneyRulesAchievementConfig {
   rewards: JourneyCurrencyValue[];
 }
@@ -205,7 +213,8 @@ export interface JourneyPlayerReadModel extends JourneyPlayer {
 export interface JourneyGameDerivedData {
   journeyConfig: JourneyConfig;
   journeyAchievements: JourneyAchievementsMap;
-  collectibleCells: JourneyRulesCell[];
+  collectorTargets: JourneyCollectorTarget[];
+  achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
   gameIsOver: boolean;
   activePlayers: JourneyPlayerReadModel[];
   finishedPlayers: JourneyPlayerReadModel[];

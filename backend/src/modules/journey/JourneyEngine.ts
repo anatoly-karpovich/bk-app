@@ -11,7 +11,9 @@ import {
   normalizeJourneyGame as normalizeJourneyGameFn,
   removeJourneyPlayer as removeJourneyPlayerFn,
 } from "./domain/engine";
+import { getJourneyAchievementProgress as getJourneyAchievementProgressFn } from "./domain/achievementProgress";
 import type {
+  JourneyAchievementProgress,
   JourneyGame,
   JourneyMoveInput,
   JourneyPlayer,
@@ -87,5 +89,9 @@ export class JourneyEngine {
 
   getPlayerTimelines(game: JourneyGame): Record<string, JourneyTimelineEntry[]> {
     return getJourneyPlayerTimelinesFn(game);
+  }
+
+  getAchievementProgress(player: JourneyPlayer, rules: JourneyRules): JourneyAchievementProgress {
+    return getJourneyAchievementProgressFn(player, rules);
   }
 }

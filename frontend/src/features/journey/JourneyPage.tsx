@@ -57,7 +57,8 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
-    collectibleCells,
+    collectorTargets,
+    achievementProgressByPlayerId,
     canStartGame,
     activePlayers,
     finishedPlayers,
@@ -178,8 +179,8 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               playerTimelines={playerTimelines}
               journeyAchievements={journeyAchievements}
               journeyCurrencies={journeyConfig.currencies}
-              collectibleCells={collectibleCells}
-              finishPosition={journeyConfig.finishPosition}
+              collectorTargets={collectorTargets}
+              achievementProgressByPlayerId={achievementProgressByPlayerId}
             />
           </Stack>
         </Grid>

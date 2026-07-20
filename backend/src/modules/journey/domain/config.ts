@@ -5,7 +5,6 @@ import type {
   JourneyCurrencyValue,
   JourneyMapCell,
   JourneyRules,
-  JourneyRulesCell,
   JourneyRulesInput,
 } from "./types";
 
@@ -182,7 +181,7 @@ export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RUL
       name: "Collector",
       title: "Коллекционер",
       rewards: normalizedRules.achievements.collector.rewards,
-      description: "Попадание на все виды ловушек и бонусных клеток, кроме сокровища",
+      description: "Попадание на все виды бонусных, ловушек и пустую клетку",
     },
     LUCKY: {
       name: "Lucky",
@@ -193,14 +192,8 @@ export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RUL
   };
 }
 
-export function getCollectibleJourneyCells(rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyRulesCell[] {
-  const normalizedRules = normalizeJourneyRules(rules);
-  return normalizedRules.cells.map((cell) => clone(cell));
-}
-
 const normalizedDefaultRules = normalizeJourneyRules(DEFAULT_JOURNEY_RULES);
 
 export const JOURNEY_CONFIG = getJourneyConfig(normalizedDefaultRules);
 export const JOURNEY_BONUS_CELLS = getJourneyBonusCells(normalizedDefaultRules);
 export const JOURNEY_ACHIEVEMENTS = getJourneyAchievements(normalizedDefaultRules);
-export const JOURNEY_COLLECTIBLE_CELLS = getCollectibleJourneyCells(normalizedDefaultRules);

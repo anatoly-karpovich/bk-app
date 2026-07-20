@@ -1,9 +1,7 @@
-import { MOVE_TYPES } from "./config";
 import { journeyTexts } from "../../texts/journeyTexts";
 import type {
-  JourneyAchievementProgress,
-  JourneyAchievementsMap,
   JourneyBalance,
+  JourneyCollectorTarget,
   JourneyConfig,
   JourneyCurrencyDefinition,
   JourneyCurrencyValue,
@@ -12,7 +10,6 @@ import type {
   JourneyMoveInputs,
   JourneyPlayer,
   JourneyPlayerReadModel,
-  JourneyRulesCell,
   JourneySkippedPlayers,
   JourneyTimelineEntry,
 } from "./types";
@@ -177,9 +174,13 @@ export function getJourneyCellLabel(cell: JourneyMapCell | null, currencies: Jou
   return `${cell.kind === "bonus" ? "Бонус" : "Ловушка"} ${rewardsLabel}`;
 }
 
-export function getCollectibleCellLabel(cell: JourneyRulesCell, currencies: JourneyCurrencyDefinition[]): string {
-  return `${cell.kind === "bonus" ? "Бонус" : "Ловушка"} ${formatJourneyCurrencyValues(cell.rewards, currencies, {
-    showPlus: cell.kind === "bonus",
+export function getCollectorTargetLabel(target: JourneyCollectorTarget, currencies: JourneyCurrencyDefinition[]): string {
+  if (target.kind === "empty") {
+    return journeyTexts.timeline.empty;
+  }
+
+  return `${target.kind === "bonus" ? "Бонус" : "Ловушка"} ${formatJourneyCurrencyValues(target.rewards, currencies, {
+    showPlus: target.kind === "bonus",
     includeZero: false,
   })}`;
 }
@@ -330,61 +331,6 @@ export function shortenNickname(nickname: string): string {
   return `${nickname.slice(0, 8)}...`;
 }
 
-function isTrapProgressEntry(entry: JourneyTimelineEntry): boolean {
-  return !entry.skipped && Boolean(entry.cell) && hasNegativeJourneyRewards(entry.cell.rewards);
-}
-
-function isLuckyProgressEntry(entry: JourneyTimelineEntry): boolean {
-  return !entry.skipped && Boolean(entry.cell) && hasPositiveJourneyRewards(entry.cell.rewards);
-}
-
-function getBestStreak(entries: JourneyTimelineEntry[], predicate: (entry: JourneyTimelineEntry) => boolean): number {
-  let current = 0;
-  let best = 0;
-
-  entries.forEach((entry) => {
-    if (predicate(entry)) {
-      current += 1;
-      best = Math.max(best, current);
-    } else {
-      current = 0;
-    }
-  });
-
-  return best;
-}
-
-function getCurrentStreak(entries: JourneyTimelineEntry[], predicate: (entry: JourneyTimelineEntry) => boolean): number {
-  let current = 0;
-
-  [...entries].reverse().some((entry) => {
-    if (predicate(entry)) {
-      current += 1;
-      return false;
-    }
-
-    return true;
-  });
-
-  return current;
-}
-
-function isCarefulProgressEntry(entry: JourneyTimelineEntry, finishPosition: number): boolean {
-  if (entry.skipped || entry.currentPosition === finishPosition || entry.moveType === MOVE_TYPES.JACKPOT) {
-    return false;
-  }
-
-  if (!entry.cell) {
-    return true;
-  }
-
-  if (entry.cell.isJackpot) {
-    return true;
-  }
-
-  return entry.cell.rewards.length === 0;
-}
-
 export function getHistoryEntrySummary(
   entry: JourneyTimelineEntry,
   currencies: JourneyCurrencyDefinition[],
@@ -412,47 +358,3 @@ export function getHistoryEntrySummary(
   return `${journeyTexts.timeline.turnPrefix} ${entry.roundIndex}: ${movement}, ${cellPart}, ${journeyTexts.timeline.change} ${rewardPart}, ${journeyTexts.timeline.total} [${balanceLabel}]`;
 }
 
-export function getAchievementProgress(
-  player: JourneyPlayer,
-  timeline: JourneyTimelineEntry[],
-  collectibleCells: JourneyRulesCell[],
-  journeyAchievements: JourneyAchievementsMap,
-  finishPosition: number,
-): JourneyAchievementProgress {
-  const obtainedCellIds = [
-    ...new Set(
-      timeline
-        .filter((entry) => !entry.skipped && entry.cell && !entry.cell.isJackpot && typeof entry.cell.id === "string")
-        .map((entry) => entry.cell!.id),
-    ),
-  ];
-  const missingCellIds = collectibleCells
-    .map((cell) => cell.id)
-    .filter((cellId) => !obtainedCellIds.includes(cellId));
-
-  return {
-    collector: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.COLLECTOR.name),
-      obtainedCellIds,
-      missingCellIds,
-    },
-    unlucky: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.UNLUCKY.name),
-      current: getCurrentStreak(timeline, isTrapProgressEntry),
-      best: getBestStreak(timeline, isTrapProgressEntry),
-      target: 3,
-    },
-    careful: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.CAREFUL.name),
-      current: getCurrentStreak(timeline, (entry) => isCarefulProgressEntry(entry, finishPosition)),
-      best: getBestStreak(timeline, (entry) => isCarefulProgressEntry(entry, finishPosition)),
-      target: 4,
-    },
-    lucky: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.LUCKY.name),
-      current: getCurrentStreak(timeline, isLuckyProgressEntry),
-      best: getBestStreak(timeline, isLuckyProgressEntry),
-      target: 5,
-    },
-  };
-}

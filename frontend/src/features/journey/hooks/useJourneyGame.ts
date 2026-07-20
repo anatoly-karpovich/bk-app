@@ -15,7 +15,7 @@ import {
   removeJourneyPlayerRequest,
   submitJourneyRoundRequest,
 } from "../api/journey.client";
-import { DEFAULT_JOURNEY_RULES, getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "../config";
+import { DEFAULT_JOURNEY_RULES, getJourneyAchievements, getJourneyConfig } from "../config";
 import {
   createEmptyMoveState,
   createEmptySkipState,
@@ -35,7 +35,6 @@ import type {
   JourneyPersistedGame,
   JourneyPlayer,
   JourneyPlayerReadModel,
-  JourneyRulesCell,
   JourneySavedGameSummary,
   JourneySkippedPlayers,
   JourneyStatusChip,
@@ -184,10 +183,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     () => game?.derived?.journeyAchievements ?? getJourneyAchievements(journeyRules),
     [game, journeyRules],
   );
-  const collectibleCells = useMemo<JourneyRulesCell[]>(
-    () => game?.derived?.collectibleCells ?? getCollectibleJourneyCells(journeyRules),
-    [game, journeyRules],
-  );
+  const collectorTargets = game?.derived?.collectorTargets ?? [];
+  const achievementProgressByPlayerId = game?.derived?.achievementProgressByPlayerId ?? {};
   const canStartGame =
     Boolean(selectedProject?.id) &&
     Boolean(selectedJourneyGameConfig) &&
@@ -646,7 +643,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
-    collectibleCells,
+    collectorTargets,
+    achievementProgressByPlayerId,
     canStartGame,
     activePlayers,
     finishedPlayers,

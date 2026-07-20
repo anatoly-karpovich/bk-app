@@ -1,7 +1,8 @@
 import type { WithId } from "mongodb";
 import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import { balanceToJourneyCurrencyValues } from "./domain/currency";
-import { getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "./domain/config";
+import { getJourneyAchievements, getJourneyConfig } from "./domain/config";
+import { getJourneyCollectorTargets } from "./domain/achievementProgress";
 import { JourneyEngine } from "./JourneyEngine";
 import type {
   JourneyGameListItemReadModel,
@@ -30,7 +31,13 @@ export class JourneyReadModelFactory {
       derived: {
         journeyConfig: getJourneyConfig(normalizedGame.rules, normalizedGame.currencies),
         journeyAchievements: getJourneyAchievements(normalizedGame.rules),
-        collectibleCells: getCollectibleJourneyCells(normalizedGame.rules),
+        collectorTargets: getJourneyCollectorTargets(normalizedGame.rules),
+        achievementProgressByPlayerId: Object.fromEntries(
+          normalizedGame.players.map((player) => [
+            player.id,
+            this.engine.getAchievementProgress(player, normalizedGame.rules),
+          ]),
+        ),
         gameIsOver: this.engine.isGameOver(normalizedGame),
         activePlayers: this.buildJourneyPlayerReadModels(this.engine.getActivePlayers(normalizedGame), normalizedGame.currencies),
         finishedPlayers: this.buildJourneyPlayerReadModels(this.engine.getFinishedPlayers(normalizedGame), normalizedGame.currencies),
