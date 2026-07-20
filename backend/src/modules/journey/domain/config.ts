@@ -65,6 +65,20 @@ export const MOVE_TYPES = {
   ACHIEVEMENT: "moveToAchievement",
 } as const;
 
+export const JOURNEY_ACHIEVEMENT_NAMES = {
+  JACKPOT: "Jackpot",
+  UNLUCKY: "Unlucky",
+  CAREFUL: "Careful",
+  COLLECTOR: "Collector",
+  LUCKY: "Lucky",
+} as const;
+
+export const JOURNEY_ACHIEVEMENT_STREAK_TARGETS = {
+  unlucky: 3,
+  careful: 4,
+  lucky: 5,
+} as const;
+
 export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
   const rules = clone(DEFAULT_JOURNEY_RULES);
 
@@ -161,30 +175,30 @@ export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RUL
 
   return {
     JACKPOT: {
-      name: "Jackpot",
+      name: JOURNEY_ACHIEVEMENT_NAMES.JACKPOT,
       title: "Сокровище",
       rewards: normalizedRules.jackpot.rewards,
     },
     UNLUCKY: {
-      name: "Unlucky",
+      name: JOURNEY_ACHIEVEMENT_NAMES.UNLUCKY,
       title: "Невезучий",
       rewards: normalizedRules.achievements.unlucky.rewards,
       description: "Попадание на 3 клетки с ловушками подряд",
     },
     CAREFUL: {
-      name: "Careful",
+      name: JOURNEY_ACHIEVEMENT_NAMES.CAREFUL,
       title: "Осторожный",
       rewards: normalizedRules.achievements.careful.rewards,
       description: "Попадание на 4 пустые клетки подряд",
     },
     COLLECTOR: {
-      name: "Collector",
+      name: JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR,
       title: "Коллекционер",
       rewards: normalizedRules.achievements.collector.rewards,
       description: "Попадание на все виды бонусных, ловушек и пустую клетку",
     },
     LUCKY: {
-      name: "Lucky",
+      name: JOURNEY_ACHIEVEMENT_NAMES.LUCKY,
       title: "Счастливчик",
       rewards: normalizedRules.achievements.lucky.rewards,
       description: "Попадание на 5 клеток с наградой подряд, без учёта сокровища",

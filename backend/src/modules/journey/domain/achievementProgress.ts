@@ -1,5 +1,6 @@
 import {
   getJourneyAchievements,
+  JOURNEY_ACHIEVEMENT_STREAK_TARGETS,
   getJourneyConfig,
   MOVE_TYPES,
   normalizeJourneyRules,
@@ -124,13 +125,13 @@ export function getJourneyAchievementProgress(
         player.movesHistory,
         (move) => Boolean(move.cell && hasNegativeJourneyRewards(move.cell.rewards)),
       ),
-      target: 3,
+      target: JOURNEY_ACHIEVEMENT_STREAK_TARGETS.unlucky,
     },
     careful: {
       achieved: player.bonuses.some((bonus) => bonus.name === achievements.CAREFUL.name),
       current: getCurrentStreak(player.movesHistory, (move) => isCarefulMove(move, finishPosition)),
       best: getBestStreak(player.movesHistory, (move) => isCarefulMove(move, finishPosition)),
-      target: 4,
+      target: JOURNEY_ACHIEVEMENT_STREAK_TARGETS.careful,
     },
     lucky: {
       achieved: player.bonuses.some((bonus) => bonus.name === achievements.LUCKY.name),
@@ -142,7 +143,7 @@ export function getJourneyAchievementProgress(
         player.movesHistory,
         (move) => Boolean(move.cell && hasPositiveJourneyRewards(move.cell.rewards)),
       ),
-      target: 5,
+      target: JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky,
     },
   };
 }

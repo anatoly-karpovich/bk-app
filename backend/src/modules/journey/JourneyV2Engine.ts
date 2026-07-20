@@ -2,7 +2,7 @@ import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import { JourneyRoundValidationError } from "./errors";
 import { getJourneyCollectorTargets } from "./domain/achievementProgress";
 import { buildJourneyComment } from "./domain/commentTemplates";
-import { getJourneyAchievements, getJourneyBonusCells, getJourneyConfig, MOVE_TYPES, normalizeJourneyRules } from "./domain/config";
+import { getJourneyAchievements, getJourneyBonusCells, getJourneyConfig, JOURNEY_ACHIEVEMENT_STREAK_TARGETS, MOVE_TYPES, normalizeJourneyRules } from "./domain/config";
 import { applyJourneyRewardsToBalance, balanceToJourneyCurrencyValues, createJourneyBalance, hasNegativeJourneyRewards, hasPositiveJourneyRewards } from "./domain/currency";
 import type {
   JourneyAchievement,
@@ -198,9 +198,9 @@ export class JourneyV2Engine {
         obtainedCellIds: collectorTargets.map((target) => target.id).filter((id) => visitedTargetIds.has(id)),
         missingCellIds: collectorTargets.map((target) => target.id).filter((id) => !visitedTargetIds.has(id)),
       },
-      unlucky: this.buildStreakProgress(player, moves, isNegative, achievements.UNLUCKY.name, 3),
-      careful: this.buildStreakProgress(player, moves, isCareful, achievements.CAREFUL.name, 4),
-      lucky: this.buildStreakProgress(player, moves, isPositive, achievements.LUCKY.name, 5),
+      unlucky: this.buildStreakProgress(player, moves, isNegative, achievements.UNLUCKY.name, JOURNEY_ACHIEVEMENT_STREAK_TARGETS.unlucky),
+      careful: this.buildStreakProgress(player, moves, isCareful, achievements.CAREFUL.name, JOURNEY_ACHIEVEMENT_STREAK_TARGETS.careful),
+      lucky: this.buildStreakProgress(player, moves, isPositive, achievements.LUCKY.name, JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky),
     };
   }
 

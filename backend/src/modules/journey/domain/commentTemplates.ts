@@ -1,12 +1,7 @@
 import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import { formatJourneyCurrencyValues, hasNegativeJourneyRewards } from "./currency";
-import { MOVE_TYPES } from "./config";
-import type {
-  JourneyAchievement,
-  JourneyCurrencyValue,
-  JourneyMoveType,
-  RandomFn,
-} from "./types";
+import { JOURNEY_ACHIEVEMENT_NAMES, JOURNEY_ACHIEVEMENT_STREAK_TARGETS, MOVE_TYPES } from "./config";
+import type { JourneyAchievement, JourneyCurrencyValue, JourneyMoveType, RandomFn } from "./types";
 
 type MoveTemplateType = Exclude<JourneyMoveType, typeof MOVE_TYPES.ACHIEVEMENT>;
 
@@ -33,7 +28,10 @@ function randomFrom<T>(array: T[], randomFn: RandomFn = Math.random): T {
 }
 
 function interpolate(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), template);
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    template,
+  );
 }
 
 function toAbsoluteRewards(values: JourneyCurrencyValue[]): JourneyCurrencyValue[] {
@@ -61,6 +59,56 @@ function formatRewardLabel(
 }
 
 const moveTemplates: Record<MoveTemplateType, string[]> = {
+  [MOVE_TYPES.JACKPOT]: [
+    "{nickname} срывает сокровище: {rewardLabel} [{balanceLabel}]",
+    "{nickname} открывает сундук и забирает джекпот: {rewardLabel} [{balanceLabel}]",
+    "{nickname} получает внезапное наследство: {rewardLabel} [{balanceLabel}]",
+    "{nickname} получил(-а) СМС о наследстве от пробабушки из Швейцарии: {rewardLabel} [{balanceLabel}].",
+    "{nickname} сорвал(-а) джекпот в лотерее и получил(-а) {rewardLabel} [{balanceLabel}].",
+    "Как не вовремя {nickname} приспичило в туалет... В поисках бумажки чуть не воспользовался(-ась) чеком на {rewardLabel} [{balanceLabel}].",
+    "Фортуна наконец вспомнила пароль от аккаунта {nickname} и начислила {rewardLabel} [{balanceLabel}]",
+    "Где-то заплакал предыдущий владелец сокровища. {nickname} получает {rewardLabel} [{balanceLabel}]",
+    "Архивариус дрожащей рукой пересчитал казну и обнаружил недостачу ровно в {rewardLabel}, которую уже забрал(-а) {nickname} [{balanceLabel}]",
+    "{nickname} нажал(-а) на подозрительную кнопку. Вместо ловушки выпало {rewardLabel}. Такое бывает примерно никогда [{balanceLabel}]",
+    "Сундук долго не открывался, но после убедительного пинка от {nickname} выдал {rewardLabel} [{balanceLabel}]",
+    "Обладатели достижения «Невезучий» требуют проверить {nickname} на читы. Пока идёт проверка, джекпот в {rewardLabel} уже начислен [{balanceLabel}]",
+    "Древний Страж пытался(-ась) спрятать сокровища понадёжнее, но {nickname} всё равно нашёл(-ла) {rewardLabel} [{balanceLabel}]",
+    "Зубастая Слизь охраняла клад много лет, но отвлеклась на бутерброд. {nickname} уносит {rewardLabel} [{balanceLabel}]",
+    "Зомби Математик потребовал пароль. {nickname} сказал(-а) «пароль», и это почему-то сработало. В сундуке — {rewardLabel} [{balanceLabel}]",
+    "Админ внезапно проявил человечность. {nickname} срывает джекпот на {rewardLabel} [{balanceLabel}]",
+    "Голос из темноты предложил {nickname} выбрать красную или синюю таблетку. Игрок выбрал деньги: {rewardLabel} [{balanceLabel}]",
+    "Алхимик попытался продать {nickname} пустой сундук, но забыл вынуть из него {rewardLabel} [{balanceLabel}]",
+    "Банк ОС прилетела к {nickname}, споткнулась и рассыпала {rewardLabel}. Подбирать помогать не пришлось [{balanceLabel}]",
+    "{nickname} обнаружил(-а) тайник с табличкой «На чёрный день». День оказался достаточно чёрным: внутри {rewardLabel} [{balanceLabel}]",
+    "Легендарный сундук выбрал нового хозяина. К сожалению для сундука, им оказался(-ась) {nickname}. Внутри — {rewardLabel} [{balanceLabel}]",
+    "Служитель Бездны объявил внеплановую инвентаризацию. {rewardLabel} уже не хватает — их уносит {nickname} [{balanceLabel}]",
+    "Где-то во мраке раздался крик: «Так не должно было выпасть!» Но {nickname} уже забрал(-а) {rewardLabel} [{balanceLabel}]",
+    "{nickname} нашёл(-ла) кошелёк без документов. Внутри было {rewardLabel}, а совесть временно вышла из игры [{balanceLabel}]",
+    "Шут Повелителя предложил {nickname} сыграть на всё. Шут теперь без всего, а игрок получает {rewardLabel} [{balanceLabel}]",
+    "Слизь проглотила клад, но икнула рядом с {nickname}. На пол выпало {rewardLabel} [{balanceLabel}]",
+    "Джекпот долго искал достойного владельца, устал и остановился на {nickname}. Награда — {rewardLabel} [{balanceLabel}]",
+  ],
+  [MOVE_TYPES.EMPTY_JACKPOT]: [
+    "{nickname} находит сундук, но его уже кто-то опустошил [{balanceLabel}]",
+    "{nickname} открывает сокровищницу, а внутри только пыль и записка от предшественника [{balanceLabel}]",
+    "{nickname} обнаружил(-а) огромный сундук с сокровищами, но кто-то обчистил его раньше... [{balanceLabel}].",
+    "Когда {nickname} открыл(-а) сундук, внутри нашлись лишь куча пыли и записка: «Привет, нуб! :)» [{balanceLabel}].",
+    "{nickname} попросил(-а) у вселенной знак. Вселенная показала средний палец [{balanceLabel}]",
+    "{nickname} торжественно открывает сундук. Сундук столь же торжественно оказывается пустым [{balanceLabel}]",
+    "{nickname} заглядывает в сундук и видит там отражение собственного разочарования [{balanceLabel}]",
+    "{nickname} прибыл(-а) на клетку с сокровищем ко времени. К сожалению, не к тому времени [{balanceLabel}]",
+    "{nickname} находит легендарный сундук. Легендарно пустой сундук [{balanceLabel}]",
+    "Кто-то вынес из сундука всё ценное, но оставил {nickname} бесплатный урок пунктуальности [{balanceLabel}]",
+    "{nickname} открывает сундук и получает редчайшую награду — ничего [{balanceLabel}]",
+    "Сундук долго сопротивлялся, но в итоге показал {nickname}, что внутри совершенно пусто [{balanceLabel}]",
+    "Внутри сундука лежала записка: «Надо было ходить быстрее» [{balanceLabel}]",
+    "Кто-то оставил в сундуке одну монету, но нарисованную. {nickname} не впечатлён(-а) [{balanceLabel}]",
+    "{nickname} заглянул(-а) внутрь и обнаружил(-а) там бездну. Бездна тоже была без денег [{balanceLabel}]",
+    "Зубастая Слизь охраняла сундук изо всех сил. Правда, только после того, как его уже обчистили [{balanceLabel}]",
+    "Страж Сокровищ предлагает {nickname} разделить сокровища поровну. Ноль пополам — тоже ноль [{balanceLabel}]",
+    "Сундук оказался не пустым: внутри лежало глубокое чувство несправедливости [{balanceLabel}]",
+    "{nickname} нашёл(-ла) место, где мог(-ла) бы стать богаче. Ключевое слово — «мог(-ла) бы» [{balanceLabel}]",
+  ],
   [MOVE_TYPES.EMPTY]: [
     "{nickname} осмотрелся(-ась), но ничего не нашёл(-ла) [{balanceLabel}]",
     "{nickname} протёр(-ла) уставшие глаза, присмотрелся(-ась) и кроме паутины ничего не нашёл(-ла) [{balanceLabel}]",
@@ -99,6 +147,16 @@ const moveTemplates: Record<MoveTemplateType, string[]> = {
     "{nickname} победил(-а) в конкурсе на самый смешной костюм и получил(-а) {rewardLabel} как приз [{balanceLabel}].",
     "За победу над Сторожевой Грибоножкой в «Камень-ножницы-бумага» {nickname} получает {rewardLabel} [{balanceLabel}].",
     "{nickname} решил(-а) отдохнуть в брошенном спальном мешке, а в нём была заначка: {rewardLabel} [{balanceLabel}].",
+    "{nickname} попытался(-ась) продать воздух в Торговом зале — и кто-то действительно купил его за {rewardLabel} [{balanceLabel}]",
+    "{nickname} подобрал(-а) чек, который какой-то нуб выронил после хаота: {rewardLabel} [{balanceLabel}]",
+    "Старый гоблин долго торговался с {nickname}, но в итоге сам доплатил {rewardLabel} [{balanceLabel}]",
+    "Даже крысы решили скинуться {nickname} на счастливую жизнь: {rewardLabel} [{balanceLabel}]",
+    "Сегодня сервер благосклонен к {nickname}: начислено {rewardLabel} [{balanceLabel}]",
+    "Мимо пробегал единорог, споткнулся и выронил {rewardLabel}. {nickname} возражать не стал(-а) [{balanceLabel}]",
+    "Где-то хлопнула дверь. Никто не понял почему, но {nickname} стал(-а) богаче на {rewardLabel} [{balanceLabel}]",
+    "Маг пытался вызвать демона, но вызвал бухгалтера. Тот оформил {nickname} премию: {rewardLabel} [{balanceLabel}]",
+    "{nickname} нажал(-а) кнопку «Получить ежедневную награду». На удивление, сработало: {rewardLabel} [{balanceLabel}]",
+    "Система решила, что сегодня {nickname} можно не страдать, и выдала {rewardLabel} [{balanceLabel}]",
   ],
   [MOVE_TYPES.DECREASE]: [
     "{nickname} угодил(-а) в ловушку и потерял(-а) {rewardLabel} [{balanceLabel}]",
@@ -106,6 +164,7 @@ const moveTemplates: Record<MoveTemplateType, string[]> = {
     "Клетка вытянула из карманов {nickname} {rewardLabel} [{balanceLabel}]",
     "{nickname} споткнулся(-ась) и вместе с равновесием потерял(-а) {rewardLabel} [{balanceLabel}]",
     "{nickname} обнаружил(-а), что кошелёк стал легче на {rewardLabel} [{balanceLabel}]",
+    "{nickname} нашёл(-ла) чек, попытался(-ась) его обналичить, но это оказалась ипотека на {rewardLabel} [{balanceLabel}]",
     "Дарьяна Корт вытянула из карманов {nickname} {rewardLabel} [{balanceLabel}]",
     "{nickname} зашёл(-ла) в ремонт и вышел(-ла) без {rewardLabel} [{balanceLabel}]",
     "{nickname} купил(-а) свиток. Не тот. Потрачено {rewardLabel} [{balanceLabel}]",
@@ -127,20 +186,6 @@ const moveTemplates: Record<MoveTemplateType, string[]> = {
     "{nickname} узнал(-а), что получает наследство. В наследство достался долг в {rewardLabel} [{balanceLabel}].",
     "{nickname} нашёл(-ла) магический артефакт, который оказался проклят — шаману пришлось заплатить {rewardLabel} [{balanceLabel}].",
     "{nickname} узнал(-а), что Эми Тейли подала в суд на алименты. Пришлось заплатить {rewardLabel} [{balanceLabel}].",
-  ],
-  [MOVE_TYPES.JACKPOT]: [
-    "{nickname} срывает сокровище: {rewardLabel} [{balanceLabel}]",
-    "{nickname} открывает сундук и забирает джекпот: {rewardLabel} [{balanceLabel}]",
-    "{nickname} получает внезапное наследство: {rewardLabel} [{balanceLabel}]",
-    "{nickname} получил(-а) СМС о наследстве от пробабушки из Швейцарии: {rewardLabel} [{balanceLabel}].",
-    "{nickname} сорвал(-а) джекпот в лотерее и получил(-а) {rewardLabel} [{balanceLabel}].",
-    "Как не вовремя {nickname} приспичило в туалет... В поисках бумажки чуть не воспользовался(-ась) чеком на {rewardLabel} [{balanceLabel}].",
-  ],
-  [MOVE_TYPES.EMPTY_JACKPOT]: [
-    "{nickname} находит сундук, но его уже кто-то опустошил [{balanceLabel}]",
-    "{nickname} открывает сокровищницу, а внутри только пыль и записка от предшественника [{balanceLabel}]",
-    "{nickname} обнаружил(-а) огромный сундук с сокровищами, но кто-то обчистил его раньше... [{balanceLabel}].",
-    "Когда {nickname} открыл(-а) сундук, внутри нашлись лишь куча пыли и записка: «Привет, нуб! :)» [{balanceLabel}].",
   ],
   [MOVE_TYPES.FINISH]: [
     "Игрок {nickname} покидает карту с добычей [{balanceLabel}]",
@@ -175,17 +220,64 @@ const achievementTemplates = [
   'Игрок {nickname} зарабатывает достижение "{achievement}" за {description}, награда: {rewardLabel} [{balanceLabel}]',
 ];
 
+const achievementTemplatesByName: Partial<Record<string, string[]>> = {
+  [JOURNEY_ACHIEVEMENT_NAMES.UNLUCKY]: [
+    '{nickname} получает достижение "{achievement}". Столько ловушек подряд — это уже не невезение, а талант. Награда за страдания: {rewardLabel} [{balanceLabel}]',
+    'Королева Грибницы посмотрела на маршрут {nickname} и впервые за долгое время искренне рассмеялась. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Даже Зубастая Слизь не понимает, как {nickname} удалось наступить на столько ловушек подряд. Получено "{achievement}", награда — {rewardLabel} [{balanceLabel}]',
+    'Путь был свободен почти везде, но {nickname} безошибочно выбрал(-а) кучу ловушек подряд. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} доказал(-а), что дно — это не точка, а направление движения. Достижение "{achievement}", утешительные {rewardLabel} [{balanceLabel}]',
+    'Куча ловушек подряд нашли {nickname}. Или всё-таки {nickname} нашёл(-ла) их? Получено достижение "{achievement}", награда — {rewardLabel} [{balanceLabel}]',
+    'Архивариус записывает новый феномен: {nickname} умеет находить ловушки даже там, где их никто не искал. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    `Карта пыталась намекнуть. Потом предупредить. Потом ударила ${JOURNEY_ACHIEVEMENT_STREAK_TARGETS.unlucky} раза. {nickname} получает достижение "{achievement}" и {rewardLabel} [{balanceLabel}]`,
+    'Повелитель снимает шлем перед мастерством {nickname}: столько ловушек подряд — такое ещё нужно суметь. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Для всех это ловушки. Для {nickname} — обязательные точки маршрута. Достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
+    '{nickname} собирает ловушки с такой уверенностью, будто за них дают отдельный приз. И ведь теперь дают: "{achievement}", {rewardLabel} [{balanceLabel}]',
+  ],
+  [JOURNEY_ACHIEVEMENT_NAMES.CAREFUL]: [
+    '{nickname} проходит по клеткам и не трогает вообще ничего. Достижение "{achievement}", награда — {rewardLabel} [{balanceLabel}]',
+    'Хищная Слизь приготовилась нападать, но {nickname} прошёл(-ла) настолько тихо, что её пришлось разбудить после игры. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Сторожевая Грибоножка так и не заметила, как {nickname} прошёл(-ла) мимо. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} передвигался(-ась) настолько осторожно, что даже пыль осталась лежать на месте. Достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
+    '{nickname} последние полчаса смотрел(-а) на подозрительные клетки и всякий раз решал(-а): «Не сегодня». Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Ни один сундук не открыт, ни одна ловушка не потревожена. Паранойя {nickname} приносит достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
+    'Инстинкт самосохранения {nickname} внезапно заработал без ошибок. Получено достижение"{achievement}", награда — {rewardLabel} [{balanceLabel}]',
+    'Архивариус хотел записать приключения {nickname}, но записывать оказалось нечего: игрок всё обошёл(-ла). Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} прошёл(-ла) последние клетки в режиме «руками ничего не трогать». Система выдаёт "{achievement}" и {rewardLabel} [{balanceLabel}]',
+    `Даже ловушки обиделись: {nickname} ${JOURNEY_ACHIEVEMENT_STREAK_TARGETS.careful} раза подряд их проигнорировал(-а). Достижение "{achievement}", {rewardLabel} [{balanceLabel}]`,
+  ],
+  [JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR]: [
+    'В коллекции {nickname} теперь есть всё: удача, боль и сомнительные жизненные решения. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Сэймос вручает {nickname} почётную грамоту за изучение всей пещерной инфраструктуры. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} лично проверил(-а) каждый тип клетки. Да, включая те, которые нормальные люди обходят. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Епископ закрывает последний пункт в списке {nickname}: коллекция завершена. Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'От маленькой находки до большой ловушки — {nickname} попробовал(-а) всё. Получено достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
+    'Теперь {nickname} может проводить экскурсии: все виды клеток изучены лично. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Пещерные боссы сверили журналы посещений. {nickname} отметился(-ась) везде. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} собрал(-а) полный набор впечатлений: приятных, болезненных и финансово сомнительных. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Коллекция {nickname} официально признана полной. Экспонаты местами кусаются, но это уже детали. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+  ],
+  [JOURNEY_ACHIEVEMENT_NAMES.LUCKY]: [
+    '{nickname} находит уже которую награду подряд. Алхимик официально выбрал любимчика: Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Перебежчик Брут требует проверить {nickname} на запрещённые свитки удачи. Пока проверяют — достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
+    'Даже Алхимик начал ходить следом за {nickname} в надежде подобрать что-нибудь ценное для перепродажи нубам за реал. Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Похоже, {nickname} случайно оформил(-а) подписку на удачу. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Обладатели достижения «Невезучий» требуют понерфить {nickname}: столько наград подряд — это уже неприлично. Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Фортуна окончательно переехала к {nickname}. Достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
+    `Уже ${JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky} удачных клеток подряд подтверждают: сегодня главный герой — {nickname}. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]`,
+    'Кроличья лапка начала тереться о {nickname} на удачу. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} собрал(-а) такую серию наград, что админ уже звонит ведущему. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Система сообщает: вероятность происходящего всё ещё ненулевая. {nickname} получает достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
+  ],
+};
+
 interface BuildJourneyCommentArgs {
   event: JourneyForumCommentEvent;
   currencies: ConfigCurrency[];
   randomFn?: RandomFn;
 }
 
-export function buildJourneyComment({
-  event,
-  currencies,
-  randomFn = Math.random,
-}: BuildJourneyCommentArgs): string {
+export function buildJourneyComment({ event, currencies, randomFn = Math.random }: BuildJourneyCommentArgs): string {
   const balanceLabel = formatJourneyCurrencyValues(event.balanceAfter, currencies, { includeZero: false });
 
   if (event.kind === "move") {
@@ -207,13 +299,19 @@ export function buildJourneyComment({
     });
   }
 
-  return interpolate(randomFrom(achievementTemplates, randomFn), {
+  const templates = achievementTemplatesByName[event.achievement.name] ?? achievementTemplates;
+
+  return interpolate(randomFrom(templates, randomFn), {
     nickname: event.playerNickname,
     achievement: event.achievement.title ?? event.achievement.name,
     description: event.achievement.description ?? "",
-    rewardLabel: formatRewardLabel(event.appliedRewards.length ? event.appliedRewards : event.achievement.rewards, currencies, {
-      showPlus: true,
-    }),
+    rewardLabel: formatRewardLabel(
+      event.appliedRewards.length ? event.appliedRewards : event.achievement.rewards,
+      currencies,
+      {
+        showPlus: true,
+      },
+    ),
     balanceLabel,
   });
 }
