@@ -6,7 +6,20 @@ interface JourneyLogCardProps {
   comments?: string[];
 }
 
+function formatLogLine(line: string): string {
+  if (!line || line.startsWith("====================") || line.startsWith("- ")) {
+    return line;
+  }
+
+  return `- ${line}`;
+}
+
 export default function JourneyLogCard({ comments = [] }: JourneyLogCardProps) {
+  const logText = comments
+    .flatMap((comment) => comment.split("\n"))
+    .map(formatLogLine)
+    .join("\n");
+
   return (
     <Card>
       <CardHeader title={journeyTexts.cards.logTitle} subheader={journeyTexts.cards.logSubtitle} />
@@ -24,7 +37,7 @@ export default function JourneyLogCard({ comments = [] }: JourneyLogCardProps) {
               overflowY: "auto",
             }}
           >
-            {comments.join("\n")}
+            {logText}
           </Box>
         ) : (
           <Alert severity="info" icon={<TravelExploreRoundedIcon fontSize="inherit" />}>

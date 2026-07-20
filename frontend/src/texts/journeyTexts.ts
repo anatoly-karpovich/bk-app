@@ -14,6 +14,7 @@ export const journeyTexts = {
     importPlayers: "Импорт игроков",
     importMoves: "Импорт ходов",
     applyMove: "Применить ход",
+    addStateToLog: "Добавить в лог",
   },
   statuses: {
     notStarted: "Игра не начата",

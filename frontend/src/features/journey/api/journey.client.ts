@@ -1,5 +1,11 @@
 import { journeyGameViewMapper } from "../mappers/JourneyGameViewMapper";
-import type { JourneyGameView, JourneyMoveInput, JourneyPageGame, JourneySavedGameSummary } from "../types";
+import type {
+  JourneyForumStateMessage,
+  JourneyGameView,
+  JourneyMoveInput,
+  JourneyPageGame,
+  JourneySavedGameSummary,
+} from "../types";
 import { apiClient } from "../../../lib/apiClient";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
@@ -25,6 +31,15 @@ export async function createJourneyGameRequest(payload: {
 export async function getJourneyGameByIdRequest(projectId: string, gameId: string): Promise<JourneyPageGame> {
   const game = await apiClient.get<JourneyGameView>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}`);
   return journeyGameViewMapper.toPageGame(game);
+}
+
+export async function getJourneyForumStateRequest(
+  projectId: string,
+  gameId: string,
+): Promise<JourneyForumStateMessage> {
+  return await apiClient.get<JourneyForumStateMessage>(
+    `${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/forum-state`,
+  );
 }
 
 export async function listJourneyGamesRequest(projectId: string): Promise<JourneySavedGameSummary[]> {

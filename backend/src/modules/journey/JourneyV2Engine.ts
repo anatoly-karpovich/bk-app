@@ -2,8 +2,21 @@ import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import { JourneyRoundValidationError } from "./errors";
 import { getJourneyCollectorTargets } from "./domain/achievementProgress";
 import { buildJourneyComment } from "./domain/commentTemplates";
-import { getJourneyAchievements, getJourneyBonusCells, getJourneyConfig, JOURNEY_ACHIEVEMENT_STREAK_TARGETS, MOVE_TYPES, normalizeJourneyRules } from "./domain/config";
-import { applyJourneyRewardsToBalance, balanceToJourneyCurrencyValues, createJourneyBalance, hasNegativeJourneyRewards, hasPositiveJourneyRewards } from "./domain/currency";
+import {
+  getJourneyAchievements,
+  getJourneyBonusCells,
+  getJourneyConfig,
+  JOURNEY_ACHIEVEMENT_STREAK_TARGETS,
+  MOVE_TYPES,
+  normalizeJourneyRules,
+} from "./domain/config";
+import {
+  applyJourneyRewardsToBalance,
+  balanceToJourneyCurrencyValues,
+  createJourneyBalance,
+  hasNegativeJourneyRewards,
+  hasPositiveJourneyRewards,
+} from "./domain/currency";
 import type {
   JourneyAchievement,
   JourneyAchievementProgress,
@@ -86,7 +99,12 @@ export class JourneyV2Engine {
     };
   }
 
-  makeRound(game: JourneyV2Game, inputMoves: JourneyMoveInput[], skippedPlayerIds: string[] = [], randomFn: RandomFn = Math.random): JourneyV2Game {
+  makeRound(
+    game: JourneyV2Game,
+    inputMoves: JourneyMoveInput[],
+    skippedPlayerIds: string[] = [],
+    randomFn: RandomFn = Math.random,
+  ): JourneyV2Game {
     const nextGame = clone(game);
     const state = nextGame.stateV2;
     const activePlayers = state.players.filter((player) => player.status === "active");
@@ -110,7 +128,9 @@ export class JourneyV2Engine {
     });
 
     this.applyJackpots(nextGame, turnsByPlayerId, randomFn);
-    const turns = activePlayers.map((player) => turnsByPlayerId.get(player.id) ?? { kind: "skip" as const, playerId: player.id });
+    const turns = activePlayers.map(
+      (player) => turnsByPlayerId.get(player.id) ?? { kind: "skip" as const, playerId: player.id },
+    );
 
     turns.forEach((turn) => {
       if (turn.kind !== "move") {
@@ -141,7 +161,9 @@ export class JourneyV2Engine {
         return;
       }
 
-      this.getEligibleAchievements(game, player, turn).forEach((achievement) => this.grantAchievement(player, turn, achievement, nextGame));
+      this.getEligibleAchievements(game, player, turn).forEach((achievement) =>
+        this.grantAchievement(player, turn, achievement, nextGame),
+      );
     });
 
     const round: JourneyV2Round = { index: state.moveIndex, occurredAt, turns };
@@ -166,12 +188,16 @@ export class JourneyV2Engine {
     nextGame.stateV2.forumLog.push(`Игрок ${player.nickname} удалён из текущей партии.`);
     nextGame.updatedAt = player.removedAt;
 
-    return nextGame.stateV2.players.some((candidate) => candidate.status === "active") ? nextGame : this.finishGame(nextGame);
+    return nextGame.stateV2.players.some((candidate) => candidate.status === "active")
+      ? nextGame
+      : this.finishGame(nextGame);
   }
 
   getAchievementProgress(game: JourneyV2Game, player: JourneyV2Player): JourneyAchievementProgress {
     const moves = game.stateV2.rounds.flatMap((round) =>
-      round.turns.filter((turn): turn is Extract<JourneyV2Turn, { kind: "move" }> => turn.kind === "move" && turn.playerId === player.id),
+      round.turns.filter(
+        (turn): turn is Extract<JourneyV2Turn, { kind: "move" }> => turn.kind === "move" && turn.playerId === player.id,
+      ),
     );
     const achievements = getJourneyAchievements(game.rules);
     const finishPosition = getJourneyConfig(game.rules, game.currencies).finishPosition;
@@ -187,10 +213,16 @@ export class JourneyV2Engine {
     );
     const isCareful = (move: Extract<JourneyV2Turn, { kind: "move" }>) => {
       const cell = game.stateV2.map[move.to];
-      return move.to !== finishPosition && move.moveType !== MOVE_TYPES.JACKPOT && (!cell || cell.isJackpot || !cell.rewards.length);
+      return (
+        move.to !== finishPosition &&
+        move.moveType !== MOVE_TYPES.JACKPOT &&
+        (!cell || cell.isJackpot || !cell.rewards.length)
+      );
     };
-    const isNegative = (move: Extract<JourneyV2Turn, { kind: "move" }>) => hasNegativeJourneyRewards(game.stateV2.map[move.to]?.rewards ?? []);
-    const isPositive = (move: Extract<JourneyV2Turn, { kind: "move" }>) => hasPositiveJourneyRewards(game.stateV2.map[move.to]?.rewards ?? []);
+    const isNegative = (move: Extract<JourneyV2Turn, { kind: "move" }>) =>
+      hasNegativeJourneyRewards(game.stateV2.map[move.to]?.rewards ?? []);
+    const isPositive = (move: Extract<JourneyV2Turn, { kind: "move" }>) =>
+      hasPositiveJourneyRewards(game.stateV2.map[move.to]?.rewards ?? []);
 
     return {
       collector: {
@@ -198,43 +230,83 @@ export class JourneyV2Engine {
         obtainedCellIds: collectorTargets.map((target) => target.id).filter((id) => visitedTargetIds.has(id)),
         missingCellIds: collectorTargets.map((target) => target.id).filter((id) => !visitedTargetIds.has(id)),
       },
-      unlucky: this.buildStreakProgress(player, moves, isNegative, achievements.UNLUCKY.name, JOURNEY_ACHIEVEMENT_STREAK_TARGETS.unlucky),
-      careful: this.buildStreakProgress(player, moves, isCareful, achievements.CAREFUL.name, JOURNEY_ACHIEVEMENT_STREAK_TARGETS.careful),
-      lucky: this.buildStreakProgress(player, moves, isPositive, achievements.LUCKY.name, JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky),
+      unlucky: this.buildStreakProgress(
+        player,
+        moves,
+        isNegative,
+        achievements.UNLUCKY.name,
+        JOURNEY_ACHIEVEMENT_STREAK_TARGETS.unlucky,
+      ),
+      careful: this.buildStreakProgress(
+        player,
+        moves,
+        isCareful,
+        achievements.CAREFUL.name,
+        JOURNEY_ACHIEVEMENT_STREAK_TARGETS.careful,
+      ),
+      lucky: this.buildStreakProgress(
+        player,
+        moves,
+        isPositive,
+        achievements.LUCKY.name,
+        JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky,
+      ),
     };
   }
 
   getPlayerTimelines(game: JourneyV2Game): Record<string, JourneyHistoryEntryView[]> {
     const balances = Object.fromEntries(
-      game.stateV2.players.map((player) => [player.id, createJourneyBalance(game.currencies, getJourneyConfig(game.rules, game.currencies).initialRewards)]),
+      game.stateV2.players.map((player) => [
+        player.id,
+        createJourneyBalance(game.currencies, getJourneyConfig(game.rules, game.currencies).initialRewards),
+      ]),
     );
-    const result = Object.fromEntries(game.stateV2.players.map((player) => [player.id, [] as JourneyHistoryEntryView[]]));
+    const result = Object.fromEntries(
+      game.stateV2.players.map((player) => [player.id, [] as JourneyHistoryEntryView[]]),
+    );
 
-    game.stateV2.rounds.forEach((round) => round.turns.forEach((turn) => {
-      const player = this.getPlayer(game.stateV2.players, turn.playerId);
-      if (!player) {
-        return;
-      }
-      const balanceBefore = balances[player.id];
-      if (turn.kind === "skip") {
-        result[player.id].push({ createdAt: round.occurredAt, roundIndex: round.index, skipped: true, previousPosition: null, currentPosition: null, appliedRewards: [], balanceAfterRound: balanceToJourneyCurrencyValues(balanceBefore, game.currencies), cell: null, achievementsAwarded: [] });
-        return;
-      }
-      const afterMove = this.applyRewards(balanceBefore, turn.appliedRewards, game).nextBalance;
-      const afterRound = turn.achievementEffects.reduce((balance, effect) => this.applyRewards(balance, effect.appliedRewards, game).nextBalance, afterMove);
-      balances[player.id] = afterRound;
-      result[player.id].push({
-        createdAt: round.occurredAt,
-        roundIndex: round.index,
-        skipped: false,
-        previousPosition: turn.from,
-        currentPosition: turn.to,
-        appliedRewards: clone(turn.appliedRewards),
-        balanceAfterRound: balanceToJourneyCurrencyValues(afterRound, game.currencies),
-        cell: clone(game.stateV2.map[turn.to] ?? null),
-        achievementsAwarded: turn.achievementEffects.map((effect) => clone(this.getAchievement(game, effect.name))).filter((achievement): achievement is JourneyAchievement => Boolean(achievement)),
-      });
-    }));
+    game.stateV2.rounds.forEach((round) =>
+      round.turns.forEach((turn) => {
+        const player = this.getPlayer(game.stateV2.players, turn.playerId);
+        if (!player) {
+          return;
+        }
+        const balanceBefore = balances[player.id];
+        if (turn.kind === "skip") {
+          result[player.id].push({
+            createdAt: round.occurredAt,
+            roundIndex: round.index,
+            skipped: true,
+            previousPosition: null,
+            currentPosition: null,
+            appliedRewards: [],
+            balanceAfterRound: balanceToJourneyCurrencyValues(balanceBefore, game.currencies),
+            cell: null,
+            achievementsAwarded: [],
+          });
+          return;
+        }
+        const afterMove = this.applyRewards(balanceBefore, turn.appliedRewards, game).nextBalance;
+        const afterRound = turn.achievementEffects.reduce(
+          (balance, effect) => this.applyRewards(balance, effect.appliedRewards, game).nextBalance,
+          afterMove,
+        );
+        balances[player.id] = afterRound;
+        result[player.id].push({
+          createdAt: round.occurredAt,
+          roundIndex: round.index,
+          skipped: false,
+          previousPosition: turn.from,
+          currentPosition: turn.to,
+          appliedRewards: clone(turn.appliedRewards),
+          balanceAfterRound: balanceToJourneyCurrencyValues(afterRound, game.currencies),
+          cell: clone(game.stateV2.map[turn.to] ?? null),
+          achievementsAwarded: turn.achievementEffects
+            .map((effect) => clone(this.getAchievement(game, effect.name)))
+            .filter((achievement): achievement is JourneyAchievement => Boolean(achievement)),
+        });
+      }),
+    );
 
     return result;
   }
@@ -251,7 +323,11 @@ export class JourneyV2Engine {
     return map;
   }
 
-  private buildMoveTurn(player: JourneyV2Player, dice: number, game: JourneyV2Game): Extract<JourneyV2Turn, { kind: "move" }> {
+  private buildMoveTurn(
+    player: JourneyV2Player,
+    dice: number,
+    game: JourneyV2Game,
+  ): Extract<JourneyV2Turn, { kind: "move" }> {
     const finishPosition = getJourneyConfig(game.rules, game.currencies).finishPosition;
     const to = Math.min(player.position + dice, finishPosition);
     const cell = game.stateV2.map[to] ?? null;
@@ -259,7 +335,11 @@ export class JourneyV2Engine {
     const application = this.applyRewards(player.balance, requestedRewards, game);
 
     return {
-      kind: "move", playerId: player.id, dice, from: player.position, to,
+      kind: "move",
+      playerId: player.id,
+      dice,
+      from: player.position,
+      to,
       moveType: to === finishPosition ? MOVE_TYPES.FINISH : this.resolveMoveType(requestedRewards, application),
       appliedRewards: application.appliedRewards,
       achievementEffects: [],
@@ -267,26 +347,44 @@ export class JourneyV2Engine {
   }
 
   private applyJackpots(game: JourneyV2Game, turnsByPlayerId: Map<string, JourneyV2Turn>, randomFn: RandomFn) {
-    Object.entries(game.stateV2.map).filter(([, cell]) => cell.isJackpot).forEach(([position, cell]) => {
-      const turns = Array.from(turnsByPlayerId.values()).filter((turn): turn is Extract<JourneyV2Turn, { kind: "move" }> => turn.kind === "move" && turn.to === Number(position));
-      if (!turns.length) return;
-      if (!cell.winner) {
-        const eligible = turns.filter((turn) => !this.getPlayer(game.stateV2.players, turn.playerId)?.achievementNames.includes(getJourneyAchievements(game.rules).JACKPOT.name));
-        if (eligible.length) {
-          const winner = eligible[randomInteger(0, eligible.length - 1, randomFn)];
-          const player = this.getPlayer(game.stateV2.players, winner.playerId);
-          if (player) {
-            cell.winner = { nickname: player.nickname };
-            winner.moveType = MOVE_TYPES.JACKPOT;
+    Object.entries(game.stateV2.map)
+      .filter(([, cell]) => cell.isJackpot)
+      .forEach(([position, cell]) => {
+        const turns = Array.from(turnsByPlayerId.values()).filter(
+          (turn): turn is Extract<JourneyV2Turn, { kind: "move" }> =>
+            turn.kind === "move" && turn.to === Number(position),
+        );
+        if (!turns.length) return;
+        if (!cell.winner) {
+          const eligible = turns.filter(
+            (turn) =>
+              !this.getPlayer(game.stateV2.players, turn.playerId)?.achievementNames.includes(
+                getJourneyAchievements(game.rules).JACKPOT.name,
+              ),
+          );
+          if (eligible.length) {
+            const winner = eligible[randomInteger(0, eligible.length - 1, randomFn)];
+            const player = this.getPlayer(game.stateV2.players, winner.playerId);
+            if (player) {
+              cell.winner = { nickname: player.nickname };
+              winner.moveType = MOVE_TYPES.JACKPOT;
+            }
           }
         }
-      }
-      const winnerId = game.stateV2.players.find((player) => player.nickname === cell.winner?.nickname)?.id;
-      turns.filter((turn) => turn.playerId !== winnerId).forEach((turn) => { turn.moveType = MOVE_TYPES.EMPTY_JACKPOT; });
-    });
+        const winnerId = game.stateV2.players.find((player) => player.nickname === cell.winner?.nickname)?.id;
+        turns
+          .filter((turn) => turn.playerId !== winnerId)
+          .forEach((turn) => {
+            turn.moveType = MOVE_TYPES.EMPTY_JACKPOT;
+          });
+      });
   }
 
-  private getEligibleAchievements(gameBeforeRound: JourneyV2Game, player: JourneyV2Player, turn: Extract<JourneyV2Turn, { kind: "move" }>): JourneyAchievement[] {
+  private getEligibleAchievements(
+    gameBeforeRound: JourneyV2Game,
+    player: JourneyV2Player,
+    turn: Extract<JourneyV2Turn, { kind: "move" }>,
+  ): JourneyAchievement[] {
     const preview = clone(gameBeforeRound);
     preview.stateV2.rounds.push({ index: preview.stateV2.moveIndex + 1, occurredAt: preview.updatedAt, turns: [turn] });
     const progress = this.getAchievementProgress(preview, player);
@@ -299,7 +397,12 @@ export class JourneyV2Engine {
     ].filter((achievement): achievement is JourneyAchievement => Boolean(achievement));
   }
 
-  private grantAchievement(player: JourneyV2Player, turn: Extract<JourneyV2Turn, { kind: "move" }>, achievement: JourneyAchievement, game: JourneyV2Game) {
+  private grantAchievement(
+    player: JourneyV2Player,
+    turn: Extract<JourneyV2Turn, { kind: "move" }>,
+    achievement: JourneyAchievement,
+    game: JourneyV2Game,
+  ) {
     if (player.achievementNames.includes(achievement.name)) return;
     player.achievementNames.push(achievement.name);
     const application = this.applyRewards(player.balance, achievement.rewards, game);
@@ -307,94 +410,169 @@ export class JourneyV2Engine {
     turn.achievementEffects.push({ name: achievement.name, appliedRewards: application.appliedRewards });
   }
 
-  private resolveMoveType(requestedRewards: JourneyCurrencyValue[], application: ReturnType<typeof applyJourneyRewardsToBalance>): JourneyMoveType {
+  private resolveMoveType(
+    requestedRewards: JourneyCurrencyValue[],
+    application: ReturnType<typeof applyJourneyRewardsToBalance>,
+  ): JourneyMoveType {
     if (!requestedRewards.length) return MOVE_TYPES.EMPTY;
     if (hasPositiveJourneyRewards(requestedRewards)) {
       if (application.appliedRewards.every((reward) => reward.value === 0)) return MOVE_TYPES.AT_MAX;
-      return application.hasAnyCappedPositiveReward || application.hasAnyBlockedPositiveReward ? MOVE_TYPES.TO_MAX : MOVE_TYPES.INCREASE;
+      return application.hasAnyCappedPositiveReward || application.hasAnyBlockedPositiveReward
+        ? MOVE_TYPES.TO_MAX
+        : MOVE_TYPES.INCREASE;
     }
     if (application.appliedRewards.every((reward) => reward.value === 0)) return MOVE_TYPES.AT_ZERO;
-    return application.hasAnyFlooredNegativeReward || application.hasAnyBlockedNegativeReward ? MOVE_TYPES.TO_ZERO : MOVE_TYPES.DECREASE;
+    return application.hasAnyFlooredNegativeReward || application.hasAnyBlockedNegativeReward
+      ? MOVE_TYPES.TO_ZERO
+      : MOVE_TYPES.DECREASE;
   }
 
   private applyRewards(balance: Record<string, number>, rewards: JourneyCurrencyValue[], game: JourneyV2Game) {
-    return applyJourneyRewardsToBalance({ balance, rewards, currencies: game.currencies, maxPrizes: getJourneyConfig(game.rules, game.currencies).maxPrizes });
+    return applyJourneyRewardsToBalance({
+      balance,
+      rewards,
+      currencies: game.currencies,
+      maxPrizes: getJourneyConfig(game.rules, game.currencies).maxPrizes,
+    });
   }
 
-  private buildStreakProgress(player: JourneyV2Player, moves: Extract<JourneyV2Turn, { kind: "move" }>[], predicate: (move: Extract<JourneyV2Turn, { kind: "move" }>) => boolean, achievementName: string, target: number) {
-    let best = 0; let current = 0;
-    moves.forEach((move) => { current = predicate(move) ? current + 1 : 0; best = Math.max(best, current); });
+  private buildStreakProgress(
+    player: JourneyV2Player,
+    moves: Extract<JourneyV2Turn, { kind: "move" }>[],
+    predicate: (move: Extract<JourneyV2Turn, { kind: "move" }>) => boolean,
+    achievementName: string,
+    target: number,
+  ) {
+    let best = 0;
+    let current = 0;
+    moves.forEach((move) => {
+      current = predicate(move) ? current + 1 : 0;
+      best = Math.max(best, current);
+    });
     current = 0;
-    [...moves].reverse().some((move) => { if (!predicate(move)) return true; current += 1; return false; });
+    [...moves].reverse().some((move) => {
+      if (!predicate(move)) return true;
+      current += 1;
+      return false;
+    });
     return { achieved: player.achievementNames.includes(achievementName), current, best, target };
   }
 
-  private validateRound(players: JourneyV2Player[], moves: JourneyMoveInput[], skippedIds: string[], rules: JourneyRules, currencies: ConfigCurrency[]) {
+  private validateRound(
+    players: JourneyV2Player[],
+    moves: JourneyMoveInput[],
+    skippedIds: string[],
+    rules: JourneyRules,
+    currencies: ConfigCurrency[],
+  ) {
     const config = getJourneyConfig(rules, currencies);
     const activeIds = new Set(players.map((player) => player.id));
-    const moveIds = new Set<string>(); const skipIds = new Set<string>();
+    const moveIds = new Set<string>();
+    const skipIds = new Set<string>();
     moves.forEach(({ playerId, dice }) => {
-      if (!activeIds.has(playerId)) throw new JourneyRoundValidationError(`Player '${playerId}' is not active in the current round`);
-      if (!Number.isInteger(dice) || dice < config.minDice || dice > config.maxDice) throw new JourneyRoundValidationError(`Dice value for player '${playerId}' must be between ${config.minDice} and ${config.maxDice}`);
-      if (moveIds.has(playerId)) throw new JourneyRoundValidationError(`Player '${playerId}' has more than one submitted move`);
+      if (!activeIds.has(playerId))
+        throw new JourneyRoundValidationError(`Player '${playerId}' is not active in the current round`);
+      if (!Number.isInteger(dice) || dice < config.minDice || dice > config.maxDice)
+        throw new JourneyRoundValidationError(
+          `Dice value for player '${playerId}' must be between ${config.minDice} and ${config.maxDice}`,
+        );
+      if (moveIds.has(playerId))
+        throw new JourneyRoundValidationError(`Player '${playerId}' has more than one submitted move`);
       moveIds.add(playerId);
     });
     skippedIds.forEach((playerId) => {
-      if (!activeIds.has(playerId)) throw new JourneyRoundValidationError(`Player '${playerId}' is not active in the current round`);
-      if (skipIds.has(playerId) || moveIds.has(playerId)) throw new JourneyRoundValidationError(`Player '${playerId}' has conflicting round input`);
+      if (!activeIds.has(playerId))
+        throw new JourneyRoundValidationError(`Player '${playerId}' is not active in the current round`);
+      if (skipIds.has(playerId) || moveIds.has(playerId))
+        throw new JourneyRoundValidationError(`Player '${playerId}' has conflicting round input`);
       skipIds.add(playerId);
     });
-    if (players.some((player) => !moveIds.has(player.id) && !skipIds.has(player.id))) throw new JourneyRoundValidationError("Round input is incomplete");
+    if (players.some((player) => !moveIds.has(player.id) && !skipIds.has(player.id)))
+      throw new JourneyRoundValidationError("Round input is incomplete");
   }
 
-  private getPlayer(players: JourneyV2Player[], id: string): JourneyV2Player | undefined { return players.find((player) => player.id === id); }
-  private getAchievement(game: JourneyV2Game, name: string): JourneyAchievement | null { return Object.values(getJourneyAchievements(game.rules)).find((achievement) => achievement.name === name) ?? null; }
-  private getPlayerStatus(player: JourneyV2Player, game: JourneyV2Game): JourneyPlayerStatus { return player.status === "removed" ? "removed" : player.position === getJourneyConfig(game.rules, game.currencies).finishPosition ? "finished" : "active"; }
+  private getPlayer(players: JourneyV2Player[], id: string): JourneyV2Player | undefined {
+    return players.find((player) => player.id === id);
+  }
+  private getAchievement(game: JourneyV2Game, name: string): JourneyAchievement | null {
+    return Object.values(getJourneyAchievements(game.rules)).find((achievement) => achievement.name === name) ?? null;
+  }
+  private getPlayerStatus(player: JourneyV2Player, game: JourneyV2Game): JourneyPlayerStatus {
+    return player.status === "removed"
+      ? "removed"
+      : player.position === getJourneyConfig(game.rules, game.currencies).finishPosition
+        ? "finished"
+        : "active";
+  }
 
   private finishGame(game: JourneyV2Game): JourneyV2Game {
     if (game.stateV2.status === "finished") return game;
     game.stateV2.status = "finished";
-    const results = [...game.stateV2.players].filter((player) => player.status !== "removed").sort((a, b) => a.nickname.localeCompare(b.nickname, "ru"));
-    game.stateV2.forumLog.push("==================== Итоги ====================", ...results.map((player) => `${player.nickname} — [${balanceToJourneyCurrencyValues(player.balance, game.currencies).map((entry) => `${entry.value} ${game.currencies.find((currency) => currency.id === entry.currencyId)?.label ?? entry.currencyId}`).join(", ")}]`), `Финишировали: ${game.stateV2.players.filter((player) => player.status === "finished").length}`);
+    const results = [...game.stateV2.players]
+      .filter((player) => player.status !== "removed")
+      .sort((a, b) => a.nickname.localeCompare(b.nickname, "ru"));
+    game.stateV2.forumLog.push(
+      "==================== Итоги ====================",
+      ...results.map(
+        (player) =>
+          `${player.nickname} — [${balanceToJourneyCurrencyValues(player.balance, game.currencies)
+            .map(
+              (entry) =>
+                `${entry.value} ${game.currencies.find((currency) => currency.id === entry.currencyId)?.label ?? entry.currencyId}`,
+            )
+            .join(", ")}]`,
+      ),
+      `Финишировали: ${game.stateV2.players.filter((player) => player.status === "finished").length}`,
+    );
     game.updatedAt = now();
     return game;
   }
 
   private buildRoundComments(game: JourneyV2Game, round: JourneyV2Round, randomFn: RandomFn): string[] {
-    const comments = [`==================== Ход ${round.index} ====================`];
+    const comments = [`==================== Ход ${round.index} ====================`, ""];
     round.turns.forEach((turn) => {
       const player = this.getPlayer(game.stateV2.players, turn.playerId);
       if (!player) return;
-      if (turn.kind === "skip") { comments.push(`${player.nickname} пропускает ход`); return; }
+      if (turn.kind === "skip") {
+        comments.push(`${player.nickname} пропускает ход`);
+        return;
+      }
       const cell = game.stateV2.map[turn.to] ?? null;
-      const jackpotRewards = turn.moveType === MOVE_TYPES.JACKPOT
-        ? turn.achievementEffects.find((effect) => effect.name === getJourneyAchievements(game.rules).JACKPOT.name)?.appliedRewards ?? []
-        : turn.appliedRewards;
-      comments.push(buildJourneyComment({
-        event: {
-          kind: "move",
-          playerNickname: player.nickname,
-          moveType: turn.moveType,
-          requestedRewards: cell && !cell.isJackpot ? clone(cell.rewards) : [],
-          appliedRewards: clone(jackpotRewards),
-          balanceAfter: balanceToJourneyCurrencyValues(player.balance, game.currencies),
-        },
-        currencies: game.currencies,
-        randomFn,
-      }));
-      turn.achievementEffects.forEach((effect) => {
-        const achievement = this.getAchievement(game, effect.name);
-        if (achievement) comments.push(buildJourneyComment({
+      const jackpotRewards =
+        turn.moveType === MOVE_TYPES.JACKPOT
+          ? (turn.achievementEffects.find((effect) => effect.name === getJourneyAchievements(game.rules).JACKPOT.name)
+              ?.appliedRewards ?? [])
+          : turn.appliedRewards;
+      comments.push(
+        buildJourneyComment({
           event: {
-            kind: "achievement",
+            kind: "move",
             playerNickname: player.nickname,
-            achievement,
-            appliedRewards: effect.appliedRewards,
+            moveType: turn.moveType,
+            requestedRewards: cell && !cell.isJackpot ? clone(cell.rewards) : [],
+            appliedRewards: clone(jackpotRewards),
             balanceAfter: balanceToJourneyCurrencyValues(player.balance, game.currencies),
           },
           currencies: game.currencies,
           randomFn,
-        }));
+        }),
+      );
+      turn.achievementEffects.forEach((effect) => {
+        const achievement = this.getAchievement(game, effect.name);
+        if (achievement)
+          comments.push(
+            buildJourneyComment({
+              event: {
+                kind: "achievement",
+                playerNickname: player.nickname,
+                achievement,
+                appliedRewards: effect.appliedRewards,
+                balanceAfter: balanceToJourneyCurrencyValues(player.balance, game.currencies),
+              },
+              currencies: game.currencies,
+              randomFn,
+            }),
+          );
       });
     });
     return comments;

@@ -14,6 +14,7 @@ import { JourneyController } from "../modules/journey/JourneyController";
 import { JourneyV2Engine } from "../modules/journey/JourneyV2Engine";
 import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
+import { JourneyForumStateFormatter } from "../modules/journey/JourneyForumStateFormatter";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
 import { LottoController } from "../modules/lotto/LottoController";
@@ -71,6 +72,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
 
   const journeyV2Engine = new JourneyV2Engine();
   const journeyReadModelFactory = new JourneyReadModelFactory();
+  const journeyForumStateFormatter = new JourneyForumStateFormatter();
   const journeyParser = new JourneyParser();
   const journeyService = new JourneyService(
     journeyRepository,
@@ -78,6 +80,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyReadModelFactory,
     journeyParser,
     gameConfigsService,
+    journeyForumStateFormatter,
   );
   const journeyController = new JourneyController(journeyService);
 

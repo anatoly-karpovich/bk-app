@@ -17,13 +17,10 @@ import {
 } from "@mui/material";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import {
-  getCollectorTargetLabel,
-  getHistoryEntrySummary,
-  getJourneyPlayerBalanceLabel,
-} from "../journey-page.helpers";
+import { getCollectorTargetLabel, getHistoryEntrySummary, getJourneyPlayerBalanceLabel } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
+import AppPillButton from "../../../components/ui/AppPillButton";
 import type {
   JourneyAchievementsMap,
   JourneyAchievementProgress,
@@ -40,6 +37,8 @@ interface JourneyStateCardProps {
   journeyCurrencies: JourneyCurrencyDefinition[];
   collectorTargets: JourneyCollectorTarget[];
   achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
+  isAddingForumState: boolean;
+  onAddForumStateToLog: () => void;
 }
 
 export default function JourneyStateCard({
@@ -49,6 +48,8 @@ export default function JourneyStateCard({
   journeyCurrencies,
   collectorTargets,
   achievementProgressByPlayerId,
+  isAddingForumState,
+  onAddForumStateToLog,
 }: JourneyStateCardProps) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const collectorTargetsById = useMemo(
@@ -61,7 +62,25 @@ export default function JourneyStateCard({
 
   return (
     <Card>
-      <CardHeader title={journeyTexts.cards.stateTitle} subheader={journeyTexts.cards.stateSubtitle} />
+      <CardHeader
+        title={
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Typography variant="h6" component="span">
+              {journeyTexts.cards.stateTitle}
+            </Typography>
+            <AppPillButton
+              size="small"
+              variant="outlined"
+              onClick={onAddForumStateToLog}
+              disabled={!game}
+              loading={isAddingForumState}
+            >
+              {journeyTexts.actions.addStateToLog}
+            </AppPillButton>
+          </Stack>
+        }
+        subheader={journeyTexts.cards.stateSubtitle}
+      />
       <CardContent>
         {game ? (
           <Table size="small">
@@ -85,7 +104,11 @@ export default function JourneyStateCard({
                     <TableRow>
                       <TableCell>
                         <IconButton size="small" onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}>
-                          {isExpanded ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
+                          {isExpanded ? (
+                            <ExpandLessRoundedIcon fontSize="small" />
+                          ) : (
+                            <ExpandMoreRoundedIcon fontSize="small" />
+                          )}
                         </IconButton>
                       </TableCell>
                       <TableCell>
@@ -94,14 +117,22 @@ export default function JourneyStateCard({
                           {player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name) ? (
                             <AppChip size="small" color="warning" label={journeyTexts.table.treasure} />
                           ) : null}
-                          {player.status === "removed" ? <AppChip size="small" color="default" label={journeyTexts.table.removed} /> : null}
-                          {player.status === "finished" ? <AppChip size="small" color="success" label={journeyTexts.table.finish} /> : null}
+                          {player.status === "removed" ? (
+                            <AppChip size="small" color="default" label={journeyTexts.table.removed} />
+                          ) : null}
+                          {player.status === "finished" ? (
+                            <AppChip size="small" color="success" label={journeyTexts.table.finish} />
+                          ) : null}
                         </Stack>
                       </TableCell>
                       <TableCell align="right">{player.position}</TableCell>
                       <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyCurrencies)}]</TableCell>
                       <TableCell align="right">
-                        {Math.max(player.bonuses.length - Number(player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name)), 0)}
+                        {Math.max(
+                          player.bonuses.length -
+                            Number(player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name)),
+                          0,
+                        )}
                       </TableCell>
                     </TableRow>
 
@@ -124,7 +155,11 @@ export default function JourneyStateCard({
                                       border: "1px solid rgba(15, 23, 42, 0.08)",
                                     }}
                                   >
-                                    <Stack direction={{ xs: "column", md: "row" }} spacing={1} justifyContent="space-between">
+                                    <Stack
+                                      direction={{ xs: "column", md: "row" }}
+                                      spacing={1}
+                                      justifyContent="space-between"
+                                    >
                                       <Typography variant="body2" fontWeight={700}>
                                         {journeyAchievements.COLLECTOR.title}
                                       </Typography>
@@ -139,7 +174,11 @@ export default function JourneyStateCard({
                                       />
                                     </Stack>
 
-                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ mt: 1, display: "block" }}
+                                    >
                                       {journeyTexts.progress.obtained}:
                                     </Typography>
                                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
@@ -159,7 +198,11 @@ export default function JourneyStateCard({
                                       )}
                                     </Stack>
 
-                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ mt: 1, display: "block" }}
+                                    >
                                       {journeyTexts.progress.missing}:
                                     </Typography>
                                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
@@ -181,8 +224,16 @@ export default function JourneyStateCard({
                                   </Box>
 
                                   {[
-                                    { key: "unlucky", meta: journeyAchievements.UNLUCKY, data: achievementProgress.unlucky },
-                                    { key: "careful", meta: journeyAchievements.CAREFUL, data: achievementProgress.careful },
+                                    {
+                                      key: "unlucky",
+                                      meta: journeyAchievements.UNLUCKY,
+                                      data: achievementProgress.unlucky,
+                                    },
+                                    {
+                                      key: "careful",
+                                      meta: journeyAchievements.CAREFUL,
+                                      data: achievementProgress.careful,
+                                    },
                                     { key: "lucky", meta: journeyAchievements.LUCKY, data: achievementProgress.lucky },
                                   ].map(({ key, meta, data }) => (
                                     <Box
@@ -194,22 +245,32 @@ export default function JourneyStateCard({
                                         border: "1px solid rgba(15, 23, 42, 0.08)",
                                       }}
                                     >
-                                      <Stack direction={{ xs: "column", md: "row" }} spacing={1} justifyContent="space-between">
+                                      <Stack
+                                        direction={{ xs: "column", md: "row" }}
+                                        spacing={1}
+                                        justifyContent="space-between"
+                                      >
                                         <Typography variant="body2" fontWeight={700}>
                                           {meta.title}
                                         </Typography>
                                         <AppChip
                                           size="small"
                                           color={data.achieved ? "success" : "default"}
-                                          label={data.achieved ? journeyTexts.progress.obtained : journeyTexts.progress.inProgress}
+                                          label={
+                                            data.achieved
+                                              ? journeyTexts.progress.obtained
+                                              : journeyTexts.progress.inProgress
+                                          }
                                         />
                                       </Stack>
                                       <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
                                         <Typography variant="body2">
-                                          {journeyTexts.progress.currentSeries}: {data.current} {journeyTexts.progress.of} {data.target}
+                                          {journeyTexts.progress.currentSeries}: {data.current}{" "}
+                                          {journeyTexts.progress.of} {data.target}
                                         </Typography>
                                         <Typography variant="body2">
-                                          {journeyTexts.progress.maximum}: {data.best} {journeyTexts.progress.of} {data.target}
+                                          {journeyTexts.progress.maximum}: {data.best} {journeyTexts.progress.of}{" "}
+                                          {data.target}
                                         </Typography>
                                       </Stack>
                                     </Box>
@@ -233,11 +294,24 @@ export default function JourneyStateCard({
                                           border: "1px solid rgba(15, 23, 42, 0.08)",
                                         }}
                                       >
-                                        <Typography variant="body2">{getHistoryEntrySummary(entry, journeyCurrencies)}</Typography>
+                                        <Typography variant="body2">
+                                          {getHistoryEntrySummary(entry, journeyCurrencies)}
+                                        </Typography>
                                         {entry.achievementsAwarded?.length ? (
-                                          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                                          <Stack
+                                            direction="row"
+                                            spacing={0.75}
+                                            flexWrap="wrap"
+                                            useFlexGap
+                                            sx={{ mt: 0.75 }}
+                                          >
                                             {entry.achievementsAwarded.map((achievement) => (
-                                              <AppChip key={`${player.id}-${achievement.name}-${index}`} size="small" color="secondary" label={achievement.title} />
+                                              <AppChip
+                                                key={`${player.id}-${achievement.name}-${index}`}
+                                                size="small"
+                                                color="secondary"
+                                                label={achievement.title}
+                                              />
                                             ))}
                                           </Stack>
                                         ) : null}

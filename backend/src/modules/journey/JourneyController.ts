@@ -167,6 +167,50 @@ export class JourneyController {
     }
   };
 
+  getJourneyForumState = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = parseRequest(
+        journeyGameIdParamsSchema,
+        req.params,
+        "Route parameter 'gameId' is required",
+      );
+      const forumState = await this.journeyService.getJourneyForumState(getProjectId(req), gameId);
+
+      return res.status(200).json({
+        success: true,
+        data: forumState,
+      });
+    } catch (error) {
+      if (error instanceof RequestValidationError) {
+        return res.status(400).json({
+          success: false,
+          message: "Route parameter 'gameId' is required",
+        });
+      }
+
+      if (error instanceof JourneyGameNotFoundError) {
+        return res.status(404).json({
+          success: false,
+          message: "Journey game not found",
+        });
+      }
+
+      if (error instanceof InvalidJourneyGameIdError) {
+        return res.status(400).json({
+          success: false,
+          message: "Failed to load Journey forum state",
+          error: error.message,
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to load Journey forum state",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
   getLatestJourneyGame = async (req: Request, res: Response) => {
     try {
       const { status } = parseRequest(

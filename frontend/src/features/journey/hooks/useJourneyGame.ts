@@ -8,6 +8,7 @@ import type { JourneyGameConfig, Project } from "../../projects/types";
 import {
   createJourneyGameRequest,
   deleteJourneyGameRequest,
+  getJourneyForumStateRequest,
   getJourneyGameByIdRequest,
   listJourneyGamesRequest,
   parseJourneyMovesRequest,
@@ -91,6 +92,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   const [isSubmittingRound, setIsSubmittingRound] = useState(false);
   const [isImportingPlayers, setIsImportingPlayers] = useState(false);
   const [isImportingMoves, setIsImportingMoves] = useState(false);
+  const [isAddingForumState, setIsAddingForumState] = useState(false);
+  const [forumStateLogEntries, setForumStateLogEntries] = useState<string[]>([]);
   const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
   const [removingPlayerId, setRemovingPlayerId] = useState<string | null>(null);
   const [playerPendingRemoval, setPlayerPendingRemoval] = useState<JourneyPlayerReadModel | null>(null);
@@ -292,6 +295,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     setGame(null);
     setPlayerNames([""]);
     setPlayersImportText("");
+    setForumStateLogEntries([]);
     resetRoundUi([]);
   }
 
@@ -340,6 +344,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       }
 
       setGame(restoredGame);
+      setForumStateLogEntries([]);
       resetRoundUi(getJourneyActivePlayers(restoredGame));
       setSavedGamesDialogOpen(false);
       setStoredGameId(restoredGame.id);
@@ -414,6 +419,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       });
 
       setGame(nextGame);
+      setForumStateLogEntries([]);
       resetRoundUi(getJourneyActivePlayers(nextGame));
     } catch (error) {
       setRequestError(getErrorMessage(error));
@@ -556,6 +562,24 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     }
   }
 
+  async function addForumStateToLog() {
+    if (!game?.id || isAddingForumState) {
+      return;
+    }
+
+    setRequestError(null);
+    setIsAddingForumState(true);
+
+    try {
+      const forumState = await getJourneyForumStateRequest(game.projectId, game.id);
+      setForumStateLogEntries((currentEntries) => [...currentEntries, forumState.text]);
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsAddingForumState(false);
+    }
+  }
+
   async function removePlayerFromGame(playerId: string) {
     if (!game?.id) {
       return false;
@@ -654,6 +678,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     roundActionsDisabled,
     canSubmitRound,
     playerTimelines,
+    forumLogEntries: [...(game?.forumLog ?? []), ...forumStateLogEntries],
     pageStatusChips,
     loading: {
       isStartingGame,
@@ -665,6 +690,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       isSubmittingRound,
       isImportingPlayers,
       isImportingMoves,
+      isAddingForumState,
       removingPlayerId,
     },
     actions: {
@@ -693,6 +719,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       changeMoveInput,
       toggleSkip,
       importMoves,
+      addForumStateToLog,
       submitRound,
       removePlayerFromGame,
     },

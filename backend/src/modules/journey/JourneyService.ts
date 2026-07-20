@@ -2,6 +2,7 @@ import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
 import { JourneyV2Engine } from "./JourneyV2Engine";
+import { JourneyForumStateFormatter, type JourneyForumStateMessage } from "./JourneyForumStateFormatter";
 import { JourneyParser } from "./JourneyParser";
 import { JourneyReadModelFactory } from "./JourneyReadModelFactory";
 import { JourneyRepository, type JourneyGameDocument } from "./JourneyRepository";
@@ -32,6 +33,7 @@ export class JourneyService {
     private readonly readModelFactory: JourneyReadModelFactory,
     private readonly parser: JourneyParser,
     private readonly gameConfigsService: GameConfigsService,
+    private readonly forumStateFormatter: JourneyForumStateFormatter,
   ) {}
 
   async createJourneyGameSnapshotInProject(
@@ -69,6 +71,12 @@ export class JourneyService {
     }
 
     return this.serializeJourneyGame(game);
+  }
+
+  async getJourneyForumState(projectId: string, gameId: string): Promise<JourneyForumStateMessage> {
+    const game = await this.getJourneyGameSnapshot(projectId, gameId);
+
+    return this.forumStateFormatter.create(game);
   }
 
   async listJourneyGameSnapshots(projectId: string): Promise<JourneyGameListResponse> {

@@ -121,6 +121,11 @@ export interface JourneyTimelineEntry {
   achievementsAwarded: JourneyAchievement[];
 }
 
+export interface JourneyForumStateMessage {
+  text: string;
+  generatedAt: string;
+}
+
 /** The backend response contract. It does not expose persistence rounds or aliases. */
 export interface JourneyGameView {
   id: string;

@@ -69,6 +69,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     roundActionsDisabled,
     canSubmitRound,
     playerTimelines,
+    forumLogEntries,
     pageStatusChips,
     loading,
     actions,
@@ -167,7 +168,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               />
             )}
 
-            <JourneyLogCard comments={game?.forumLog} />
+            <JourneyLogCard comments={forumLogEntries} />
           </Stack>
         </Grid>
 
@@ -181,6 +182,8 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               journeyCurrencies={journeyConfig.currencies}
               collectorTargets={collectorTargets}
               achievementProgressByPlayerId={achievementProgressByPlayerId}
+              isAddingForumState={loading.isAddingForumState}
+              onAddForumStateToLog={actions.addForumStateToLog}
             />
           </Stack>
         </Grid>
