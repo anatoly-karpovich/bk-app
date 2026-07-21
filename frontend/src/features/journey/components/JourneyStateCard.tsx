@@ -38,7 +38,7 @@ interface JourneyStateCardProps {
   collectorTargets: JourneyCollectorTarget[];
   achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
   isAddingForumState: boolean;
-  onAddForumStateToLog: () => void;
+  onGetForumState: () => void;
 }
 
 export default function JourneyStateCard({
@@ -49,7 +49,7 @@ export default function JourneyStateCard({
   collectorTargets,
   achievementProgressByPlayerId,
   isAddingForumState,
-  onAddForumStateToLog,
+  onGetForumState,
 }: JourneyStateCardProps) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const collectorTargetsById = useMemo(
@@ -58,6 +58,15 @@ export default function JourneyStateCard({
         collectorTargets.map((target) => [target.id, getCollectorTargetLabel(target, journeyCurrencies)]),
       ),
     [collectorTargets, journeyCurrencies],
+  );
+  const jackpotWinnerNicknames = useMemo(
+    () =>
+      new Set(
+        Object.values(game?.map ?? {})
+          .filter((cell) => cell.isJackpot && cell.winner?.nickname)
+          .map((cell) => cell.winner!.nickname),
+      ),
+    [game?.map],
   );
 
   return (
@@ -71,11 +80,11 @@ export default function JourneyStateCard({
             <AppPillButton
               size="small"
               variant="outlined"
-              onClick={onAddForumStateToLog}
+              onClick={onGetForumState}
               disabled={!game}
               loading={isAddingForumState}
             >
-              {journeyTexts.actions.addStateToLog}
+              {journeyTexts.actions.getForumState}
             </AppPillButton>
           </Stack>
         }
@@ -114,7 +123,7 @@ export default function JourneyStateCard({
                       <TableCell>
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Typography fontWeight={600}>{player.nickname}</Typography>
-                          {player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name) ? (
+                          {jackpotWinnerNicknames.has(player.nickname) ? (
                             <AppChip size="small" color="warning" label={journeyTexts.table.treasure} />
                           ) : null}
                           {player.status === "removed" ? (
@@ -128,11 +137,7 @@ export default function JourneyStateCard({
                       <TableCell align="right">{player.position}</TableCell>
                       <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyCurrencies)}]</TableCell>
                       <TableCell align="right">
-                        {Math.max(
-                          player.bonuses.length -
-                            Number(player.bonuses.some((bonus) => bonus.name === journeyAchievements.JACKPOT.name)),
-                          0,
-                        )}
+                        {player.bonuses.length}
                       </TableCell>
                     </TableRow>
 

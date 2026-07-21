@@ -34,6 +34,7 @@ import {
 import { mapParsedMovesToPlayerInputs } from "../mappers/journey.mapper";
 import { clearJourneyGame, loadJourneyGameId, saveJourneyGameId } from "../storage";
 import type {
+  JourneyForumStateMessage,
   JourneyMoveInputs,
   JourneyForumMovesPreview,
   JourneyPageGame,
@@ -115,7 +116,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   const [isImportingMoves, setIsImportingMoves] = useState(false);
   const [isPreviewingForumMoves, setIsPreviewingForumMoves] = useState(false);
   const [isAddingForumState, setIsAddingForumState] = useState(false);
-  const [forumStateLogEntries, setForumStateLogEntries] = useState<string[]>([]);
+  const [forumState, setForumState] = useState<JourneyForumStateMessage | null>(null);
+  const [forumStateDialogOpen, setForumStateDialogOpen] = useState(false);
   const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
   const [removingPlayerId, setRemovingPlayerId] = useState<string | null>(null);
   const [playerPendingRemoval, setPlayerPendingRemoval] = useState<JourneyPlayerReadModel | null>(null);
@@ -323,7 +325,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     setPlayerNames([""]);
     setForumTopicId("");
     setPlayersImportText("");
-    setForumStateLogEntries([]);
+    setForumState(null);
+    setForumStateDialogOpen(false);
     setForumMovesPreview(null);
     setForumMovesPreviewOpen(false);
     resetRoundUi([]);
@@ -374,7 +377,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       }
 
       setGame(restoredGame);
-      setForumStateLogEntries([]);
+      setForumState(null);
+      setForumStateDialogOpen(false);
       resetRoundUi(getJourneyActivePlayers(restoredGame));
       setSavedGamesDialogOpen(false);
       setStoredGameId(restoredGame.id);
@@ -456,7 +460,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       });
 
       setGame(nextGame);
-      setForumStateLogEntries([]);
+      setForumState(null);
+      setForumStateDialogOpen(false);
       resetRoundUi(getJourneyActivePlayers(nextGame));
     } catch (error) {
       setRequestError(getErrorMessage(error));
@@ -662,7 +667,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     }
   }
 
-  async function addForumStateToLog() {
+  async function getForumState() {
     if (!game?.id || isAddingForumState) {
       return;
     }
@@ -672,7 +677,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
 
     try {
       const forumState = await getJourneyForumStateRequest(game.projectId, game.id);
-      setForumStateLogEntries((currentEntries) => [...currentEntries, forumState.text]);
+      setForumState(forumState);
+      setForumStateDialogOpen(true);
     } catch (error) {
       setRequestError(getErrorMessage(error));
     } finally {
@@ -764,6 +770,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     movesImportOpen,
     forumMovesPreview,
     forumMovesPreviewOpen,
+    forumState,
+    forumStateDialogOpen,
     rulesDialogOpen,
     requestError,
     gameConfigsError,
@@ -782,7 +790,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     roundActionsDisabled,
     canSubmitRound,
     playerTimelines,
-    forumLogEntries: [...(game?.forumLog ?? []), ...forumStateLogEntries],
+    forumLogEntries: game?.forumLog ?? [],
     pageStatusChips,
     loading: {
       isStartingGame,
@@ -804,6 +812,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       setPlayersImportOpen,
       setMovesImportOpen,
       setRulesDialogOpen,
+      setForumStateDialogOpen,
       setPlayersImportText,
       setMovesImportText,
       setRequestError,
@@ -830,7 +839,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       previewForumMoves,
       closeForumMovesPreview,
       applyForumMovesPreview,
-      addForumStateToLog,
+      getForumState,
       submitRound,
       removePlayerFromGame,
     },

@@ -86,16 +86,18 @@ export class JourneyV2Engine {
         moveIndex: 0,
         status: "in_progress",
         map: this.createMap(rules, options.randomFn ?? Math.random),
-        players: [...new Set(nicknames.map((nickname) => nickname.trim()).filter(Boolean))].map((nickname) => ({
-          id: generatePlayerId(nickname),
-          nickname,
-          status: "active",
-          removedAt: null,
-          removedReason: null,
-          position: 0,
-          balance: clone(initialBalance),
-          achievementNames: [],
-        })),
+        players: [...new Set(nicknames.map((nickname) => nickname.trim()).filter(Boolean))]
+          .sort((left, right) => left.localeCompare(right, ["ru-RU", "en-US"], { sensitivity: "base" }))
+          .map((nickname) => ({
+            id: generatePlayerId(nickname),
+            nickname,
+            status: "active",
+            removedAt: null,
+            removedReason: null,
+            position: 0,
+            balance: clone(initialBalance),
+            achievementNames: [],
+          })),
         rounds: [],
         forumLog: [JOURNEY_GAME_STARTED_MARKER],
       },
@@ -149,9 +151,6 @@ export class JourneyV2Engine {
       player.balance = this.applyRewards(player.balance, turn.appliedRewards, nextGame).nextBalance;
       player.status = this.getPlayerStatus(player, nextGame);
 
-      if (turn.moveType === MOVE_TYPES.JACKPOT) {
-        this.grantAchievement(player, turn, getJourneyAchievements(nextGame.rules).JACKPOT, nextGame);
-      }
     });
 
     turns.forEach((turn) => {
@@ -305,6 +304,7 @@ export class JourneyV2Engine {
           balanceAfterRound: balanceToJourneyCurrencyValues(afterRound, game.currencies),
           cell: clone(game.stateV2.map[turn.to] ?? null),
           achievementsAwarded: turn.achievementEffects
+            .filter((effect) => effect.name !== getJourneyAchievements(game.rules).JACKPOT.name)
             .map((effect) => clone(this.getAchievement(game, effect.name)))
             .filter((achievement): achievement is JourneyAchievement => Boolean(achievement)),
         });
@@ -359,18 +359,14 @@ export class JourneyV2Engine {
         );
         if (!turns.length) return;
         if (!cell.winner) {
-          const eligible = turns.filter(
-            (turn) =>
-              !this.getPlayer(game.stateV2.players, turn.playerId)?.achievementNames.includes(
-                getJourneyAchievements(game.rules).JACKPOT.name,
-              ),
-          );
+          const eligible = turns.filter((turn) => !this.hasPlayerWonJackpot(game, turn.playerId));
           if (eligible.length) {
             const winner = eligible[randomInteger(0, eligible.length - 1, randomFn)];
             const player = this.getPlayer(game.stateV2.players, winner.playerId);
             if (player) {
               cell.winner = { nickname: player.nickname };
               winner.moveType = MOVE_TYPES.JACKPOT;
+              winner.appliedRewards = this.applyRewards(player.balance, cell.rewards, game).appliedRewards;
             }
           }
         }
@@ -398,6 +394,16 @@ export class JourneyV2Engine {
       !progress.collector.achieved && progress.collector.missingCellIds.length === 0 ? achievements.COLLECTOR : null,
       !progress.lucky.achieved && progress.lucky.current >= progress.lucky.target ? achievements.LUCKY : null,
     ].filter((achievement): achievement is JourneyAchievement => Boolean(achievement));
+  }
+
+  private hasPlayerWonJackpot(game: JourneyV2Game, playerId: string): boolean {
+    const player = this.getPlayer(game.stateV2.players, playerId);
+    return Boolean(
+      player &&
+        Object.values(game.stateV2.map).some(
+          (cell) => cell.isJackpot && cell.winner?.nickname === player.nickname,
+        ),
+    );
   }
 
   private grantAchievement(
@@ -541,19 +547,14 @@ export class JourneyV2Engine {
         return;
       }
       const cell = game.stateV2.map[turn.to] ?? null;
-      const jackpotRewards =
-        turn.moveType === MOVE_TYPES.JACKPOT
-          ? (turn.achievementEffects.find((effect) => effect.name === getJourneyAchievements(game.rules).JACKPOT.name)
-              ?.appliedRewards ?? [])
-          : turn.appliedRewards;
       comments.push(
         buildJourneyComment({
           event: {
             kind: "move",
             playerNickname: player.nickname,
             moveType: turn.moveType,
-            requestedRewards: cell && !cell.isJackpot ? clone(cell.rewards) : [],
-            appliedRewards: clone(jackpotRewards),
+            requestedRewards: clone(cell?.rewards ?? []),
+            appliedRewards: clone(turn.appliedRewards),
             balanceAfter: balanceToJourneyCurrencyValues(player.balance, game.currencies),
           },
           currencies: game.currencies,

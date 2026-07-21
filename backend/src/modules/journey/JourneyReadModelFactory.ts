@@ -1,6 +1,6 @@
 import type { WithId } from "mongodb";
 import { getJourneyCollectorTargets } from "./domain/achievementProgress";
-import { getJourneyAchievements, getJourneyConfig } from "./domain/config";
+import { getJourneyAchievements, getJourneyConfig, JOURNEY_ACHIEVEMENT_NAMES } from "./domain/config";
 import { balanceToJourneyCurrencyValues } from "./domain/currency";
 import type {
   JourneyAchievement,
@@ -80,7 +80,11 @@ export class JourneyReadModelFactory {
       status: player.status,
       position: player.position,
       balanceEntries: balanceToJourneyCurrencyValues(player.balance, game.currencies),
-      bonuses: player.achievementNames.map((name) => Object.values(achievements).find((achievement) => achievement.name === name)).filter((achievement): achievement is JourneyAchievement => Boolean(achievement)).map((achievement) => this.clone(achievement)),
+      bonuses: player.achievementNames
+        .filter((name) => name !== JOURNEY_ACHIEVEMENT_NAMES.JACKPOT)
+        .map((name) => Object.values(achievements).find((achievement) => achievement.name === name))
+        .filter((achievement): achievement is JourneyAchievement => Boolean(achievement))
+        .map((achievement) => this.clone(achievement)),
     };
   }
 

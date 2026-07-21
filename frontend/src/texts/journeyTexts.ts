@@ -17,7 +17,9 @@ export const journeyTexts = {
     importPlayers: "Импорт игроков",
     importMoves: "Импорт ходов",
     applyMove: "Применить ход",
-    addStateToLog: "Добавить в лог",
+    getForumState: "Получить состояние",
+    copy: "Скопировать",
+    copied: "Скопировано",
   },
   statuses: {
     notStarted: "Игра не начата",
@@ -32,6 +34,8 @@ export const journeyTexts = {
     setDjName: "Укажите ник ведущего в верхнем меню, если нужен импорт игроков из форумного текста.",
     createOrRestoreGame: "Создайте или восстановите партию, чтобы увидеть состояние игры.",
     logEmpty: "Лог пока пуст. После первого хода здесь появятся все события партии.",
+    forumStateUnavailable: "Состояние игры пока не получено.",
+    forumStateCopyFailed: "Не удалось скопировать текст.",
     allPlayersFinished: "Все игроки уже на финише.",
     resultsCompletePrefix: "Игра завершена. На финише",
     resultsCompleteSuffix: "игрок(ов).",
@@ -63,6 +67,7 @@ export const journeyTexts = {
     resultsSubtitle: "Финальная таблица и размен чеков",
   },
   dialogTitles: {
+    forumState: "Текущее состояние",
     forumMovesPreview: "Ходы из топика",
     playersImport: "Импорт игроков",
     movesImport: "Импорт ходов",

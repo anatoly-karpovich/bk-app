@@ -5,6 +5,7 @@ import type { Project } from "../projects/types";
 import { journeyTexts } from "../../texts/journeyTexts";
 import JourneyImportDialog from "./components/JourneyImportDialog";
 import JourneyForumMovesPreviewDialog from "./components/JourneyForumMovesPreviewDialog";
+import JourneyForumStateDialog from "./components/JourneyForumStateDialog";
 import JourneyLogCard from "./components/JourneyLogCard";
 import JourneyMapCard from "./components/JourneyMapCard";
 import JourneyPageHeader from "./components/JourneyPageHeader";
@@ -56,6 +57,8 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     movesImportOpen,
     forumMovesPreview,
     forumMovesPreviewOpen,
+    forumState,
+    forumStateDialogOpen,
     rulesDialogOpen,
     requestError,
     gameConfigsError,
@@ -196,7 +199,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               collectorTargets={collectorTargets}
               achievementProgressByPlayerId={achievementProgressByPlayerId}
               isAddingForumState={loading.isAddingForumState}
-              onAddForumStateToLog={actions.addForumStateToLog}
+              onGetForumState={actions.getForumState}
             />
           </Stack>
         </Grid>
@@ -226,6 +229,12 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
         preview={forumMovesPreview}
         onClose={actions.closeForumMovesPreview}
         onApply={actions.applyForumMovesPreview}
+      />
+
+      <JourneyForumStateDialog
+        open={forumStateDialogOpen}
+        forumState={forumState}
+        onClose={() => actions.setForumStateDialogOpen(false)}
       />
 
       <JourneyImportDialog
