@@ -15,6 +15,7 @@ import {
   applyJourneyRewardsToBalance,
   balanceToJourneyCurrencyValues,
   createJourneyBalance,
+  formatJourneyCurrencyValues,
   hasNegativeJourneyRewards,
   hasPositiveJourneyRewards,
 } from "./domain/currency";
@@ -70,6 +71,18 @@ export class JourneyV2Engine {
     const currencies = options.currencies?.length ? clone(options.currencies) : [{ id: "default", label: "фишек" }];
     const rules = normalizeJourneyRules(options.rules);
     const initialBalance = createJourneyBalance(currencies, getJourneyConfig(rules, currencies).initialRewards);
+    const players = [...new Set(nicknames.map((nickname) => nickname.trim()).filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right, ["ru-RU", "en-US"], { sensitivity: "base" }))
+      .map((nickname) => ({
+        id: generatePlayerId(nickname),
+        nickname,
+        status: "active" as const,
+        removedAt: null,
+        removedReason: null,
+        position: 0,
+        balance: clone(initialBalance),
+        achievementNames: [],
+      }));
 
     return {
       storageFormat: "v2",
@@ -86,20 +99,12 @@ export class JourneyV2Engine {
         moveIndex: 0,
         status: "in_progress",
         map: this.createMap(rules, options.randomFn ?? Math.random),
-        players: [...new Set(nicknames.map((nickname) => nickname.trim()).filter(Boolean))]
-          .sort((left, right) => left.localeCompare(right, ["ru-RU", "en-US"], { sensitivity: "base" }))
-          .map((nickname) => ({
-            id: generatePlayerId(nickname),
-            nickname,
-            status: "active",
-            removedAt: null,
-            removedReason: null,
-            position: 0,
-            balance: clone(initialBalance),
-            achievementNames: [],
-          })),
+        players,
         rounds: [],
-        forumLog: [JOURNEY_GAME_STARTED_MARKER],
+        forumLog: [
+          JOURNEY_GAME_STARTED_MARKER,
+          ...players.map((player) => `${player.nickname} — [${this.formatBalance(player.balance, currencies)}]`),
+        ],
       },
     };
   }
@@ -150,7 +155,6 @@ export class JourneyV2Engine {
       player.position = turn.to;
       player.balance = this.applyRewards(player.balance, turn.appliedRewards, nextGame).nextBalance;
       player.status = this.getPlayerStatus(player, nextGame);
-
     });
 
     turns.forEach((turn) => {
@@ -400,9 +404,7 @@ export class JourneyV2Engine {
     const player = this.getPlayer(game.stateV2.players, playerId);
     return Boolean(
       player &&
-        Object.values(game.stateV2.map).some(
-          (cell) => cell.isJackpot && cell.winner?.nickname === player.nickname,
-        ),
+      Object.values(game.stateV2.map).some((cell) => cell.isJackpot && cell.winner?.nickname === player.nickname),
     );
   }
 
@@ -521,6 +523,7 @@ export class JourneyV2Engine {
       .filter((player) => player.status !== "removed")
       .sort((a, b) => a.nickname.localeCompare(b.nickname, "ru"));
     game.stateV2.forumLog.push(
+      "",
       "==================== Итоги ====================",
       ...results.map(
         (player) =>
@@ -532,13 +535,36 @@ export class JourneyV2Engine {
             .join(", ")}]`,
       ),
       `Финишировали: ${game.stateV2.players.filter((player) => player.status === "finished").length}`,
+      "",
+      ...this.buildForumMap(game),
     );
     game.updatedAt = now();
     return game;
   }
 
+  private formatBalance(balance: Record<string, number>, currencies: ConfigCurrency[]): string {
+    return formatJourneyCurrencyValues(balanceToJourneyCurrencyValues(balance, currencies), currencies);
+  }
+
+  private buildForumMap(game: JourneyV2Game): string[] {
+    const result = ["==================== Карта ===================="].concat(
+      Object.entries(game.stateV2.map)
+        .sort(([left], [right]) => Number(left) - Number(right))
+        .map(([position, cell]) => {
+          const cellType = cell.isJackpot ? "сокровище" : cell.kind === "trap" ? "ловушка" : "награда";
+          const rewardLabel = formatJourneyCurrencyValues(cell.rewards, game.currencies, {
+            showPlus: !hasNegativeJourneyRewards(cell.rewards),
+            includeZero: false,
+          });
+
+          return `На клетке ${position} находится ${cellType} на ${rewardLabel}`;
+        }),
+    );
+    return result;
+  }
+
   private buildRoundComments(game: JourneyV2Game, round: JourneyV2Round, randomFn: RandomFn): string[] {
-    const comments = [buildJourneyRoundMarker(round.index), ""];
+    const comments = ["", buildJourneyRoundMarker(round.index)];
     round.turns.forEach((turn) => {
       const player = this.getPlayer(game.stateV2.players, turn.playerId);
       if (!player) return;
