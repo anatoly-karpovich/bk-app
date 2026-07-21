@@ -4,7 +4,7 @@ import { BSON, type Db, type Document } from "mongodb";
 import { loadEnvironment } from "../bootstrap/loadEnvironment";
 import { getDefaultMongoConnection } from "../infrastructure/mongo/defaultMongo";
 
-const IMPORT_FORMAT = "project-game-config-backup-v1";
+const IMPORT_FORMAT = "project-game-config-backup-v2";
 const RESTORE_COLLECTIONS = [
   "projects",
   "game_configs",

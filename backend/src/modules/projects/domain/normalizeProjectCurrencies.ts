@@ -22,12 +22,14 @@ export function normalizeProjectCurrencies(
     ids.add(id);
     codes.add(code);
 
+    const shortLabel = currency.shortLabel?.trim() || undefined;
+
     return {
       id,
       code,
       name,
       label,
-      shortLabel: currency.shortLabel?.trim() || undefined,
+      ...(shortLabel ? { shortLabel } : {}),
       valueType,
       precision,
       createdAt: currency.createdAt || timestamp,

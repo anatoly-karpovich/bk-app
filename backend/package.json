@@ -19,6 +19,7 @@
     "backup:export-start-data": "tsx src/scripts/exportStartDataBackup.ts",
     "backup:export-start-data:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/exportStartDataBackup.ts",
     "backup:import-new-schema": "tsx src/scripts/importBackupToNewSchema.ts",
+    "backup:upgrade-project-game-config": "tsx src/scripts/upgradeProjectGameConfigBackup.ts",
     "backup:restore-new-schema": "tsx src/scripts/restoreNewSchemaBackup.ts",
     "backup:restore-new-schema:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/restoreNewSchemaBackup.ts",
     "backup:restore-new-schema:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/restoreNewSchemaBackup.ts",

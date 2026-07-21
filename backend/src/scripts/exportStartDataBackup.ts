@@ -87,7 +87,7 @@ async function run(): Promise<void> {
     );
     await writeFile(
       path.join(outputDirectory, "import-report.json"),
-      JSON.stringify({ importFormat: "project-game-config-backup-v1", unresolved: {} }, null, 2),
+      JSON.stringify({ importFormat: "project-game-config-backup-v2", unresolved: {} }, null, 2),
       "utf8",
     );
 

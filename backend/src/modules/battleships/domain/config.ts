@@ -166,11 +166,13 @@ function normalizeDestroyBonus(
 }
 
 function normalizePositiveInteger(value: number): number {
-  return Math.max(1, Math.floor(Number.isFinite(value) ? value : 1));
+  const numericValue = Number(value);
+  return Math.max(1, Math.floor(Number.isFinite(numericValue) ? numericValue : 1));
 }
 
 function normalizeNonNegativeInteger(value: number): number {
-  return Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+  const numericValue = Number(value);
+  return Math.max(0, Math.floor(Number.isFinite(numericValue) ? numericValue : 0));
 }
 
 function normalizeSingleDecimalRewardSet(values: BattleshipsCurrencyValue[], fallback: BattleshipsCurrencyValue[]): BattleshipsCurrencyValue[] {
@@ -192,11 +194,13 @@ function normalizeHalfStepRewardSet(values: BattleshipsCurrencyValue[], fallback
 }
 
 function normalizeNonNegativeSingleDecimal(value: number): number {
-  const normalizedValue = Number.isFinite(value) ? value : 0;
+  const numericValue = Number(value);
+  const normalizedValue = Number.isFinite(numericValue) ? numericValue : 0;
   return Math.max(0, Math.round(normalizedValue * 10) / 10);
 }
 
 function normalizeNonNegativeHalfStep(value: number): number {
-  const normalizedValue = Number.isFinite(value) ? value : 0;
+  const numericValue = Number(value);
+  const normalizedValue = Number.isFinite(numericValue) ? numericValue : 0;
   return Math.max(0, Math.round(normalizedValue * 2) / 2);
 }

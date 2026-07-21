@@ -1,8 +1,8 @@
 import { formatCurrencyValues } from "../../common/currencyValues";
-import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig } from "../battleships/domain/config";
-import { getJourneyConfig } from "../journey/domain/config";
+import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig, normalizeBattleshipsRules } from "../battleships/domain/config";
+import { getJourneyConfig, normalizeJourneyRules } from "../journey/domain/config";
 import { formatJourneyCurrencyValues } from "../journey/domain/currency";
-import { getLottoRangeLabel } from "../lotto/domain/config";
+import { getLottoRangeLabel, normalizeLottoRules } from "../lotto/domain/config";
 import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import type {
   AnyGameConfig,
@@ -26,21 +26,23 @@ export class GameConfigReadModelFactory {
 
   private createJourneyReadModel(configId: string, config: JourneyGameConfig, currencies: ConfigCurrency[]) {
     const primaryCurrency = currencies[0]?.label ?? "";
-    const journeyConfig = getJourneyConfig(config.rules, currencies);
+    const rules = normalizeJourneyRules(config.rules);
+    const journeyConfig = getJourneyConfig(rules, currencies);
 
     return {
       id: configId,
       ...structuredClone(config),
+      rules,
       summary: {
         currency: primaryCurrency,
         mapSize: journeyConfig.mapSize,
         diceRange: `${journeyConfig.minDice}-${journeyConfig.maxDice}`,
-        jackpot: `${config.rules.jackpot.count} x ${formatJourneyCurrencyValues(config.rules.jackpot.rewards, currencies, {
+        jackpot: `${rules.jackpot.count} x ${formatJourneyCurrencyValues(rules.jackpot.rewards, currencies, {
           showPlus: true,
           includeZero: false,
         })}`,
-        bonusKinds: config.rules.cells.filter((cell) => cell.kind === "bonus").length,
-        trapKinds: config.rules.cells.filter((cell) => cell.kind === "trap").length,
+        bonusKinds: rules.cells.filter((cell) => cell.kind === "bonus").length,
+        trapKinds: rules.cells.filter((cell) => cell.kind === "trap").length,
         prizeLimit:
           journeyConfig.maxPrizes === null
             ? null
@@ -52,11 +54,13 @@ export class GameConfigReadModelFactory {
   }
 
   private createBattleshipsReadModel(configId: string, config: BattleshipsGameConfig, currencies: ConfigCurrency[]) {
-    const boardConfig = getBattleshipsBoardConfig(config.rules);
+    const rules = normalizeBattleshipsRules(config.rules);
+    const boardConfig = getBattleshipsBoardConfig(rules);
 
     return {
       id: configId,
       ...structuredClone(config),
+      rules,
       summary: {
         boardSize: boardConfig.boardSize,
         maxShots: boardConfig.maxShots,
@@ -71,25 +75,28 @@ export class GameConfigReadModelFactory {
   }
 
   private createLottoReadModel(configId: string, config: LottoGameConfig, currencies: ConfigCurrency[]) {
+    const rules = normalizeLottoRules(config.rules);
+
     return {
       id: configId,
       ...structuredClone(config),
+      rules,
       summary: {
-        range: getLottoRangeLabel(config.rules),
-        cardNumbersAmount: config.rules.cardNumbersAmount,
+        range: getLottoRangeLabel(rules),
+        cardNumbersAmount: rules.cardNumbersAmount,
         firstPlacePrizeLabel:
-          formatCurrencyValues(config.rules.firstPlacePrize, currencies, {
+          formatCurrencyValues(rules.firstPlacePrize, currencies, {
             includeZero: false,
           }) || "0",
         secondPlacePrizeLabel:
-          formatCurrencyValues(config.rules.secondPlacePrize, currencies, {
+          formatCurrencyValues(rules.secondPlacePrize, currencies, {
             includeZero: false,
           }) || "0",
         otherActivePlayersPrizeLabel:
-          formatCurrencyValues(config.rules.otherActivePlayersPrize, currencies, {
+          formatCurrencyValues(rules.otherActivePlayersPrize, currencies, {
             includeZero: false,
           }) || "0",
-        rewardDistributionMode: config.rules.rewardDistributionMode,
+        rewardDistributionMode: rules.rewardDistributionMode,
       },
     };
   }

@@ -22,6 +22,7 @@ import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { NavLink, useLocation } from "react-router-dom";
 import type { Project } from "../features/projects/types";
@@ -67,6 +68,12 @@ const navItems: NavItem[] = [
     label: appHeaderTexts.nav.battleship,
     to: "/battleship",
     icon: <DirectionsBoatRoundedIcon />,
+    disabled: false,
+  },
+  {
+    label: appHeaderTexts.nav.configs,
+    to: "/configs",
+    icon: <TuneRoundedIcon />,
     disabled: false,
   },
 ];

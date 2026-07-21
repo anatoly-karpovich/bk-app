@@ -1,4 +1,5 @@
 {
-  "importFormat": "project-game-config-backup-v1",
+  "importFormat": "project-game-config-backup-v2",
+  "upgradedFrom": "project-game-config-backup-v1",
   "unresolved": {}
 }

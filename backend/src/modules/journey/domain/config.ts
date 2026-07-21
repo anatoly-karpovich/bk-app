@@ -21,6 +21,22 @@ function normalizeCurrencyValues(values: JourneyCurrencyValue[]): JourneyCurrenc
     .filter((value) => value.currencyId);
 }
 
+function normalizePositiveInteger(value: unknown, fallbackValue: number): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallbackValue;
+  }
+  return Math.max(1, Math.trunc(numericValue));
+}
+
+function normalizeNonNegativeInteger(value: unknown, fallbackValue: number): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallbackValue;
+  }
+  return Math.max(0, Math.trunc(numericValue));
+}
+
 function normalizeAchievementRewards(rewards: JourneyCurrencyValue[] | undefined): JourneyCurrencyValue[] {
   return normalizeCurrencyValues(Array.isArray(rewards) ? rewards : []);
 }
@@ -86,11 +102,15 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
     ...rules,
     ...rawRules,
     initialRewards: normalizeCurrencyValues(rawRules.initialRewards ?? rules.initialRewards),
+    minDice: normalizePositiveInteger(rawRules.minDice ?? rules.minDice, rules.minDice),
+    maxDice: normalizePositiveInteger(rawRules.maxDice ?? rules.maxDice, rules.maxDice),
+    mapSize: normalizePositiveInteger(rawRules.mapSize ?? rules.mapSize, rules.mapSize),
     maxPrizes:
       rawRules.maxPrizes === null ? null : normalizeCurrencyValues(rawRules.maxPrizes ?? rules.maxPrizes ?? []),
     jackpot: {
       ...rules.jackpot,
       ...(rawRules.jackpot ?? {}),
+      count: normalizeNonNegativeInteger(rawRules.jackpot?.count ?? rules.jackpot.count, rules.jackpot.count),
       rewards: normalizeCurrencyValues(rawRules.jackpot?.rewards ?? rules.jackpot.rewards),
     },
     achievements: {
@@ -118,7 +138,7 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
         ? rawRules.cells.map((cell) => ({
             id: cell.id,
             kind: cell.kind,
-            count: cell.count,
+            count: normalizeNonNegativeInteger(cell.count, 0),
             rewards: normalizeCurrencyValues(cell.rewards),
           }))
         : rules.cells,

@@ -13,10 +13,23 @@ npm run backup:export-start-data:local -- --output backups/local-start-data-YYYY
 
 The resulting directory is compatible with the new-schema restore command below.
 
-`db-data-projects` is the checked-in local start-data set. When
+`db-data-projects` is the checked-in `project-game-config-backup-v2` local start-data set. When
 `BK_APP_SEED_EMPTY_DB=true` in `.env.local`, backend loads it automatically only if
 all application collections are empty. A partially initialized database stops
 startup and prints the exact manual restore command instead of being overwritten.
+
+`db-data-projects-v1` is retained as the immutable source archive from before the
+v2 upgrade. It is not used by the application. To upgrade another v1 directory
+without modifying its source, run:
+
+```powershell
+cd backend
+npm run backup:upgrade-project-game-config -- --source backups\db-data-projects-v1 --output backups\db-data-projects-v2
+```
+
+The upgrader normalizes every project currency and game rule set, derives decimal
+precision from configured reward values, validates currency references, and writes
+a new `project-game-config-backup-v2` directory.
 
 ## Archiving a database before a replacement
 

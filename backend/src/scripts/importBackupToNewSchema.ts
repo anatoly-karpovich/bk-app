@@ -215,7 +215,7 @@ async function run(): Promise<void> {
   const report = {
     sourceBackup: path.basename(sourceDirectory),
     sourceExportedAt: sourceManifest.exportedAt,
-    importFormat: "project-game-config-backup-v1",
+    importFormat: "project-game-config-backup-v2",
     unresolved,
   };
   await writeFile(path.join(outputDirectory, "import-report.json"), JSON.stringify(report, null, 2), "utf8");

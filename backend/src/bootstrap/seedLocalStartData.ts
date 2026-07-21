@@ -3,7 +3,7 @@ import path from "node:path";
 import { BSON, type Db, type Document } from "mongodb";
 
 const START_DATA_DIRECTORY = path.resolve(__dirname, "..", "..", "backups", "db-data-projects");
-const START_DATA_FORMAT = "project-game-config-backup-v1";
+const START_DATA_FORMAT = "project-game-config-backup-v2";
 const COLLECTION_NAMES = ["projects", "game_configs", "journey_games", "battleships_games", "lotto_games", "configs"] as const;
 const MANUAL_RESTORE_COMMAND = "npm run backup:restore-new-schema:local -- --source backups\\db-data-projects --confirm-replace";
 
