@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { RequestValidationError } from "../../common/errors";
+import { AppError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { GameConfigNotFoundError } from "../gameConfigs/errors";
 import { ProjectNotFoundError } from "../projects/errors";
@@ -12,6 +12,8 @@ import {
 } from "./errors";
 import {
   createJourneyGameDjNameSchema,
+  createJourneyGameForumTopicSchema,
+  importJourneyPlayersFromForumSchema,
   createJourneyGameNicknamesSchema,
   createJourneyGamePresetSchema,
   createJourneyGameProjectParamsSchema,
@@ -62,10 +64,22 @@ export class JourneyController {
         { djName: req.body?.djName },
         "Body field 'djName' must be a string when provided",
       );
+      const { forumTopicId } = parseRequest(
+        createJourneyGameForumTopicSchema,
+        { forumTopicId: req.body?.forumTopicId },
+        "Body field 'forumTopicId' must be a positive integer when provided",
+      );
+      if (forumTopicId && !djName?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Body field 'djName' is required when 'forumTopicId' is provided",
+        });
+      }
       const game = await this.journeyService.createJourneyGameSnapshotInProject(projectId, {
         nicknames,
         gameConfigId,
         djName,
+        forumTopicId,
       });
 
       return res.status(201).json({
@@ -206,6 +220,78 @@ export class JourneyController {
       return res.status(500).json({
         success: false,
         message: "Failed to load Journey forum state",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
+  previewJourneyForumMoves = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = parseRequest(
+        journeyGameIdParamsSchema,
+        req.params,
+        "Route parameter 'gameId' is required",
+      );
+      const preview = await this.journeyService.previewJourneyForumMoves(getProjectId(req), gameId);
+
+      return res.status(200).json({ success: true, data: preview });
+    } catch (error) {
+      if (error instanceof RequestValidationError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+
+      if (error instanceof JourneyGameNotFoundError) {
+        return res.status(404).json({ success: false, message: "Journey game not found" });
+      }
+
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: "Failed to import Journey moves from forum",
+          error: error.message,
+          code: error.code,
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to import Journey moves from forum",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
+  importJourneyPlayersFromForum = async (req: Request, res: Response) => {
+    try {
+      const { forumTopicId, djName } = parseRequest(
+        importJourneyPlayersFromForumSchema,
+        req.body,
+        "Body fields 'forumTopicId' and 'djName' are required",
+      );
+      const players = await this.journeyService.importJourneyPlayersFromForum(
+        getProjectId(req),
+        forumTopicId,
+        djName,
+      );
+
+      return res.status(200).json({ success: true, data: players });
+    } catch (error) {
+      if (error instanceof RequestValidationError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: "Failed to import Journey players from forum",
+          error: error.message,
+          code: error.code,
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to import Journey players from forum",
         error: getErrorMessage(error),
       });
     }

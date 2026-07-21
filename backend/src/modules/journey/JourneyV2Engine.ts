@@ -2,6 +2,7 @@ import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import { JourneyRoundValidationError } from "./errors";
 import { getJourneyCollectorTargets } from "./domain/achievementProgress";
 import { buildJourneyComment } from "./domain/commentTemplates";
+import { JOURNEY_GAME_STARTED_MARKER, buildJourneyRoundMarker } from "./JourneyForumMarkers";
 import {
   getJourneyAchievements,
   getJourneyBonusCells,
@@ -62,6 +63,7 @@ export class JourneyV2Engine {
       projectId?: string;
       configId?: string;
       configName?: string;
+      forumTopicId?: number;
     } = {},
   ): JourneyV2Game {
     const createdAt = now();
@@ -77,6 +79,7 @@ export class JourneyV2Engine {
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId ?? "oldbk2",
       configName: options.configName ?? options.configId ?? "oldbk2",
+      forumTopicId: options.forumTopicId ?? null,
       currencies,
       rules,
       stateV2: {
@@ -94,7 +97,7 @@ export class JourneyV2Engine {
           achievementNames: [],
         })),
         rounds: [],
-        forumLog: [],
+        forumLog: [JOURNEY_GAME_STARTED_MARKER],
       },
     };
   }
@@ -529,7 +532,7 @@ export class JourneyV2Engine {
   }
 
   private buildRoundComments(game: JourneyV2Game, round: JourneyV2Round, randomFn: RandomFn): string[] {
-    const comments = [`==================== Ход ${round.index} ====================`, ""];
+    const comments = [buildJourneyRoundMarker(round.index), ""];
     round.turns.forEach((turn) => {
       const player = this.getPlayer(game.stateV2.players, turn.playerId);
       if (!player) return;

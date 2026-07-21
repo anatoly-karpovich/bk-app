@@ -16,6 +16,7 @@ export class JourneyGameViewMapper {
       projectId: game.meta.projectId,
       configId: game.meta.configId,
       configName: game.meta.configName,
+      forumTopicId: game.meta.forumTopicId,
       currencies: game.configuration.currencies,
       rules: game.configuration.rules,
       map: game.state.board,

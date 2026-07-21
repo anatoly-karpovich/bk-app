@@ -30,6 +30,15 @@ export const createJourneyGameDjNameSchema = z.object({
   djName: z.string().optional(),
 });
 
+export const createJourneyGameForumTopicSchema = z.object({
+  forumTopicId: z.number().int().positive().optional(),
+});
+
+export const importJourneyPlayersFromForumSchema = z.object({
+  forumTopicId: z.number().int().positive(),
+  djName: z.string().trim().min(1),
+});
+
 export const journeyMoveInputSchema = z.object({
   playerId: z.string(),
   dice: z.number(),

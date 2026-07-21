@@ -31,6 +31,7 @@ export class JourneyReadModelFactory {
         projectId: game.projectId,
         configId: game.configId,
         configName: game.configName,
+        forumTopicId: game.forumTopicId ?? null,
       },
       configuration: {
         currencies: this.clone(game.currencies),

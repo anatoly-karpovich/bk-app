@@ -3,6 +3,9 @@ export const journeyTexts = {
   pageTitle: "Карта Мародёров",
   pageDescription: "Рабочий экран ведущего: запуск партии, ввод ходов, карта, состояние игроков и готовый лог для форума.",
   actions: {
+    importPlayersFromForum: "Игроки из топика",
+    importMovesFromForum: "Считать из топика",
+    applyForumMoves: "Заполнить ходы",
     rules: "Правила",
     newGame: "Новая игра",
     restore: "Восстановить",
@@ -60,20 +63,40 @@ export const journeyTexts = {
     resultsSubtitle: "Финальная таблица и размен чеков",
   },
   dialogTitles: {
+    forumMovesPreview: "Ходы из топика",
     playersImport: "Импорт игроков",
     movesImport: "Импорт ходов",
   },
   fields: {
+    forumTopic: "Номер топика",
     forumText: "Текст с форума",
     move: "Ход",
     skip: "Пропуск",
     playerPrefix: "Игрок",
+  },
+  placeholders: {
+    forumTopic: "Напр. 123456",
+  },
+  forumPreview: {
+    summary: (topicId: number, roundIndex: number) => `Топик №${topicId}. Найдены ходы для раунда ${roundIndex}.`,
+    detectedMoves: "Найденные ходы",
+    player: "Игрок",
+    move: "Ход",
+    message: "Сообщение",
+    noMoves: "Подходящих ходов в новых сообщениях не найдено.",
+    ignoredTitle: "Пропущенные сообщения",
+    ignoredReasons: {
+      player_not_active: "автор не является активным игроком",
+      dice_not_found: "не найдено число хода",
+      dice_out_of_range: "число хода вне допустимого диапазона",
+    },
   },
   helperText: {
     playersImport: "Поддерживается текущий legacy-формат разбора.",
     movesImport: "Legacy-парсер строк ник/число сохранён.",
   },
   validation: {
+    invalidForumTopic: "Номер топика должен быть положительным целым числом",
     fillNickname: "Заполните ник",
     duplicateNickname: "Ник дублируется",
   },

@@ -139,6 +139,7 @@ export interface JourneyGameView {
     projectId: string;
     configId: string;
     configName: string;
+    forumTopicId: number | null;
   };
   configuration: {
     currencies: JourneyCurrencyDefinition[];
@@ -179,6 +180,7 @@ export interface JourneyPageGame {
   projectId: string;
   configId: string;
   configName: string;
+  forumTopicId: number | null;
   currencies: JourneyCurrencyDefinition[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
@@ -223,6 +225,38 @@ export type JourneySkippedPlayers = Record<string, boolean>;
 export interface JourneyMoveInput {
   playerId: string;
   dice: number;
+}
+
+export interface JourneyForumMoveCandidate {
+  playerId: string;
+  playerNickname: string;
+  dice: number;
+  sourceMessage: {
+    id: string;
+    authorId: string;
+    authorLogin: string;
+    text: string;
+    publishedAt: string;
+  };
+}
+
+export interface JourneyForumMovesPreview {
+  topicId: number;
+  provider: string;
+  nextRoundIndex: number;
+  boundary: {
+    kind: "game_started" | "round";
+    roundIndex: number | null;
+    messageId: string;
+    publishedAt: string;
+  };
+  moves: JourneyForumMoveCandidate[];
+  ignoredMessages: Array<{
+    id: string;
+    authorLogin: string;
+    text: string;
+    reason: "player_not_active" | "dice_not_found" | "dice_out_of_range";
+  }>;
 }
 
 export type JourneyChipColor = "default" | "primary" | "secondary" | "success" | "error" | "info" | "warning";

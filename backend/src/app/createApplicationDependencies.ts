@@ -15,6 +15,8 @@ import { JourneyV2Engine } from "../modules/journey/JourneyV2Engine";
 import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
 import { JourneyForumStateFormatter } from "../modules/journey/JourneyForumStateFormatter";
+import { JourneyForumMovesImporter } from "../modules/journey/JourneyForumMovesImporter";
+import { JourneyForumPlayersImporter } from "../modules/journey/JourneyForumPlayersImporter";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
 import { LottoController } from "../modules/lotto/LottoController";
@@ -73,6 +75,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const journeyV2Engine = new JourneyV2Engine();
   const journeyReadModelFactory = new JourneyReadModelFactory();
   const journeyForumStateFormatter = new JourneyForumStateFormatter();
+  const forumTopicService = new ForumTopicService();
+  const journeyForumMovesImporter = new JourneyForumMovesImporter(forumTopicService);
+  const journeyForumPlayersImporter = new JourneyForumPlayersImporter(forumTopicService);
   const journeyParser = new JourneyParser();
   const journeyService = new JourneyService(
     journeyRepository,
@@ -81,6 +86,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyParser,
     gameConfigsService,
     journeyForumStateFormatter,
+    journeyForumMovesImporter,
+    journeyForumPlayersImporter,
   );
   const journeyController = new JourneyController(journeyService);
 
@@ -94,7 +101,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const lottoController = new LottoController(lottoService);
 
-  const forumTopicService = new ForumTopicService();
   const forumTopicController = new ForumTopicController(forumTopicService);
 
   return {

@@ -4,6 +4,7 @@ import GameConfigSelectField from "../../components/GameConfigSelectField";
 import type { Project } from "../projects/types";
 import { journeyTexts } from "../../texts/journeyTexts";
 import JourneyImportDialog from "./components/JourneyImportDialog";
+import JourneyForumMovesPreviewDialog from "./components/JourneyForumMovesPreviewDialog";
 import JourneyLogCard from "./components/JourneyLogCard";
 import JourneyMapCard from "./components/JourneyMapCard";
 import JourneyPageHeader from "./components/JourneyPageHeader";
@@ -39,6 +40,8 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     selectedGameConfigId,
     playerNames,
     playerNameErrors,
+    forumTopicId,
+    canImportPlayersFromForum,
     playersImportText,
     movesImportText,
     moveInputs,
@@ -51,6 +54,8 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     savedGamesError,
     playersImportOpen,
     movesImportOpen,
+    forumMovesPreview,
+    forumMovesPreviewOpen,
     rulesDialogOpen,
     requestError,
     gameConfigsError,
@@ -145,26 +150,34 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
                 canSubmitRound={canSubmitRound}
                 actionsDisabled={roundActionsDisabled}
                 isImportingMoves={loading.isImportingMoves}
+                isPreviewingForumMoves={loading.isPreviewingForumMoves}
+                canImportMovesFromForum={Boolean(game.forumTopicId)}
                 isSubmittingRound={loading.isSubmittingRound}
                 removingPlayerId={loading.removingPlayerId}
                 onMoveInputChange={actions.changeMoveInput}
                 onSkipToggle={actions.toggleSkip}
                 onRemovePlayer={actions.requestRemovePlayerFromGame}
                 onOpenImport={() => actions.setMovesImportOpen(true)}
+                onPreviewForumMoves={actions.previewForumMoves}
                 onSubmitRound={actions.submitRound}
               />
             ) : (
               <JourneyPlayersSetupCard
                 playerNames={playerNames}
                 playerNameErrors={playerNameErrors}
+                forumTopicId={forumTopicId}
                 actionsDisabled={setupActionsDisabled}
                 canStartGame={canStartGame}
+                canImportPlayersFromForum={canImportPlayersFromForum}
                 isStartingGame={loading.isStartingGame}
+                isImportingPlayersFromForum={loading.isImportingPlayersFromForum}
                 onStartGame={actions.startGame}
+                onForumTopicIdChange={actions.changeForumTopicId}
                 onPlayerNameChange={actions.changePlayerName}
                 onRemovePlayerField={actions.removePlayerField}
                 onAddPlayerField={actions.addPlayerField}
                 onOpenImport={() => actions.setPlayersImportOpen(true)}
+                onImportPlayersFromForum={actions.importPlayersFromForum}
               />
             )}
 
@@ -206,6 +219,13 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
         helperText={journeyTexts.helperText.playersImport}
         minRows={10}
         loading={loading.isImportingPlayers}
+      />
+
+      <JourneyForumMovesPreviewDialog
+        open={forumMovesPreviewOpen}
+        preview={forumMovesPreview}
+        onClose={actions.closeForumMovesPreview}
+        onApply={actions.applyForumMovesPreview}
       />
 
       <JourneyImportDialog

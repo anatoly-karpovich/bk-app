@@ -260,6 +260,7 @@ export interface JourneyV2Game {
   projectId: string;
   configId: string;
   configName: string;
+  forumTopicId: number | null;
   currencies: CurrencySnapshot[];
   rules: JourneyRules;
   stateV2: JourneyV2State;
@@ -317,6 +318,7 @@ export interface JourneyGameView {
     projectId: string;
     configId: string;
     configName: string;
+    forumTopicId: number | null;
   };
   configuration: {
     currencies: CurrencySnapshot[];

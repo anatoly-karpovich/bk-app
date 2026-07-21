@@ -1,6 +1,8 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
+import { JourneyForumMovesImporter, type JourneyForumMovesPreview } from "./JourneyForumMovesImporter";
+import { JourneyForumPlayersImporter } from "./JourneyForumPlayersImporter";
 import { JourneyV2Engine } from "./JourneyV2Engine";
 import { JourneyForumStateFormatter, type JourneyForumStateMessage } from "./JourneyForumStateFormatter";
 import { JourneyParser } from "./JourneyParser";
@@ -19,6 +21,7 @@ interface CreateJourneyGamePayload {
   nicknames: string[];
   configId: string;
   djName?: string;
+  forumTopicId?: number;
 }
 
 interface SaveJourneyRoundPayload {
@@ -34,6 +37,8 @@ export class JourneyService {
     private readonly parser: JourneyParser,
     private readonly gameConfigsService: GameConfigsService,
     private readonly forumStateFormatter: JourneyForumStateFormatter,
+    private readonly forumMovesImporter: JourneyForumMovesImporter,
+    private readonly forumPlayersImporter: JourneyForumPlayersImporter,
   ) {}
 
   async createJourneyGameSnapshotInProject(
@@ -49,6 +54,7 @@ export class JourneyService {
       projectId,
       configId: payload.gameConfigId,
       configName: gameConfigContext.config.name,
+      forumTopicId: payload.forumTopicId,
     });
 
     const createdGame = await this.repository.create(nextGame);
@@ -77,6 +83,20 @@ export class JourneyService {
     const game = await this.getJourneyGameSnapshot(projectId, gameId);
 
     return this.forumStateFormatter.create(game);
+  }
+
+  async previewJourneyForumMoves(projectId: string, gameId: string): Promise<JourneyForumMovesPreview> {
+    const game = await this.repository.findByIdAndProjectId(gameId, projectId);
+
+    if (!game) {
+      throw new JourneyGameNotFoundError(gameId);
+    }
+
+    return await this.forumMovesImporter.preview(game);
+  }
+
+  async importJourneyPlayersFromForum(projectId: string, forumTopicId: number, djName: string): Promise<string[]> {
+    return await this.forumPlayersImporter.importPlayers(projectId, forumTopicId, djName);
   }
 
   async listJourneyGameSnapshots(projectId: string): Promise<JourneyGameListResponse> {

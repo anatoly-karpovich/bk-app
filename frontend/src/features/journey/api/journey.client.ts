@@ -1,6 +1,7 @@
 import { journeyGameViewMapper } from "../mappers/JourneyGameViewMapper";
 import type {
   JourneyForumStateMessage,
+  JourneyForumMovesPreview,
   JourneyGameView,
   JourneyMoveInput,
   JourneyPageGame,
@@ -19,6 +20,7 @@ export async function createJourneyGameRequest(payload: {
   gameConfigId: string;
   nicknames: string[];
   djName?: string;
+  forumTopicId?: number;
 }): Promise<JourneyPageGame> {
   const { projectId, ...body } = payload;
   const game = await apiClient.post<JourneyGameView>(
@@ -40,6 +42,22 @@ export async function getJourneyForumStateRequest(
   return await apiClient.get<JourneyForumStateMessage>(
     `${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/forum-state`,
   );
+}
+
+export async function previewJourneyForumMovesRequest(
+  projectId: string,
+  gameId: string,
+): Promise<JourneyForumMovesPreview> {
+  return await apiClient.post<JourneyForumMovesPreview>(
+    `${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}/forum-moves/preview`,
+  );
+}
+
+export async function importJourneyPlayersFromForumRequest(
+  projectId: string,
+  payload: { forumTopicId: number; djName: string },
+): Promise<string[]> {
+  return await apiClient.post<string[]>(`${getProjectJourneyApiBaseUrl(projectId)}/forum-players`, payload);
 }
 
 export async function listJourneyGamesRequest(projectId: string): Promise<JourneySavedGameSummary[]> {
