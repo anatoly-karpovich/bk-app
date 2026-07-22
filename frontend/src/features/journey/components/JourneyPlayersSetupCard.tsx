@@ -3,8 +3,9 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import { Card, CardContent, CardHeader, IconButton, Stack } from "@mui/material";
+import { Card, CardContent, CardHeader, IconButton, Stack, Typography } from "@mui/material";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
+import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyTexts } from "../../../texts/journeyTexts";
@@ -12,6 +13,7 @@ import { journeyTexts } from "../../../texts/journeyTexts";
 interface JourneyPlayersSetupCardProps {
   playerNames: string[];
   playerNameErrors: string[];
+  validPlayersCount: number;
   forumTopicId: string;
   actionsDisabled: boolean;
   canStartGame: boolean;
@@ -30,6 +32,7 @@ interface JourneyPlayersSetupCardProps {
 export default function JourneyPlayersSetupCard({
   playerNames,
   playerNameErrors,
+  validPlayersCount,
   forumTopicId,
   actionsDisabled,
   canStartGame,
@@ -47,7 +50,20 @@ export default function JourneyPlayersSetupCard({
   return (
     <Card>
       <CardHeader
-        title={journeyTexts.cards.playersTitle}
+        title={
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="h5">{journeyTexts.cards.playersTitle}</Typography>
+            {validPlayersCount > 0 ? (
+              <AppChip
+                color="primary"
+                label={validPlayersCount}
+                size="small"
+                sx={{ fontWeight: 700, "& .MuiChip-label": { px: 1 } }}
+              />
+            ) : null}
+          </Stack>
+        }
+        titleTypographyProps={{ component: "div" }}
         subheader={journeyTexts.cards.playersSubtitle}
         action={
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mt: 0.5 }}>

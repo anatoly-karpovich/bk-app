@@ -41,6 +41,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     selectedGameConfigId,
     playerNames,
     playerNameErrors,
+    validPlayersCount,
     forumTopicId,
     canImportPlayersFromForum,
     playersImportText,
@@ -168,6 +169,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               <JourneyPlayersSetupCard
                 playerNames={playerNames}
                 playerNameErrors={playerNameErrors}
+                validPlayersCount={validPlayersCount}
                 forumTopicId={forumTopicId}
                 actionsDisabled={setupActionsDisabled}
                 canStartGame={canStartGame}

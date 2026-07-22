@@ -193,6 +193,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   }, [game, selectedProject?.id]);
 
   const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
+  const validPlayersCount = playerNameErrors.filter((error) => !error).length;
   const selectedJourneyGameConfig = useMemo(
     () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
     [gameConfigs, selectedGameConfigId],
@@ -754,6 +755,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     selectedGameConfigId,
     playerNames,
     playerNameErrors,
+    validPlayersCount,
     forumTopicId,
     canImportPlayersFromForum,
     playersImportText,
