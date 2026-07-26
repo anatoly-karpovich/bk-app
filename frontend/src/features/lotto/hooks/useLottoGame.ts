@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppConfig } from "../../configs/types";
+import {
+  getLottoGameConfigsRequest,
+  getSelectedGameConfigStorageKey,
+} from "../../projects/api/projects.client";
+import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
+import type { LottoGameConfig, Project } from "../../projects/types";
 import {
   createLottoGameRequest,
   deleteLottoGameRequest,
@@ -20,8 +25,11 @@ import type {
 
 interface UseLottoGameParams {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
+
+const LOTTO_GAME_CONFIG_STORAGE_KEY = getSelectedGameConfigStorageKey("lotto");
+const SAVED_GAME_PROJECT_MISMATCH_ERROR = "Saved game belongs to another project.";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Lotto request failed";
@@ -38,9 +46,9 @@ function createEmptyPlayerInput(): LottoSetupPlayerInput {
 function getPlayerSetupErrors(
   players: LottoSetupPlayerInput[],
   game: LottoPersistedGame | null,
-  selectedConfig: AppConfig | null,
+  selectedGameConfig: LottoGameConfig | null,
 ): LottoSetupPlayerInputError[] {
-  const rules = game?.rules ?? selectedConfig?.games.lotto ?? null;
+  const rules = game?.rules ?? selectedGameConfig?.rules ?? null;
   const nicknameCounts = players.reduce<Map<string, number>>((result, player) => {
     const key = player.nickname.trim().toLocaleLowerCase("ru");
 
@@ -67,7 +75,17 @@ function getPlayerSetupErrors(
   });
 }
 
-export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
+function resolveSelectedGameConfigId(gameConfigs: LottoGameConfig[]) {
+  const storedGameConfigId = loadSelectedGameConfigId(LOTTO_GAME_CONFIG_STORAGE_KEY);
+  const fallbackGameConfigId = gameConfigs[0]?.id ?? "";
+
+  return (
+    (storedGameConfigId && gameConfigs.some((gameConfig) => gameConfig.id === storedGameConfigId) && storedGameConfigId) ||
+    fallbackGameConfigId
+  );
+}
+
+export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
   const [game, setGame] = useState<LottoPersistedGame | null>(null);
   const [storedGameId, setStoredGameId] = useState<string | null>(loadLottoGameId());
   const [players, setPlayers] = useState<LottoSetupPlayerInput[]>([createEmptyPlayerInput()]);
@@ -76,11 +94,15 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
   const [savedGamesError, setSavedGamesError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [gameConfigsError, setGameConfigsError] = useState<string | null>(null);
+  const [gameConfigs, setGameConfigs] = useState<LottoGameConfig[]>([]);
+  const [selectedGameConfigId, setSelectedGameConfigId] = useState(() => loadSelectedGameConfigId(LOTTO_GAME_CONFIG_STORAGE_KEY) ?? "");
   const [deletingSavedGame, setDeletingSavedGame] = useState<LottoSavedGameSummary | null>(null);
   const [playerPendingRemoval, setPlayerPendingRemoval] = useState<LottoPlayer | null>(null);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isRestoringGame, setIsRestoringGame] = useState(false);
   const [isLoadingSavedGames, setIsLoadingSavedGames] = useState(false);
+  const [isLoadingGameConfigs, setIsLoadingGameConfigs] = useState(false);
   const [isDeletingSavedGame, setIsDeletingSavedGame] = useState(false);
   const [isResettingGame, setIsResettingGame] = useState(false);
   const [isDrawingNumber, setIsDrawingNumber] = useState(false);
@@ -95,42 +117,120 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     setStoredGameId(game.id);
   }, [game]);
 
-  const selectedLottoRules = selectedConfig?.games.lotto ?? null;
-  const resolvedRules = game?.rules ?? selectedLottoRules ?? null;
-  const resolvedCurrencies = game?.currencies ?? selectedConfig?.currencies ?? [];
-  const playerErrors = useMemo(
-    () => getPlayerSetupErrors(players, game, selectedConfig),
-    [game, players, selectedConfig],
+  useEffect(() => {
+    if (!selectedProject?.id) {
+      setGameConfigs([]);
+      setSelectedGameConfigId("");
+      setGameConfigsError(null);
+      setIsLoadingGameConfigs(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGameConfigs() {
+      setGameConfigsError(null);
+      setIsLoadingGameConfigs(true);
+
+      try {
+        const nextGameConfigs = await getLottoGameConfigsRequest(selectedProject.id);
+
+        if (cancelled) {
+          return;
+        }
+
+        const resolvedGameConfigId = resolveSelectedGameConfigId(nextGameConfigs);
+        setGameConfigs(nextGameConfigs);
+        setSelectedGameConfigId(resolvedGameConfigId);
+
+        if (resolvedGameConfigId) {
+          saveSelectedGameConfigId(LOTTO_GAME_CONFIG_STORAGE_KEY, resolvedGameConfigId);
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setGameConfigs([]);
+        setSelectedGameConfigId("");
+        setGameConfigsError(getErrorMessage(error));
+      } finally {
+        if (!cancelled) {
+          setIsLoadingGameConfigs(false);
+        }
+      }
+    }
+
+    void loadGameConfigs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProject?.id]);
+
+  useEffect(() => {
+    if (!game) {
+      return;
+    }
+
+    if (game.projectId !== (selectedProject?.id ?? "")) {
+      resetLottoPageState();
+    }
+  }, [game, selectedProject?.id]);
+
+  const selectedLottoGameConfig = useMemo(
+    () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
+    [gameConfigs, selectedGameConfigId],
   );
-  const canStartGame = Boolean(selectedLottoRules) && playerErrors.length > 0 && playerErrors.every((error) => !error.nickname && !error.cardNumbers);
+  const selectedLottoRules = selectedLottoGameConfig?.rules ?? null;
+  const resolvedRules = game?.rules ?? selectedLottoRules ?? null;
+  const resolvedCurrencies = game?.currencies ?? selectedProject?.currencies ?? [];
+  const playerErrors = useMemo(
+    () => getPlayerSetupErrors(players, game, selectedLottoGameConfig),
+    [game, players, selectedLottoGameConfig],
+  );
+  const canStartGame =
+    Boolean(selectedProject?.id) &&
+    Boolean(selectedLottoGameConfig) &&
+    playerErrors.length > 0 &&
+    playerErrors.every((error) => !error.nickname && !error.cardNumbers);
   const pageStatusChips = useMemo(
     () =>
       createLottoStatusChips({
         game,
         djName,
-        selectedConfigName: selectedConfig?.name,
+        selectedGameConfigName: selectedLottoGameConfig?.name,
       }),
-    [djName, game, selectedConfig?.name],
+    [djName, game, selectedLottoGameConfig?.name],
   );
-  const gameIsOver = game?.derived.gameIsOver ?? false;
   const headerActionsDisabled = useMemo(
     () =>
       isStartingGame ||
       isRestoringGame ||
       isLoadingSavedGames ||
+      isLoadingGameConfigs ||
       isDeletingSavedGame ||
       isResettingGame ||
       isDrawingNumber ||
       Boolean(removingPlayerId),
-    [isDeletingSavedGame, isDrawingNumber, isLoadingSavedGames, isResettingGame, isRestoringGame, isStartingGame, removingPlayerId],
+    [
+      isDeletingSavedGame,
+      isDrawingNumber,
+      isLoadingGameConfigs,
+      isLoadingSavedGames,
+      isResettingGame,
+      isRestoringGame,
+      isStartingGame,
+      removingPlayerId,
+    ],
   );
   const boardActionsDisabled = useMemo(
     () => isDrawingNumber || isRestoringGame || isResettingGame || Boolean(removingPlayerId),
     [isDrawingNumber, isResettingGame, isRestoringGame, removingPlayerId],
   );
   const setupActionsDisabled = useMemo(
-    () => isStartingGame || isRestoringGame || isResettingGame,
-    [isResettingGame, isRestoringGame, isStartingGame],
+    () => isStartingGame || isLoadingGameConfigs || isRestoringGame || isResettingGame,
+    [isLoadingGameConfigs, isResettingGame, isRestoringGame, isStartingGame],
   );
 
   function resetLottoPageState() {
@@ -140,14 +240,20 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     setPlayers([createEmptyPlayerInput()]);
   }
 
+  function selectGameConfig(nextGameConfigId: string) {
+    setSelectedGameConfigId(nextGameConfigId);
+    saveSelectedGameConfigId(LOTTO_GAME_CONFIG_STORAGE_KEY, nextGameConfigId);
+  }
+
   async function loadSavedGames() {
     setSavedGamesError(null);
     setIsLoadingSavedGames(true);
 
     try {
-      const nextSavedGames = await listLottoGamesRequest();
-      setSavedGames(nextSavedGames);
-      return nextSavedGames;
+      const filteredSavedGames = selectedProject?.id ? await listLottoGamesRequest(selectedProject.id) : [];
+
+      setSavedGames(filteredSavedGames);
+      return filteredSavedGames;
     } catch (error) {
       setSavedGames([]);
       setSavedGamesError(getErrorMessage(error));
@@ -163,7 +269,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
   }
 
   async function restoreSavedGame(gameId: string) {
-    if (!gameId) {
+    if (!gameId || !selectedProject?.id) {
       return;
     }
 
@@ -171,10 +277,21 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     setIsRestoringGame(true);
 
     try {
-      const restoredGame = await getLottoGameByIdRequest(gameId);
+      const restoredGame = await getLottoGameByIdRequest(selectedProject.id, gameId);
+
+      if (selectedProject?.id && restoredGame.projectId !== selectedProject.id) {
+        setSavedGamesError(SAVED_GAME_PROJECT_MISMATCH_ERROR);
+        return;
+      }
+
       setGame(restoredGame);
       setSavedGamesDialogOpen(false);
       setStoredGameId(restoredGame.id);
+
+      if (gameConfigs.some((gameConfig) => gameConfig.id === restoredGame.configId)) {
+        setSelectedGameConfigId(restoredGame.configId);
+        saveSelectedGameConfigId(LOTTO_GAME_CONFIG_STORAGE_KEY, restoredGame.configId);
+      }
     } catch (error) {
       setSavedGamesError(getErrorMessage(error));
     } finally {
@@ -203,7 +320,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     setIsDeletingSavedGame(true);
 
     try {
-      await deleteLottoGameRequest(deletingSavedGame.id);
+      await deleteLottoGameRequest(deletingSavedGame.projectId, deletingSavedGame.id);
       setSavedGames((current) => current.filter((gameItem) => gameItem.id !== deletingSavedGame.id));
 
       if (storedGameId === deletingSavedGame.id) {
@@ -224,7 +341,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
   }
 
   async function startGame() {
-    if (!selectedConfig?.id || !selectedLottoRules || !canStartGame) {
+    if (!selectedProject?.id || !selectedLottoGameConfig || !selectedLottoRules || !canStartGame) {
       return;
     }
 
@@ -233,11 +350,12 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
 
     try {
       const nextGame = await createLottoGameRequest({
+        projectId: selectedProject.id,
         players: players.map((player) => ({
           nickname: player.nickname.trim(),
           cardNumbers: parseLottoNumbersInput(player.cardNumbers),
         })),
-        configId: selectedConfig.id,
+        gameConfigId: selectedLottoGameConfig.id,
         djName: djName.trim(),
       });
 
@@ -298,7 +416,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     setIsDrawingNumber(true);
 
     try {
-      const nextGame = await drawLottoNumberRequest(game.id);
+      const nextGame = await drawLottoNumberRequest(game.projectId, game.id);
       setGame(nextGame);
     } catch (error) {
       setRequestError(getErrorMessage(error));
@@ -328,7 +446,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     setRemovingPlayerId(playerPendingRemoval.id);
 
     try {
-      const nextGame = await removeLottoPlayerRequest(game.id, playerPendingRemoval.id);
+      const nextGame = await removeLottoPlayerRequest(game.projectId, game.id, playerPendingRemoval.id);
       setGame(nextGame);
       setPlayerPendingRemoval(null);
     } catch (error) {
@@ -348,6 +466,8 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
 
   return {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     players,
     playerErrors,
     savedGames,
@@ -358,19 +478,20 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
     rulesDialogOpen,
     savedGamesError,
     requestError,
+    gameConfigsError,
     selectedLottoRules,
     resolvedRules,
     resolvedCurrencies,
     canStartGame,
-    gameIsOver,
-    pageStatusChips,
     headerActionsDisabled,
     boardActionsDisabled,
     setupActionsDisabled,
+    pageStatusChips,
     loading: {
       isStartingGame,
       isRestoringGame,
       isLoadingSavedGames,
+      isLoadingGameConfigs,
       isDeletingSavedGame,
       isResettingGame,
       isDrawingNumber,
@@ -380,6 +501,7 @@ export function useLottoGame({ djName, selectedConfig }: UseLottoGameParams) {
       setSavedGamesDialogOpen,
       setRulesDialogOpen,
       setRequestError,
+      selectGameConfig,
       openSavedGamesDialog,
       restoreSavedGame,
       requestDeleteSavedGame,

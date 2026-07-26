@@ -1,18 +1,19 @@
 import type { Request, Response } from "express";
 import { RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
+import { GameConfigNotFoundError } from "../gameConfigs/errors";
+import { ProjectNotFoundError } from "../projects/errors";
 import {
   InvalidLottoGameIdError,
-  LottoConfigNotFoundError,
-  LottoConfigUnsupportedError,
   LottoGameNotFoundError,
   LottoGamesNotFoundError,
   LottoValidationError,
 } from "./errors";
 import {
-  createLottoGameConfigSchema,
   createLottoGameDjNameSchema,
   createLottoGamePlayersSchema,
+  createLottoGamePresetSchema,
+  createLottoGameProjectParamsSchema,
   latestLottoGameQuerySchema,
   lottoGameIdParamsSchema,
   lottoPlayerIdParamsSchema,
@@ -23,29 +24,42 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
+function getProjectId(req: Request): string {
+  return parseRequest(
+    createLottoGameProjectParamsSchema,
+    req.params,
+    "Route parameter 'projectId' must be a valid project id",
+  ).projectId;
+}
+
 export class LottoController {
   constructor(private readonly lottoService: LottoService) {}
 
-  createLottoGame = async (req: Request, res: Response) => {
+  createLottoGameInProject = async (req: Request, res: Response) => {
     try {
+      const { projectId } = parseRequest(
+        createLottoGameProjectParamsSchema,
+        req.params,
+        "Route parameter 'projectId' must be a valid project id",
+      );
       const { players } = parseRequest(
         createLottoGamePlayersSchema,
         { players: req.body?.players },
-        "Body field 'players' must contain at least one player",
+        "Body field 'players' must be a non-empty array of lotto players",
       );
-      const { configId } = parseRequest(
-        createLottoGameConfigSchema,
-        { configId: req.body?.configId },
-        "Body field 'configId' must be a valid config id",
+      const { gameConfigId } = parseRequest(
+        createLottoGamePresetSchema,
+        { gameConfigId: req.body?.gameConfigId },
+        "Body field 'gameConfigId' must be a valid game config id",
       );
       const { djName } = parseRequest(
         createLottoGameDjNameSchema,
         { djName: req.body?.djName },
         "Body field 'djName' must be a string when provided",
       );
-      const game = await this.lottoService.createLottoGameSnapshot({
+      const game = await this.lottoService.createLottoGameSnapshotInProject(projectId, {
         players,
-        configId,
+        gameConfigId,
         djName,
       });
 
@@ -61,16 +75,11 @@ export class LottoController {
         });
       }
 
-      if (error instanceof LottoConfigNotFoundError || error instanceof LottoConfigUnsupportedError) {
+      if (
+        error instanceof ProjectNotFoundError ||
+        error instanceof GameConfigNotFoundError
+      ) {
         return res.status(error.statusCode).json({
-          success: false,
-          message: "Failed to create lotto game",
-          error: error.message,
-        });
-      }
-
-      if (error instanceof LottoValidationError) {
-        return res.status(400).json({
           success: false,
           message: "Failed to create lotto game",
           error: error.message,
@@ -87,7 +96,7 @@ export class LottoController {
 
   listLottoGames = async (_req: Request, res: Response) => {
     try {
-      const games = await this.lottoService.listLottoGameSnapshots();
+      const games = await this.lottoService.listLottoGameSnapshots(getProjectId(_req));
 
       return res.status(200).json({
         success: true,
@@ -109,7 +118,7 @@ export class LottoController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const game = await this.lottoService.getLottoGameSnapshot(gameId);
+      const game = await this.lottoService.getLottoGameSnapshot(getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -153,7 +162,7 @@ export class LottoController {
         req.query,
         "Query parameter 'status' must be either 'in_progress' or 'finished'",
       );
-      const game = await this.lottoService.getLatestLottoGameSnapshot(status);
+      const game = await this.lottoService.getLatestLottoGameSnapshot(getProjectId(req), status);
 
       return res.status(200).json({
         success: true,
@@ -189,7 +198,7 @@ export class LottoController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const updatedGame = await this.lottoService.drawNextLottoNumber(gameId);
+      const updatedGame = await this.lottoService.drawNextLottoNumber(getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -238,7 +247,7 @@ export class LottoController {
         req.params,
         "Route parameter 'playerId' is required",
       );
-      const updatedGame = await this.lottoService.removeLottoPlayerFromSnapshot(gameId, playerId);
+      const updatedGame = await this.lottoService.removeLottoPlayerFromSnapshot(getProjectId(req), gameId, playerId);
 
       return res.status(200).json({
         success: true,
@@ -282,7 +291,7 @@ export class LottoController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      await this.lottoService.deleteLottoGameSnapshot(gameId);
+      await this.lottoService.deleteLottoGameSnapshot(getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,

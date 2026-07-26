@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ExternalServiceError, RequestValidationError } from "../../common/errors";
+import { AppError, ExternalServiceError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { forumTopicQuerySchema } from "./forumTopic.schemas";
 import { ForumTopicService } from "./ForumTopicService";
@@ -41,6 +41,14 @@ export class ForumTopicController {
           success: false,
           message: "Failed to fetch forum topic",
           error: getErrorMessage(error.cause),
+        });
+      }
+
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+          code: error.code,
         });
       }
 

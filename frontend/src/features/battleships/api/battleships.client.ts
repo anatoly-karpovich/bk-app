@@ -1,38 +1,46 @@
 import { apiClient } from "../../../lib/apiClient";
 import type { BattleshipsPersistedGame, BattleshipsSavedGameSummary } from "../types";
 
-const BATTLESHIPS_API_BASE_URL = "/api/battleships";
+function getProjectBattleshipsApiBaseUrl(projectId: string) {
+  return `/api/projects/${encodeURIComponent(projectId)}/battleships`;
+}
 
 export async function createBattleshipsGameRequest(payload: {
+  projectId: string;
   playerName: string;
-  configId: string;
+  gameConfigId: string;
   djName?: string;
 }): Promise<BattleshipsPersistedGame> {
-  return await apiClient.post<BattleshipsPersistedGame>(`${BATTLESHIPS_API_BASE_URL}/games`, payload);
+  const { projectId, ...body } = payload;
+  return await apiClient.post<BattleshipsPersistedGame>(
+    `${getProjectBattleshipsApiBaseUrl(projectId)}/games`,
+    body,
+  );
 }
 
-export async function getBattleshipsGameByIdRequest(gameId: string): Promise<BattleshipsPersistedGame> {
-  return await apiClient.get<BattleshipsPersistedGame>(`${BATTLESHIPS_API_BASE_URL}/games/${gameId}`);
+export async function getBattleshipsGameByIdRequest(projectId: string, gameId: string): Promise<BattleshipsPersistedGame> {
+  return await apiClient.get<BattleshipsPersistedGame>(`${getProjectBattleshipsApiBaseUrl(projectId)}/games/${gameId}`);
 }
 
-export async function listBattleshipsGamesRequest(): Promise<BattleshipsSavedGameSummary[]> {
-  return await apiClient.get<BattleshipsSavedGameSummary[]>(`${BATTLESHIPS_API_BASE_URL}/games`);
+export async function listBattleshipsGamesRequest(projectId: string): Promise<BattleshipsSavedGameSummary[]> {
+  return await apiClient.get<BattleshipsSavedGameSummary[]>(`${getProjectBattleshipsApiBaseUrl(projectId)}/games`);
 }
 
 export async function submitBattleshipsShotRequest(
+  projectId: string,
   gameId: string,
   payload: {
     row: number;
     column: number;
   },
 ): Promise<BattleshipsPersistedGame> {
-  return await apiClient.post<BattleshipsPersistedGame>(`${BATTLESHIPS_API_BASE_URL}/games/${gameId}/shots`, payload);
+  return await apiClient.post<BattleshipsPersistedGame>(`${getProjectBattleshipsApiBaseUrl(projectId)}/games/${gameId}/shots`, payload);
 }
 
-export async function undoBattleshipsShotRequest(gameId: string): Promise<BattleshipsPersistedGame> {
-  return await apiClient.post<BattleshipsPersistedGame>(`${BATTLESHIPS_API_BASE_URL}/games/${gameId}/shots/undo`);
+export async function undoBattleshipsShotRequest(projectId: string, gameId: string): Promise<BattleshipsPersistedGame> {
+  return await apiClient.post<BattleshipsPersistedGame>(`${getProjectBattleshipsApiBaseUrl(projectId)}/games/${gameId}/shots/undo`);
 }
 
-export async function deleteBattleshipsGameRequest(gameId: string): Promise<unknown> {
-  return await apiClient.delete<unknown>(`${BATTLESHIPS_API_BASE_URL}/games/${gameId}`);
+export async function deleteBattleshipsGameRequest(projectId: string, gameId: string): Promise<unknown> {
+  return await apiClient.delete<unknown>(`${getProjectBattleshipsApiBaseUrl(projectId)}/games/${gameId}`);
 }

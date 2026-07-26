@@ -27,6 +27,7 @@ interface GamePageHeaderProps {
   description: string;
   chips: GamePageHeaderChip[];
   actions: GamePageHeaderAction[];
+  controls?: ReactNode;
   cardSx?: SxProps<Theme>;
 }
 
@@ -35,6 +36,7 @@ export default function GamePageHeader({
   description,
   chips,
   actions,
+  controls,
   cardSx,
 }: GamePageHeaderProps) {
   return (
@@ -52,7 +54,7 @@ export default function GamePageHeader({
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              xl: "minmax(0, 64%) minmax(0, 36%)",
+              xl: "minmax(0, 58%) minmax(0, 42%)",
             },
             gap: 3,
             alignItems: { xl: "center" },
@@ -88,9 +90,22 @@ export default function GamePageHeader({
               width: "100%",
               justifyContent: { xl: "flex-end" },
               justifySelf: { xl: "stretch" },
-              flexWrap: "wrap",
+              flexWrap: { xs: "wrap", xl: "nowrap" },
+              alignItems: { sm: "center" },
             }}
           >
+            {controls ? (
+              <Box
+                sx={{
+                  width: { xs: "100%", sm: 220, xl: 210 },
+                  maxWidth: "100%",
+                  flexShrink: 0,
+                }}
+              >
+                {controls}
+              </Box>
+            ) : null}
+
             {actions.map((action) => (
               <AppPillButton
                 key={action.key}

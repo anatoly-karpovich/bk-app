@@ -1,4 +1,4 @@
-import type { JourneyPlayer } from "../types";
+import type { JourneyPlayerReadModel } from "../types";
 
 function normalizeNickname(value: string): string {
   return value.trim().toLowerCase();
@@ -6,9 +6,9 @@ function normalizeNickname(value: string): string {
 
 export function mapParsedMovesToPlayerInputs(
   parsedMoves: Record<string, number>,
-  activePlayers: JourneyPlayer[],
+  activePlayers: JourneyPlayerReadModel[],
 ): Record<string, string> {
-  const activePlayersByNickname = activePlayers.reduce<Record<string, JourneyPlayer>>((accumulator, player) => {
+  const activePlayersByNickname = activePlayers.reduce<Record<string, JourneyPlayerReadModel>>((accumulator, player) => {
     accumulator[normalizeNickname(player.nickname)] = player;
     return accumulator;
   }, {});

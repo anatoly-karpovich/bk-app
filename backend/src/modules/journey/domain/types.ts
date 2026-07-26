@@ -1,8 +1,9 @@
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot } from "../../../common/currency";
 
 export type RandomFn = () => number;
 
 export type JourneyCellKind = "bonus" | "trap";
+export type JourneyJackpotCountMode = "fixed" | "by_players";
 export type JourneyPlayerStatus = "active" | "finished" | "removed";
 export type JourneyGameStatus = "in_progress" | "finished";
 export type JourneySkippedMoveType = "skipped";
@@ -33,6 +34,14 @@ export interface JourneyRulesCell {
   count: number;
 }
 
+export type JourneyCollectorTargetKind = JourneyCellKind | "empty";
+
+export interface JourneyCollectorTarget {
+  id: string;
+  kind: JourneyCollectorTargetKind;
+  rewards: JourneyCurrencyValue[];
+}
+
 export interface JourneyRulesAchievementConfig {
   rewards: JourneyCurrencyValue[];
 }
@@ -51,7 +60,9 @@ export interface JourneyRules {
   maxPrizes: JourneyCurrencyValue[] | null;
   mapSize: number;
   jackpot: {
+    countMode: JourneyJackpotCountMode;
     count: number;
+    playersPerJackpot: number;
     rewards: JourneyCurrencyValue[];
   };
   cells: JourneyRulesCell[];
@@ -77,7 +88,7 @@ export interface JourneyConfig {
   maxDice: number;
   maxPrizes: JourneyCurrencyValue[] | null;
   jackpotRewards: JourneyCurrencyValue[];
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
 }
 
 export interface JourneyAchievement {
@@ -185,9 +196,10 @@ export interface JourneyGame {
   moveIndex: number;
   status: JourneyGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayer[];
@@ -196,14 +208,150 @@ export interface JourneyGame {
   comments: string[];
 }
 
+export interface JourneyV2Player {
+  id: string;
+  nickname: string;
+  status: JourneyPlayerStatus;
+  removedAt: string | null;
+  removedReason: string | null;
+  position: number;
+  balance: JourneyBalance;
+  achievementNames: string[];
+}
+
+export interface JourneyV2AchievementEffect {
+  name: string;
+  appliedRewards: JourneyCurrencyValue[];
+}
+
+export type JourneyV2Turn =
+  | {
+      kind: "move";
+      playerId: string;
+      dice: number;
+      from: number;
+      to: number;
+      moveType: JourneyMoveType;
+      appliedRewards: JourneyCurrencyValue[];
+      achievementEffects: JourneyV2AchievementEffect[];
+    }
+  | {
+      kind: "skip";
+      playerId: string;
+    };
+
+export interface JourneyV2Round {
+  index: number;
+  occurredAt: string;
+  turns: JourneyV2Turn[];
+}
+
+export interface JourneyV2State {
+  moveIndex: number;
+  status: JourneyGameStatus;
+  map: Record<number, JourneyMapCell>;
+  players: JourneyV2Player[];
+  rounds: JourneyV2Round[];
+  forumLog: string[];
+}
+
+export interface JourneyV2Game {
+  storageFormat: "v2";
+  createdAt: string;
+  updatedAt: string;
+  djName: string;
+  projectId: string;
+  configId: string;
+  configName: string;
+  forumTopicId: number | null;
+  currencies: CurrencySnapshot[];
+  rules: JourneyRules;
+  stateV2: JourneyV2State;
+}
+
 export interface JourneyPlayerReadModel extends JourneyPlayer {
   balanceEntries: JourneyCurrencyValue[];
+}
+
+/**
+ * Public player projection. It intentionally omits persistence-only fields
+ * such as previousBalance and movesHistory.
+ */
+export interface JourneyGameViewPlayer {
+  id: string;
+  nickname: string;
+  status: JourneyPlayerStatus;
+  position: number;
+  balanceEntries: JourneyCurrencyValue[];
+  bonuses: JourneyAchievement[];
+}
+
+/**
+ * A rendered player-history event, not a persisted JourneyRoundEntry.
+ */
+export interface JourneyHistoryEntryView {
+  createdAt: string;
+  roundIndex: number | string;
+  skipped: boolean;
+  previousPosition: number | null;
+  currentPosition: number | null;
+  appliedRewards: JourneyCurrencyValue[];
+  balanceAfterRound: JourneyCurrencyValue[] | null;
+  cell: JourneyMapCell | null;
+  achievementsAwarded: JourneyAchievement[];
+}
+
+/**
+ * The only full-game response contract used by Journey clients.
+ *
+ * Storage formats are deliberately not exposed: V1 and V2 documents are
+ * projected to this same model. The response contains a current state, a
+ * concise history view, and backend-prepared presentation data — never raw
+ * persistence aliases or duplicated round snapshots.
+ */
+export interface JourneyGameView {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  meta: {
+    status: JourneyGameStatus;
+    isOver: boolean;
+    roundIndex: number;
+    djName: string;
+    projectId: string;
+    configId: string;
+    configName: string;
+    forumTopicId: number | null;
+  };
+  configuration: {
+    currencies: CurrencySnapshot[];
+    rules: JourneyRules;
+    journeyConfig: JourneyConfig;
+    achievements: JourneyAchievementsMap;
+    collectorTargets: JourneyCollectorTarget[];
+  };
+  state: {
+    board: Record<number, JourneyMapCell>;
+    players: JourneyGameViewPlayer[];
+    activePlayerIds: string[];
+    finishedPlayerIds: string[];
+    visiblePlayerIds: string[];
+    resultPlayerIds: string[];
+  };
+  achievements: {
+    progressByPlayerId: Record<string, JourneyAchievementProgress>;
+  };
+  history: {
+    byPlayerId: Record<string, JourneyHistoryEntryView[]>;
+  };
+  forumLog: string[];
 }
 
 export interface JourneyGameDerivedData {
   journeyConfig: JourneyConfig;
   journeyAchievements: JourneyAchievementsMap;
-  collectibleCells: JourneyRulesCell[];
+  collectorTargets: JourneyCollectorTarget[];
+  achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
   gameIsOver: boolean;
   activePlayers: JourneyPlayerReadModel[];
   finishedPlayers: JourneyPlayerReadModel[];
@@ -231,9 +379,10 @@ export interface JourneyGameListItemReadModel {
   updatedAt: string;
   status: JourneyGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   roundsCount: number;
   players: JourneyGameListItemPlayerReadModel[];
 }
@@ -270,9 +419,10 @@ export interface JourneyRoundDto {
 
 export interface JourneyGameDto {
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
-  currencies: ConfigCurrency[];
+  currencies: CurrencySnapshot[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
   players: JourneyPlayerDto[];

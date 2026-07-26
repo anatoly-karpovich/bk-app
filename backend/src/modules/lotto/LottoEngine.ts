@@ -5,8 +5,11 @@ import {
   hasAnyNonZeroCurrencyValues,
   normalizeCurrencyValues,
 } from "../../common/currencyValues";
-import type { ConfigCurrency } from "../configs/domain/types";
-import { createDefaultConfigCurrency, normalizeConfigCurrencies } from "../configs/domain/normalizeConfig";
+import {
+  createDefaultCurrencySnapshot,
+  normalizeCurrencySnapshots,
+  type CurrencySnapshot,
+} from "../../common/currency";
 import { normalizeLottoRules } from "./domain/config";
 import type {
   LottoCreatePlayerInput,
@@ -31,7 +34,7 @@ type LegacyLottoRules = {
 
 type LegacyLottoGame = Omit<LottoGame, "rules" | "currencies"> & {
   currency?: string;
-  currencies?: ConfigCurrency[];
+  currencies?: CurrencySnapshot[];
   rules: LegacyLottoRules;
 };
 
@@ -47,6 +50,7 @@ export class LottoEngine {
     const normalizedGame: LottoGame = {
       ...legacyGame,
       djName: legacyGame.djName.trim(),
+      projectId: legacyGame.projectId?.trim() ?? "",
       configId: legacyGame.configId.trim(),
       configName: legacyGame.configName.trim(),
       currencies,
@@ -73,8 +77,9 @@ export class LottoEngine {
     players: LottoCreatePlayerInput[],
     options: {
       rules: LottoRules;
-      currencies: ConfigCurrency[];
+      currencies: CurrencySnapshot[];
       djName?: string;
+      projectId?: string;
       configId?: string;
       configName?: string;
     },
@@ -90,6 +95,7 @@ export class LottoEngine {
       finishedAt: null,
       status: "in_progress",
       djName: options.djName?.trim() ?? "",
+      projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
       currencies,
@@ -543,14 +549,14 @@ export class LottoEngine {
     return [{ currencyId: defaultCurrencyId, value: Math.max(0, Math.trunc(numericValue)) }];
   }
 
-  private normalizeCurrencies(currencies: ConfigCurrency[] | undefined, legacyCurrencyLabel?: string): ConfigCurrency[] {
-    const normalizedCurrencies = normalizeConfigCurrencies(currencies ?? []);
+  private normalizeCurrencies(currencies: CurrencySnapshot[] | undefined, legacyCurrencyLabel?: string): CurrencySnapshot[] {
+    const normalizedCurrencies = normalizeCurrencySnapshots(currencies ?? []);
 
     if (normalizedCurrencies.length) {
       return normalizedCurrencies;
     }
 
-    return [createDefaultConfigCurrency(legacyCurrencyLabel)];
+    return [createDefaultCurrencySnapshot(legacyCurrencyLabel)];
   }
 
   private clone<T>(value: T): T {

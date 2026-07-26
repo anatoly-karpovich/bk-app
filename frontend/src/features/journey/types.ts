@@ -1,20 +1,7 @@
 export type JourneyCellKind = "bonus" | "trap";
+export type JourneyJackpotCountMode = "fixed" | "by_players";
 export type JourneyPlayerStatus = "active" | "finished" | "removed";
 export type JourneyGameStatus = "in_progress" | "finished";
-export type JourneySkippedMoveType = "skipped";
-export type JourneyMoveType =
-  | "moveWithJackpot"
-  | "moveWithEmptyJackpot"
-  | "moveWithIncreasingPrize"
-  | "moveWithDecreasingPrize"
-  | "moveWithoutBonus"
-  | "moveToFinish"
-  | "moveWithMaxPrize"
-  | "moveToMaxPrize"
-  | "moveToZeroPrize"
-  | "moveWithZeroPrize"
-  | "moveToAchievement";
-
 export interface JourneyCurrencyDefinition {
   id: string;
   label: string;
@@ -25,13 +12,19 @@ export interface JourneyCurrencyValue {
   value: number;
 }
 
-export type JourneyBalance = Record<string, number>;
-
 export interface JourneyRulesCell {
   id: string;
   kind: JourneyCellKind;
   rewards: JourneyCurrencyValue[];
   count: number;
+}
+
+export type JourneyCollectorTargetKind = JourneyCellKind | "empty";
+
+export interface JourneyCollectorTarget {
+  id: string;
+  kind: JourneyCollectorTargetKind;
+  rewards: JourneyCurrencyValue[];
 }
 
 export interface JourneyRulesAchievementConfig {
@@ -52,7 +45,9 @@ export interface JourneyRules {
   maxPrizes: JourneyCurrencyValue[] | null;
   mapSize: number;
   jackpot: {
+    countMode: JourneyJackpotCountMode;
     count: number;
+    playersPerJackpot: number;
     rewards: JourneyCurrencyValue[];
   };
   cells: JourneyRulesCell[];
@@ -108,115 +103,102 @@ export interface JourneyMapCell {
   winner?: JourneyMapCellWinner | null;
 }
 
-export interface JourneyPlayerMoveHistoryEntry {
-  position: number;
-  cell: JourneyMapCell | null;
-  type: JourneyMoveType;
-}
-
-export interface JourneyPlayer {
+export interface JourneyPlayerReadModel {
   id: string;
   nickname: string;
   status: JourneyPlayerStatus;
-  removedAt: string | null;
-  removedReason: string | null;
   position: number;
-  previousBalance: JourneyBalance;
-  balance: JourneyBalance;
+  balanceEntries: JourneyCurrencyValue[];
   bonuses: JourneyAchievement[];
-  movesHistory: JourneyPlayerMoveHistoryEntry[];
 }
 
-export interface JourneyMove {
-  playerId: string;
-  playerNickname: string;
-  dice: number;
-  previousPosition: number;
-  previousBalance: JourneyBalance;
-  currentPosition: number;
-  balanceAfterMove: JourneyBalance;
-  requestedRewards: JourneyCurrencyValue[];
-  appliedRewards: JourneyCurrencyValue[];
-  cell: JourneyMapCell | null;
-  type: JourneyMoveType;
-}
-
-export interface JourneyAchievementMove {
-  type: "moveToAchievement";
-  playerId: string;
-  playerNickname: string;
-  achievement: JourneyAchievement;
-  appliedRewards: JourneyCurrencyValue[];
-}
-
-export interface JourneyRoundEntry {
+export interface JourneyTimelineEntry {
   createdAt: string;
-  playerId: string | null;
-  nickname: string;
-  playerStatusBeforeRound: JourneyPlayerStatus | null;
-  playerStatusAfterRound: JourneyPlayerStatus | null;
+  roundIndex: number | string;
   skipped: boolean;
-  dice: number | null;
   previousPosition: number | null;
   currentPosition: number | null;
-  previousBalance: JourneyCurrencyValue[] | null;
   appliedRewards: JourneyCurrencyValue[];
-  balanceAfterMove: JourneyCurrencyValue[] | null;
   balanceAfterRound: JourneyCurrencyValue[] | null;
-  moveType: JourneyMoveType | JourneySkippedMoveType | null;
   cell: JourneyMapCell | null;
   achievementsAwarded: JourneyAchievement[];
-  bonusesSnapshot: JourneyAchievement[];
 }
 
-export interface JourneyRound {
-  createdAt: string;
-  moveIndex: number;
-  entries: JourneyRoundEntry[];
-  movesByPlayerId?: Record<string, JourneyMove>;
-  movesByNickname?: Record<string, JourneyMove>;
-  skippedPlayerIds?: string[];
-  skippedNicknames?: string[];
-  achievementMoves?: JourneyAchievementMove[];
+export interface JourneyForumStateMessage {
+  text: string;
+  generatedAt: string;
 }
 
-export interface JourneyGame {
+/** The backend response contract. It does not expose persistence rounds or aliases. */
+export interface JourneyGameView {
+  id: string;
   createdAt: string;
   updatedAt: string;
-  moveIndex: number;
+  meta: {
+    status: JourneyGameStatus;
+    isOver: boolean;
+    roundIndex: number;
+    djName: string;
+    projectId: string;
+    configId: string;
+    configName: string;
+    forumTopicId: number | null;
+  };
+  configuration: {
+    currencies: JourneyCurrencyDefinition[];
+    rules: JourneyRules;
+    journeyConfig: JourneyConfig;
+    achievements: JourneyAchievementsMap;
+    collectorTargets: JourneyCollectorTarget[];
+  };
+  state: {
+    board: Record<number, JourneyMapCell>;
+    players: JourneyPlayerReadModel[];
+    activePlayerIds: string[];
+    finishedPlayerIds: string[];
+    visiblePlayerIds: string[];
+    resultPlayerIds: string[];
+  };
+  achievements: {
+    progressByPlayerId: Record<string, JourneyAchievementProgress>;
+  };
+  history: {
+    byPlayerId: Record<string, JourneyTimelineEntry[]>;
+  };
+  forumLog: string[];
+}
+
+/**
+ * Feature-local composition model. It is produced by a structural API mapper;
+ * no game decision is made on the client.
+ */
+export interface JourneyPageGame {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
   status: JourneyGameStatus;
+  gameIsOver: boolean;
+  roundsCount: number;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
+  forumTopicId: number | null;
   currencies: JourneyCurrencyDefinition[];
   rules: JourneyRules;
   map: Record<number, JourneyMapCell>;
-  players: JourneyPlayer[];
-  playersById?: Record<string, JourneyPlayer>;
-  rounds: JourneyRound[];
-  comments: string[];
-}
-
-export interface JourneyPlayerReadModel extends JourneyPlayer {
-  balanceEntries: JourneyCurrencyValue[];
-}
-
-export interface JourneyGameDerivedData {
-  journeyConfig: JourneyConfig;
-  journeyAchievements: JourneyAchievementsMap;
-  collectibleCells: JourneyRulesCell[];
-  gameIsOver: boolean;
+  players: JourneyPlayerReadModel[];
   activePlayers: JourneyPlayerReadModel[];
   finishedPlayers: JourneyPlayerReadModel[];
   visiblePlayers: JourneyPlayerReadModel[];
   results: JourneyPlayerReadModel[];
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+  collectorTargets: JourneyCollectorTarget[];
+  achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
+  forumLog: string[];
 }
-
-export type JourneyPersistedGame = Omit<JourneyGame, "playersById"> & {
-  id: string;
-  derived: JourneyGameDerivedData;
-};
 
 export interface JourneySavedGamePlayer {
   id: string;
@@ -232,6 +214,7 @@ export interface JourneySavedGameSummary {
   updatedAt: string;
   status: JourneyGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: JourneyCurrencyDefinition[];
@@ -242,13 +225,41 @@ export interface JourneySavedGameSummary {
 export type JourneyMoveInputs = Record<string, string>;
 export type JourneySkippedPlayers = Record<string, boolean>;
 
-export interface JourneyTimelineEntry extends JourneyRoundEntry {
-  roundIndex: number | string;
-}
-
 export interface JourneyMoveInput {
   playerId: string;
   dice: number;
+}
+
+export interface JourneyForumMoveCandidate {
+  playerId: string;
+  playerNickname: string;
+  dice: number;
+  sourceMessage: {
+    id: string;
+    authorId: string;
+    authorLogin: string;
+    text: string;
+    publishedAt: string;
+  };
+}
+
+export interface JourneyForumMovesPreview {
+  topicId: number;
+  provider: string;
+  nextRoundIndex: number;
+  boundary: {
+    kind: "game_started" | "round";
+    roundIndex: number | null;
+    messageId: string;
+    publishedAt: string;
+  };
+  moves: JourneyForumMoveCandidate[];
+  ignoredMessages: Array<{
+    id: string;
+    authorLogin: string;
+    text: string;
+    reason: "player_not_active" | "dice_not_found" | "dice_out_of_range";
+  }>;
 }
 
 export type JourneyChipColor = "default" | "primary" | "secondary" | "success" | "error" | "info" | "warning";
@@ -262,7 +273,7 @@ export interface HoveredCellState {
   anchorEl: HTMLElement;
   cellIndex: number;
   cell: JourneyMapCell | null;
-  playersOnCell: JourneyPlayer[];
+  playersOnCell: JourneyPlayerReadModel[];
 }
 
 export interface JourneyCollectorProgress {

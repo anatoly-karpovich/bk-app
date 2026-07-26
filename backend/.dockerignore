@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.local
+.env.prod
+.env.prod.backup
+backups/*
+!backups/db-data-projects/
+!backups/db-data-projects/**

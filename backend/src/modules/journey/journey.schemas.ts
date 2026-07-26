@@ -18,8 +18,25 @@ export const createJourneyGameConfigSchema = z.object({
   configId: objectIdSchema,
 });
 
+export const createJourneyGameProjectParamsSchema = z.object({
+  projectId: objectIdSchema,
+});
+
+export const createJourneyGamePresetSchema = z.object({
+  gameConfigId: objectIdSchema,
+});
+
 export const createJourneyGameDjNameSchema = z.object({
   djName: z.string().optional(),
+});
+
+export const createJourneyGameForumTopicSchema = z.object({
+  forumTopicId: z.number().int().positive().optional(),
+});
+
+export const importJourneyPlayersFromForumSchema = z.object({
+  forumTopicId: z.number().int().positive(),
+  djName: z.string().trim().min(1),
 });
 
 export const journeyMoveInputSchema = z.object({

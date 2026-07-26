@@ -1,5 +1,6 @@
 import { Alert, Box, Card, CardContent, CardHeader, CircularProgress, IconButton, Stack, Switch, Tooltip, Typography } from "@mui/material";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import { isValidDiceValue } from "../journey-page.helpers";
@@ -16,12 +17,15 @@ interface JourneyRoundControlsCardProps {
   canSubmitRound: boolean;
   actionsDisabled: boolean;
   isImportingMoves: boolean;
+  isPreviewingForumMoves: boolean;
+  canImportMovesFromForum: boolean;
   isSubmittingRound: boolean;
   removingPlayerId: string | null;
   onMoveInputChange: (playerId: string, value: string) => void;
   onSkipToggle: (playerId: string) => void;
   onRemovePlayer: (playerId: string) => void;
   onOpenImport: () => void;
+  onPreviewForumMoves: () => void;
   onSubmitRound: () => void;
 }
 
@@ -33,12 +37,15 @@ export default function JourneyRoundControlsCard({
   canSubmitRound,
   actionsDisabled,
   isImportingMoves,
+  isPreviewingForumMoves,
+  canImportMovesFromForum,
   isSubmittingRound,
   removingPlayerId,
   onMoveInputChange,
   onSkipToggle,
   onRemovePlayer,
   onOpenImport,
+  onPreviewForumMoves,
   onSubmitRound,
 }: JourneyRoundControlsCardProps) {
   return (
@@ -98,6 +105,15 @@ export default function JourneyRoundControlsCard({
           )}
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+            <AppPillButton
+              variant="outlined"
+              startIcon={<ForumRoundedIcon />}
+              onClick={onPreviewForumMoves}
+              disabled={actionsDisabled || !canImportMovesFromForum}
+              loading={isPreviewingForumMoves}
+            >
+              {journeyTexts.actions.importMovesFromForum}
+            </AppPillButton>
             <AppPillButton
               variant="outlined"
               startIcon={<UploadFileRoundedIcon />}

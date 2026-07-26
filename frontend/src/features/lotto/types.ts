@@ -66,6 +66,7 @@ export interface LottoPersistedGame {
   finishedAt: string | null;
   status: LottoGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: CurrencyDefinition[];
@@ -84,6 +85,7 @@ export interface LottoSavedGameSummary {
   finishedAt: string | null;
   status: LottoGameStatus;
   djName: string;
+  projectId: string;
   configId: string;
   configName: string;
   currencies: CurrencyDefinition[];

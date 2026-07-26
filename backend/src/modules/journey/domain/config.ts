@@ -1,11 +1,11 @@
-import type { ConfigCurrency } from "../../configs/domain/types";
+import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import type {
   JourneyAchievementsMap,
   JourneyConfig,
   JourneyCurrencyValue,
+  JourneyJackpotCountMode,
   JourneyMapCell,
   JourneyRules,
-  JourneyRulesCell,
   JourneyRulesInput,
 } from "./types";
 
@@ -22,9 +22,28 @@ function normalizeCurrencyValues(values: JourneyCurrencyValue[]): JourneyCurrenc
     .filter((value) => value.currencyId);
 }
 
+function normalizePositiveInteger(value: unknown, fallbackValue: number): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallbackValue;
+  }
+  return Math.max(1, Math.trunc(numericValue));
+}
+
+function normalizeNonNegativeInteger(value: unknown, fallbackValue: number, maximumValue = Number.POSITIVE_INFINITY): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallbackValue;
+  }
+  return Math.min(maximumValue, Math.max(0, Math.trunc(numericValue)));
+}
+
 function normalizeAchievementRewards(rewards: JourneyCurrencyValue[] | undefined): JourneyCurrencyValue[] {
   return normalizeCurrencyValues(Array.isArray(rewards) ? rewards : []);
 }
+
+export const JOURNEY_MAX_JACKPOT_COUNT = 7;
+export const DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT = 3;
 
 export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   initialRewards: [{ currencyId: "default", value: 15 }],
@@ -33,7 +52,9 @@ export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   maxPrizes: [{ currencyId: "default", value: 30 }],
   mapSize: 50,
   jackpot: {
+    countMode: "fixed",
     count: 7,
+    playersPerJackpot: DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT,
     rewards: [{ currencyId: "default", value: 30 }],
   },
   cells: [
@@ -66,6 +87,20 @@ export const MOVE_TYPES = {
   ACHIEVEMENT: "moveToAchievement",
 } as const;
 
+export const JOURNEY_ACHIEVEMENT_NAMES = {
+  JACKPOT: "Jackpot",
+  UNLUCKY: "Unlucky",
+  CAREFUL: "Careful",
+  COLLECTOR: "Collector",
+  LUCKY: "Lucky",
+} as const;
+
+export const JOURNEY_ACHIEVEMENT_STREAK_TARGETS = {
+  unlucky: 3,
+  careful: 4,
+  lucky: 5,
+} as const;
+
 export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
   const rules = clone(DEFAULT_JOURNEY_RULES);
 
@@ -73,11 +108,24 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
     ...rules,
     ...rawRules,
     initialRewards: normalizeCurrencyValues(rawRules.initialRewards ?? rules.initialRewards),
+    minDice: normalizePositiveInteger(rawRules.minDice ?? rules.minDice, rules.minDice),
+    maxDice: normalizePositiveInteger(rawRules.maxDice ?? rules.maxDice, rules.maxDice),
+    mapSize: normalizePositiveInteger(rawRules.mapSize ?? rules.mapSize, rules.mapSize),
     maxPrizes:
       rawRules.maxPrizes === null ? null : normalizeCurrencyValues(rawRules.maxPrizes ?? rules.maxPrizes ?? []),
     jackpot: {
       ...rules.jackpot,
       ...(rawRules.jackpot ?? {}),
+      countMode: normalizeJourneyJackpotCountMode(rawRules.jackpot?.countMode),
+      count: normalizeNonNegativeInteger(
+        rawRules.jackpot?.count ?? rules.jackpot.count,
+        rules.jackpot.count,
+        JOURNEY_MAX_JACKPOT_COUNT,
+      ),
+      playersPerJackpot: normalizePositiveInteger(
+        rawRules.jackpot?.playersPerJackpot ?? rules.jackpot.playersPerJackpot,
+        rules.jackpot.playersPerJackpot,
+      ),
       rewards: normalizeCurrencyValues(rawRules.jackpot?.rewards ?? rules.jackpot.rewards),
     },
     achievements: {
@@ -105,11 +153,32 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
         ? rawRules.cells.map((cell) => ({
             id: cell.id,
             kind: cell.kind,
-            count: cell.count,
+            count: normalizeNonNegativeInteger(cell.count, 0),
             rewards: normalizeCurrencyValues(cell.rewards),
           }))
         : rules.cells,
   };
+}
+
+function normalizeJourneyJackpotCountMode(value: unknown): JourneyJackpotCountMode {
+  return value === "by_players" ? "by_players" : "fixed";
+}
+
+export function getJourneyJackpotCount(
+  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
+  playersCount = 0,
+): number {
+  const normalizedRules = normalizeJourneyRules(rules);
+
+  if (normalizedRules.jackpot.countMode === "fixed") {
+    return normalizedRules.jackpot.count;
+  }
+
+  const normalizedPlayersCount = Math.max(0, Math.trunc(playersCount));
+  return Math.min(
+    JOURNEY_MAX_JACKPOT_COUNT,
+    Math.ceil(normalizedPlayersCount / normalizedRules.jackpot.playersPerJackpot),
+  );
 }
 
 export function getJourneyConfig(
@@ -132,6 +201,7 @@ export function getJourneyConfig(
 
 export function getJourneyBonusCells(
   rules: JourneyRules = DEFAULT_JOURNEY_RULES,
+  playersCount = 0,
 ): Array<{ cell: JourneyMapCell; amount: number }> {
   const normalizedRules = normalizeJourneyRules(rules);
 
@@ -144,7 +214,7 @@ export function getJourneyBonusCells(
         isJackpot: true,
         winner: null,
       },
-      amount: normalizedRules.jackpot.count,
+      amount: getJourneyJackpotCount(normalizedRules, playersCount),
     },
     ...normalizedRules.cells.map((cell) => ({
       cell: {
@@ -162,30 +232,30 @@ export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RUL
 
   return {
     JACKPOT: {
-      name: "Jackpot",
+      name: JOURNEY_ACHIEVEMENT_NAMES.JACKPOT,
       title: "Сокровище",
       rewards: normalizedRules.jackpot.rewards,
     },
     UNLUCKY: {
-      name: "Unlucky",
+      name: JOURNEY_ACHIEVEMENT_NAMES.UNLUCKY,
       title: "Невезучий",
       rewards: normalizedRules.achievements.unlucky.rewards,
       description: "Попадание на 3 клетки с ловушками подряд",
     },
     CAREFUL: {
-      name: "Careful",
+      name: JOURNEY_ACHIEVEMENT_NAMES.CAREFUL,
       title: "Осторожный",
       rewards: normalizedRules.achievements.careful.rewards,
       description: "Попадание на 4 пустые клетки подряд",
     },
     COLLECTOR: {
-      name: "Collector",
+      name: JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR,
       title: "Коллекционер",
       rewards: normalizedRules.achievements.collector.rewards,
-      description: "Попадание на все виды ловушек и бонусных клеток, кроме сокровища",
+      description: "Попадание на все виды бонусных, ловушек и пустую клетку",
     },
     LUCKY: {
-      name: "Lucky",
+      name: JOURNEY_ACHIEVEMENT_NAMES.LUCKY,
       title: "Счастливчик",
       rewards: normalizedRules.achievements.lucky.rewards,
       description: "Попадание на 5 клеток с наградой подряд, без учёта сокровища",
@@ -193,14 +263,8 @@ export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RUL
   };
 }
 
-export function getCollectibleJourneyCells(rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyRulesCell[] {
-  const normalizedRules = normalizeJourneyRules(rules);
-  return normalizedRules.cells.map((cell) => clone(cell));
-}
-
 const normalizedDefaultRules = normalizeJourneyRules(DEFAULT_JOURNEY_RULES);
 
 export const JOURNEY_CONFIG = getJourneyConfig(normalizedDefaultRules);
 export const JOURNEY_BONUS_CELLS = getJourneyBonusCells(normalizedDefaultRules);
 export const JOURNEY_ACHIEVEMENTS = getJourneyAchievements(normalizedDefaultRules);
-export const JOURNEY_COLLECTIBLE_CELLS = getCollectibleJourneyCells(normalizedDefaultRules);

@@ -1,8 +1,11 @@
 import { Alert, Grid, Stack } from "@mui/material";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
+import GameConfigSelectField from "../../components/GameConfigSelectField";
+import type { Project } from "../projects/types";
 import { journeyTexts } from "../../texts/journeyTexts";
-import type { AppConfig } from "../configs/types";
 import JourneyImportDialog from "./components/JourneyImportDialog";
+import JourneyForumMovesPreviewDialog from "./components/JourneyForumMovesPreviewDialog";
+import JourneyForumStateDialog from "./components/JourneyForumStateDialog";
 import JourneyLogCard from "./components/JourneyLogCard";
 import JourneyMapCard from "./components/JourneyMapCard";
 import JourneyPageHeader from "./components/JourneyPageHeader";
@@ -28,14 +31,19 @@ const removePlayerTexts = {
 
 interface JourneyPageProps {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
 
-export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps) {
+export default function JourneyPage({ djName, selectedProject }: JourneyPageProps) {
   const {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     playerNames,
     playerNameErrors,
+    validPlayersCount,
+    forumTopicId,
+    canImportPlayersFromForum,
     playersImportText,
     movesImportText,
     moveInputs,
@@ -48,12 +56,18 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     savedGamesError,
     playersImportOpen,
     movesImportOpen,
+    forumMovesPreview,
+    forumMovesPreviewOpen,
+    forumState,
+    forumStateDialogOpen,
     rulesDialogOpen,
     requestError,
+    gameConfigsError,
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
-    collectibleCells,
+    collectorTargets,
+    achievementProgressByPlayerId,
     canStartGame,
     activePlayers,
     finishedPlayers,
@@ -64,10 +78,11 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
     roundActionsDisabled,
     canSubmitRound,
     playerTimelines,
+    forumLogEntries,
     pageStatusChips,
     loading,
     actions,
-  } = useJourneyGame({ djName, selectedConfig });
+  } = useJourneyGame({ djName, selectedProject });
 
   return (
     <>
@@ -75,14 +90,21 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
         <Grid item xs={12}>
           <JourneyPageHeader
             pageStatusChips={pageStatusChips}
-            canStartGame={canStartGame}
-            hasGame={Boolean(game)}
-            isStartingGame={loading.isStartingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
             isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            controls={
+              <GameConfigSelectField
+                label="Пресет Journey"
+                gameConfigs={gameConfigs}
+                selectedGameConfigId={selectedGameConfigId}
+                onSelectedGameConfigChange={actions.selectGameConfig}
+                loading={loading.isLoadingGameConfigs}
+                hideHelperText
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
+              />
+            }
             onOpenRules={() => actions.setRulesDialogOpen(true)}
-            onStartGame={actions.startGame}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
           />
@@ -94,7 +116,7 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
           </Grid>
         ) : null}
 
-        {!game && !selectedJourneyRules ? (
+        {!game && !selectedJourneyRules && !gameConfigsError && !loading.isLoadingGameConfigs ? (
           <Grid item xs={12}>
             <Alert severity="warning">У выбранного проекта нет Journey-конфига. Запуск новой игры недоступен.</Alert>
           </Grid>
@@ -105,6 +127,12 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
             <Alert severity="error" onClose={() => actions.setRequestError(null)}>
               {requestError}
             </Alert>
+          </Grid>
+        ) : null}
+
+        {!game && gameConfigsError ? (
+          <Grid item xs={12}>
+            <Alert severity="error">{gameConfigsError}</Alert>
           </Grid>
         ) : null}
 
@@ -126,27 +154,39 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
                 canSubmitRound={canSubmitRound}
                 actionsDisabled={roundActionsDisabled}
                 isImportingMoves={loading.isImportingMoves}
+                isPreviewingForumMoves={loading.isPreviewingForumMoves}
+                canImportMovesFromForum={Boolean(game.forumTopicId)}
                 isSubmittingRound={loading.isSubmittingRound}
                 removingPlayerId={loading.removingPlayerId}
                 onMoveInputChange={actions.changeMoveInput}
                 onSkipToggle={actions.toggleSkip}
                 onRemovePlayer={actions.requestRemovePlayerFromGame}
                 onOpenImport={() => actions.setMovesImportOpen(true)}
+                onPreviewForumMoves={actions.previewForumMoves}
                 onSubmitRound={actions.submitRound}
               />
             ) : (
               <JourneyPlayersSetupCard
                 playerNames={playerNames}
                 playerNameErrors={playerNameErrors}
+                validPlayersCount={validPlayersCount}
+                forumTopicId={forumTopicId}
                 actionsDisabled={setupActionsDisabled}
+                canStartGame={canStartGame}
+                canImportPlayersFromForum={canImportPlayersFromForum}
+                isStartingGame={loading.isStartingGame}
+                isImportingPlayersFromForum={loading.isImportingPlayersFromForum}
+                onStartGame={actions.startGame}
+                onForumTopicIdChange={actions.changeForumTopicId}
                 onPlayerNameChange={actions.changePlayerName}
                 onRemovePlayerField={actions.removePlayerField}
                 onAddPlayerField={actions.addPlayerField}
                 onOpenImport={() => actions.setPlayersImportOpen(true)}
+                onImportPlayersFromForum={actions.importPlayersFromForum}
               />
             )}
 
-            <JourneyLogCard comments={game?.comments} />
+            <JourneyLogCard comments={forumLogEntries} />
           </Stack>
         </Grid>
 
@@ -158,8 +198,10 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
               playerTimelines={playerTimelines}
               journeyAchievements={journeyAchievements}
               journeyCurrencies={journeyConfig.currencies}
-              collectibleCells={collectibleCells}
-              finishPosition={journeyConfig.finishPosition}
+              collectorTargets={collectorTargets}
+              achievementProgressByPlayerId={achievementProgressByPlayerId}
+              isAddingForumState={loading.isAddingForumState}
+              onGetForumState={actions.getForumState}
             />
           </Stack>
         </Grid>
@@ -182,6 +224,19 @@ export default function JourneyPage({ djName, selectedConfig }: JourneyPageProps
         helperText={journeyTexts.helperText.playersImport}
         minRows={10}
         loading={loading.isImportingPlayers}
+      />
+
+      <JourneyForumMovesPreviewDialog
+        open={forumMovesPreviewOpen}
+        preview={forumMovesPreview}
+        onClose={actions.closeForumMovesPreview}
+        onApply={actions.applyForumMovesPreview}
+      />
+
+      <JourneyForumStateDialog
+        open={forumStateDialogOpen}
+        forumState={forumState}
+        onClose={() => actions.setForumStateDialogOpen(false)}
       />
 
       <JourneyImportDialog

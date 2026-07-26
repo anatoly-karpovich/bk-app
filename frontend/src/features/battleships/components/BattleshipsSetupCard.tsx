@@ -1,7 +1,9 @@
+import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import SailingRoundedIcon from "@mui/icons-material/SailingRounded";
 import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppChip from "../../../components/ui/AppChip";
+import AppPillButton from "../../../components/ui/AppPillButton";
 import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardRules } from "../types";
@@ -12,6 +14,9 @@ interface BattleshipsSetupCardProps {
   currencies: CurrencyDefinition[];
   fleetSummary: string[];
   actionsDisabled: boolean;
+  canStartGame: boolean;
+  isStartingGame: boolean;
+  onStartGame: () => void;
   onPlayerNameChange: (nextValue: string) => void;
 }
 
@@ -21,11 +26,30 @@ export default function BattleshipsSetupCard({
   currencies,
   fleetSummary,
   actionsDisabled,
+  canStartGame,
+  isStartingGame,
+  onStartGame,
   onPlayerNameChange,
 }: BattleshipsSetupCardProps) {
   return (
     <Card>
-      <CardHeader title={battleshipsTexts.cards.setupTitle} subheader={battleshipsTexts.cards.setupSubtitle} />
+      <CardHeader
+        title={battleshipsTexts.cards.setupTitle}
+        subheader={battleshipsTexts.cards.setupSubtitle}
+        action={
+          <AppPillButton
+            variant="contained"
+            size="small"
+            startIcon={<DirectionsBoatRoundedIcon />}
+            onClick={onStartGame}
+            disabled={actionsDisabled || !canStartGame}
+            loading={isStartingGame}
+            sx={{ mt: 0.5 }}
+          >
+            {battleshipsTexts.actions.newGame}
+          </AppPillButton>
+        }
+      />
       <CardContent>
         <Stack spacing={2}>
           <GamePlayerNameInput label="Ник игрока" value={playerName} onChange={onPlayerNameChange} disabled={actionsDisabled} />

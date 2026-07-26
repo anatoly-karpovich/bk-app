@@ -5,6 +5,13 @@ import type { LottoRules } from "../../lotto/domain/types";
 export interface ConfigCurrency {
   id: string;
   label: string;
+  code?: string;
+  name?: string;
+  shortLabel?: string;
+  valueType?: "integer" | "decimal";
+  precision?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AppGamesConfig {

@@ -66,6 +66,7 @@ export class BattleshipsReadModelFactory {
       status: normalizedGame.status,
       playerName: normalizedGame.playerName,
       djName: normalizedGame.djName,
+      projectId: normalizedGame.projectId,
       configId: normalizedGame.configId,
       configName: normalizedGame.configName,
       boardSize: boardConfig.boardSize,

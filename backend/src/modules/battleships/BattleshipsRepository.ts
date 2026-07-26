@@ -11,15 +11,15 @@ export interface BattleshipsGameDocument extends BattleshipsGame {
 }
 
 export class BattleshipsRepository {
-  async findById(gameId: string): Promise<WithId<BattleshipsGameDocument> | null> {
+  async findByIdAndProjectId(gameId: string, projectId: string): Promise<WithId<BattleshipsGameDocument> | null> {
     const collection = await this.getCollection();
-    return collection.findOne({ _id: this.toObjectId(gameId) });
+    return collection.findOne({ _id: this.toObjectId(gameId), projectId });
   }
 
-  async findLatest(status?: BattleshipsGame["status"]): Promise<WithId<BattleshipsGameDocument> | null> {
+  async findLatest(projectId: string, status?: BattleshipsGame["status"]): Promise<WithId<BattleshipsGameDocument> | null> {
     const collection = await this.getCollection();
 
-    return collection.findOne(status ? { status } : {}, {
+    return collection.findOne(status ? { projectId, status } : { projectId }, {
       sort: {
         updatedAt: -1,
         createdAt: -1,
@@ -27,12 +27,12 @@ export class BattleshipsRepository {
     });
   }
 
-  async findAll(): Promise<Array<WithId<BattleshipsGameDocument>>> {
+  async findByProjectId(projectId: string): Promise<Array<WithId<BattleshipsGameDocument>>> {
     const collection = await this.getCollection();
 
     return collection
       .find(
-        {},
+        { projectId },
         {
           sort: {
             updatedAt: -1,
@@ -50,12 +50,12 @@ export class BattleshipsRepository {
     return collection.findOne({ _id: insertResult.insertedId });
   }
 
-  async update(gameId: string, game: BattleshipsGame): Promise<WithId<BattleshipsGameDocument> | null> {
+  async update(gameId: string, projectId: string, game: BattleshipsGame): Promise<WithId<BattleshipsGameDocument> | null> {
     const collection = await this.getCollection();
     const persistedGame = this.toPersistedGame(game);
 
     return collection.findOneAndUpdate(
-      { _id: this.toObjectId(gameId) },
+      { _id: this.toObjectId(gameId), projectId },
       {
         $set: persistedGame,
       },
@@ -65,10 +65,15 @@ export class BattleshipsRepository {
     );
   }
 
-  async delete(gameId: string): Promise<boolean> {
+  async delete(gameId: string, projectId: string): Promise<boolean> {
     const collection = await this.getCollection();
-    const deleteResult = await collection.deleteOne({ _id: this.toObjectId(gameId) });
+    const deleteResult = await collection.deleteOne({ _id: this.toObjectId(gameId), projectId });
     return deleteResult.deletedCount > 0;
+  }
+
+  async deleteByProjectId(projectId: string): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.deleteMany({ projectId });
   }
 
   private async getCollection() {

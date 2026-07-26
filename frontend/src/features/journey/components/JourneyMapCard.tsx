@@ -13,14 +13,14 @@ import {
 } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
-import type { HoveredCellState, JourneyConfig, JourneyPersistedGame, JourneyPlayerReadModel } from "../types";
+import type { HoveredCellState, JourneyConfig, JourneyPageGame, JourneyPlayerReadModel } from "../types";
 
 interface JourneyMapCardProps {
-  game: JourneyPersistedGame | null;
+  game: JourneyPageGame | null;
   journeyConfig: JourneyConfig;
 }
 
-function getPlayersOnCell(game: JourneyPersistedGame | null, index: number): JourneyPlayerReadModel[] {
+function getPlayersOnCell(game: JourneyPageGame | null, index: number): JourneyPlayerReadModel[] {
   if (!game) {
     return [];
   }

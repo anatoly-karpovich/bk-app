@@ -45,19 +45,21 @@ export function getLottoRangeLabel(rules: LottoRules): string {
 }
 
 function normalizeInteger(value: number, fallbackValue: number): number {
-  if (!Number.isFinite(value)) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
     return Math.trunc(fallbackValue);
   }
 
-  return Math.trunc(value);
+  return Math.trunc(numericValue);
 }
 
 function normalizeNonNegativeInteger(value: number): number {
-  if (!Number.isFinite(value)) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
     return 0;
   }
 
-  return Math.max(0, Math.trunc(value));
+  return Math.max(0, Math.trunc(numericValue));
 }
 
 function normalizePrizeValues(values: LottoCurrencyValue[], fallback: LottoCurrencyValue[]): LottoCurrencyValue[] {

@@ -21,11 +21,11 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { NavLink, useLocation } from "react-router-dom";
-import type { AppConfig } from "../features/configs/types";
+import type { Project } from "../features/projects/types";
 import { appHeaderTexts } from "../texts/appHeaderTexts";
 import AppPillButton from "./ui/AppPillButton";
 import AppTextInput from "./ui/AppTextInput";
@@ -46,9 +46,9 @@ interface NavMenuButtonProps {
 interface AppHeaderProps {
   djName: string;
   onDjNameChange: (nextValue: string) => void;
-  configs: AppConfig[];
-  selectedConfigId: string;
-  onSelectedConfigChange: (nextConfigId: string) => void;
+  projects: Project[];
+  selectedProjectId: string;
+  onSelectedProjectChange: (nextProjectId: string) => void;
 }
 
 const navItems: NavItem[] = [
@@ -68,6 +68,12 @@ const navItems: NavItem[] = [
     label: appHeaderTexts.nav.battleship,
     to: "/battleship",
     icon: <DirectionsBoatRoundedIcon />,
+    disabled: false,
+  },
+  {
+    label: appHeaderTexts.nav.configs,
+    to: "/configs",
+    icon: <TuneRoundedIcon />,
     disabled: false,
   },
 ];
@@ -104,9 +110,9 @@ function NavMenuButton({ item, active, onClick }: NavMenuButtonProps) {
 export default function AppHeader({
   djName,
   onDjNameChange,
-  configs,
-  selectedConfigId,
-  onSelectedConfigChange,
+  projects,
+  selectedProjectId,
+  onSelectedProjectChange,
 }: AppHeaderProps) {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -199,8 +205,8 @@ export default function AppHeader({
                   </Typography>
                   <FormControl fullWidth size="small">
                     <Select
-                      value={selectedConfigId}
-                      onChange={(event: SelectChangeEvent<string>) => onSelectedConfigChange(event.target.value)}
+                      value={selectedProjectId}
+                      onChange={(event: SelectChangeEvent<string>) => onSelectedProjectChange(event.target.value)}
                       sx={{
                         borderRadius: (theme) => theme.customRadii.pill,
                         backgroundColor: "#fff",
@@ -210,37 +216,19 @@ export default function AppHeader({
                         },
                       }}
                     >
-                      {!configs.length ? (
+                      {!projects.length ? (
                         <MenuItem value="" disabled>
-                          Нет конфигов
+                          Нет проектов
                         </MenuItem>
                       ) : null}
-                      {configs.map((config) => (
-                        <MenuItem key={config.id} value={config.id}>
-                          {config.name}
+                      {projects.map((project) => (
+                        <MenuItem key={project.id} value={project.id}>
+                          {project.name}
                         </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Stack>
-
-                <IconButton
-                  component={NavLink}
-                  to="/config"
-                  color="inherit"
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    mb: 0.25,
-                    backgroundColor: location.pathname === "/config" ? "rgba(79, 70, 229, 0.10)" : "transparent",
-                    color: location.pathname === "/config" ? "primary.main" : "text.secondary",
-                    "&:hover": {
-                      backgroundColor: "rgba(79, 70, 229, 0.12)",
-                    },
-                  }}
-                >
-                  <SettingsRoundedIcon fontSize="small" />
-                </IconButton>
               </Stack>
             </Stack>
           </Toolbar>

@@ -3,16 +3,16 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
 import BattleshipsPage from "./features/battleships/BattleshipsPage";
-import ConfigsPage from "./features/configs/ConfigsPage";
-import { useConfigs } from "./features/configs/hooks/useConfigs";
+import GameConfigsPage from "./features/configs/GameConfigsPage";
 import JourneyPage from "./features/journey/JourneyPage";
 import LottoPage from "./features/lotto/LottoPage";
+import { useProjects } from "./features/projects/hooks/useProjects";
 
 const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
 
 export default function App() {
   const [djName, setDjName] = useState(() => localStorage.getItem(DJ_NAME_STORAGE_KEY) ?? "");
-  const { configs, selectedConfig, isLoading, error, actions } = useConfigs();
+  const { projects, selectedProject, error, actions } = useProjects();
 
   useEffect(() => {
     localStorage.setItem(DJ_NAME_STORAGE_KEY, djName);
@@ -29,12 +29,12 @@ export default function App() {
       <AppHeader
         djName={djName}
         onDjNameChange={setDjName}
-        configs={configs}
-        selectedConfigId={selectedConfig?.id ?? ""}
-        onSelectedConfigChange={actions.selectConfig}
+        projects={projects}
+        selectedProjectId={selectedProject?.id ?? ""}
+        onSelectedProjectChange={actions.selectProject}
       />
       <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3.5 } }}>
-        {error && !configs.length ? (
+        {error && !projects.length ? (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
           </Alert>
@@ -42,22 +42,11 @@ export default function App() {
 
         <Routes>
           <Route path="/" element={<Navigate to="/journey" replace />} />
-          <Route path="/journey" element={<JourneyPage djName={djName} selectedConfig={selectedConfig} />} />
-          <Route path="/lotto" element={<LottoPage djName={djName} selectedConfig={selectedConfig} />} />
-          <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedConfig={selectedConfig} />} />
-          <Route
-            path="/config"
-            element={
-              <ConfigsPage
-                configs={configs}
-                selectedConfigId={selectedConfig?.id ?? ""}
-                onSelectConfig={actions.selectConfig}
-                onReload={actions.loadConfigs}
-                isLoading={isLoading}
-                error={error}
-              />
-            }
-          />
+          <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
+          <Route path="/config" element={<Navigate to="/configs" replace />} />
         </Routes>
       </Container>
     </Box>

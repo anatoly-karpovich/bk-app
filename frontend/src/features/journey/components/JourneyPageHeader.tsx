@@ -1,35 +1,29 @@
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import type { ReactNode } from "react";
 import GamePageHeader from "../../../components/GamePageHeader";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import type { JourneyStatusChip } from "../types";
 
 interface JourneyPageHeaderProps {
   pageStatusChips: JourneyStatusChip[];
-  canStartGame: boolean;
-  hasGame: boolean;
-  isStartingGame: boolean;
   isLoadingSavedGames: boolean;
   isResettingGame: boolean;
   actionsDisabled: boolean;
+  controls?: ReactNode;
   onOpenRules: () => void;
-  onStartGame: () => void;
   onOpenSavedGames: () => void;
   onRestartGame: () => void;
 }
 
 export default function JourneyPageHeader({
   pageStatusChips,
-  canStartGame,
-  hasGame,
-  isStartingGame,
   isLoadingSavedGames,
   isResettingGame,
   actionsDisabled,
+  controls,
   onOpenRules,
-  onStartGame,
   onOpenSavedGames,
   onRestartGame,
 }: JourneyPageHeaderProps) {
@@ -38,6 +32,7 @@ export default function JourneyPageHeader({
       title={journeyTexts.pageTitle}
       description={journeyTexts.pageDescription}
       chips={pageStatusChips}
+      controls={controls}
       actions={[
         {
           key: "rules",
@@ -46,15 +41,6 @@ export default function JourneyPageHeader({
           onClick: onOpenRules,
           disabled: actionsDisabled,
           variant: "outlined",
-        },
-        {
-          key: "new-game",
-          label: journeyTexts.actions.newGame,
-          icon: <PlayArrowRoundedIcon />,
-          onClick: onStartGame,
-          disabled: actionsDisabled || hasGame || !canStartGame,
-          loading: isStartingGame,
-          variant: "contained",
         },
         {
           key: "saved-games",

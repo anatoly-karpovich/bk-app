@@ -1,4 +1,8 @@
-import type { ConfigCurrency } from "../../configs/domain/types";
+/**
+ * Offline legacy Journey normalizer used only by backup import.
+ * It is deliberately excluded from the application runtime.
+ */
+import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import {
   applyJourneyRewardsToBalance,
   balanceToJourneyCurrencyValues,
@@ -9,9 +13,9 @@ import {
   normalizeJourneyBalance,
   normalizeJourneyCurrencyValues,
 } from "./currency";
+import { getJourneyAchievementProgress } from "./achievementProgress";
 import {
   DEFAULT_JOURNEY_RULES,
-  getCollectibleJourneyCells,
   getJourneyAchievements,
   getJourneyBonusCells,
   getJourneyConfig,
@@ -36,7 +40,6 @@ import type {
   JourneyRound,
   JourneyRoundEntry,
   JourneyRules,
-  JourneyRulesCell,
   JourneyTimelineEntry,
   RandomFn,
 } from "./types";
@@ -100,14 +103,6 @@ function buildRoundHeader(moveIndex: number): string {
   return `==================== Ход ${moveIndex} ====================`;
 }
 
-function isTrapMove(move: { cell: JourneyMapCell | null }): boolean {
-  return Boolean(move.cell && hasNegativeJourneyRewards(move.cell.rewards));
-}
-
-function isPositiveRewardMove(move: { cell: JourneyMapCell | null }): boolean {
-  return Boolean(move.cell && hasPositiveJourneyRewards(move.cell.rewards));
-}
-
 function getPlayerStatus(player: JourneyPlayer, finishPosition: number): JourneyPlayer["status"] {
   if (player.removedAt || player.status === "removed") {
     return "removed";
@@ -141,27 +136,6 @@ function refreshGameIndexes(game: JourneyGame, updateTimestamp = true): JourneyG
   }
 
   return game;
-}
-
-function isCarefulEligibleMove(
-  move: { currentPosition?: number | null; position?: number; type?: string | null; cell: JourneyMapCell | null },
-  finishPosition: number,
-): boolean {
-  const movePosition = move.currentPosition ?? move.position;
-
-  if (movePosition === finishPosition || move.type === MOVE_TYPES.JACKPOT) {
-    return false;
-  }
-
-  if (!move.cell) {
-    return true;
-  }
-
-  if (move.cell.isJackpot) {
-    return move.type !== MOVE_TYPES.JACKPOT;
-  }
-
-  return move.cell.rewards.length === 0;
 }
 
 function createPlayer(nickname: string, rules: JourneyRules, currencies: ConfigCurrency[]): JourneyPlayer {
@@ -410,55 +384,35 @@ function getAchievementMovesForPlayer(
   rules: JourneyRules,
 ): JourneyAchievementMove[] {
   const journeyAchievements = getJourneyAchievements(rules);
-  const collectibleCellIds = getCollectibleJourneyCells(rules).map((cell) => cell.id);
-  const { finishPosition } = getJourneyConfig(rules);
+  const progress = getJourneyAchievementProgress(
+    {
+      ...player,
+      movesHistory: [
+        ...player.movesHistory,
+        {
+          position: move.currentPosition,
+          cell: move.cell,
+          type: move.type,
+        },
+      ],
+    },
+    rules,
+  );
   const achievementMoves: JourneyAchievement[] = [];
 
-  if (
-    player.movesHistory.length >= 2 &&
-    player.movesHistory
-      .slice(-2)
-      .every((historyMove) => historyMove.cell && hasNegativeJourneyRewards(historyMove.cell.rewards)) &&
-    isTrapMove(move) &&
-    !playerHasBonus(player, journeyAchievements.UNLUCKY.name)
-  ) {
+  if (!progress.unlucky.achieved && progress.unlucky.current >= progress.unlucky.target) {
     achievementMoves.push(journeyAchievements.UNLUCKY);
   }
 
-  if (
-    player.movesHistory.length >= 3 &&
-    [...player.movesHistory.slice(-3), move].every((historyMove) =>
-      isCarefulEligibleMove(historyMove, finishPosition),
-    ) &&
-    !playerHasBonus(player, journeyAchievements.CAREFUL.name)
-  ) {
+  if (!progress.careful.achieved && progress.careful.current >= progress.careful.target) {
     achievementMoves.push(journeyAchievements.CAREFUL);
   }
 
-  if (
-    player.movesHistory.length >= collectibleCellIds.length - 1 &&
-    !playerHasBonus(player, journeyAchievements.COLLECTOR.name)
-  ) {
-    const historyWithCurrentMove = [...player.movesHistory, { cell: move.cell }];
-    const hasAllCellTypes = collectibleCellIds.every((cellId) =>
-      historyWithCurrentMove.some(
-        (historyMove) => historyMove.cell && !historyMove.cell.isJackpot && historyMove.cell.id === cellId,
-      ),
-    );
-
-    if (hasAllCellTypes) {
-      achievementMoves.push(journeyAchievements.COLLECTOR);
-    }
+  if (!progress.collector.achieved && progress.collector.missingCellIds.length === 0) {
+    achievementMoves.push(journeyAchievements.COLLECTOR);
   }
 
-  if (
-    player.movesHistory.length >= 4 &&
-    player.movesHistory
-      .slice(-4)
-      .every((historyMove) => historyMove.cell && hasPositiveJourneyRewards(historyMove.cell.rewards)) &&
-    isPositiveRewardMove(move) &&
-    !playerHasBonus(player, journeyAchievements.LUCKY.name)
-  ) {
+  if (!progress.lucky.achieved && progress.lucky.current >= progress.lucky.target) {
     achievementMoves.push(journeyAchievements.LUCKY);
   }
 
@@ -761,6 +715,7 @@ export function normalizeJourneyGame(rawGame: JourneyGame | null): JourneyGame |
   game.updatedAt = game.updatedAt ?? game.createdAt;
   game.status = game.status ?? "in_progress";
   game.djName = game.djName ?? "";
+  game.projectId = game.projectId ?? "";
   game.configId = game.configId ?? game.rulesetId ?? "oldbk2";
   game.configName = game.configName ?? game.rulesetName ?? game.configId;
 
@@ -868,6 +823,7 @@ export function createJourneyGame(
     rules = DEFAULT_JOURNEY_RULES,
     currencies = [createDefaultJourneyCurrency()],
     djName = "",
+    projectId = "",
     configId = "oldbk2",
     configName = configId,
   }: {
@@ -875,6 +831,7 @@ export function createJourneyGame(
     rules?: JourneyRules;
     currencies?: ConfigCurrency[];
     djName?: string;
+    projectId?: string;
     configId?: string;
     configName?: string;
   } = {},
@@ -889,6 +846,7 @@ export function createJourneyGame(
     moveIndex: 0,
     status: "in_progress",
     djName: djName.trim(),
+    projectId: projectId.trim(),
     configId,
     configName,
     currencies: normalizedCurrencies,
@@ -1118,7 +1076,20 @@ export function makeJourneyRound(
     const player = getPlayerById(nextGame, move.playerId);
 
     if (player) {
-      roundComments.push(buildJourneyComment({ move, player, currencies: nextGame.currencies, randomFn }));
+      roundComments.push(
+        buildJourneyComment({
+          event: {
+            kind: "move",
+            playerNickname: player.nickname,
+            moveType: move.type,
+            requestedRewards: move.requestedRewards,
+            appliedRewards: move.appliedRewards,
+            balanceAfter: balanceToJourneyCurrencyValues(player.balance, nextGame.currencies),
+          },
+          currencies: nextGame.currencies,
+          randomFn,
+        }),
+      );
     }
   });
 
@@ -1128,10 +1099,14 @@ export function makeJourneyRound(
     if (player) {
       roundComments.push(
         buildJourneyComment({
-          achievement: achievementMove.achievement,
-          player,
+          event: {
+            kind: "achievement",
+            playerNickname: player.nickname,
+            achievement: achievementMove.achievement,
+            appliedRewards: achievementMove.appliedRewards,
+            balanceAfter: balanceToJourneyCurrencyValues(player.balance, nextGame.currencies),
+          },
           currencies: nextGame.currencies,
-          appliedRewards: achievementMove.appliedRewards,
           randomFn,
         }),
       );

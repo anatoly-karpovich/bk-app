@@ -1,36 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppConfig } from "../../configs/types";
+import {
+  getJourneyGameConfigsRequest,
+  getSelectedGameConfigStorageKey,
+} from "../../projects/api/projects.client";
+import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
+import type { JourneyGameConfig, Project } from "../../projects/types";
 import {
   createJourneyGameRequest,
   deleteJourneyGameRequest,
+  getJourneyForumStateRequest,
   getJourneyGameByIdRequest,
+  importJourneyPlayersFromForumRequest,
+  previewJourneyForumMovesRequest,
   listJourneyGamesRequest,
   parseJourneyMovesRequest,
   parseJourneyPlayersRequest,
   removeJourneyPlayerRequest,
   submitJourneyRoundRequest,
 } from "../api/journey.client";
-import { DEFAULT_JOURNEY_RULES, getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "../config";
+import { DEFAULT_JOURNEY_RULES, getJourneyAchievements, getJourneyConfig } from "../config";
 import {
   createEmptyMoveState,
   createEmptySkipState,
   getJourneyActivePlayers,
   getJourneyFinishedPlayers,
-  getPlayerNameErrors,
   getJourneyPlayerTimelines,
   getJourneyResults,
   getJourneyVisiblePlayers,
-  isValidDiceValue,
+  getPlayerNameErrors,
   isJourneyGameOver,
+  isValidDiceValue,
 } from "../journey-page.helpers";
 import { mapParsedMovesToPlayerInputs } from "../mappers/journey.mapper";
 import { clearJourneyGame, loadJourneyGameId, saveJourneyGameId } from "../storage";
 import type {
+  JourneyForumStateMessage,
   JourneyMoveInputs,
-  JourneyPersistedGame,
-  JourneyPlayer,
+  JourneyForumMovesPreview,
+  JourneyPageGame,
   JourneyPlayerReadModel,
-  JourneyRulesCell,
   JourneySavedGameSummary,
   JourneySkippedPlayers,
   JourneyStatusChip,
@@ -40,17 +48,46 @@ import { journeyTexts } from "../../../texts/journeyTexts";
 
 interface UseJourneyGameParams {
   djName: string;
-  selectedConfig: AppConfig | null;
+  selectedProject: Project | null;
 }
+
+const JOURNEY_GAME_CONFIG_STORAGE_KEY = getSelectedGameConfigStorageKey("journey");
+const SAVED_GAME_PROJECT_MISMATCH_ERROR = "Saved game belongs to another project.";
+const NO_PRESET_SELECTED_LABEL = "No preset selected";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Journey request failed";
 }
 
-export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams) {
-  const [game, setGame] = useState<JourneyPersistedGame | null>(null);
+function resolveSelectedGameConfigId(gameConfigs: JourneyGameConfig[]) {
+  const storedGameConfigId = loadSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY);
+  const fallbackGameConfigId = gameConfigs[0]?.id ?? "";
+
+  return (
+    (storedGameConfigId && gameConfigs.some((gameConfig) => gameConfig.id === storedGameConfigId) && storedGameConfigId) ||
+    fallbackGameConfigId
+  );
+}
+
+function mergeUniquePlayerNames(...nameGroups: string[][]): string[] {
+  const namesByNormalizedName = new Map<string, string>();
+
+  for (const name of nameGroups.flat()) {
+    const trimmedName = name.trim();
+    const normalizedName = trimmedName.toLocaleLowerCase("ru-RU");
+    if (trimmedName && !namesByNormalizedName.has(normalizedName)) {
+      namesByNormalizedName.set(normalizedName, trimmedName);
+    }
+  }
+
+  return [...namesByNormalizedName.values()];
+}
+
+export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams) {
+  const [game, setGame] = useState<JourneyPageGame | null>(null);
   const [storedGameId, setStoredGameId] = useState<string | null>(loadJourneyGameId());
   const [playerNames, setPlayerNames] = useState([""]);
+  const [forumTopicId, setForumTopicId] = useState("");
   const [playersImportText, setPlayersImportText] = useState("");
   const [movesImportText, setMovesImportText] = useState("");
   const [moveInputs, setMoveInputs] = useState<JourneyMoveInputs>({});
@@ -60,17 +97,28 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const [savedGamesError, setSavedGamesError] = useState<string | null>(null);
   const [playersImportOpen, setPlayersImportOpen] = useState(false);
   const [movesImportOpen, setMovesImportOpen] = useState(false);
+  const [forumMovesPreview, setForumMovesPreview] = useState<JourneyForumMovesPreview | null>(null);
+  const [forumMovesPreviewOpen, setForumMovesPreviewOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [gameConfigsError, setGameConfigsError] = useState<string | null>(null);
+  const [gameConfigs, setGameConfigs] = useState<JourneyGameConfig[]>([]);
+  const [selectedGameConfigId, setSelectedGameConfigId] = useState(() => loadSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY) ?? "");
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isRestoringGame, setIsRestoringGame] = useState(false);
   const [isLoadingSavedGames, setIsLoadingSavedGames] = useState(false);
-  const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
+  const [isLoadingGameConfigs, setIsLoadingGameConfigs] = useState(false);
   const [isDeletingSavedGame, setIsDeletingSavedGame] = useState(false);
   const [isResettingGame, setIsResettingGame] = useState(false);
   const [isSubmittingRound, setIsSubmittingRound] = useState(false);
   const [isImportingPlayers, setIsImportingPlayers] = useState(false);
+  const [isImportingPlayersFromForum, setIsImportingPlayersFromForum] = useState(false);
   const [isImportingMoves, setIsImportingMoves] = useState(false);
+  const [isPreviewingForumMoves, setIsPreviewingForumMoves] = useState(false);
+  const [isAddingForumState, setIsAddingForumState] = useState(false);
+  const [forumState, setForumState] = useState<JourneyForumStateMessage | null>(null);
+  const [forumStateDialogOpen, setForumStateDialogOpen] = useState(false);
+  const [deletingSavedGame, setDeletingSavedGame] = useState<JourneySavedGameSummary | null>(null);
   const [removingPlayerId, setRemovingPlayerId] = useState<string | null>(null);
   const [playerPendingRemoval, setPlayerPendingRemoval] = useState<JourneyPlayerReadModel | null>(null);
 
@@ -83,24 +131,95 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setStoredGameId(game.id);
   }, [game]);
 
+  useEffect(() => {
+    if (!selectedProject?.id) {
+      setGameConfigs([]);
+      setSelectedGameConfigId("");
+      setGameConfigsError(null);
+      setIsLoadingGameConfigs(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGameConfigs() {
+      setGameConfigsError(null);
+      setIsLoadingGameConfigs(true);
+
+      try {
+        const nextGameConfigs = await getJourneyGameConfigsRequest(selectedProject.id);
+
+        if (cancelled) {
+          return;
+        }
+
+        const resolvedGameConfigId = resolveSelectedGameConfigId(nextGameConfigs);
+        setGameConfigs(nextGameConfigs);
+        setSelectedGameConfigId(resolvedGameConfigId);
+
+        if (resolvedGameConfigId) {
+          saveSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY, resolvedGameConfigId);
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setGameConfigs([]);
+        setSelectedGameConfigId("");
+        setGameConfigsError(getErrorMessage(error));
+      } finally {
+        if (!cancelled) {
+          setIsLoadingGameConfigs(false);
+        }
+      }
+    }
+
+    void loadGameConfigs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProject?.id]);
+
+  useEffect(() => {
+    if (!game) {
+      return;
+    }
+
+    if (game.projectId !== (selectedProject?.id ?? "")) {
+      resetJourneyPageState();
+    }
+  }, [game, selectedProject?.id]);
+
   const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
-  const selectedJourneyRules = selectedConfig?.games.journey ?? null;
-  const selectedCurrencies = selectedConfig?.currencies ?? [{ id: "default", label: "фишек" }];
+  const validPlayersCount = playerNameErrors.filter((error) => !error).length;
+  const selectedJourneyGameConfig = useMemo(
+    () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
+    [gameConfigs, selectedGameConfigId],
+  );
+  const selectedJourneyRules = selectedJourneyGameConfig?.rules ?? null;
+  const selectedCurrencies = selectedProject?.currencies ?? [];
   const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
   const journeyCurrencies = useMemo(() => game?.currencies ?? selectedCurrencies, [game, selectedCurrencies]);
   const journeyConfig = useMemo(
-    () => game?.derived?.journeyConfig ?? getJourneyConfig(journeyRules, journeyCurrencies),
+    () => game?.journeyConfig ?? getJourneyConfig(journeyRules, journeyCurrencies),
     [game, journeyCurrencies, journeyRules],
   );
   const journeyAchievements = useMemo(
-    () => game?.derived?.journeyAchievements ?? getJourneyAchievements(journeyRules),
+    () => game?.journeyAchievements ?? getJourneyAchievements(journeyRules),
     [game, journeyRules],
   );
-  const collectibleCells = useMemo<JourneyRulesCell[]>(
-    () => game?.derived?.collectibleCells ?? getCollectibleJourneyCells(journeyRules),
-    [game, journeyRules],
+  const collectorTargets = game?.collectorTargets ?? [];
+  const achievementProgressByPlayerId = game?.achievementProgressByPlayerId ?? {};
+  const canStartGame =
+    Boolean(selectedProject?.id) &&
+    Boolean(selectedJourneyGameConfig) &&
+    playerNames.length > 0 &&
+    playerNameErrors.every((error) => !error);
+  const canImportPlayersFromForum = Boolean(
+    selectedProject?.id && djName.trim() && Number.isSafeInteger(Number(forumTopicId)) && Number(forumTopicId) > 0,
   );
-  const canStartGame = Boolean(selectedJourneyRules) && playerNames.length > 0 && playerNameErrors.every((error) => !error);
 
   const activePlayers = useMemo<JourneyPlayerReadModel[]>(() => getJourneyActivePlayers(game), [game]);
   const finishedPlayers = useMemo<JourneyPlayerReadModel[]>(() => getJourneyFinishedPlayers(game), [game]);
@@ -113,17 +232,21 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       isStartingGame ||
       isRestoringGame ||
       isLoadingSavedGames ||
+      isLoadingGameConfigs ||
       isDeletingSavedGame ||
       isResettingGame ||
       isSubmittingRound ||
       isImportingPlayers ||
+      isImportingPlayersFromForum ||
       isImportingMoves ||
       Boolean(removingPlayerId),
     [
+      isDeletingSavedGame,
       isImportingMoves,
       isImportingPlayers,
+      isImportingPlayersFromForum,
+      isLoadingGameConfigs,
       isLoadingSavedGames,
-      isDeletingSavedGame,
       isResettingGame,
       isRestoringGame,
       isStartingGame,
@@ -132,8 +255,8 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     ],
   );
   const setupActionsDisabled = useMemo(
-    () => isStartingGame || isImportingPlayers || isRestoringGame || isResettingGame,
-    [isImportingPlayers, isResettingGame, isRestoringGame, isStartingGame],
+    () => isStartingGame || isImportingPlayers || isImportingPlayersFromForum || isLoadingGameConfigs || isRestoringGame || isResettingGame,
+    [isImportingPlayers, isImportingPlayersFromForum, isLoadingGameConfigs, isResettingGame, isRestoringGame, isStartingGame],
   );
   const roundActionsDisabled = useMemo(
     () => isSubmittingRound || isImportingMoves || isResettingGame || isRestoringGame || Boolean(removingPlayerId),
@@ -158,7 +281,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   const pageStatusChips = useMemo<JourneyStatusChip[]>(() => {
     const resolvedDjName = game?.djName?.trim() || djName.trim();
     const rulesetLabel: JourneyStatusChip = {
-      label: `${journeyTexts.statuses.rulesetPrefix} ${game ? game.configName : selectedConfig?.name ?? "Не выбран"}`,
+      label: `${journeyTexts.statuses.rulesetPrefix} ${game?.configName ?? selectedJourneyGameConfig?.name ?? NO_PRESET_SELECTED_LABEL}`,
       color: "secondary",
     };
 
@@ -179,7 +302,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     ];
 
     if (activeGame) {
-      chips.push({ label: `${journeyTexts.statuses.roundPrefix} ${game.rounds.length}`, color: "primary" });
+      chips.push({ label: `${journeyTexts.statuses.roundPrefix} ${game.roundsCount}`, color: "primary" });
       chips.push({ label: `${totalGamePlayers} ${journeyTexts.statuses.playersSuffix}`, color: "info" });
     }
 
@@ -188,9 +311,9 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     }
 
     return chips;
-  }, [activeGame, djName, game, gameIsOver, selectedConfig?.name, totalGamePlayers]);
+  }, [activeGame, djName, game, gameIsOver, selectedJourneyGameConfig?.name, totalGamePlayers]);
 
-  function resetRoundUi(players: JourneyPlayer[] = []) {
+  function resetRoundUi(players: Array<{ id: string }> = []) {
     setMoveInputs(createEmptyMoveState(players));
     setSkippedPlayers(createEmptySkipState(players));
     setMovesImportText("");
@@ -201,8 +324,18 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setStoredGameId(null);
     setGame(null);
     setPlayerNames([""]);
+    setForumTopicId("");
     setPlayersImportText("");
+    setForumState(null);
+    setForumStateDialogOpen(false);
+    setForumMovesPreview(null);
+    setForumMovesPreviewOpen(false);
     resetRoundUi([]);
+  }
+
+  function selectGameConfig(nextGameConfigId: string) {
+    setSelectedGameConfigId(nextGameConfigId);
+    saveSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY, nextGameConfigId);
   }
 
   async function loadSavedGames() {
@@ -210,9 +343,10 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsLoadingSavedGames(true);
 
     try {
-      const nextSavedGames = await listJourneyGamesRequest();
-      setSavedGames(nextSavedGames);
-      return nextSavedGames;
+      const filteredSavedGames = selectedProject?.id ? await listJourneyGamesRequest(selectedProject.id) : [];
+
+      setSavedGames(filteredSavedGames);
+      return filteredSavedGames;
     } catch (error) {
       setSavedGames([]);
       setSavedGamesError(getErrorMessage(error));
@@ -228,7 +362,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
   }
 
   async function restoreSavedGame(gameId: string) {
-    if (!gameId) {
+    if (!gameId || !selectedProject?.id) {
       return;
     }
 
@@ -236,11 +370,24 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsRestoringGame(true);
 
     try {
-      const restoredGame = await getJourneyGameByIdRequest(gameId);
+      const restoredGame = await getJourneyGameByIdRequest(selectedProject.id, gameId);
+
+      if (selectedProject?.id && restoredGame.projectId !== selectedProject.id) {
+        setSavedGamesError(SAVED_GAME_PROJECT_MISMATCH_ERROR);
+        return;
+      }
+
       setGame(restoredGame);
+      setForumState(null);
+      setForumStateDialogOpen(false);
       resetRoundUi(getJourneyActivePlayers(restoredGame));
       setSavedGamesDialogOpen(false);
       setStoredGameId(restoredGame.id);
+
+      if (gameConfigs.some((gameConfig) => gameConfig.id === restoredGame.configId)) {
+        setSelectedGameConfigId(restoredGame.configId);
+        saveSelectedGameConfigId(JOURNEY_GAME_CONFIG_STORAGE_KEY, restoredGame.configId);
+      }
     } catch (error) {
       setSavedGamesError(getErrorMessage(error));
     } finally {
@@ -269,7 +416,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsDeletingSavedGame(true);
 
     try {
-      await deleteJourneyGameRequest(deletingSavedGame.id);
+      await deleteJourneyGameRequest(deletingSavedGame.projectId, deletingSavedGame.id);
       setSavedGames((current) => current.filter((gameItem) => gameItem.id !== deletingSavedGame.id));
 
       if (storedGameId === deletingSavedGame.id) {
@@ -291,7 +438,13 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   async function startGame() {
     const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
-    if (!cleanNames.length || !selectedConfig?.id || !selectedJourneyRules) {
+    if (!cleanNames.length || !selectedProject?.id || !selectedJourneyGameConfig || !selectedJourneyRules) {
+      return;
+    }
+
+    const parsedForumTopicId = forumTopicId ? Number(forumTopicId) : undefined;
+    if (parsedForumTopicId !== undefined && (!Number.isSafeInteger(parsedForumTopicId) || parsedForumTopicId < 1)) {
+      setRequestError(journeyTexts.validation.invalidForumTopic);
       return;
     }
 
@@ -300,12 +453,16 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
     try {
       const nextGame = await createJourneyGameRequest({
+        projectId: selectedProject.id,
+        gameConfigId: selectedJourneyGameConfig.id,
         nicknames: cleanNames,
-        configId: selectedConfig.id,
         djName: djName.trim(),
+        forumTopicId: parsedForumTopicId,
       });
 
       setGame(nextGame);
+      setForumState(null);
+      setForumStateDialogOpen(false);
       resetRoundUi(getJourneyActivePlayers(nextGame));
     } catch (error) {
       setRequestError(getErrorMessage(error));
@@ -327,6 +484,10 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   function changePlayerName(index: number, value: string) {
     setPlayerNames((current) => current.map((name, nameIndex) => (nameIndex === index ? value : name)));
+  }
+
+  function changeForumTopicId(value: string) {
+    setForumTopicId(value);
   }
 
   function removePlayerField(index: number) {
@@ -354,10 +515,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
         return false;
       }
 
-      setPlayerNames((current) => {
-        const merged = [...current.map((name) => name.trim()).filter(Boolean), ...importedNames];
-        return [...new Set(merged)];
-      });
+      setPlayerNames((current) => mergeUniquePlayerNames(current, importedNames));
 
       return true;
     } catch (error) {
@@ -365,6 +523,33 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       return false;
     } finally {
       setIsImportingPlayers(false);
+    }
+  }
+
+  async function importPlayersFromForum() {
+    const parsedForumTopicId = Number(forumTopicId);
+    if (!selectedProject?.id || !djName.trim() || !Number.isSafeInteger(parsedForumTopicId) || parsedForumTopicId < 1) {
+      return;
+    }
+
+    setRequestError(null);
+    setIsImportingPlayersFromForum(true);
+
+    try {
+      const importedNames = await importJourneyPlayersFromForumRequest(selectedProject.id, {
+        forumTopicId: parsedForumTopicId,
+        djName: djName.trim(),
+      });
+
+      if (!importedNames.length) {
+        return;
+      }
+
+      setPlayerNames((current) => mergeUniquePlayerNames(current, importedNames));
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsImportingPlayersFromForum(false);
     }
   }
 
@@ -417,6 +602,41 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     }
   }
 
+  async function previewForumMoves() {
+    if (!game?.id || isPreviewingForumMoves) {
+      return;
+    }
+
+    setRequestError(null);
+    setIsPreviewingForumMoves(true);
+
+    try {
+      const preview = await previewJourneyForumMovesRequest(game.projectId, game.id);
+      setForumMovesPreview(preview);
+      setForumMovesPreviewOpen(true);
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsPreviewingForumMoves(false);
+    }
+  }
+
+  function closeForumMovesPreview() {
+    setForumMovesPreviewOpen(false);
+  }
+
+  function applyForumMovesPreview() {
+    if (!forumMovesPreview) {
+      return;
+    }
+
+    setMoveInputs((current) => ({
+      ...current,
+      ...Object.fromEntries(forumMovesPreview.moves.map((move) => [move.playerId, String(move.dice)])),
+    }));
+    setForumMovesPreviewOpen(false);
+  }
+
   async function submitRound() {
     if (!game?.id) {
       return;
@@ -434,7 +654,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setIsSubmittingRound(true);
 
     try {
-      const nextGame = await submitJourneyRoundRequest(game.id, {
+      const nextGame = await submitJourneyRoundRequest(game.projectId, game.id, {
         moves,
         skippedPlayerIds,
       });
@@ -448,6 +668,25 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     }
   }
 
+  async function getForumState() {
+    if (!game?.id || isAddingForumState) {
+      return;
+    }
+
+    setRequestError(null);
+    setIsAddingForumState(true);
+
+    try {
+      const forumState = await getJourneyForumStateRequest(game.projectId, game.id);
+      setForumState(forumState);
+      setForumStateDialogOpen(true);
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsAddingForumState(false);
+    }
+  }
+
   async function removePlayerFromGame(playerId: string) {
     if (!game?.id) {
       return false;
@@ -457,7 +696,7 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     setRemovingPlayerId(playerId);
 
     try {
-      const nextGame = await removeJourneyPlayerRequest(game.id, playerId);
+      const nextGame = await removeJourneyPlayerRequest(game.projectId, game.id, playerId);
       setGame(nextGame);
 
       setMoveInputs((current) => {
@@ -512,8 +751,13 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
 
   return {
     game,
+    gameConfigs,
+    selectedGameConfigId,
     playerNames,
     playerNameErrors,
+    validPlayersCount,
+    forumTopicId,
+    canImportPlayersFromForum,
     playersImportText,
     movesImportText,
     moveInputs,
@@ -526,12 +770,18 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     savedGamesError,
     playersImportOpen,
     movesImportOpen,
+    forumMovesPreview,
+    forumMovesPreviewOpen,
+    forumState,
+    forumStateDialogOpen,
     rulesDialogOpen,
     requestError,
+    gameConfigsError,
     selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
-    collectibleCells,
+    collectorTargets,
+    achievementProgressByPlayerId,
     canStartGame,
     activePlayers,
     finishedPlayers,
@@ -542,16 +792,21 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
     roundActionsDisabled,
     canSubmitRound,
     playerTimelines,
+    forumLogEntries: game?.forumLog ?? [],
     pageStatusChips,
     loading: {
       isStartingGame,
       isRestoringGame,
       isLoadingSavedGames,
+      isLoadingGameConfigs,
       isDeletingSavedGame,
       isResettingGame,
       isSubmittingRound,
       isImportingPlayers,
+      isImportingPlayersFromForum,
       isImportingMoves,
+      isPreviewingForumMoves,
+      isAddingForumState,
       removingPlayerId,
     },
     actions: {
@@ -559,9 +814,11 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       setPlayersImportOpen,
       setMovesImportOpen,
       setRulesDialogOpen,
+      setForumStateDialogOpen,
       setPlayersImportText,
       setMovesImportText,
       setRequestError,
+      selectGameConfig,
       openSavedGamesDialog,
       restoreSavedGame,
       requestDeleteSavedGame,
@@ -571,14 +828,20 @@ export function useJourneyGame({ djName, selectedConfig }: UseJourneyGameParams)
       cancelRemovePlayerFromGame,
       confirmRemovePlayerFromGame,
       startGame,
+      changeForumTopicId,
       restartGame,
       addPlayerField,
       changePlayerName,
       removePlayerField,
       importPlayers,
+      importPlayersFromForum,
       changeMoveInput,
       toggleSkip,
       importMoves,
+      previewForumMoves,
+      closeForumMovesPreview,
+      applyForumMovesPreview,
+      getForumState,
       submitRound,
       removePlayerFromGame,
     },

@@ -1,85 +1,92 @@
 import type { WithId } from "mongodb";
-import type { ConfigCurrency } from "../configs/domain/types";
+import { getJourneyCollectorTargets } from "./domain/achievementProgress";
+import { getJourneyAchievements, getJourneyConfig, JOURNEY_ACHIEVEMENT_NAMES } from "./domain/config";
 import { balanceToJourneyCurrencyValues } from "./domain/currency";
-import { getCollectibleJourneyCells, getJourneyAchievements, getJourneyConfig } from "./domain/config";
-import { JourneyEngine } from "./JourneyEngine";
 import type {
+  JourneyAchievement,
   JourneyGameListItemReadModel,
-  JourneyGameReadModel,
-  JourneyPlayer,
-  JourneyPlayerReadModel,
+  JourneyGameView,
+  JourneyV2Game,
+  JourneyV2Player,
 } from "./domain/types";
-import type { JourneyGameDocument } from "./JourneyRepository";
+import { JourneyV2Engine } from "./JourneyV2Engine";
 
+/** Projects the only supported persisted Journey format into the public API model. */
 export class JourneyReadModelFactory {
-  constructor(private readonly engine = new JourneyEngine()) {}
+  constructor(private readonly engine = new JourneyV2Engine()) {}
 
-  create(document: WithId<JourneyGameDocument>): JourneyGameReadModel {
-    const { _id, ...game } = document;
-    const normalizedGame = this.engine.normalizeGame(game);
-
-    if (!normalizedGame) {
-      throw new Error("Journey response normalization failed");
-    }
-
-    const { playersById: _ignoredPlayersById, ...publicGame } = normalizedGame;
+  create(game: WithId<JourneyV2Game>): JourneyGameView {
+    const players = game.stateV2.players.map((player) => this.toPlayerView(player, game));
+    const activePlayerIds = game.stateV2.players.filter((player) => player.status === "active").map((player) => player.id);
 
     return {
-      id: _id.toHexString(),
-      ...this.clone(publicGame),
-      derived: {
-        journeyConfig: getJourneyConfig(normalizedGame.rules, normalizedGame.currencies),
-        journeyAchievements: getJourneyAchievements(normalizedGame.rules),
-        collectibleCells: getCollectibleJourneyCells(normalizedGame.rules),
-        gameIsOver: this.engine.isGameOver(normalizedGame),
-        activePlayers: this.buildJourneyPlayerReadModels(this.engine.getActivePlayers(normalizedGame), normalizedGame.currencies),
-        finishedPlayers: this.buildJourneyPlayerReadModels(this.engine.getFinishedPlayers(normalizedGame), normalizedGame.currencies),
-        visiblePlayers: this.buildJourneyPlayerReadModels(this.engine.getVisiblePlayers(normalizedGame), normalizedGame.currencies),
-        results: this.buildJourneyPlayerReadModels(this.engine.getResults(normalizedGame), normalizedGame.currencies),
-        playerTimelines: this.engine.getPlayerTimelines(normalizedGame),
+      id: game._id.toHexString(),
+      createdAt: game.createdAt,
+      updatedAt: game.updatedAt,
+      meta: {
+        status: game.stateV2.status,
+        isOver: activePlayerIds.length === 0,
+        roundIndex: game.stateV2.moveIndex,
+        djName: game.djName,
+        projectId: game.projectId,
+        configId: game.configId,
+        configName: game.configName,
+        forumTopicId: game.forumTopicId ?? null,
       },
+      configuration: {
+        currencies: this.clone(game.currencies),
+        rules: this.clone(game.rules),
+        journeyConfig: getJourneyConfig(game.rules, game.currencies),
+        achievements: getJourneyAchievements(game.rules),
+        collectorTargets: getJourneyCollectorTargets(game.rules),
+      },
+      state: {
+        board: this.clone(game.stateV2.map),
+        players,
+        activePlayerIds,
+        finishedPlayerIds: game.stateV2.players.filter((player) => player.status === "finished").map((player) => player.id),
+        visiblePlayerIds: game.stateV2.players.filter((player) => player.status !== "removed").map((player) => player.id),
+        resultPlayerIds: game.stateV2.players.filter((player) => player.status !== "removed").sort((left, right) => left.nickname.localeCompare(right.nickname, "ru")).map((player) => player.id),
+      },
+      achievements: {
+        progressByPlayerId: Object.fromEntries(game.stateV2.players.map((player) => [player.id, this.engine.getAchievementProgress(game, player)])),
+      },
+      history: { byPlayerId: this.engine.getPlayerTimelines(game) },
+      forumLog: this.clone(game.stateV2.forumLog),
     };
   }
 
-  createListItem(document: WithId<JourneyGameDocument>): JourneyGameListItemReadModel {
-    const { _id, ...game } = document;
-    const normalizedGame = this.engine.normalizeGame(game);
-
-    if (!normalizedGame) {
-      throw new Error("Journey response normalization failed");
-    }
-
+  createListItem(game: WithId<JourneyV2Game>): JourneyGameListItemReadModel {
     return {
-      id: _id.toHexString(),
-      createdAt: normalizedGame.createdAt,
-      updatedAt: normalizedGame.updatedAt,
-      status: normalizedGame.status,
-      djName: normalizedGame.djName,
-      configId: normalizedGame.configId,
-      configName: normalizedGame.configName,
-      currencies: this.clone(normalizedGame.currencies),
-      roundsCount: normalizedGame.rounds.length,
-      players: normalizedGame.players.map((player) => ({
-        id: player.id,
-        nickname: player.nickname,
-        status: player.status,
-        position: player.position,
-        balanceEntries: balanceToJourneyCurrencyValues(player.balance, normalizedGame.currencies),
-      })),
+      id: game._id.toHexString(),
+      createdAt: game.createdAt,
+      updatedAt: game.updatedAt,
+      status: game.stateV2.status,
+      djName: game.djName,
+      projectId: game.projectId,
+      configId: game.configId,
+      configName: game.configName,
+      currencies: this.clone(game.currencies),
+      roundsCount: game.stateV2.rounds.length,
+      players: game.stateV2.players.map((player) => ({ id: player.id, nickname: player.nickname, status: player.status, position: player.position, balanceEntries: balanceToJourneyCurrencyValues(player.balance, game.currencies) })),
     };
   }
 
-  private buildJourneyPlayerReadModels(
-    players: JourneyPlayer[],
-    currencies: ConfigCurrency[],
-  ): JourneyPlayerReadModel[] {
-    return players.map((player) => ({
-      ...this.clone(player),
-      balanceEntries: balanceToJourneyCurrencyValues(player.balance, currencies),
-    }));
+  private toPlayerView(player: JourneyV2Player, game: JourneyV2Game): JourneyGameView["state"]["players"][number] {
+    const achievements = getJourneyAchievements(game.rules);
+    return {
+      id: player.id,
+      nickname: player.nickname,
+      status: player.status,
+      position: player.position,
+      balanceEntries: balanceToJourneyCurrencyValues(player.balance, game.currencies),
+      bonuses: player.achievementNames
+        .filter((name) => name !== JOURNEY_ACHIEVEMENT_NAMES.JACKPOT)
+        .map((name) => Object.values(achievements).find((achievement) => achievement.name === name))
+        .filter((achievement): achievement is JourneyAchievement => Boolean(achievement))
+        .map((achievement) => this.clone(achievement)),
+    };
   }
 
-  private clone<T>(value: T): T {
-    return structuredClone(value);
-  }
+  private clone<T>(value: T): T { return structuredClone(value); }
 }

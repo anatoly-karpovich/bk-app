@@ -35,17 +35,23 @@ src/
   common/
   infrastructure/
   modules/
-    configs/
-      ConfigsController.ts
-      ConfigsRepository.ts
-      ConfigsService.ts
-      configs.routes.ts
-      configs.schemas.ts
+    projects/
+      ProjectsController.ts
+      ProjectsRepository.ts
+      ProjectsService.ts
+      projects.routes.ts
+      projects.schemas.ts
+    gameConfigs/
+      GameConfigsController.ts
+      GameConfigsRepository.ts
+      GameConfigsService.ts
+      gameConfigs.routes.ts
+      gameConfigs.schemas.ts
       domain/
       errors/
     journey/
       JourneyController.ts
-      JourneyEngine.ts
+      JourneyV2Engine.ts
       JourneyParser.ts
       JourneyReadModelFactory.ts
       JourneyRepository.ts
@@ -170,12 +176,12 @@ Good:
 export class JourneyService {
   constructor(
     private readonly repository: JourneyRepository,
-    private readonly engine: JourneyEngine,
+    private readonly engine: JourneyV2Engine,
   ) {}
 
   async submitRound(gameId: string, input: SubmitRoundDto) {
     const game = await this.repository.findById(gameId);
-    const updatedGame = this.engine.makeRound(game, input);
+    const updatedGame = this.engine.makeRound(game, input.moves, input.skippedPlayerIds);
     return this.repository.save(updatedGame);
   }
 }
@@ -241,12 +247,12 @@ modules/journey/
   JourneyController.ts
   JourneyService.ts
   JourneyRepository.ts
-  JourneyEngine.ts
+  JourneyV2Engine.ts
 ```
 
-The old `domain/engine.ts` and `domain/parsers.ts` files may remain as low-level implementation detail, but `JourneyService` and `JourneyController` should depend on `JourneyEngine`, `JourneyParser`, `JourneyRepository`, and read-model classes rather than on procedural service wrappers.
+`JourneyService` and `JourneyController` should depend on `JourneyV2Engine`, `JourneyParser`, `JourneyRepository`, and read-model classes rather than on procedural service wrappers. `domain/engine.ts` is offline legacy normalization code for backup import only.
 
-The Journey engine should be the only place that knows how to:
+`JourneyV2Engine` should be the only runtime place that knows how to:
 
 - create a Journey game
 - create the map
@@ -256,6 +262,12 @@ The Journey engine should be the only place that knows how to:
 - resolve rounds
 - refresh indexes
 - calculate final state
+
+Runtime Journey games use only `JourneyV2Game`. The legacy Journey normalizer exists solely for the offline backup-import script and must not be injected into the application or used to serve/mutate games.
+
+All Journey game reads return `JourneyGameView`, built from compact V2 state. Do not expose raw persisted `rounds`, player `movesHistory`, V1 aliases, or a storage discriminator. `JourneyReadModelFactory` owns API projection; the frontend must receive ready-made player groupings, achievement progress, timelines, and forum log.
+
+`domain/commentTemplates.ts` accepts storage-agnostic move/achievement comment events. Keep templates gender-inclusive for player actions (`нашёл(-ла)`, `потерял(-а)`, `осмотрелся(-ась)`); do not make a template depend on a V1 or V2 player object.
 
 The same principle applies to Battleships and Lotto: their engines own the game-result logic, while controllers and services stay at orchestration level.
 
@@ -310,23 +322,18 @@ The Lotto read-model factory is the correct place for host-facing derived fields
 
 ---
 
-## Configs
+## Projects, presets, and currencies
 
-Game configs currently live in the configs module and are initialized through default configs.
+The active configuration model is `Project` plus project-owned `GameConfig` presets. `/api/configs` and the legacy config runtime module do not exist.
 
-This is acceptable during migration, but the long-term direction is:
+- Projects own the reusable currency pool.
+- GameConfig belongs to one project and one game type; its rules may reference only currencies from that project.
+- Validate currency IDs, numeric values, and currency precision before saving a preset.
+- New games must be created from a project-scoped preset and keep `projectId` + `configId`.
+- Project and GameConfig deletion is permanent in MVP. Do not implement archive/restore, duplicate flows, versions, or optimistic locking unless scope changes.
+- The legacy `configs` repository/types/normalizer are offline backup-import adapters only; never mount them in DI, routes, or startup bootstrap.
 
-- configs are persisted on the backend
-- backend validates configs
-- frontend edits configs through API
-- frontend does not hardcode default game rules
-- shared project data such as currency is modeled once in backend config contracts and reused by game modules
-
-Avoid spreading config constants across backend and frontend.
-
-Default config upsert/seed behavior belongs to bootstrap/init only.
-
-Read use cases such as `GET /api/configs` must not perform hidden initialization side effects.
+Avoid spreading default rules or currency constants across backend and frontend.
 
 ---
 
@@ -337,31 +344,37 @@ Prefer domain-oriented API endpoints.
 Good:
 
 ```text
-GET    /api/configs
-GET    /api/configs/:configId
+GET    /api/projects
+POST   /api/projects
+GET    /api/projects/:projectId
+PUT    /api/projects/:projectId
+DELETE /api/projects/:projectId
 
-POST   /api/battleships/games
-GET    /api/battleships/games/:gameId
-GET    /api/battleships/games/latest
-POST   /api/battleships/games/:gameId/shots
-POST   /api/battleships/games/:gameId/shots/undo
-DELETE /api/battleships/games/:gameId
+GET    /api/projects/:projectId/game-configs
+POST   /api/projects/:projectId/game-configs
+GET    /api/projects/:projectId/game-configs/:gameConfigId
+PUT    /api/projects/:projectId/game-configs/:gameConfigId
+DELETE /api/projects/:projectId/game-configs/:gameConfigId
 
-POST   /api/journey/games
-GET    /api/journey/games/:gameId
-GET    /api/journey/games/latest
-POST   /api/journey/games/:gameId/rounds
-DELETE /api/journey/games/:gameId/players/:playerId
-DELETE /api/journey/games/:gameId
+POST   /api/projects/:projectId/battleships/games
+GET    /api/projects/:projectId/battleships/games/:gameId
+POST   /api/projects/:projectId/battleships/games/:gameId/shots
+POST   /api/projects/:projectId/battleships/games/:gameId/shots/undo
+DELETE /api/projects/:projectId/battleships/games/:gameId
+
+POST   /api/projects/:projectId/journey/games
+GET    /api/projects/:projectId/journey/games/:gameId
+POST   /api/projects/:projectId/journey/games/:gameId/rounds
+DELETE /api/projects/:projectId/journey/games/:gameId/players/:playerId
+DELETE /api/projects/:projectId/journey/games/:gameId
 POST   /api/journey/parse/players
 POST   /api/journey/parse/moves
 
-POST   /api/lotto/games
-GET    /api/lotto/games/:gameId
-GET    /api/lotto/games/latest
-POST   /api/lotto/games/:gameId/draw
-DELETE /api/lotto/games/:gameId/players/:playerId
-DELETE /api/lotto/games/:gameId
+POST   /api/projects/:projectId/lotto/games
+GET    /api/projects/:projectId/lotto/games/:gameId
+POST   /api/projects/:projectId/lotto/games/:gameId/draw
+DELETE /api/projects/:projectId/lotto/games/:gameId/players/:playerId
+DELETE /api/projects/:projectId/lotto/games/:gameId
 ```
 
 Avoid screen-oriented endpoints:
@@ -460,7 +473,7 @@ Prefer explicit errors:
 ```ts
 throw new GameNotFoundError(gameId);
 throw new InvalidRoundInputError(reason);
-throw new ConfigNotFoundError(configKey);
+throw new GameConfigNotFoundError(gameConfigId);
 ```
 
 Do not branch on `error.message` in controllers or services unless preserving a temporary migration shim that is about to be removed.
@@ -495,6 +508,13 @@ When migrating functionality from `LEGACY/`:
 6. Add types for migrated entities.
 7. Prefer small, verifiable migration steps.
 
+For production data conversion, use the explicit offline EJSON scripts:
+
+- `backup:import-new-schema` creates a separate new-schema backup and must never modify its source.
+- `backup:restore-new-schema:* -- --dry-run` validates a target before writing.
+- Restoration requires `--confirm-replace`; it replaces only the new-model collections and removes legacy `configs`.
+- Do not run the legacy split migration after restoring a new-schema backup.
+
 ---
 
 ## LocalStorage policy
@@ -521,7 +541,7 @@ Avoid:
 - putting MongoDB code directly in services
 - massive services with mixed responsibilities
 - untyped request bodies
-- magic strings for game names, config keys, or statuses
+- magic strings for game names, project IDs, config IDs, or statuses
 - route files that instantiate dependencies
 - request handlers with hidden bootstrap/init side effects
 - multiple unrelated env-loading entry points

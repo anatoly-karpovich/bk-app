@@ -38,7 +38,7 @@ export const lottoTexts = {
     notStarted: "Не начата",
     active: "В процессе",
     complete: "Завершена",
-    rulesetPrefix: "Проект:",
+    rulesetPrefix: "Пресет:",
     djPrefix: "Ведущий:",
     drawPrefix: "Ходов:",
     playersPrefix: "Игроков:",

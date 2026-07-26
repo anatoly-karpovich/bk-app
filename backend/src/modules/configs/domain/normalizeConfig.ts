@@ -14,6 +14,7 @@ export function normalizeConfigCurrencies(currencies: Array<Partial<ConfigCurren
       const normalizedLabel = currency.label?.trim() || normalizedId;
 
       return {
+        ...currency,
         id: normalizedId,
         label: normalizedLabel,
       };

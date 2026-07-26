@@ -33,11 +33,11 @@ export function formatLottoTimestamp(value: string): string {
 export function createLottoStatusChips(params: {
   game: LottoPersistedGame | null;
   djName: string;
-  selectedConfigName?: string;
+  selectedGameConfigName?: string;
 }): LottoStatusChip[] {
-  const { game, djName, selectedConfigName } = params;
+  const { game, djName, selectedGameConfigName } = params;
   const resolvedDjName = game?.djName?.trim() || djName.trim();
-  const rulesetLabel = `${lottoTexts.statuses.rulesetPrefix} ${game?.configName ?? selectedConfigName ?? "Не выбран"}`;
+  const rulesetLabel = `${lottoTexts.statuses.rulesetPrefix} ${game?.configName ?? selectedGameConfigName ?? "Не выбран"}`;
 
   if (!game) {
     return [

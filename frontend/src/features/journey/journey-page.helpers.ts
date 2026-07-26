@@ -1,30 +1,25 @@
-import { MOVE_TYPES } from "./config";
 import { journeyTexts } from "../../texts/journeyTexts";
 import type {
-  JourneyAchievementProgress,
-  JourneyAchievementsMap,
-  JourneyBalance,
+  JourneyCollectorTarget,
   JourneyConfig,
   JourneyCurrencyDefinition,
   JourneyCurrencyValue,
-  JourneyPersistedGame,
+  JourneyPageGame,
   JourneyMapCell,
   JourneyMoveInputs,
-  JourneyPlayer,
   JourneyPlayerReadModel,
-  JourneyRulesCell,
   JourneySkippedPlayers,
   JourneyTimelineEntry,
 } from "./types";
 
-export function createEmptyMoveState(players: JourneyPlayer[] = []): JourneyMoveInputs {
+export function createEmptyMoveState(players: Array<{ id: string }> = []): JourneyMoveInputs {
   return players.reduce<JourneyMoveInputs>((accumulator, player) => {
     accumulator[player.id] = "";
     return accumulator;
   }, {});
 }
 
-export function createEmptySkipState(players: JourneyPlayer[] = []): JourneySkippedPlayers {
+export function createEmptySkipState(players: Array<{ id: string }> = []): JourneySkippedPlayers {
   return players.reduce<JourneySkippedPlayers>((accumulator, player) => {
     accumulator[player.id] = false;
     return accumulator;
@@ -94,29 +89,15 @@ export function formatJourneyCurrencyValues(
     .join(", ");
 }
 
-export function getJourneyBalanceEntries(
-  balance: JourneyBalance,
-  currencies: JourneyCurrencyDefinition[],
-): JourneyCurrencyValue[] {
-  return currencies.map((currency) => ({
-    currencyId: currency.id,
-    value: Math.trunc(balance[currency.id] ?? 0),
-  }));
-}
-
 export function getJourneyPlayerBalanceEntries(
-  player: JourneyPlayer | JourneyPlayerReadModel,
-  currencies: JourneyCurrencyDefinition[],
+  player: JourneyPlayerReadModel,
+  _currencies: JourneyCurrencyDefinition[],
 ): JourneyCurrencyValue[] {
-  if ("balanceEntries" in player && Array.isArray(player.balanceEntries)) {
-    return player.balanceEntries;
-  }
-
-  return getJourneyBalanceEntries(player.balance, currencies);
+  return player.balanceEntries;
 }
 
 export function getJourneyPlayerBalanceLabel(
-  player: JourneyPlayer | JourneyPlayerReadModel,
+  player: JourneyPlayerReadModel,
   currencies: JourneyCurrencyDefinition[],
 ): string {
   return formatJourneyCurrencyValues(getJourneyPlayerBalanceEntries(player, currencies), currencies, {
@@ -177,101 +158,39 @@ export function getJourneyCellLabel(cell: JourneyMapCell | null, currencies: Jou
   return `${cell.kind === "bonus" ? "Бонус" : "Ловушка"} ${rewardsLabel}`;
 }
 
-export function getCollectibleCellLabel(cell: JourneyRulesCell, currencies: JourneyCurrencyDefinition[]): string {
-  return `${cell.kind === "bonus" ? "Бонус" : "Ловушка"} ${formatJourneyCurrencyValues(cell.rewards, currencies, {
-    showPlus: cell.kind === "bonus",
+export function getCollectorTargetLabel(target: JourneyCollectorTarget, currencies: JourneyCurrencyDefinition[]): string {
+  if (target.kind === "empty") {
+    return journeyTexts.timeline.empty;
+  }
+
+  return `${target.kind === "bonus" ? "Бонус" : "Ловушка"} ${formatJourneyCurrencyValues(target.rewards, currencies, {
+    showPlus: target.kind === "bonus",
     includeZero: false,
   })}`;
 }
 
-export function getJourneyVisiblePlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.visiblePlayers ??
-    game.players
-      .filter((player) => player.status !== "removed")
-      .map((player) => toJourneyPlayerReadModel(player, game.currencies))
-  );
+export function getJourneyVisiblePlayers(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.visiblePlayers ?? [];
 }
 
-export function toJourneyPlayerReadModel(
-  player: JourneyPlayer,
-  currencies: JourneyCurrencyDefinition[],
-): JourneyPlayerReadModel {
-  return {
-    ...player,
-    balanceEntries: getJourneyBalanceEntries(player.balance, currencies),
-  };
+export function getJourneyActivePlayers(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.activePlayers ?? [];
 }
 
-export function getJourneyActivePlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.activePlayers ??
-    game.players.filter((player) => player.status === "active").map((player) => toJourneyPlayerReadModel(player, game.currencies))
-  );
+export function getJourneyFinishedPlayers(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.finishedPlayers ?? [];
 }
 
-export function getJourneyFinishedPlayers(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.finishedPlayers ??
-    game.players.filter((player) => player.status === "finished").map((player) => toJourneyPlayerReadModel(player, game.currencies))
-  );
+export function getJourneyResults(game: JourneyPageGame | null): JourneyPlayerReadModel[] {
+  return game?.results ?? [];
 }
 
-export function getJourneyResults(game: JourneyPersistedGame | null): JourneyPlayerReadModel[] {
-  if (!game) {
-    return [];
-  }
-
-  return (
-    game.derived?.results ??
-    game.players
-      .filter((player) => player.status !== "removed")
-      .map((player) => toJourneyPlayerReadModel(player, game.currencies))
-      .sort((left, right) => left.nickname.localeCompare(right.nickname, "ru"))
-  );
+export function isJourneyGameOver(game: JourneyPageGame | null): boolean {
+  return game?.gameIsOver ?? false;
 }
 
-export function isJourneyGameOver(game: JourneyPersistedGame | null): boolean {
-  if (!game) {
-    return false;
-  }
-
-  return game.derived?.gameIsOver ?? getJourneyActivePlayers(game).length === 0;
-}
-
-export function getJourneyPlayerTimelines(game: JourneyPersistedGame | null): Record<string, JourneyTimelineEntry[]> {
-  if (!game) {
-    return {};
-  }
-
-  if (game.derived?.playerTimelines) {
-    return game.derived.playerTimelines;
-  }
-
-  return game.players.reduce<Record<string, JourneyTimelineEntry[]>>((accumulator, player) => {
-    accumulator[player.id] = game.rounds.flatMap((round) =>
-      (round.entries ?? [])
-        .filter((entry) => entry.playerId === player.id || entry.nickname === player.nickname)
-        .map((entry) => ({
-          ...entry,
-          roundIndex: round.moveIndex,
-        })),
-    );
-
-    return accumulator;
-  }, {});
+export function getJourneyPlayerTimelines(game: JourneyPageGame | null): Record<string, JourneyTimelineEntry[]> {
+  return game?.playerTimelines ?? {};
 }
 
 export function getCompactCellLabel(
@@ -330,61 +249,6 @@ export function shortenNickname(nickname: string): string {
   return `${nickname.slice(0, 8)}...`;
 }
 
-function isTrapProgressEntry(entry: JourneyTimelineEntry): boolean {
-  return !entry.skipped && Boolean(entry.cell) && hasNegativeJourneyRewards(entry.cell.rewards);
-}
-
-function isLuckyProgressEntry(entry: JourneyTimelineEntry): boolean {
-  return !entry.skipped && Boolean(entry.cell) && hasPositiveJourneyRewards(entry.cell.rewards);
-}
-
-function getBestStreak(entries: JourneyTimelineEntry[], predicate: (entry: JourneyTimelineEntry) => boolean): number {
-  let current = 0;
-  let best = 0;
-
-  entries.forEach((entry) => {
-    if (predicate(entry)) {
-      current += 1;
-      best = Math.max(best, current);
-    } else {
-      current = 0;
-    }
-  });
-
-  return best;
-}
-
-function getCurrentStreak(entries: JourneyTimelineEntry[], predicate: (entry: JourneyTimelineEntry) => boolean): number {
-  let current = 0;
-
-  [...entries].reverse().some((entry) => {
-    if (predicate(entry)) {
-      current += 1;
-      return false;
-    }
-
-    return true;
-  });
-
-  return current;
-}
-
-function isCarefulProgressEntry(entry: JourneyTimelineEntry, finishPosition: number): boolean {
-  if (entry.skipped || entry.currentPosition === finishPosition || entry.moveType === MOVE_TYPES.JACKPOT) {
-    return false;
-  }
-
-  if (!entry.cell) {
-    return true;
-  }
-
-  if (entry.cell.isJackpot) {
-    return true;
-  }
-
-  return entry.cell.rewards.length === 0;
-}
-
 export function getHistoryEntrySummary(
   entry: JourneyTimelineEntry,
   currencies: JourneyCurrencyDefinition[],
@@ -412,47 +276,3 @@ export function getHistoryEntrySummary(
   return `${journeyTexts.timeline.turnPrefix} ${entry.roundIndex}: ${movement}, ${cellPart}, ${journeyTexts.timeline.change} ${rewardPart}, ${journeyTexts.timeline.total} [${balanceLabel}]`;
 }
 
-export function getAchievementProgress(
-  player: JourneyPlayer,
-  timeline: JourneyTimelineEntry[],
-  collectibleCells: JourneyRulesCell[],
-  journeyAchievements: JourneyAchievementsMap,
-  finishPosition: number,
-): JourneyAchievementProgress {
-  const obtainedCellIds = [
-    ...new Set(
-      timeline
-        .filter((entry) => !entry.skipped && entry.cell && !entry.cell.isJackpot && typeof entry.cell.id === "string")
-        .map((entry) => entry.cell!.id),
-    ),
-  ];
-  const missingCellIds = collectibleCells
-    .map((cell) => cell.id)
-    .filter((cellId) => !obtainedCellIds.includes(cellId));
-
-  return {
-    collector: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.COLLECTOR.name),
-      obtainedCellIds,
-      missingCellIds,
-    },
-    unlucky: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.UNLUCKY.name),
-      current: getCurrentStreak(timeline, isTrapProgressEntry),
-      best: getBestStreak(timeline, isTrapProgressEntry),
-      target: 3,
-    },
-    careful: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.CAREFUL.name),
-      current: getCurrentStreak(timeline, (entry) => isCarefulProgressEntry(entry, finishPosition)),
-      best: getBestStreak(timeline, (entry) => isCarefulProgressEntry(entry, finishPosition)),
-      target: 4,
-    },
-    lucky: {
-      achieved: player.bonuses.some((bonus) => bonus.name === journeyAchievements.LUCKY.name),
-      current: getCurrentStreak(timeline, isLuckyProgressEntry),
-      best: getBestStreak(timeline, isLuckyProgressEntry),
-      target: 5,
-    },
-  };
-}

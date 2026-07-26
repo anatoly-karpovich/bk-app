@@ -1,0 +1,94 @@
+import type { BattleshipsRules } from "../battleships/types";
+import type { JourneyRules } from "../journey/types";
+import type { LottoRewardDistributionMode, LottoRules } from "../lotto/types";
+
+export interface ProjectCurrency {
+  id: string;
+  code: string;
+  name: string;
+  label: string;
+  shortLabel?: string;
+  valueType: "integer" | "decimal";
+  precision: number;
+  createdAt: string;
+  updatedAt: string;
+  canDelete: boolean;
+}
+
+export interface ProjectMutationInput {
+  code: string;
+  name: string;
+  description: string;
+  currencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt" | "canDelete">>;
+}
+
+export interface Project {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  currencies: ProjectCurrency[];
+  createdAt: string;
+  updatedAt: string;
+  legacyConfigId?: string | null;
+}
+
+export type GameType = "journey" | "battleships" | "lotto";
+
+export interface JourneyGameConfigSummary {
+  currency: string;
+  mapSize: number;
+  diceRange: string;
+  jackpot: string;
+  bonusKinds: number;
+  trapKinds: number;
+  prizeLimit: string | null;
+}
+
+export interface BattleshipsGameConfigSummary {
+  boardSize: number;
+  maxShots: number;
+  fleet: string[];
+  hitPrizeLabel: string;
+}
+
+export interface LottoGameConfigSummary {
+  range: string;
+  cardNumbersAmount: number;
+  firstPlacePrizeLabel: string;
+  secondPlacePrizeLabel: string;
+  otherActivePlayersPrizeLabel: string;
+  rewardDistributionMode: LottoRewardDistributionMode;
+}
+
+interface BaseGameConfig<TGameType extends GameType, TRules, TSummary> {
+  id: string;
+  projectId: string;
+  gameType: TGameType;
+  name: string;
+  description: string;
+  rules: TRules;
+  summary: TSummary;
+  createdAt: string;
+  updatedAt: string;
+  legacyConfigId?: string | null;
+}
+
+export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary>;
+export type BattleshipsGameConfig = BaseGameConfig<"battleships", BattleshipsRules, BattleshipsGameConfigSummary>;
+export type LottoGameConfig = BaseGameConfig<"lotto", LottoRules, LottoGameConfigSummary>;
+
+export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig;
+
+export interface CreateGameConfigInput {
+  gameType: GameType;
+  name: string;
+  description: string;
+  rules: JourneyRules | BattleshipsRules | LottoRules;
+}
+
+export interface UpdateGameConfigInput {
+  name: string;
+  description: string;
+  rules: JourneyRules | BattleshipsRules | LottoRules;
+}
