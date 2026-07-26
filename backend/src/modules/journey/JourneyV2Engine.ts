@@ -48,6 +48,12 @@ function randomInteger(min: number, max: number, randomFn: RandomFn): number {
   return Math.floor(randomFn() * (max - min + 1)) + min;
 }
 
+const LUCKY_MOVE_TYPES: ReadonlySet<JourneyMoveType> = new Set([
+  MOVE_TYPES.INCREASE,
+  MOVE_TYPES.TO_MAX,
+  MOVE_TYPES.AT_MAX,
+]);
+
 function generatePlayerId(nickname: string): string {
   return globalThis.crypto?.randomUUID?.() ?? `${nickname}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -227,8 +233,7 @@ export class JourneyV2Engine {
     };
     const isNegative = (move: Extract<JourneyV2Turn, { kind: "move" }>) =>
       hasNegativeJourneyRewards(game.stateV2.map[move.to]?.rewards ?? []);
-    const isPositive = (move: Extract<JourneyV2Turn, { kind: "move" }>) =>
-      hasPositiveJourneyRewards(game.stateV2.map[move.to]?.rewards ?? []);
+    const isPositive = (move: Extract<JourneyV2Turn, { kind: "move" }>) => LUCKY_MOVE_TYPES.has(move.moveType);
 
     return {
       collector: {
