@@ -1,4 +1,5 @@
 export type JourneyCellKind = "bonus" | "trap";
+export type JourneyJackpotCountMode = "fixed" | "by_players";
 export type JourneyPlayerStatus = "active" | "finished" | "removed";
 export type JourneyGameStatus = "in_progress" | "finished";
 export interface JourneyCurrencyDefinition {
@@ -44,7 +45,9 @@ export interface JourneyRules {
   maxPrizes: JourneyCurrencyValue[] | null;
   mapSize: number;
   jackpot: {
+    countMode: JourneyJackpotCountMode;
     count: number;
+    playersPerJackpot: number;
     rewards: JourneyCurrencyValue[];
   };
   cells: JourneyRulesCell[];

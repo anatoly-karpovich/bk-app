@@ -1,9 +1,9 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { FormControlLabel, Grid, IconButton, MenuItem, Stack, Switch } from "@mui/material";
+import { FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack, Switch } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
-import type { JourneyRules, JourneyRulesCell } from "../../journey/types";
+import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell } from "../../journey/types";
 import type { ProjectCurrency } from "../../projects/types";
 import CurrencyValuesEditor from "./CurrencyValuesEditor";
 import RuleSection from "./RuleSection";
@@ -23,7 +23,7 @@ const achievementLabels = {
 } as const;
 
 export default function JourneyConfigEditor({ rules, currencies, disabled, onChange }: JourneyConfigEditorProps) {
-  const jackpot = rules.jackpot ?? { count: 0, rewards: [] };
+  const jackpot = rules.jackpot;
   const cells = Array.isArray(rules.cells) ? rules.cells : [];
   const achievements = rules.achievements ?? {};
 
@@ -70,8 +70,42 @@ export default function JourneyConfigEditor({ rules, currencies, disabled, onCha
 
       <RuleSection title="Джекпот">
         <Grid container spacing={2} alignItems="flex-start">
+          <Grid item xs={12}>
+            <FormControl disabled={disabled}>
+              <FormLabel>Способ расчёта количества</FormLabel>
+              <RadioGroup
+                row
+                value={jackpot.countMode}
+                onChange={(event) => patchRules({ jackpot: { ...jackpot, countMode: event.target.value as JourneyJackpotCountMode } })}
+              >
+                <FormControlLabel value="fixed" control={<Radio />} label="Фиксированное количество" />
+                <FormControlLabel value="by_players" control={<Radio />} label="По числу игроков" />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
           <Grid item xs={12} sm={4}>
-            <AppTextInput fullWidth type="number" label="Количество клеток" value={jackpot.count ?? 0} disabled={disabled} inputProps={{ min: 0, step: 1 }} onChange={(event) => patchRules({ jackpot: { ...jackpot, count: Number(event.target.value) } })} />
+            {jackpot.countMode === "by_players" ? (
+              <AppTextInput
+                fullWidth
+                type="number"
+                label="Игроков на одно сокровище"
+                value={jackpot.playersPerJackpot}
+                disabled={disabled}
+                inputProps={{ min: 1, step: 1 }}
+                helperText="Количество округляется вверх, максимум — 7 сокровищ."
+                onChange={(event) => patchRules({ jackpot: { ...jackpot, playersPerJackpot: Number(event.target.value) } })}
+              />
+            ) : (
+              <AppTextInput
+                fullWidth
+                type="number"
+                label="Количество сокровищ"
+                value={jackpot.count}
+                disabled={disabled}
+                inputProps={{ min: 0, max: 7, step: 1 }}
+                onChange={(event) => patchRules({ jackpot: { ...jackpot, count: Number(event.target.value) } })}
+              />
+            )}
           </Grid>
           <Grid item xs={12} sm={8}>
             <CurrencyValuesEditor currencies={currencies} values={jackpot.rewards} onChange={(rewards) => patchRules({ jackpot: { ...jackpot, rewards } })} disabled={disabled} />

@@ -23,6 +23,12 @@
     "backup:restore-new-schema": "tsx src/scripts/restoreNewSchemaBackup.ts",
     "backup:restore-new-schema:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/restoreNewSchemaBackup.ts",
     "backup:restore-new-schema:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/restoreNewSchemaBackup.ts",
+    "db:migrate:journey-jackpot-count-mode": "tsx src/scripts/migrateJourneyJackpotCountMode.ts",
+    "db:migrate:journey-jackpot-count-mode:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateJourneyJackpotCountMode.ts",
+    "db:migrate:journey-jackpot-count-mode:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migrateJourneyJackpotCountMode.ts",
+    "db:migrate:project-currency-metadata": "tsx src/scripts/migrateProjectCurrencyMetadata.ts",
+    "db:migrate:project-currency-metadata:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateProjectCurrencyMetadata.ts",
+    "db:migrate:project-currency-metadata:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migrateProjectCurrencyMetadata.ts",
     "backup:prod": "npm run backup:restore-new-schema:prod -- --source backups\\db-data-projects --confirm-replace"
   },
   "dependencies": {

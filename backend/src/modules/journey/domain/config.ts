@@ -3,6 +3,7 @@ import type {
   JourneyAchievementsMap,
   JourneyConfig,
   JourneyCurrencyValue,
+  JourneyJackpotCountMode,
   JourneyMapCell,
   JourneyRules,
   JourneyRulesInput,
@@ -29,17 +30,20 @@ function normalizePositiveInteger(value: unknown, fallbackValue: number): number
   return Math.max(1, Math.trunc(numericValue));
 }
 
-function normalizeNonNegativeInteger(value: unknown, fallbackValue: number): number {
+function normalizeNonNegativeInteger(value: unknown, fallbackValue: number, maximumValue = Number.POSITIVE_INFINITY): number {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) {
     return fallbackValue;
   }
-  return Math.max(0, Math.trunc(numericValue));
+  return Math.min(maximumValue, Math.max(0, Math.trunc(numericValue)));
 }
 
 function normalizeAchievementRewards(rewards: JourneyCurrencyValue[] | undefined): JourneyCurrencyValue[] {
   return normalizeCurrencyValues(Array.isArray(rewards) ? rewards : []);
 }
+
+export const JOURNEY_MAX_JACKPOT_COUNT = 7;
+export const DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT = 3;
 
 export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   initialRewards: [{ currencyId: "default", value: 15 }],
@@ -48,7 +52,9 @@ export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   maxPrizes: [{ currencyId: "default", value: 30 }],
   mapSize: 50,
   jackpot: {
+    countMode: "fixed",
     count: 7,
+    playersPerJackpot: DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT,
     rewards: [{ currencyId: "default", value: 30 }],
   },
   cells: [
@@ -110,7 +116,16 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
     jackpot: {
       ...rules.jackpot,
       ...(rawRules.jackpot ?? {}),
-      count: normalizeNonNegativeInteger(rawRules.jackpot?.count ?? rules.jackpot.count, rules.jackpot.count),
+      countMode: normalizeJourneyJackpotCountMode(rawRules.jackpot?.countMode),
+      count: normalizeNonNegativeInteger(
+        rawRules.jackpot?.count ?? rules.jackpot.count,
+        rules.jackpot.count,
+        JOURNEY_MAX_JACKPOT_COUNT,
+      ),
+      playersPerJackpot: normalizePositiveInteger(
+        rawRules.jackpot?.playersPerJackpot ?? rules.jackpot.playersPerJackpot,
+        rules.jackpot.playersPerJackpot,
+      ),
       rewards: normalizeCurrencyValues(rawRules.jackpot?.rewards ?? rules.jackpot.rewards),
     },
     achievements: {
@@ -145,6 +160,27 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
   };
 }
 
+function normalizeJourneyJackpotCountMode(value: unknown): JourneyJackpotCountMode {
+  return value === "by_players" ? "by_players" : "fixed";
+}
+
+export function getJourneyJackpotCount(
+  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
+  playersCount = 0,
+): number {
+  const normalizedRules = normalizeJourneyRules(rules);
+
+  if (normalizedRules.jackpot.countMode === "fixed") {
+    return normalizedRules.jackpot.count;
+  }
+
+  const normalizedPlayersCount = Math.max(0, Math.trunc(playersCount));
+  return Math.min(
+    JOURNEY_MAX_JACKPOT_COUNT,
+    Math.ceil(normalizedPlayersCount / normalizedRules.jackpot.playersPerJackpot),
+  );
+}
+
 export function getJourneyConfig(
   rules: JourneyRules = DEFAULT_JOURNEY_RULES,
   currencies: ConfigCurrency[] = [{ id: "default", label: "фишек" }],
@@ -165,6 +201,7 @@ export function getJourneyConfig(
 
 export function getJourneyBonusCells(
   rules: JourneyRules = DEFAULT_JOURNEY_RULES,
+  playersCount = 0,
 ): Array<{ cell: JourneyMapCell; amount: number }> {
   const normalizedRules = normalizeJourneyRules(rules);
 
@@ -177,7 +214,7 @@ export function getJourneyBonusCells(
         isJackpot: true,
         winner: null,
       },
-      amount: normalizedRules.jackpot.count,
+      amount: getJourneyJackpotCount(normalizedRules, playersCount),
     },
     ...normalizedRules.cells.map((cell) => ({
       cell: {

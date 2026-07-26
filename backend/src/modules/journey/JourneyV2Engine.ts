@@ -98,7 +98,7 @@ export class JourneyV2Engine {
       stateV2: {
         moveIndex: 0,
         status: "in_progress",
-        map: this.createMap(rules, options.randomFn ?? Math.random),
+        map: this.createMap(rules, players.length, options.randomFn ?? Math.random),
         players,
         rounds: [],
         forumLog: [
@@ -318,10 +318,10 @@ export class JourneyV2Engine {
     return result;
   }
 
-  private createMap(rules: JourneyRules, randomFn: RandomFn): Record<number, JourneyMapCell> {
+  private createMap(rules: JourneyRules, playersCount: number, randomFn: RandomFn): Record<number, JourneyMapCell> {
     const availablePositions = Array.from({ length: getJourneyConfig(rules).mapSize }, (_, index) => index + 1);
     const map: Record<number, JourneyMapCell> = {};
-    getJourneyBonusCells(rules).forEach(({ cell, amount }) => {
+    getJourneyBonusCells(rules, playersCount).forEach(({ cell, amount }) => {
       for (let index = 0; index < amount; index += 1) {
         const [position] = availablePositions.splice(randomInteger(0, availablePositions.length - 1, randomFn), 1);
         map[position] = clone(cell);

@@ -33,7 +33,9 @@ export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   maxPrizes: [{ currencyId: "default", value: 30 }],
   mapSize: 50,
   jackpot: {
+    countMode: "fixed",
     count: 7,
+    playersPerJackpot: 3,
     rewards: [{ currencyId: "default", value: 30 }],
   },
   cells: [

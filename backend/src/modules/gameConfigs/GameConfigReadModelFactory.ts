@@ -1,6 +1,6 @@
 import { formatCurrencyValues } from "../../common/currencyValues";
 import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig, normalizeBattleshipsRules } from "../battleships/domain/config";
-import { getJourneyConfig, normalizeJourneyRules } from "../journey/domain/config";
+import { getJourneyConfig, JOURNEY_MAX_JACKPOT_COUNT, normalizeJourneyRules } from "../journey/domain/config";
 import { formatJourneyCurrencyValues } from "../journey/domain/currency";
 import { getLottoRangeLabel, normalizeLottoRules } from "../lotto/domain/config";
 import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
@@ -37,7 +37,11 @@ export class GameConfigReadModelFactory {
         currency: primaryCurrency,
         mapSize: journeyConfig.mapSize,
         diceRange: `${journeyConfig.minDice}-${journeyConfig.maxDice}`,
-        jackpot: `${rules.jackpot.count} x ${formatJourneyCurrencyValues(rules.jackpot.rewards, currencies, {
+        jackpot: `${
+          rules.jackpot.countMode === "by_players"
+            ? `1 на каждые ${rules.jackpot.playersPerJackpot} игроков, максимум ${JOURNEY_MAX_JACKPOT_COUNT}`
+            : rules.jackpot.count
+        } x ${formatJourneyCurrencyValues(rules.jackpot.rewards, currencies, {
           showPlus: true,
           includeZero: false,
         })}`,
