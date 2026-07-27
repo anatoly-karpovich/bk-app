@@ -38,7 +38,6 @@ interface BaseGameConfig<TRules, TGameType extends GameType> {
   rules: TRules;
   createdAt: string;
   updatedAt: string;
-  legacyConfigId?: string | null;
 }
 
 export type JourneyGameConfig = BaseGameConfig<JourneyRules, "journey">;
@@ -55,7 +54,6 @@ export interface GameConfigDocument {
   rules: JourneyRules | BattleshipsRules | LottoRules;
   createdAt: string;
   updatedAt: string;
-  legacyConfigId?: string | null;
 }
 
 type BaseGameConfigReadModel<TConfig extends AnyGameConfig, TSummary> = TConfig & {
@@ -74,5 +72,6 @@ export type AnyGameConfigReadModel =
 
 export interface GameConfigContext<TConfig extends AnyGameConfig = AnyGameConfig> {
   projectCurrencies: CurrencySnapshot[];
+  projectResources: import("../../rewards").ResourceSnapshot[];
   config: TConfig;
 }

@@ -1,16 +1,16 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack, Switch } from "@mui/material";
+import { FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
-import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell } from "../../journey/types";
-import type { ProjectCurrency } from "../../projects/types";
-import CurrencyValuesEditor from "./CurrencyValuesEditor";
+import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell, RewardPool } from "../../journey/types";
+import type { ProjectResource } from "../../projects/types";
+import RewardPoolEditor, { createRewardPool } from "./RewardPoolEditor";
 import RuleSection from "./RuleSection";
 
 interface JourneyConfigEditorProps {
   rules: JourneyRules;
-  currencies: ProjectCurrency[];
+  resources: ProjectResource[];
   disabled: boolean;
   onChange: (rules: JourneyRules) => void;
 }
@@ -22,7 +22,7 @@ const achievementLabels = {
   lucky: "Счастливчик",
 } as const;
 
-export default function JourneyConfigEditor({ rules, currencies, disabled, onChange }: JourneyConfigEditorProps) {
+export default function JourneyConfigEditor({ rules, resources, disabled, onChange }: JourneyConfigEditorProps) {
   const jackpot = rules.jackpot;
   const cells = Array.isArray(rules.cells) ? rules.cells : [];
   const achievements = rules.achievements ?? {};
@@ -37,7 +37,7 @@ export default function JourneyConfigEditor({ rules, currencies, disabled, onCha
 
   function addCell() {
     patchRules({
-      cells: [...cells, { id: `cell_${Date.now()}`, kind: "bonus", count: 1, rewards: [] }],
+      cells: [...cells, { id: `cell_${Date.now()}`, kind: "bonus", count: 1, rewardPool: { mode: "all", rewards: [] } }],
     });
   }
 
@@ -57,14 +57,9 @@ export default function JourneyConfigEditor({ rules, currencies, disabled, onCha
         </Grid>
       </RuleSection>
 
-      <RuleSection title="Старт и лимит выигрыша">
+      <RuleSection title="Стартовые награды">
         <Stack spacing={2.5}>
-          <CurrencyValuesEditor currencies={currencies} values={rules.initialRewards} onChange={(initialRewards) => patchRules({ initialRewards })} disabled={disabled} emptyLabel="Стартовая награда не задана." />
-          <FormControlLabel
-            control={<Switch checked={rules.maxPrizes === null} onChange={(_event, checked) => patchRules({ maxPrizes: checked ? null : [] })} disabled={disabled} />}
-            label="Без лимита выигрыша"
-          />
-          {rules.maxPrizes !== null ? <CurrencyValuesEditor currencies={currencies} values={rules.maxPrizes} onChange={(maxPrizes) => patchRules({ maxPrizes })} disabled={disabled} emptyLabel="Лимит выигрыша не задан." /> : null}
+          <RewardPoolEditor pool={rules.initialRewardPool} resources={resources} disabled={disabled} onChange={(initialRewardPool) => patchRules({ initialRewardPool })} emptyLabel="Стартовая награда не задана." />
         </Stack>
       </RuleSection>
 
@@ -108,7 +103,7 @@ export default function JourneyConfigEditor({ rules, currencies, disabled, onCha
             )}
           </Grid>
           <Grid item xs={12} sm={8}>
-            <CurrencyValuesEditor currencies={currencies} values={jackpot.rewards} onChange={(rewards) => patchRules({ jackpot: { ...jackpot, rewards } })} disabled={disabled} />
+            <RewardPoolEditor pool={jackpot.rewardPool} resources={resources} disabled={disabled} onChange={(rewardPool) => patchRules({ jackpot: { ...jackpot, rewardPool } })} />
           </Grid>
         </Grid>
       </RuleSection>
@@ -116,19 +111,24 @@ export default function JourneyConfigEditor({ rules, currencies, disabled, onCha
       <RuleSection title="Клетки поля" description="Каждая строка задаёт отдельный тип бонусной клетки или ловушки.">
         <Stack spacing={2}>
           {cells.map((cell, index) => (
-            <Stack key={`${cell.id}-${index}`} spacing={1.5} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+            <Stack key={index} spacing={1.5} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
               <Stack direction={{ xs: "column", md: "row" }} spacing={1} alignItems={{ md: "center" }}>
-                <AppTextInput size="small" label="Идентификатор" value={cell.id ?? ""} disabled={disabled} onChange={(event) => updateCell(index, { id: event.target.value })} sx={{ flex: 1 }} />
+                <AppTextInput size="small" label="Идентификатор" value={cell.id ?? ""} disabled={disabled} onChange={(event) => updateCell(index, { id: event.target.value })} sx={{ flex: 1, minWidth: { md: 260 } }} />
                 <AppTextInput select size="small" label="Тип" value={cell.kind ?? "bonus"} disabled={disabled} onChange={(event) => updateCell(index, { kind: event.target.value as JourneyRulesCell["kind"] })} sx={{ minWidth: { md: 150 } }}>
                   <MenuItem value="bonus">Бонус</MenuItem>
                   <MenuItem value="trap">Ловушка</MenuItem>
+                </AppTextInput>
+                <AppTextInput select size="small" label="Тип выдачи наград" value={cell.rewardPool.mode} disabled={disabled} onChange={(event) => updateCell(index, { rewardPool: createRewardPool(event.target.value as RewardPool["mode"], resources) })} sx={{ minWidth: { md: 260 } }}>
+                  <MenuItem value="all">Выдать все награды</MenuItem>
+                  <MenuItem value="weighted_one">Выбрать одну по весам</MenuItem>
+                  <MenuItem value="independent">Проверить каждую по шансу</MenuItem>
                 </AppTextInput>
                 <AppTextInput size="small" type="number" label="Количество" value={cell.count ?? 0} disabled={disabled} inputProps={{ min: 0, step: 1 }} onChange={(event) => updateCell(index, { count: Number(event.target.value) })} sx={{ minWidth: { md: 150 } }} />
                 <IconButton aria-label="Удалить тип клетки" color="error" onClick={() => patchRules({ cells: cells.filter((_cell, currentIndex) => currentIndex !== index) })} disabled={disabled}>
                   <DeleteOutlineRoundedIcon />
                 </IconButton>
               </Stack>
-              <CurrencyValuesEditor currencies={currencies} values={cell.rewards} onChange={(rewards) => updateCell(index, { rewards })} disabled={disabled} />
+              <RewardPoolEditor pool={cell.rewardPool} resources={resources} disabled={disabled} onChange={(rewardPool) => updateCell(index, { rewardPool })} showModeSelector={false} />
             </Stack>
           ))}
           <AppPillButton variant="outlined" size="small" startIcon={<AddRoundedIcon />} onClick={addCell} disabled={disabled} sx={{ alignSelf: "flex-start" }}>
@@ -143,7 +143,7 @@ export default function JourneyConfigEditor({ rules, currencies, disabled, onCha
             <Grid key={achievement} item xs={12} md={6}>
               <Stack spacing={1} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
                 <strong>{achievementLabels[achievement]}</strong>
-                <CurrencyValuesEditor currencies={currencies} values={achievements[achievement]?.rewards ?? []} onChange={(rewards) => patchRules({ achievements: { ...achievements, [achievement]: { rewards } } as JourneyRules["achievements"] })} disabled={disabled} />
+                <RewardPoolEditor pool={achievements[achievement].rewardPool} resources={resources} disabled={disabled} onChange={(rewardPool) => patchRules({ achievements: { ...achievements, [achievement]: { rewardPool } } as JourneyRules["achievements"] })} />
               </Stack>
             </Grid>
           ))}

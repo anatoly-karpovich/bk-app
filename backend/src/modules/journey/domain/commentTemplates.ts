@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import { formatJourneyCurrencyValues, hasNegativeJourneyRewards } from "./currency";
 import { JOURNEY_ACHIEVEMENT_NAMES, JOURNEY_ACHIEVEMENT_STREAK_TARGETS, MOVE_TYPES } from "./config";

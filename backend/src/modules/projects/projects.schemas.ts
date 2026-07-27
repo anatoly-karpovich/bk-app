@@ -9,15 +9,17 @@ export const projectMutationSchema = z.object({
   code: z.string().trim().min(1).max(80),
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2_000).default(""),
-  currencies: z.array(
-    z.object({
+  resources: z.array(
+    z.discriminatedUnion("type", [
+      z.object({
+      type: z.literal("currency"),
       id: z.string().trim().min(1).max(80),
       code: z.string().trim().min(1).max(80),
       name: z.string().trim().min(1).max(160),
       label: z.string().trim().min(1).max(160),
       shortLabel: z.string().trim().min(1).max(80).optional(),
       valueType: z.enum(["integer", "decimal"]),
-      precision: z.number().int().min(0).max(8),
+      precision: z.number().int().min(0).max(1),
     }).superRefine((currency, context) => {
       if (currency.valueType === "integer" && currency.precision !== 0) {
         context.addIssue({
@@ -27,5 +29,15 @@ export const projectMutationSchema = z.object({
         });
       }
     }),
+    z.object({
+      type: z.literal("item"),
+      id: z.string().trim().min(1).max(80),
+      code: z.string().trim().min(1).max(80),
+      name: z.string().trim().min(1).max(160),
+      label: z.string().trim().min(1).max(160),
+      shortLabel: z.string().trim().min(1).max(80).optional(),
+      unitLabel: z.string().trim().min(1).max(80).optional(),
+    }),
+    ]),
   ).min(1),
 });

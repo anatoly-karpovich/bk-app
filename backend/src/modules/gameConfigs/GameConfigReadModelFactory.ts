@@ -25,34 +25,27 @@ export class GameConfigReadModelFactory {
   }
 
   private createJourneyReadModel(configId: string, config: JourneyGameConfig, currencies: ConfigCurrency[]) {
-    const primaryCurrency = currencies[0]?.label ?? "";
     const rules = normalizeJourneyRules(config.rules);
-    const journeyConfig = getJourneyConfig(rules, currencies);
+    const journeyConfig = getJourneyConfig(rules);
+    const configFields = this.publicConfigFields(config);
 
     return {
       id: configId,
-      ...structuredClone(config),
+      ...configFields,
       rules,
       summary: {
-        currency: primaryCurrency,
+        currency: "",
         mapSize: journeyConfig.mapSize,
         diceRange: `${journeyConfig.minDice}-${journeyConfig.maxDice}`,
         jackpot: `${
           rules.jackpot.countMode === "by_players"
             ? `1 на каждые ${rules.jackpot.playersPerJackpot} игроков, максимум ${JOURNEY_MAX_JACKPOT_COUNT}`
             : rules.jackpot.count
-        } x ${formatJourneyCurrencyValues(rules.jackpot.rewards, currencies, {
-          showPlus: true,
-          includeZero: false,
-        })}`,
+        } x ${rules.jackpot.rewardPool.mode}`,
         bonusKinds: rules.cells.filter((cell) => cell.kind === "bonus").length,
         trapKinds: rules.cells.filter((cell) => cell.kind === "trap").length,
         prizeLimit:
-          journeyConfig.maxPrizes === null
-            ? null
-            : formatJourneyCurrencyValues(journeyConfig.maxPrizes, currencies, {
-                includeZero: true,
-              }),
+          journeyConfig.resourceLimits.length ? "Настроены" : null,
       },
     };
   }
@@ -60,10 +53,11 @@ export class GameConfigReadModelFactory {
   private createBattleshipsReadModel(configId: string, config: BattleshipsGameConfig, currencies: ConfigCurrency[]) {
     const rules = normalizeBattleshipsRules(config.rules);
     const boardConfig = getBattleshipsBoardConfig(rules);
+    const configFields = this.publicConfigFields(config);
 
     return {
       id: configId,
-      ...structuredClone(config),
+      ...configFields,
       rules,
       summary: {
         boardSize: boardConfig.boardSize,
@@ -80,10 +74,11 @@ export class GameConfigReadModelFactory {
 
   private createLottoReadModel(configId: string, config: LottoGameConfig, currencies: ConfigCurrency[]) {
     const rules = normalizeLottoRules(config.rules);
+    const configFields = this.publicConfigFields(config);
 
     return {
       id: configId,
-      ...structuredClone(config),
+      ...configFields,
       rules,
       summary: {
         range: getLottoRangeLabel(rules),
@@ -103,5 +98,10 @@ export class GameConfigReadModelFactory {
         rewardDistributionMode: rules.rewardDistributionMode,
       },
     };
+  }
+
+  private publicConfigFields<TConfig extends AnyGameConfig>(config: TConfig): TConfig {
+    const { _id: _ignored, ...fields } = structuredClone(config) as TConfig & { _id?: unknown };
+    return fields as TConfig;
   }
 }

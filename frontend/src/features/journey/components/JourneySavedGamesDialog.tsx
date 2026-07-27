@@ -23,7 +23,7 @@ import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import { journeyTexts } from "../../../texts/journeyTexts";
-import { formatJourneyCurrencyValues } from "../journey-page.helpers";
+import { formatJourneyResourceAmounts } from "../journey-page.helpers";
 import type { JourneySavedGameSummary, JourneySavedGamePlayer } from "../types";
 
 const savedGamesTexts = {
@@ -218,7 +218,7 @@ export default function JourneySavedGamesDialog({
                                     {savedGamesTexts.playerCell}: {player.position}
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary">
-                                    {savedGamesTexts.playerPrize}: [{formatJourneyCurrencyValues(player.balanceEntries, game.currencies, { includeZero: true })}]
+                                    {savedGamesTexts.playerPrize}: [{formatJourneyResourceAmounts(player.balanceEntries, game.resources, { includeZero: true })}]
                                   </Typography>
                                 </Stack>
                               }

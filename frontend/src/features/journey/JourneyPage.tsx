@@ -142,7 +142,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               gameIsOver={gameIsOver}
               finishedPlayers={finishedPlayers}
               results={results}
-              currencies={journeyConfig.currencies}
+              resources={journeyConfig.resources}
             />
 
             {game ? (
@@ -197,7 +197,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               game={game}
               playerTimelines={playerTimelines}
               journeyAchievements={journeyAchievements}
-              journeyCurrencies={journeyConfig.currencies}
+              journeyResources={journeyConfig.resources}
               collectorTargets={collectorTargets}
               achievementProgressByPlayerId={achievementProgressByPlayerId}
               isAddingForumState={loading.isAddingForumState}

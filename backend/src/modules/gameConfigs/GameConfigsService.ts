@@ -1,15 +1,16 @@
 import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
-import type { ProjectCurrency } from "../projects/domain/types";
+import type { ProjectResource } from "../projects/domain/types";
+import { getCurrencySnapshots } from "../rewards";
 import { normalizeBattleshipsRules } from "../battleships/domain/config";
 import type { BattleshipsRulesInput } from "../battleships/domain/types";
-import { normalizeJourneyRules } from "../journey/domain/config";
+import { normalizeJourneyRules, validateJourneyRules } from "../journey/domain/config";
 import type { JourneyRulesInput } from "../journey/domain/types";
 import { normalizeLottoRules } from "../lotto/domain/config";
 import type { LottoRulesInput } from "../lotto/domain/types";
 import { GameConfigReadModelFactory } from "./GameConfigReadModelFactory";
 import { GameConfigsRepository } from "./GameConfigsRepository";
-import { collectCurrencyIdsFromRules } from "./domain/currencyReferences";
+import { collectResourceIdsFromRules } from "./domain/resourceReferences";
 import type {
   AnyGameConfig,
   AnyGameConfigReadModel,
@@ -39,7 +40,7 @@ export class GameConfigsService {
 
     return configs
       .map((config) =>
-        this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, project.currencies),
+        this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources)),
       )
       .sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
@@ -55,7 +56,7 @@ export class GameConfigsService {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
 
-    return this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, project.currencies);
+    return this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources));
   }
 
   async createProjectGameConfig(
@@ -71,7 +72,8 @@ export class GameConfigsService {
     await this.assertNameAvailable(projectId, input.gameType, name);
     const now = new Date().toISOString();
     const rules = this.normalizeRules(input.gameType, input.rules);
-    this.assertRulesUseProjectCurrencies(rules, project.currencies);
+    this.assertRulesUseProjectResources(rules, project.resources);
+    if (input.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
     const created = await this.repository.create({
       projectId,
       gameType: input.gameType,
@@ -80,14 +82,13 @@ export class GameConfigsService {
       rules,
       createdAt: now,
       updatedAt: now,
-      legacyConfigId: null,
     });
 
     if (!created) {
       throw new Error("Failed to load created game config");
     }
 
-    return this.readModelFactory.create(created._id.toHexString(), created as unknown as AnyGameConfig, project.currencies);
+    return this.readModelFactory.create(created._id.toHexString(), created as unknown as AnyGameConfig, getCurrencySnapshots(project.resources));
   }
 
   async updateProjectGameConfig(
@@ -111,7 +112,8 @@ export class GameConfigsService {
     }
 
     const rules = this.normalizeRules(current.gameType, input.rules);
-    this.assertRulesUseProjectCurrencies(rules, project.currencies);
+    this.assertRulesUseProjectResources(rules, project.resources);
+    if (current.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
     const updated = await this.repository.update(projectId, gameConfigId, {
       projectId,
       gameType: current.gameType,
@@ -120,14 +122,13 @@ export class GameConfigsService {
       rules,
       createdAt: current.createdAt,
       updatedAt: new Date().toISOString(),
-      legacyConfigId: current.legacyConfigId ?? null,
     });
 
     if (!updated) {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
 
-    return this.readModelFactory.create(updated._id.toHexString(), updated as unknown as AnyGameConfig, project.currencies);
+    return this.readModelFactory.create(updated._id.toHexString(), updated as unknown as AnyGameConfig, getCurrencySnapshots(project.resources));
   }
 
   async deleteProjectGameConfig(projectId: string, gameConfigId: string): Promise<void> {
@@ -174,7 +175,8 @@ export class GameConfigsService {
     }
 
     return {
-      projectCurrencies: structuredClone(project.currencies),
+      projectCurrencies: getCurrencySnapshots(project.resources),
+      projectResources: structuredClone(project.resources),
       config: structuredClone(config as unknown as AnyGameConfig),
     };
   }
@@ -202,14 +204,14 @@ export class GameConfigsService {
     }
   }
 
-  private assertRulesUseProjectCurrencies(rules: unknown, currencies: ProjectCurrency[]): void {
-    const currenciesById = new Map(currencies.map((currency) => [currency.id, currency]));
+  private assertRulesUseProjectResources(rules: unknown, resources: ProjectResource[]): void {
+    const resourcesById = new Map(resources.map((resource) => [resource.id, resource]));
     const visited = new Set<unknown>();
-    const currencyIds = collectCurrencyIdsFromRules(rules);
+    const resourceIds = collectResourceIdsFromRules(rules);
 
-    for (const currencyId of currencyIds) {
-      if (!currenciesById.has(currencyId)) {
-        throw new GameConfigCurrencyValidationError(`Unknown project currency "${currencyId}" in game rules`);
+    for (const resourceId of resourceIds) {
+      if (!resourcesById.has(resourceId)) {
+        throw new GameConfigCurrencyValidationError(`Unknown project resource "${resourceId}" in game rules`);
       }
     }
 
@@ -225,16 +227,18 @@ export class GameConfigsService {
       }
 
       const record = value as Record<string, unknown>;
-      if (typeof record.currencyId === "string" && typeof record.value === "number") {
-        const currency = currenciesById.get(record.currencyId)!;
-        if (!Number.isFinite(record.value)) {
-          throw new GameConfigCurrencyValidationError(`Currency value for "${record.currencyId}" must be finite`);
+      if (typeof record.resourceId === "string" && typeof record.amount === "number") {
+        const resource = resourcesById.get(record.resourceId)!;
+        if (!Number.isFinite(record.amount) || record.amount === 0) {
+          throw new GameConfigCurrencyValidationError(`Resource amount for "${record.resourceId}" must be finite and non-zero`);
         }
-
-        const scaledValue = record.value * 10 ** currency.precision;
+        if (resource.type === "item" && (!Number.isSafeInteger(record.amount) || record.amount < 0)) {
+          throw new GameConfigCurrencyValidationError(`Item amount for "${record.resourceId}" must be a positive integer`);
+        }
+        const scaledValue = record.amount * 10 ** (resource.type === "currency" ? resource.precision : 0);
         if (!Number.isInteger(scaledValue)) {
           throw new GameConfigCurrencyValidationError(
-            `Currency value for "${record.currencyId}" exceeds precision ${currency.precision}`,
+            `Resource amount for "${record.resourceId}" exceeds allowed precision`,
           );
         }
       }

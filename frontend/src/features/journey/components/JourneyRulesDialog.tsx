@@ -2,7 +2,7 @@ import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack,
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import { formatJourneyCurrencyValues } from "../journey-page.helpers";
+import { formatJourneyRewardPool, formatJourneyResourceAmounts } from "../journey-page.helpers";
 import type { JourneyAchievement, JourneyAchievementsMap, JourneyConfig } from "../types";
 
 interface JourneyRulesDialogProps {
@@ -25,18 +25,22 @@ function JourneyRulesSummary({
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <AppChip
-          label={`${journeyTexts.rulesChips.startPrefix} ${formatJourneyCurrencyValues(journeyConfig.initialRewards, journeyConfig.currencies, { includeZero: true })}`}
+          label={`${journeyTexts.rulesChips.startPrefix} ${formatJourneyRewardPool(journeyConfig.initialRewardPool, journeyConfig.resources)}`}
           color="primary"
         />
         <AppChip label={`${journeyTexts.rulesChips.mapPrefix} ${journeyConfig.mapSize} ${journeyTexts.rulesChips.mapSuffix}`} color="secondary" />
         <AppChip label={`${journeyTexts.rulesChips.movePrefix} ${journeyConfig.minDice}-${journeyConfig.maxDice}`} />
         <AppChip
-          label={`${journeyTexts.rulesChips.jackpotPrefix} ${formatJourneyCurrencyValues(journeyConfig.jackpotRewards, journeyConfig.currencies, { showPlus: true, includeZero: false })}`}
+          label={`${journeyTexts.rulesChips.jackpotPrefix} ${formatJourneyRewardPool(journeyConfig.jackpotRewardPool, journeyConfig.resources)}`}
           color="warning"
         />
-        {journeyConfig.maxPrizes ? (
+        {journeyConfig.resourceLimits.length ? (
           <AppChip
-            label={`${journeyTexts.rulesChips.prizeLimitPrefix} ${formatJourneyCurrencyValues(journeyConfig.maxPrizes, journeyConfig.currencies, { includeZero: true })}`}
+            label={`${journeyTexts.rulesChips.prizeLimitPrefix} ${formatJourneyResourceAmounts(
+              journeyConfig.resourceLimits.flatMap((limit) => limit.max === undefined ? [] : [{ resourceId: limit.resourceId, amount: limit.max }]),
+              journeyConfig.resources,
+              { includeZero: true },
+            )}`}
           />
         ) : (
           <AppChip label={journeyTexts.rulesChips.noPrizeLimit} />
@@ -51,7 +55,7 @@ function JourneyRulesSummary({
           .map((achievement) => (
             <Box key={achievement.name}>
               <Typography fontWeight={700}>
-                {achievement.title} - {formatJourneyCurrencyValues(achievement.rewards, journeyConfig.currencies, { showPlus: true, includeZero: false })}
+                {achievement.title} - {formatJourneyRewardPool(achievement.rewardPool, journeyConfig.resources)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {achievement.description}

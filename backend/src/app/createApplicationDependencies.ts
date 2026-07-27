@@ -19,6 +19,7 @@ import { JourneyForumMovesImporter } from "../modules/journey/JourneyForumMovesI
 import { JourneyForumPlayersImporter } from "../modules/journey/JourneyForumPlayersImporter";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
+import { CryptoRandomizer, LoggingRandomizer, ResourceInventoryService, RewardResolver } from "../modules/rewards";
 import { LottoController } from "../modules/lotto/LottoController";
 import { LottoEngine } from "../modules/lotto/LottoEngine";
 import { LottoReadModelFactory } from "../modules/lotto/LottoReadModelFactory";
@@ -72,8 +73,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
 
-  const journeyV2Engine = new JourneyV2Engine();
-  const journeyReadModelFactory = new JourneyReadModelFactory();
+  const cryptoRandomizer = new CryptoRandomizer();
+  const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
+  const rewardResolver = new RewardResolver(randomizer);
+  const resourceInventoryService = new ResourceInventoryService();
+  const journeyV2Engine = new JourneyV2Engine(rewardResolver, resourceInventoryService);
+  const journeyReadModelFactory = new JourneyReadModelFactory(journeyV2Engine);
   const journeyForumStateFormatter = new JourneyForumStateFormatter();
   const forumTopicService = new ForumTopicService();
   const journeyForumMovesImporter = new JourneyForumMovesImporter(forumTopicService);

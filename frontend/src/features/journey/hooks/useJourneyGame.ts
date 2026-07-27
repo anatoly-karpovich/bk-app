@@ -199,12 +199,12 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     [gameConfigs, selectedGameConfigId],
   );
   const selectedJourneyRules = selectedJourneyGameConfig?.rules ?? null;
-  const selectedCurrencies = selectedProject?.currencies ?? [];
+  const selectedResources = selectedProject?.resources ?? [];
   const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
-  const journeyCurrencies = useMemo(() => game?.currencies ?? selectedCurrencies, [game, selectedCurrencies]);
+  const journeyResources = useMemo(() => game?.resources ?? selectedResources, [game, selectedResources]);
   const journeyConfig = useMemo(
-    () => game?.journeyConfig ?? getJourneyConfig(journeyRules, journeyCurrencies),
-    [game, journeyCurrencies, journeyRules],
+    () => game?.journeyConfig ?? getJourneyConfig(journeyRules, journeyResources),
+    [game, journeyResources, journeyRules],
   );
   const journeyAchievements = useMemo(
     () => game?.journeyAchievements ?? getJourneyAchievements(journeyRules),

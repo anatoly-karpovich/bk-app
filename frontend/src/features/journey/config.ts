@@ -1,202 +1,64 @@
 import type {
   JourneyAchievementsMap,
   JourneyConfig,
-  JourneyCurrencyDefinition,
-  JourneyCurrencyValue,
-  JourneyMapCell,
+  JourneyResourceDefinition,
   JourneyRules,
-  JourneyRulesCell,
-  JourneyRulesInput,
+  RewardPool,
 } from "./types";
 
-function clone<T>(value: T): T {
-  return structuredClone(value);
-}
-
-function normalizeCurrencyValues(values: JourneyCurrencyValue[]): JourneyCurrencyValue[] {
-  return values
-    .map((value) => ({
-      currencyId: value.currencyId.trim(),
-      value: Math.trunc(value.value),
-    }))
-    .filter((value) => value.currencyId);
-}
-
-function normalizeAchievementRewards(rewards: JourneyCurrencyValue[] | undefined): JourneyCurrencyValue[] {
-  return normalizeCurrencyValues(Array.isArray(rewards) ? rewards : []);
-}
+const defaultRewardPool: RewardPool = {
+  mode: "all",
+  rewards: [{ resourceId: "default", amount: 15 }],
+};
 
 export const DEFAULT_JOURNEY_RULES: JourneyRules = {
-  initialRewards: [{ currencyId: "default", value: 15 }],
+  initialRewardPool: defaultRewardPool,
   minDice: 1,
   maxDice: 5,
-  maxPrizes: [{ currencyId: "default", value: 30 }],
+  resourceLimits: [{ resourceId: "default", min: 0, max: 30 }],
   mapSize: 50,
   jackpot: {
     countMode: "fixed",
     count: 7,
     playersPerJackpot: 3,
-    rewards: [{ currencyId: "default", value: 30 }],
+    rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 30 }] },
   },
   cells: [
-    { id: "bonus_2", kind: "bonus", rewards: [{ currencyId: "default", value: 2 }], count: 12 },
-    { id: "bonus_3", kind: "bonus", rewards: [{ currencyId: "default", value: 3 }], count: 5 },
-    { id: "bonus_5", kind: "bonus", rewards: [{ currencyId: "default", value: 5 }], count: 2 },
-    { id: "trap_3", kind: "trap", rewards: [{ currencyId: "default", value: -3 }], count: 2 },
-    { id: "trap_2", kind: "trap", rewards: [{ currencyId: "default", value: -2 }], count: 4 },
-    { id: "trap_1", kind: "trap", rewards: [{ currencyId: "default", value: -1 }], count: 4 },
+    { id: "bonus_2", kind: "bonus", rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 2 }] }, count: 12 },
+    { id: "bonus_3", kind: "bonus", rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 3 }] }, count: 5 },
+    { id: "bonus_5", kind: "bonus", rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 5 }] }, count: 2 },
+    { id: "trap_3", kind: "trap", rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: -3 }] }, count: 2 },
+    { id: "trap_2", kind: "trap", rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: -2 }] }, count: 4 },
+    { id: "trap_1", kind: "trap", rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: -1 }] }, count: 4 },
   ],
   achievements: {
-    unlucky: { rewards: [{ currencyId: "default", value: 5 }] },
-    careful: { rewards: [{ currencyId: "default", value: 5 }] },
-    collector: { rewards: [{ currencyId: "default", value: 5 }] },
-    lucky: { rewards: [{ currencyId: "default", value: 5 }] },
+    unlucky: { rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 5 }] } },
+    careful: { rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 5 }] } },
+    collector: { rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 5 }] } },
+    lucky: { rewardPool: { mode: "all", rewards: [{ resourceId: "default", amount: 5 }] } },
   },
 };
 
-export const MOVE_TYPES = {
-  JACKPOT: "moveWithJackpot",
-  EMPTY_JACKPOT: "moveWithEmptyJackpot",
-  INCREASE: "moveWithIncreasingPrize",
-  DECREASE: "moveWithDecreasingPrize",
-  EMPTY: "moveWithoutBonus",
-  FINISH: "moveToFinish",
-  AT_MAX: "moveWithMaxPrize",
-  TO_MAX: "moveToMaxPrize",
-  TO_ZERO: "moveToZeroPrize",
-  AT_ZERO: "moveWithZeroPrize",
-  ACHIEVEMENT: "moveToAchievement",
-} as const;
-
-export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
-  const rules = clone(DEFAULT_JOURNEY_RULES);
-
+/** Builds only the display fields required before a game is created. */
+export function getJourneyConfig(rules: JourneyRules, resources: JourneyResourceDefinition[]): JourneyConfig {
   return {
-    ...rules,
-    ...rawRules,
-    initialRewards: normalizeCurrencyValues(rawRules.initialRewards ?? rules.initialRewards),
-    maxPrizes:
-      rawRules.maxPrizes === null ? null : normalizeCurrencyValues(rawRules.maxPrizes ?? rules.maxPrizes ?? []),
-    jackpot: {
-      ...rules.jackpot,
-      ...(rawRules.jackpot ?? {}),
-      rewards: normalizeCurrencyValues(rawRules.jackpot?.rewards ?? rules.jackpot.rewards),
-    },
-    achievements: {
-      unlucky: {
-        rewards: normalizeAchievementRewards(
-          rawRules.achievements?.unlucky?.rewards ?? rules.achievements.unlucky.rewards,
-        ),
-      },
-      careful: {
-        rewards: normalizeAchievementRewards(
-          rawRules.achievements?.careful?.rewards ?? rules.achievements.careful.rewards,
-        ),
-      },
-      collector: {
-        rewards: normalizeAchievementRewards(
-          rawRules.achievements?.collector?.rewards ?? rules.achievements.collector.rewards,
-        ),
-      },
-      lucky: {
-        rewards: normalizeAchievementRewards(rawRules.achievements?.lucky?.rewards ?? rules.achievements.lucky.rewards),
-      },
-    },
-    cells:
-      Array.isArray(rawRules.cells) && rawRules.cells.length
-        ? rawRules.cells.map((cell) => ({
-            id: cell.id,
-            kind: cell.kind,
-            count: cell.count,
-            rewards: normalizeCurrencyValues(cell.rewards),
-          }))
-        : rules.cells,
+    mapSize: rules.mapSize,
+    finishPosition: rules.mapSize + 1,
+    initialRewardPool: rules.initialRewardPool,
+    minDice: rules.minDice,
+    maxDice: rules.maxDice,
+    resourceLimits: rules.resourceLimits,
+    jackpotRewardPool: rules.jackpot.rewardPool,
+    resources,
   };
 }
 
-export function getJourneyConfig(
-  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
-  currencies: JourneyCurrencyDefinition[] = [{ id: "default", label: "фишек" }],
-): JourneyConfig {
-  const normalizedRules = normalizeJourneyRules(rules);
-
+export function getJourneyAchievements(rules: JourneyRules): JourneyAchievementsMap {
   return {
-    mapSize: normalizedRules.mapSize,
-    finishPosition: normalizedRules.mapSize + 1,
-    initialRewards: normalizedRules.initialRewards,
-    minDice: normalizedRules.minDice,
-    maxDice: normalizedRules.maxDice,
-    maxPrizes: normalizedRules.maxPrizes,
-    jackpotRewards: normalizedRules.jackpot.rewards,
-    currencies: clone(currencies),
+    JACKPOT: { name: "Jackpot", title: "Сокровище", rewardPool: rules.jackpot.rewardPool },
+    UNLUCKY: { name: "Unlucky", title: "Невезучий", rewardPool: rules.achievements.unlucky.rewardPool, description: "Попадание на 3 клетки с ловушками подряд" },
+    CAREFUL: { name: "Careful", title: "Осторожный", rewardPool: rules.achievements.careful.rewardPool, description: "Попадание на 4 пустые клетки подряд" },
+    COLLECTOR: { name: "Collector", title: "Коллекционер", rewardPool: rules.achievements.collector.rewardPool, description: "Попадание на все виды бонусных, ловушек и пустую клетку" },
+    LUCKY: { name: "Lucky", title: "Счастливчик", rewardPool: rules.achievements.lucky.rewardPool, description: "Попадание на 5 клеток с наградой подряд, без учёта сокровища" },
   };
 }
-
-export function getJourneyBonusCells(
-  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
-): Array<{ cell: JourneyMapCell; amount: number }> {
-  const normalizedRules = normalizeJourneyRules(rules);
-
-  return [
-    {
-      cell: {
-        id: "jackpot",
-        kind: "bonus",
-        rewards: normalizedRules.jackpot.rewards,
-        isJackpot: true,
-        winner: null,
-      },
-      amount: normalizedRules.jackpot.count,
-    },
-    ...normalizedRules.cells.map((cell) => ({
-      cell: {
-        id: cell.id,
-        kind: cell.kind,
-        rewards: cell.rewards,
-      },
-      amount: cell.count,
-    })),
-  ];
-}
-
-export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyAchievementsMap {
-  const normalizedRules = normalizeJourneyRules(rules);
-
-  return {
-    JACKPOT: {
-      name: "Jackpot",
-      title: "Сокровище",
-      rewards: normalizedRules.jackpot.rewards,
-    },
-    UNLUCKY: {
-      name: "Unlucky",
-      title: "Невезучий",
-      rewards: normalizedRules.achievements.unlucky.rewards,
-      description: "Попадание на 3 клетки с ловушками подряд",
-    },
-    CAREFUL: {
-      name: "Careful",
-      title: "Осторожный",
-      rewards: normalizedRules.achievements.careful.rewards,
-      description: "Попадание на 4 пустые клетки подряд",
-    },
-    COLLECTOR: {
-      name: "Collector",
-      title: "Коллекционер",
-      rewards: normalizedRules.achievements.collector.rewards,
-      description: "Попадание на все виды бонусных, ловушек и пустую клетку",
-    },
-    LUCKY: {
-      name: "Lucky",
-      title: "Счастливчик",
-      rewards: normalizedRules.achievements.lucky.rewards,
-      description: "Попадание на 5 клеток с наградой подряд, без учёта сокровища",
-    },
-  };
-}
-
-const normalizedDefaultRules = normalizeJourneyRules(DEFAULT_JOURNEY_RULES);
-
-export const JOURNEY_CONFIG = getJourneyConfig(normalizedDefaultRules);
-export const JOURNEY_BONUS_CELLS = getJourneyBonusCells(normalizedDefaultRules);
-export const JOURNEY_ACHIEVEMENTS = getJourneyAchievements(normalizedDefaultRules);

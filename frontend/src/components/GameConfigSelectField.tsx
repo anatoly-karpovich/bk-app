@@ -33,13 +33,16 @@ export default function GameConfigSelectField({
   sx,
 }: GameConfigSelectFieldProps) {
   const selectDisabled = disabled || loading || !gameConfigs.length;
+  const selectValue = gameConfigs.some((gameConfig) => gameConfig.id === selectedGameConfigId)
+    ? selectedGameConfigId
+    : "";
 
   return (
     <FormControl fullWidth size="small" disabled={selectDisabled} error={Boolean(error)} sx={sx}>
       <InputLabel>{label}</InputLabel>
       <Select
         label={label}
-        value={selectedGameConfigId}
+        value={selectValue}
         onChange={(event: SelectChangeEvent<string>) => onSelectedGameConfigChange(event.target.value)}
       >
         {!gameConfigs.length ? (

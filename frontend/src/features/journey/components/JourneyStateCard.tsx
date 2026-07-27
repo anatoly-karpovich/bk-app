@@ -24,9 +24,9 @@ import AppPillButton from "../../../components/ui/AppPillButton";
 import type {
   JourneyAchievementsMap,
   JourneyAchievementProgress,
-  JourneyCurrencyDefinition,
   JourneyPageGame,
   JourneyCollectorTarget,
+  JourneyResourceDefinition,
   JourneyTimelineEntry,
 } from "../types";
 
@@ -34,7 +34,7 @@ interface JourneyStateCardProps {
   game: JourneyPageGame | null;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
   journeyAchievements: JourneyAchievementsMap;
-  journeyCurrencies: JourneyCurrencyDefinition[];
+  journeyResources: JourneyResourceDefinition[];
   collectorTargets: JourneyCollectorTarget[];
   achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
   isAddingForumState: boolean;
@@ -45,7 +45,7 @@ export default function JourneyStateCard({
   game,
   playerTimelines,
   journeyAchievements,
-  journeyCurrencies,
+  journeyResources,
   collectorTargets,
   achievementProgressByPlayerId,
   isAddingForumState,
@@ -55,9 +55,9 @@ export default function JourneyStateCard({
   const collectorTargetsById = useMemo(
     () =>
       Object.fromEntries(
-        collectorTargets.map((target) => [target.id, getCollectorTargetLabel(target, journeyCurrencies)]),
+        collectorTargets.map((target) => [target.id, getCollectorTargetLabel(target, journeyResources)]),
       ),
-    [collectorTargets, journeyCurrencies],
+    [collectorTargets, journeyResources],
   );
   const jackpotWinnerNicknames = useMemo(
     () =>
@@ -135,7 +135,7 @@ export default function JourneyStateCard({
                         </Stack>
                       </TableCell>
                       <TableCell align="right">{player.position}</TableCell>
-                      <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyCurrencies)}]</TableCell>
+                      <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyResources)}]</TableCell>
                       <TableCell align="right">
                         {player.bonuses.length}
                       </TableCell>
@@ -300,7 +300,7 @@ export default function JourneyStateCard({
                                         }}
                                       >
                                         <Typography variant="body2">
-                                          {getHistoryEntrySummary(entry, journeyCurrencies)}
+                                          {getHistoryEntrySummary(entry, journeyResources)}
                                         </Typography>
                                         {entry.achievementsAwarded?.length ? (
                                           <Stack

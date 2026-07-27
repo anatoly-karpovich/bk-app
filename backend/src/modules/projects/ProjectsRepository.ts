@@ -45,32 +45,6 @@ export class ProjectsRepository {
     return result.deletedCount > 0;
   }
 
-  async findByLegacyConfigId(legacyConfigId: string): Promise<WithId<ProjectDocument> | null> {
-    const collection = await this.getCollection();
-    return collection.findOne({ legacyConfigId });
-  }
-
-  async upsertByLegacyConfigId(
-    legacyConfigId: string,
-    project: Project,
-  ): Promise<WithId<ProjectDocument> | null> {
-    const collection = await this.getCollection();
-
-    return collection.findOneAndUpdate(
-      { legacyConfigId },
-      {
-        $set: {
-          ...project,
-          legacyConfigId,
-        },
-      },
-      {
-        upsert: true,
-        returnDocument: "after",
-      },
-    );
-  }
-
   private async getCollection() {
     return this.mongoDatabase.getCollection<ProjectDocument>(PROJECTS_COLLECTION);
   }

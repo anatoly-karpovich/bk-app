@@ -29,6 +29,10 @@
     "db:migrate:project-currency-metadata": "tsx src/scripts/migrateProjectCurrencyMetadata.ts",
     "db:migrate:project-currency-metadata:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateProjectCurrencyMetadata.ts",
     "db:migrate:project-currency-metadata:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migrateProjectCurrencyMetadata.ts",
+    "db:migrate:resources-rewards": "tsx src/scripts/migrateResourcesAndJourneyRewards.ts",
+    "db:migrate:resources-rewards:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateResourcesAndJourneyRewards.ts",
+    "db:migrate:resources-rewards:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migrateResourcesAndJourneyRewards.ts",
+    "db:replace-game-configs-from-backup:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/replaceLocalGameConfigsFromBackup.ts",
     "backup:prod": "npm run backup:restore-new-schema:prod -- --source backups\\db-data-projects --confirm-replace"
   },
   "dependencies": {
