@@ -2,10 +2,15 @@ import type { ResourceAmount, ResourceHoldings, ResourceSnapshot } from "../rewa
 import { ResourceInventoryService, RewardResolver } from "../rewards";
 import { JourneyRoundValidationError } from "./errors";
 import { JourneyRewardCommentFormatter, type FormattedRewardApplication } from "./domain/JourneyRewardCommentFormatter";
-import { renderJourneyCommentTemplate } from "./domain/commentTemplates";
+import { JOURNEY_FORUM_MAP_CELL_TEMPLATE, renderJourneyCommentTemplate } from "./domain/commentTemplates";
 import { JourneyCommentTemplateRotator } from "./domain/JourneyCommentTemplateRotator";
 import { toJourneyMoveCommentTemplateKind } from "./domain/types";
-import { buildJourneyRoundMarker, JOURNEY_GAME_STARTED_MARKER } from "./JourneyForumMarkers";
+import {
+  buildJourneyRoundMarker,
+  JOURNEY_GAME_MAP_MARKER,
+  JOURNEY_GAME_RESULTS_MARKER,
+  JOURNEY_GAME_STARTED_MARKER,
+} from "./JourneyForumMarkers";
 import {
   getJourneyAchievements,
   getJourneyBonusCells,
@@ -593,12 +598,50 @@ export class JourneyV2Engine {
     game.stateV2.status = "finished";
     game.stateV2.forumLog.push(
       "",
-      "=== Итоги ===",
+      JOURNEY_GAME_RESULTS_MARKER,
       ...game.stateV2.players
         .filter((player) => player.status !== "removed")
         .map((player) => `${player.nickname} — [${this.formatHoldings(player.balance, game.resources)}]`),
+      "",
+      ...this.buildForumMap(game),
     );
     game.updatedAt = now();
     return game;
+  }
+
+  private buildForumMap(game: JourneyV2Game): string[] {
+    return [
+      JOURNEY_GAME_MAP_MARKER,
+      ...Object.entries(game.stateV2.map)
+        .sort(([left], [right]) => Number(left) - Number(right))
+        .map(([position, cell]) => {
+          const cellType = cell.isJackpot ? "сокровище" : cell.kind === "trap" ? "ловушка" : "награда";
+          return renderJourneyCommentTemplate(JOURNEY_FORUM_MAP_CELL_TEMPLATE, {
+            position,
+            cellType,
+            rewardLabel: this.formatRewardPool(cell.rewardPool, game.resources),
+          }, { appendTerminalPunctuation: false });
+        }),
+    ];
+  }
+
+  private formatRewardPool(pool: JourneyMapCell["rewardPool"], resources: ResourceSnapshot[]): string {
+    if (pool.mode === "all") return this.formatRewardAmounts(pool.rewards, resources);
+    if (pool.mode === "weighted_one") {
+      return `одна из наград: ${pool.options.map((option) => option.reward ? this.formatRewardAmounts([option.reward], resources) : "пусто").join(", ")}`;
+    }
+    return `возможные награды: ${pool.options.map((option) => this.formatRewardAmounts([option.reward], resources)).join(", ")}`;
+  }
+
+  private formatRewardAmounts(rewards: ResourceAmount[], resources: ResourceSnapshot[]): string {
+    return rewards
+      .map((reward) => {
+        const label = resources.find((resource) => resource.id === reward.resourceId)?.unitLabel
+          ?? resources.find((resource) => resource.id === reward.resourceId)?.shortLabel
+          ?? resources.find((resource) => resource.id === reward.resourceId)?.label
+          ?? reward.resourceId;
+        return `${reward.amount > 0 ? "+" : ""}${reward.amount} ${label}`;
+      })
+      .join(", ") || "0";
   }
 }

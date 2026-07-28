@@ -35,14 +35,18 @@ function randomFrom<T>(array: T[], randomFn: RandomFn = Math.random): T {
   return array[index];
 }
 
-function interpolate(template: string, values: Record<string, string | number>): string {
+function interpolate(
+  template: string,
+  values: Record<string, string | number>,
+  appendTerminalPunctuation = true,
+): string {
   const withoutBalance = template.replace(/\s*\[\{balanceLabel\}\]/g, "");
   const result = Object.entries(values).reduce(
     (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
     withoutBalance,
   );
 
-  return /[.!?…]$/.test(result) ? result : `${result}.`;
+  return !appendTerminalPunctuation || /[.!?…]$/.test(result) ? result : `${result}.`;
 }
 
 function toAbsoluteRewards(values: JourneyCurrencyValue[]): JourneyCurrencyValue[] {
@@ -296,6 +300,8 @@ const limitTemplates = {
 
 const skipTemplates = ["{nickname} пропускает ход."];
 
+export const JOURNEY_FORUM_MAP_CELL_TEMPLATE = "На клетке {position} находится {cellType} на {rewardLabel}";
+
 export const JOURNEY_COMMENT_TEMPLATES: Record<JourneyCommentTemplateKind, string[]> = {
   [toJourneyMoveCommentTemplateKind(MOVE_TYPES.JACKPOT)]: moveTemplates[MOVE_TYPES.JACKPOT],
   [toJourneyMoveCommentTemplateKind(MOVE_TYPES.EMPTY_JACKPOT)]: moveTemplates[MOVE_TYPES.EMPTY_JACKPOT],
@@ -318,8 +324,12 @@ export const JOURNEY_COMMENT_TEMPLATES: Record<JourneyCommentTemplateKind, strin
   skip: skipTemplates,
 };
 
-export function renderJourneyCommentTemplate(template: string, values: Record<string, string | number>): string {
-  return interpolate(template, values);
+export function renderJourneyCommentTemplate(
+  template: string,
+  values: Record<string, string | number>,
+  options: { appendTerminalPunctuation?: boolean } = {},
+): string {
+  return interpolate(template, values, options.appendTerminalPunctuation);
 }
 
 interface JourneyResourceMoveCommentInput {
