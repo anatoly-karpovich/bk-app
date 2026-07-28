@@ -12,6 +12,7 @@ import { ForumTopicController } from "../modules/forumTopic/ForumTopicController
 import { ForumTopicService } from "../modules/forumTopic/ForumTopicService";
 import { JourneyController } from "../modules/journey/JourneyController";
 import { JourneyV2Engine } from "../modules/journey/JourneyV2Engine";
+import { JourneyRewardCommentFormatter } from "../modules/journey/domain/JourneyRewardCommentFormatter";
 import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
 import { JourneyForumStateFormatter } from "../modules/journey/JourneyForumStateFormatter";
@@ -77,7 +78,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
   const rewardResolver = new RewardResolver(randomizer);
   const resourceInventoryService = new ResourceInventoryService();
-  const journeyV2Engine = new JourneyV2Engine(rewardResolver, resourceInventoryService);
+  const journeyRewardCommentFormatter = new JourneyRewardCommentFormatter();
+  const journeyV2Engine = new JourneyV2Engine(rewardResolver, resourceInventoryService, journeyRewardCommentFormatter);
   const journeyReadModelFactory = new JourneyReadModelFactory(journeyV2Engine);
   const journeyForumStateFormatter = new JourneyForumStateFormatter();
   const forumTopicService = new ForumTopicService();

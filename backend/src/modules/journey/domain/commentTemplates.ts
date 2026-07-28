@@ -29,10 +29,13 @@ function randomFrom<T>(array: T[], randomFn: RandomFn = Math.random): T {
 }
 
 function interpolate(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
+  const withoutBalance = template.replace(/\s*\[\{balanceLabel\}\]/g, "");
+  const result = Object.entries(values).reduce(
     (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
-    template,
+    withoutBalance,
   );
+
+  return /[.!?…]$/.test(result) ? result : `${result}.`;
 }
 
 function toAbsoluteRewards(values: JourneyCurrencyValue[]): JourneyCurrencyValue[] {
@@ -61,8 +64,6 @@ function formatRewardLabel(
 
 const moveTemplates: Record<MoveTemplateType, string[]> = {
   [MOVE_TYPES.JACKPOT]: [
-    "{nickname} срывает сокровище: {rewardLabel} [{balanceLabel}]",
-    "{nickname} открывает сундук и забирает джекпот: {rewardLabel} [{balanceLabel}]",
     "{nickname} получает внезапное наследство: {rewardLabel} [{balanceLabel}]",
     "{nickname} получил(-а) СМС о наследстве от пробабушки из Швейцарии: {rewardLabel} [{balanceLabel}].",
     "{nickname} сорвал(-а) джекпот в лотерее и получил(-а) {rewardLabel} [{balanceLabel}].",
@@ -131,7 +132,6 @@ const moveTemplates: Record<MoveTemplateType, string[]> = {
     "{nickname} решил(-а) почесать ВЦ. И руки в тепле, и платить не надо! [{balanceLabel}]",
   ],
   [MOVE_TYPES.INCREASE]: [
-    "{nickname} находит {rewardLabel} [{balanceLabel}]",
     "{nickname} нащупал(-а) тайник в стене и забрал(-а) {rewardLabel} [{balanceLabel}]",
     "Фея удачи приносит {nickname} ещё {rewardLabel} [{balanceLabel}]",
     "{nickname} открыл(-а) забытый сейф, а внутри лежали {rewardLabel} [{balanceLabel}]",
@@ -271,6 +271,96 @@ const achievementTemplatesByName: Partial<Record<string, string[]>> = {
     'Система сообщает: вероятность происходящего всё ещё ненулевая. {nickname} получает достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
   ],
 };
+
+const emptyRewardTemplates = {
+  jackpot: [
+    "{nickname} находит сокровище, но награда не выпадает.",
+    "Сундук достаётся {nickname}, но внутри оказывается пусто.",
+  ],
+  achievement: [
+    "Достижение «{achievement}» достаётся {nickname}, но награда не выпадает.",
+    "{nickname} получает достижение «{achievement}», но без дополнительной награды.",
+  ],
+};
+
+const limitTemplates = {
+  gain: ["Не начислено{context}: {rewardLabel} — достигнут максимальный лимит."],
+  loss: ["Не списано{context}: {rewardLabel} — достигнут минимальный лимит."],
+};
+
+const skipTemplates = ["{nickname} пропускает ход."];
+
+interface JourneyResourceMoveCommentInput {
+  playerNickname: string;
+  moveType: JourneyMoveType;
+  rewardLabel: string;
+  requestedRewardLabel: string;
+  randomFn?: RandomFn;
+}
+
+export function buildJourneyResourceMoveComment({
+  playerNickname,
+  moveType,
+  rewardLabel,
+  requestedRewardLabel,
+  randomFn = Math.random,
+}: JourneyResourceMoveCommentInput): string {
+  const templates = moveTemplates[moveType] ?? moveTemplates[MOVE_TYPES.EMPTY];
+  return interpolate(randomFrom(templates, randomFn), {
+    nickname: playerNickname,
+    rewardLabel,
+    requestedRewardLabel,
+  });
+}
+
+interface JourneyResourceAchievementCommentInput {
+  playerNickname: string;
+  achievement: JourneyAchievement;
+  rewardLabel: string | null;
+  randomFn?: RandomFn;
+}
+
+export function buildJourneyResourceAchievementComment({
+  playerNickname,
+  achievement,
+  rewardLabel,
+  randomFn = Math.random,
+}: JourneyResourceAchievementCommentInput): string {
+  if (!rewardLabel) {
+    return interpolate(randomFrom(emptyRewardTemplates.achievement, randomFn), {
+      nickname: playerNickname,
+      achievement: achievement.title ?? achievement.name,
+    });
+  }
+
+  const templates = achievementTemplatesByName[achievement.name] ?? achievementTemplates;
+  return interpolate(randomFrom(templates, randomFn), {
+    nickname: playerNickname,
+    achievement: achievement.title ?? achievement.name,
+    description: achievement.description ?? "",
+    rewardLabel,
+  });
+}
+
+export function buildJourneyEmptyJackpotRewardComment(
+  playerNickname: string,
+  randomFn: RandomFn = Math.random,
+): string {
+  return interpolate(randomFrom(emptyRewardTemplates.jackpot, randomFn), { nickname: playerNickname });
+}
+
+export function buildJourneyLimitComment(
+  kind: "gain" | "loss",
+  rewardLabel: string,
+  context = "",
+  randomFn: RandomFn = Math.random,
+): string {
+  return interpolate(randomFrom(limitTemplates[kind], randomFn), { rewardLabel, context });
+}
+
+export function buildJourneySkipComment(playerNickname: string, randomFn: RandomFn = Math.random): string {
+  return interpolate(randomFrom(skipTemplates, randomFn), { nickname: playerNickname });
+}
 
 interface BuildJourneyCommentArgs {
   event: JourneyForumCommentEvent;
