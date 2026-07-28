@@ -1,9 +1,10 @@
 import { formatCurrencyValues } from "../../common/currencyValues";
 import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig, normalizeBattleshipsRules } from "../battleships/domain/config";
-import { getJourneyConfig, JOURNEY_MAX_JACKPOT_COUNT, normalizeJourneyRules } from "../journey/domain/config";
+import { getJourneyAchievements, getJourneyConfig, JOURNEY_MAX_JACKPOT_COUNT, normalizeJourneyRules } from "../journey/domain/config";
 import { formatJourneyCurrencyValues } from "../journey/domain/currency";
 import { getLottoRangeLabel, normalizeLottoRules } from "../lotto/domain/config";
 import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
+import type { ResourceSnapshot } from "../rewards";
 import type {
   AnyGameConfig,
   AnyGameConfigReadModel,
@@ -13,10 +14,15 @@ import type {
 } from "./domain/types";
 
 export class GameConfigReadModelFactory {
-  create(configId: string, config: AnyGameConfig, currencies: ConfigCurrency[]): AnyGameConfigReadModel {
+  create(
+    configId: string,
+    config: AnyGameConfig,
+    currencies: ConfigCurrency[],
+    resources: ResourceSnapshot[] = [],
+  ): AnyGameConfigReadModel {
     switch (config.gameType) {
       case "journey":
-        return this.createJourneyReadModel(configId, config, currencies);
+        return this.createJourneyReadModel(configId, config, currencies, resources);
       case "battleships":
         return this.createBattleshipsReadModel(configId, config, currencies);
       case "lotto":
@@ -24,15 +30,22 @@ export class GameConfigReadModelFactory {
     }
   }
 
-  private createJourneyReadModel(configId: string, config: JourneyGameConfig, currencies: ConfigCurrency[]) {
+  private createJourneyReadModel(
+    configId: string,
+    config: JourneyGameConfig,
+    currencies: ConfigCurrency[],
+    resources: ResourceSnapshot[],
+  ) {
     const rules = normalizeJourneyRules(config.rules);
-    const journeyConfig = getJourneyConfig(rules);
+    const journeyConfig = getJourneyConfig(rules, resources);
     const configFields = this.publicConfigFields(config);
 
     return {
       id: configId,
       ...configFields,
       rules,
+      journeyConfig,
+      journeyAchievements: getJourneyAchievements(rules),
       summary: {
         currency: "",
         mapSize: journeyConfig.mapSize,

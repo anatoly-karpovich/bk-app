@@ -89,7 +89,7 @@ export default function JourneyMapCard({ game, journeyConfig }: JourneyMapCardPr
                   {cellIndex}
                 </Typography>
                 <Typography variant="body2" sx={{ textAlign: "center", fontWeight: 700 }}>
-                  {getCompactCellLabel(cell, journeyConfig.resources)}
+                  {getCompactCellLabel(cell)}
                 </Typography>
                 <Stack direction="row" spacing={0.25} justifyContent="center" flexWrap="wrap" useFlexGap>
                   {playersOnCell.slice(0, 3).map((player) => (

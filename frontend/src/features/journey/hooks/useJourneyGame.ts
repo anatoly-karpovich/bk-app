@@ -18,7 +18,6 @@ import {
   removeJourneyPlayerRequest,
   submitJourneyRoundRequest,
 } from "../api/journey.client";
-import { DEFAULT_JOURNEY_RULES, getJourneyAchievements, getJourneyConfig } from "../config";
 import {
   createEmptyMoveState,
   createEmptySkipState,
@@ -198,18 +197,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
     [gameConfigs, selectedGameConfigId],
   );
-  const selectedJourneyRules = selectedJourneyGameConfig?.rules ?? null;
-  const selectedResources = selectedProject?.resources ?? [];
-  const journeyRules = useMemo(() => game?.rules ?? selectedJourneyRules ?? DEFAULT_JOURNEY_RULES, [game, selectedJourneyRules]);
-  const journeyResources = useMemo(() => game?.resources ?? selectedResources, [game, selectedResources]);
-  const journeyConfig = useMemo(
-    () => game?.journeyConfig ?? getJourneyConfig(journeyRules, journeyResources),
-    [game, journeyResources, journeyRules],
-  );
-  const journeyAchievements = useMemo(
-    () => game?.journeyAchievements ?? getJourneyAchievements(journeyRules),
-    [game, journeyRules],
-  );
+  const journeyConfig = game?.journeyConfig ?? selectedJourneyGameConfig?.journeyConfig ?? null;
+  const journeyAchievements = game?.journeyAchievements ?? selectedJourneyGameConfig?.journeyAchievements ?? null;
   const collectorTargets = game?.collectorTargets ?? [];
   const achievementProgressByPlayerId = game?.achievementProgressByPlayerId ?? {};
   const canStartGame =
@@ -273,7 +262,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       return false;
     }
 
-    return activeMovePlayers.every((player) => isValidDiceValue(moveInputs[player.id], journeyConfig));
+    return Boolean(journeyConfig) && activeMovePlayers.every((player) => isValidDiceValue(moveInputs[player.id], journeyConfig));
   }, [activePlayers, journeyConfig, moveInputs, skippedPlayers]);
 
   const playerTimelines = useMemo<Record<string, JourneyTimelineEntry[]>>(() => getJourneyPlayerTimelines(game), [game]);
@@ -438,7 +427,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
 
   async function startGame() {
     const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
-    if (!cleanNames.length || !selectedProject?.id || !selectedJourneyGameConfig || !selectedJourneyRules) {
+    if (!cleanNames.length || !selectedProject?.id || !selectedJourneyGameConfig) {
       return;
     }
 
@@ -777,7 +766,6 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     rulesDialogOpen,
     requestError,
     gameConfigsError,
-    selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
     collectorTargets,

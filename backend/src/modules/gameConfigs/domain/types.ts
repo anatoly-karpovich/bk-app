@@ -1,5 +1,5 @@
 import type { BattleshipsRules } from "../../battleships/domain/types";
-import type { JourneyRules } from "../../journey/domain/types";
+import type { JourneyAchievementsMap, JourneyConfig, JourneyRules } from "../../journey/domain/types";
 import type { LottoRules } from "../../lotto/domain/types";
 import type { CurrencySnapshot } from "../../../common/currency";
 
@@ -61,7 +61,10 @@ type BaseGameConfigReadModel<TConfig extends AnyGameConfig, TSummary> = TConfig 
   summary: TSummary;
 };
 
-export type JourneyGameConfigReadModel = BaseGameConfigReadModel<JourneyGameConfig, JourneyGameConfigSummary>;
+export type JourneyGameConfigReadModel = BaseGameConfigReadModel<JourneyGameConfig, JourneyGameConfigSummary> & {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+};
 export type BattleshipsGameConfigReadModel = BaseGameConfigReadModel<BattleshipsGameConfig, BattleshipsGameConfigSummary>;
 export type LottoGameConfigReadModel = BaseGameConfigReadModel<LottoGameConfig, LottoGameConfigSummary>;
 

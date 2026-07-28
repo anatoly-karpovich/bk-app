@@ -43,12 +43,13 @@ export type JourneyResourceAmount = ResourceAmount;
 export interface JourneyRulesCell {
   id: string;
   kind: JourneyCellKind;
+  mapLabel: string;
   rewardPool: RewardPool;
   count: number;
 }
 
 export type JourneyCollectorTargetKind = JourneyCellKind | "empty";
-export interface JourneyCollectorTarget { id: string; kind: JourneyCollectorTargetKind; rewardPool: RewardPool | null; }
+export interface JourneyCollectorTarget { key: string; id: string; kind: JourneyCollectorTargetKind; mapLabel: string; rewardPool: RewardPool | null; }
 
 export interface JourneyRulesAchievementConfig { rewardPool: RewardPool; }
 export interface JourneyRulesAchievements {
@@ -80,7 +81,7 @@ export interface JourneyConfig {
 export interface JourneyAchievement { name: string; title?: string; rewardPool: RewardPool; description?: string; }
 export interface JourneyAchievementsMap { JACKPOT: JourneyAchievement; UNLUCKY: JourneyAchievement; CAREFUL: JourneyAchievement; COLLECTOR: JourneyAchievement; LUCKY: JourneyAchievement; }
 export interface JourneyMapCellWinner { nickname: string; }
-export interface JourneyMapCell { id: string; kind: JourneyCellKind; rewardPool: RewardPool; isJackpot?: boolean; winner?: JourneyMapCellWinner | null; }
+export interface JourneyMapCell { id: string; kind: JourneyCellKind; mapLabel?: string; rewardPool: RewardPool; isJackpot?: boolean; winner?: JourneyMapCellWinner | null; }
 
 export interface JourneyV2Player {
   id: string; nickname: string; status: JourneyPlayerStatus; removedAt: string | null; removedReason: string | null;
@@ -118,7 +119,7 @@ export interface JourneyGameListItemReadModel {
   resources: ResourceSnapshot[]; roundsCount: number; players: Array<{ id: string; nickname: string; status: JourneyPlayerStatus; position: number; balanceEntries: ResourceAmount[]; }>;
 }
 export interface JourneyMoveInput { playerId: string; dice: number; }
-export interface JourneyCollectorProgress { achieved: boolean; obtainedCellIds: string[]; missingCellIds: string[]; }
+export interface JourneyCollectorProgress { achieved: boolean; obtainedCellKeys: string[]; missingCellKeys: string[]; }
 export interface JourneyStreakProgress { achieved: boolean; current: number; best: number; target: number; }
 export interface JourneyAchievementProgress { collector: JourneyCollectorProgress; unlucky: JourneyStreakProgress; careful: JourneyStreakProgress; lucky: JourneyStreakProgress; }
 

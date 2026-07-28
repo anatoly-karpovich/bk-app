@@ -40,7 +40,7 @@ export class GameConfigsService {
 
     return configs
       .map((config) =>
-        this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources)),
+        this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources),
       )
       .sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
@@ -56,7 +56,7 @@ export class GameConfigsService {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
 
-    return this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources));
+    return this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
   }
 
   async createProjectGameConfig(
@@ -88,7 +88,7 @@ export class GameConfigsService {
       throw new Error("Failed to load created game config");
     }
 
-    return this.readModelFactory.create(created._id.toHexString(), created as unknown as AnyGameConfig, getCurrencySnapshots(project.resources));
+    return this.readModelFactory.create(created._id.toHexString(), created as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
   }
 
   async updateProjectGameConfig(
@@ -128,7 +128,7 @@ export class GameConfigsService {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
 
-    return this.readModelFactory.create(updated._id.toHexString(), updated as unknown as AnyGameConfig, getCurrencySnapshots(project.resources));
+    return this.readModelFactory.create(updated._id.toHexString(), updated as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
   }
 
   async deleteProjectGameConfig(projectId: string, gameConfigId: string): Promise<void> {

@@ -63,7 +63,6 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     rulesDialogOpen,
     requestError,
     gameConfigsError,
-    selectedJourneyRules,
     journeyConfig,
     journeyAchievements,
     collectorTargets,
@@ -116,7 +115,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
           </Grid>
         ) : null}
 
-        {!game && !selectedJourneyRules && !gameConfigsError && !loading.isLoadingGameConfigs ? (
+        {!game && !selectedGameConfigId && !gameConfigsError && !loading.isLoadingGameConfigs ? (
           <Grid item xs={12}>
             <Alert severity="warning">У выбранного проекта нет Journey-конфига. Запуск новой игры недоступен.</Alert>
           </Grid>
@@ -138,14 +137,16 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
 
         <Grid item xs={12} lg={4}>
           <Stack spacing={3}>
-            <JourneyResultsCard
-              gameIsOver={gameIsOver}
-              finishedPlayers={finishedPlayers}
-              results={results}
-              resources={journeyConfig.resources}
-            />
+            {journeyConfig ? (
+              <JourneyResultsCard
+                gameIsOver={gameIsOver}
+                finishedPlayers={finishedPlayers}
+                results={results}
+                resources={journeyConfig.resources}
+              />
+            ) : null}
 
-            {game ? (
+            {game && journeyConfig ? (
               <JourneyRoundControlsCard
                 activePlayers={activePlayers}
                 moveInputs={moveInputs}
@@ -192,27 +193,33 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
 
         <Grid item xs={12} lg={8}>
           <Stack spacing={3}>
-            <JourneyMapCard game={game} journeyConfig={journeyConfig} />
-            <JourneyStateCard
-              game={game}
-              playerTimelines={playerTimelines}
-              journeyAchievements={journeyAchievements}
-              journeyResources={journeyConfig.resources}
-              collectorTargets={collectorTargets}
-              achievementProgressByPlayerId={achievementProgressByPlayerId}
-              isAddingForumState={loading.isAddingForumState}
-              onGetForumState={actions.getForumState}
-            />
+            {journeyConfig && journeyAchievements ? (
+              <>
+                <JourneyMapCard game={game} journeyConfig={journeyConfig} />
+                <JourneyStateCard
+                  game={game}
+                  playerTimelines={playerTimelines}
+                  journeyAchievements={journeyAchievements}
+                  journeyResources={journeyConfig.resources}
+                  collectorTargets={collectorTargets}
+                  achievementProgressByPlayerId={achievementProgressByPlayerId}
+                  isAddingForumState={loading.isAddingForumState}
+                  onGetForumState={actions.getForumState}
+                />
+              </>
+            ) : null}
           </Stack>
         </Grid>
       </Grid>
 
-      <JourneyRulesDialog
-        open={rulesDialogOpen}
-        onClose={() => actions.setRulesDialogOpen(false)}
-        journeyConfig={journeyConfig}
-        journeyAchievements={journeyAchievements}
-      />
+      {journeyConfig && journeyAchievements ? (
+        <JourneyRulesDialog
+          open={rulesDialogOpen}
+          onClose={() => actions.setRulesDialogOpen(false)}
+          journeyConfig={journeyConfig}
+          journeyAchievements={journeyAchievements}
+        />
+      ) : null}
 
       <JourneyImportDialog
         open={playersImportOpen}

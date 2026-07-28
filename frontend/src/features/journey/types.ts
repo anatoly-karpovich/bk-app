@@ -34,6 +34,7 @@ export interface ResourceLimit {
 export interface JourneyRulesCell {
   id: string;
   kind: JourneyCellKind;
+  mapLabel: string;
   rewardPool: RewardPool;
   count: number;
 }
@@ -79,6 +80,7 @@ export type JourneyAchievementsMap = Record<"JACKPOT" | "UNLUCKY" | "CAREFUL" | 
 export interface JourneyMapCell {
   id: string;
   kind: JourneyCellKind;
+  mapLabel?: string;
   rewardPool: RewardPool;
   isJackpot?: boolean;
   winner?: { nickname: string } | null;
@@ -166,12 +168,12 @@ export interface JourneySavedGameSummary {
 export interface JourneyMoveInput { playerId: string; dice: number; }
 export interface JourneyForumStateMessage { text: string; generatedAt: string; }
 export interface JourneyAchievementProgress {
-  collector: { achieved: boolean; obtainedCellIds: string[]; missingCellIds: string[] };
+  collector: { achieved: boolean; obtainedCellKeys: string[]; missingCellKeys: string[] };
   unlucky: { achieved: boolean; current: number; best: number; target: number };
   careful: { achieved: boolean; current: number; best: number; target: number };
   lucky: { achieved: boolean; current: number; best: number; target: number };
 }
-export interface JourneyCollectorTarget { id: string; kind: JourneyCellKind | "empty"; rewardPool: RewardPool | null; }
+export interface JourneyCollectorTarget { key: string; id: string; kind: JourneyCellKind | "empty"; mapLabel: string; rewardPool: RewardPool | null; }
 export interface JourneyStatusChip { label: string; color?: "default" | "primary" | "secondary" | "success" | "error" | "info" | "warning"; }
 export type JourneyMoveInputs = Record<string, string>;
 export type JourneySkippedPlayers = Record<string, boolean>;

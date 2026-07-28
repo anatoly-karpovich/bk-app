@@ -22,6 +22,8 @@ const achievementLabels = {
   lucky: "Счастливчик",
 } as const;
 
+const coreJourneyCellIds = new Set(["small", "medium", "large"]);
+
 export default function JourneyConfigEditor({ rules, resources, disabled, onChange }: JourneyConfigEditorProps) {
   const jackpot = rules.jackpot;
   const cells = Array.isArray(rules.cells) ? rules.cells : [];
@@ -37,7 +39,7 @@ export default function JourneyConfigEditor({ rules, resources, disabled, onChan
 
   function addCell() {
     patchRules({
-      cells: [...cells, { id: `cell_${Date.now()}`, kind: "bonus", count: 1, rewardPool: { mode: "all", rewards: [] } }],
+      cells: [...cells, { id: `cell_${Date.now()}`, kind: "bonus", mapLabel: "X", count: 1, rewardPool: { mode: "all", rewards: [] } }],
     });
   }
 
@@ -110,27 +112,32 @@ export default function JourneyConfigEditor({ rules, resources, disabled, onChan
 
       <RuleSection title="Клетки поля" description="Каждая строка задаёт отдельный тип бонусной клетки или ловушки.">
         <Stack spacing={2}>
-          {cells.map((cell, index) => (
-            <Stack key={index} spacing={1.5} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1} alignItems={{ md: "center" }}>
-                <AppTextInput size="small" label="Идентификатор" value={cell.id ?? ""} disabled={disabled} onChange={(event) => updateCell(index, { id: event.target.value })} sx={{ flex: 1, minWidth: { md: 260 } }} />
-                <AppTextInput select size="small" label="Тип" value={cell.kind ?? "bonus"} disabled={disabled} onChange={(event) => updateCell(index, { kind: event.target.value as JourneyRulesCell["kind"] })} sx={{ minWidth: { md: 150 } }}>
-                  <MenuItem value="bonus">Бонус</MenuItem>
-                  <MenuItem value="trap">Ловушка</MenuItem>
-                </AppTextInput>
-                <AppTextInput select size="small" label="Тип выдачи наград" value={cell.rewardPool.mode} disabled={disabled} onChange={(event) => updateCell(index, { rewardPool: createRewardPool(event.target.value as RewardPool["mode"], resources) })} sx={{ minWidth: { md: 260 } }}>
-                  <MenuItem value="all">Выдать все награды</MenuItem>
-                  <MenuItem value="weighted_one">Выбрать одну по весам</MenuItem>
-                  <MenuItem value="independent">Проверить каждую по шансу</MenuItem>
-                </AppTextInput>
-                <AppTextInput size="small" type="number" label="Количество" value={cell.count ?? 0} disabled={disabled} inputProps={{ min: 0, step: 1 }} onChange={(event) => updateCell(index, { count: Number(event.target.value) })} sx={{ minWidth: { md: 150 } }} />
-                <IconButton aria-label="Удалить тип клетки" color="error" onClick={() => patchRules({ cells: cells.filter((_cell, currentIndex) => currentIndex !== index) })} disabled={disabled}>
-                  <DeleteOutlineRoundedIcon />
-                </IconButton>
+          {cells.map((cell, index) => {
+            const isCoreCell = coreJourneyCellIds.has(cell.id);
+
+            return (
+              <Stack key={index} spacing={1.5} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                <Stack direction={{ xs: "column", md: "row" }} spacing={1} alignItems={{ md: "center" }}>
+                  <AppTextInput size="small" label="Идентификатор" value={cell.id ?? ""} disabled={disabled || isCoreCell} onChange={(event) => updateCell(index, { id: event.target.value })} sx={{ flex: 1, minWidth: { md: 260 } }} />
+                  <AppTextInput select size="small" label="Тип" value={cell.kind ?? "bonus"} disabled={disabled || isCoreCell} onChange={(event) => updateCell(index, { kind: event.target.value as JourneyRulesCell["kind"] })} sx={{ minWidth: { md: 150 } }}>
+                    <MenuItem value="bonus">Бонус</MenuItem>
+                    <MenuItem value="trap">Ловушка</MenuItem>
+                  </AppTextInput>
+                  <AppTextInput size="small" label="Метка на карте" value={cell.mapLabel ?? ""} disabled={disabled || isCoreCell} inputProps={{ maxLength: 3 }} onChange={(event) => updateCell(index, { mapLabel: event.target.value })} sx={{ minWidth: { md: 130 } }} />
+                  <AppTextInput select size="small" label="Тип выдачи наград" value={cell.rewardPool.mode} disabled={disabled} onChange={(event) => updateCell(index, { rewardPool: createRewardPool(event.target.value as RewardPool["mode"], resources) })} sx={{ minWidth: { md: 260 } }}>
+                    <MenuItem value="all">Выдать все награды</MenuItem>
+                    <MenuItem value="weighted_one">Выбрать одну по весам</MenuItem>
+                    <MenuItem value="independent">Проверить каждую по шансу</MenuItem>
+                  </AppTextInput>
+                  <AppTextInput size="small" type="number" label="Количество" value={cell.count ?? 0} disabled={disabled} inputProps={{ min: 0, step: 1 }} onChange={(event) => updateCell(index, { count: Number(event.target.value) })} sx={{ minWidth: { md: 150 } }} />
+                  <IconButton aria-label="Удалить тип клетки" color="error" onClick={() => patchRules({ cells: cells.filter((_cell, currentIndex) => currentIndex !== index) })} disabled={disabled || isCoreCell}>
+                    <DeleteOutlineRoundedIcon />
+                  </IconButton>
+                </Stack>
+                <RewardPoolEditor pool={cell.rewardPool} resources={resources} disabled={disabled} onChange={(rewardPool) => updateCell(index, { rewardPool })} showModeSelector={false} />
               </Stack>
-              <RewardPoolEditor pool={cell.rewardPool} resources={resources} disabled={disabled} onChange={(rewardPool) => updateCell(index, { rewardPool })} showModeSelector={false} />
-            </Stack>
-          ))}
+            );
+          })}
           <AppPillButton variant="outlined" size="small" startIcon={<AddRoundedIcon />} onClick={addCell} disabled={disabled} sx={{ alignSelf: "flex-start" }}>
             Добавить тип клетки
           </AppPillButton>

@@ -14,6 +14,7 @@ import {
 import {
   getJourneyAchievements,
   getJourneyBonusCells,
+  getJourneyCellKey,
   getJourneyConfig,
   JOURNEY_ACHIEVEMENT_NAMES,
   JOURNEY_ACHIEVEMENT_STREAK_TARGETS,
@@ -173,13 +174,13 @@ export class JourneyV2Engine {
       ),
     );
     const achievements = getJourneyAchievements(game.rules);
-    const targets = game.rules.cells.map((cell) => cell.id).concat("empty");
+    const targets = game.rules.cells.map((cell) => getJourneyCellKey(cell.kind, cell.id)).concat("empty");
     const visited = new Set(
       moves
         .map((move) =>
           move.moveType === MOVE_TYPES.EMPTY || move.moveType === MOVE_TYPES.EMPTY_JACKPOT
             ? "empty"
-            : game.stateV2.map[move.to]?.id,
+            : game.stateV2.map[move.to] ? getJourneyCellKey(game.stateV2.map[move.to].kind, game.stateV2.map[move.to].id) : null,
         )
         .filter(Boolean),
     );
@@ -204,8 +205,8 @@ export class JourneyV2Engine {
     return {
       collector: {
         achieved: player.achievementNames.includes(achievements.COLLECTOR.name),
-        obtainedCellIds: targets.filter((id) => visited.has(id)),
-        missingCellIds: targets.filter((id) => !visited.has(id)),
+        obtainedCellKeys: targets.filter((key) => visited.has(key)),
+        missingCellKeys: targets.filter((key) => !visited.has(key)),
       },
       unlucky: streak(
         (move) => hasNegative(move.resolvedRewards),
@@ -359,7 +360,7 @@ export class JourneyV2Engine {
     return [
       !progress.unlucky.achieved && progress.unlucky.current >= progress.unlucky.target ? achievements.UNLUCKY : null,
       !progress.careful.achieved && progress.careful.current >= progress.careful.target ? achievements.CAREFUL : null,
-      !progress.collector.achieved && !progress.collector.missingCellIds.length ? achievements.COLLECTOR : null,
+      !progress.collector.achieved && !progress.collector.missingCellKeys.length ? achievements.COLLECTOR : null,
       !progress.lucky.achieved && progress.lucky.current >= progress.lucky.target ? achievements.LUCKY : null,
     ].filter((value): value is JourneyAchievement => Boolean(value));
   }

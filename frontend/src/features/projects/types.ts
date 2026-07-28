@@ -1,5 +1,5 @@
 import type { BattleshipsRules } from "../battleships/types";
-import type { JourneyRules } from "../journey/types";
+import type { JourneyAchievementsMap, JourneyConfig, JourneyRules } from "../journey/types";
 import type { LottoRewardDistributionMode, LottoRules } from "../lotto/types";
 
 export interface ProjectCurrency {
@@ -88,7 +88,10 @@ interface BaseGameConfig<TGameType extends GameType, TRules, TSummary> {
   updatedAt: string;
 }
 
-export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary>;
+export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary> & {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+};
 export type BattleshipsGameConfig = BaseGameConfig<"battleships", BattleshipsRules, BattleshipsGameConfigSummary>;
 export type LottoGameConfig = BaseGameConfig<"lotto", LottoRules, LottoGameConfigSummary>;
 

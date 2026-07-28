@@ -24,6 +24,7 @@ const nonNegativeInteger = (value: unknown, fallback: number, max = Infinity) =>
 
 export const JOURNEY_MAX_JACKPOT_COUNT = 7;
 export const DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT = 3;
+export const JOURNEY_CORE_CELL_IDS = ["small", "medium", "large"] as const;
 export const DEFAULT_JOURNEY_RULES: JourneyRules = {
   initialRewardPool: all({ resourceId: "default", amount: 15 }),
   minDice: 1,
@@ -37,12 +38,12 @@ export const DEFAULT_JOURNEY_RULES: JourneyRules = {
     rewardPool: all({ resourceId: "default", amount: 30 }),
   },
   cells: [
-    { id: "bonus_2", kind: "bonus", rewardPool: all({ resourceId: "default", amount: 2 }), count: 12 },
-    { id: "bonus_3", kind: "bonus", rewardPool: all({ resourceId: "default", amount: 3 }), count: 5 },
-    { id: "bonus_5", kind: "bonus", rewardPool: all({ resourceId: "default", amount: 5 }), count: 2 },
-    { id: "trap_3", kind: "trap", rewardPool: all({ resourceId: "default", amount: -3 }), count: 2 },
-    { id: "trap_2", kind: "trap", rewardPool: all({ resourceId: "default", amount: -2 }), count: 4 },
-    { id: "trap_1", kind: "trap", rewardPool: all({ resourceId: "default", amount: -1 }), count: 4 },
+    { id: "small", kind: "bonus", mapLabel: "S", rewardPool: all({ resourceId: "default", amount: 2 }), count: 12 },
+    { id: "medium", kind: "bonus", mapLabel: "M", rewardPool: all({ resourceId: "default", amount: 3 }), count: 5 },
+    { id: "large", kind: "bonus", mapLabel: "L", rewardPool: all({ resourceId: "default", amount: 5 }), count: 2 },
+    { id: "large", kind: "trap", mapLabel: "L", rewardPool: all({ resourceId: "default", amount: -3 }), count: 2 },
+    { id: "medium", kind: "trap", mapLabel: "M", rewardPool: all({ resourceId: "default", amount: -2 }), count: 4 },
+    { id: "small", kind: "trap", mapLabel: "S", rewardPool: all({ resourceId: "default", amount: -1 }), count: 4 },
   ],
   achievements: {
     unlucky: { rewardPool: all({ resourceId: "default", amount: 5 }) },
@@ -72,6 +73,19 @@ export const JOURNEY_ACHIEVEMENT_NAMES = {
   LUCKY: "Lucky",
 } as const;
 export const JOURNEY_ACHIEVEMENT_STREAK_TARGETS = { unlucky: 3, careful: 4, lucky: 5 } as const;
+
+export function getJourneyCellKey(kind: JourneyMapCell["kind"], id: string): string {
+  return `${kind}:${id}`;
+}
+
+export function getJourneyCellMapLabel(cell: Pick<JourneyMapCell, "id" | "kind" | "mapLabel">): string {
+  const configuredLabel = cell.mapLabel?.trim();
+  if (configuredLabel) return configuredLabel;
+  if ((JOURNEY_CORE_CELL_IDS as readonly string[]).includes(cell.id)) return cell.id.slice(0, 1).toUpperCase();
+  const legacyId = cell.id.replace(`${cell.kind}_`, "");
+  if ((JOURNEY_CORE_CELL_IDS as readonly string[]).includes(legacyId)) return legacyId.slice(0, 1).toUpperCase();
+  return cell.id.slice(0, 3).toUpperCase() || "?";
+}
 
 export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
   const defaults = clone(DEFAULT_JOURNEY_RULES);
@@ -139,6 +153,7 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
       ? rawCells.map((cell) => ({
           id: String(cell.id ?? ""),
           kind: cell.kind === "trap" ? "trap" : "bonus",
+          mapLabel: typeof cell.mapLabel === "string" ? cell.mapLabel.trim() : "",
           count: nonNegativeInteger(cell.count, 0),
           rewardPool: resolvedPool(cell.rewardPool, cell.rewards, defaults.cells[0].rewardPool),
         }))
@@ -210,6 +225,7 @@ export function getJourneyBonusCells(
       cell: {
         id: "jackpot",
         kind: "bonus",
+        mapLabel: "🏆",
         rewardPool: clone(normalized.jackpot.rewardPool),
         isJackpot: true,
         winner: null,
@@ -217,7 +233,7 @@ export function getJourneyBonusCells(
       amount: getJourneyJackpotCount(normalized, playersCount),
     },
     ...normalized.cells.map((cell) => ({
-      cell: { id: cell.id, kind: cell.kind, rewardPool: clone(cell.rewardPool) },
+      cell: { id: cell.id, kind: cell.kind, mapLabel: getJourneyCellMapLabel(cell), rewardPool: clone(cell.rewardPool) },
       amount: cell.count,
     })),
   ];
@@ -294,6 +310,27 @@ export function validateJourneyRules(rules: JourneyRules, resources: readonly Re
   rules.cells.forEach((cell) =>
     validatePool(cell.rewardPool, `Cell '${cell.id}'`, cell.kind === "bonus" ? "positive" : "negative"),
   );
+  (["bonus", "trap"] as const).forEach((kind) => {
+    const cells = rules.cells.filter((cell) => cell.kind === kind);
+    const ids = new Set<string>();
+    cells.forEach((cell) => {
+      if (!/^[a-z][a-z0-9_-]{0,47}$/.test(cell.id)) {
+        throw new Error(`Cell '${cell.id}': id must use lowercase letters, numbers, underscores, or hyphens`);
+      }
+      if (ids.has(cell.id)) throw new Error(`Duplicate ${kind} cell id '${cell.id}'`);
+      ids.add(cell.id);
+      if (Array.from(cell.mapLabel).length < 1 || Array.from(cell.mapLabel).length > 3) {
+        throw new Error(`Cell '${cell.id}': mapLabel must contain 1 to 3 characters`);
+      }
+    });
+    JOURNEY_CORE_CELL_IDS.forEach((id) => {
+      const cell = cells.find((candidate) => candidate.id === id);
+      if (!cell) throw new Error(`Missing required ${kind} cell '${id}'`);
+      if (cell.mapLabel !== id.slice(0, 1).toUpperCase()) {
+        throw new Error(`Core ${kind} cell '${id}' must use mapLabel '${id.slice(0, 1).toUpperCase()}'`);
+      }
+    });
+  });
   Object.entries(rules.achievements).forEach(([name, achievement]) =>
     validatePool(achievement.rewardPool, `Achievement '${name}'`, "positive"),
   );

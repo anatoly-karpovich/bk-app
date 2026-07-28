@@ -107,8 +107,8 @@ export const journeyTexts = {
   },
   mapLegend: {
     empty: "· Пусто",
-    bonus: "+N Бонус",
-    trap: "-N Ловушка",
+    bonus: "S/M/L Бонус",
+    trap: "S/M/L Ловушка",
     treasure: "🏆 Сокровище",
   },
   hover: {

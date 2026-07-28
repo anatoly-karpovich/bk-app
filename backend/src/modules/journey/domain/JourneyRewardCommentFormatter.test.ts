@@ -11,7 +11,12 @@ import {
 import { MOVE_TYPES } from "./config";
 import type { JourneyRules } from "./types";
 import { JourneyRewardCommentFormatter } from "./JourneyRewardCommentFormatter";
-import { buildJourneyRoundMarker, JOURNEY_GAME_STARTED_MARKER } from "../JourneyForumMarkers";
+import {
+  buildJourneyRoundMarker,
+  JOURNEY_GAME_MAP_MARKER,
+  JOURNEY_GAME_RESULTS_MARKER,
+  JOURNEY_GAME_STARTED_MARKER,
+} from "../JourneyForumMarkers";
 
 const resources: ResourceSnapshot[] = [
   { id: "coins", code: "coins", name: "Монеты", label: "монет", type: "currency", valueType: "integer", precision: 0 },
@@ -156,6 +161,7 @@ test("writes a limited cell reward from resolved and applied values", () => {
         {
           id: "bonus",
           kind: "bonus",
+          mapLabel: "B",
           count: 1,
           rewardPool: all({ resourceId: "coins", amount: 10 }, { resourceId: "key", amount: 1 }),
         },
@@ -190,6 +196,24 @@ test("uses shared forum markers for the game start and each move", () => {
 
   assert.equal(next.stateV2.forumLog[0], JOURNEY_GAME_STARTED_MARKER);
   assert.ok(next.stateV2.forumLog.includes(buildJourneyRoundMarker(1)));
+});
+
+test("keeps and publishes the game map after the final move", () => {
+  const engine = createEngine();
+  const game = engine.createGame(["Анатолий"], { resources, rules: rules({ mapSize: 1 }) });
+  const player = game.stateV2.players[0];
+  game.stateV2.map = {
+    1: { id: "bonus", kind: "bonus", rewardPool: all({ resourceId: "coins", amount: 5 }) },
+  };
+
+  const afterFirstMove = engine.makeRound(game, [{ playerId: player.id, dice: 1 }]);
+  const finished = engine.makeRound(afterFirstMove, [{ playerId: player.id, dice: 1 }]);
+
+  assert.equal(finished.stateV2.status, "finished");
+  assert.deepEqual(finished.stateV2.map, game.stateV2.map);
+  assert.ok(finished.stateV2.forumLog.includes(JOURNEY_GAME_RESULTS_MARKER));
+  assert.ok(finished.stateV2.forumLog.includes(JOURNEY_GAME_MAP_MARKER));
+  assert.ok(finished.stateV2.forumLog.includes("На клетке 1 находится награда на +5 монет"));
 });
 
 test("uses moveType to distinguish won, empty, and already claimed jackpots", () => {
