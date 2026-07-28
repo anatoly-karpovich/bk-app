@@ -11,6 +11,30 @@ export type JourneyMoveType =
   | "moveWithoutBonus" | "moveToFinish" | "moveWithMaxPrize" | "moveToMaxPrize"
   | "moveToZeroPrize" | "moveWithZeroPrize" | "moveToAchievement";
 
+export type JourneyMoveCommentTemplateKind = `move:${Exclude<JourneyMoveType, "moveToAchievement">}`;
+export type JourneyCommentTemplateKind = JourneyMoveCommentTemplateKind
+  | "jackpot:empty_reward"
+  | "achievement:unlucky"
+  | "achievement:careful"
+  | "achievement:collector"
+  | "achievement:lucky"
+  | "achievement:empty_reward"
+  | "limit:gain"
+  | "limit:loss"
+  | "skip";
+
+export function toJourneyMoveCommentTemplateKind(
+  moveType: Exclude<JourneyMoveType, "moveToAchievement">,
+): JourneyMoveCommentTemplateKind {
+  return `move:${moveType}`;
+}
+
+export interface JourneyCommentTemplate { id: string; text: string; }
+export type JourneyCommentTemplatesSnapshot = Record<JourneyCommentTemplateKind, JourneyCommentTemplate[]>;
+export type JourneyLastSelectedCommentIds = Partial<Record<JourneyCommentTemplateKind, string>>;
+export interface JourneyCommentState { snapshot: JourneyCommentTemplatesSnapshot; lastSelectedIds: JourneyLastSelectedCommentIds; }
+export interface JourneyCommentReference { kind: JourneyCommentTemplateKind; templateId: string; }
+
 /** Offline legacy-normalization shape. Runtime Journey V2 uses ResourceAmount. */
 export interface JourneyCurrencyValue { currencyId: string; value: number; }
 export type JourneyBalance = ResourceHoldings;
@@ -62,13 +86,13 @@ export interface JourneyV2Player {
   id: string; nickname: string; status: JourneyPlayerStatus; removedAt: string | null; removedReason: string | null;
   position: number; balance: ResourceHoldings; achievementNames: string[];
 }
-export interface JourneyV2AchievementEffect { name: string; requestedRewards: ResourceAmount[]; resolvedRewards: ResourceAmount[]; appliedRewards: ResourceAmount[]; }
+export interface JourneyV2AchievementEffect { name: string; requestedRewards: ResourceAmount[]; resolvedRewards: ResourceAmount[]; appliedRewards: ResourceAmount[]; commentRefs: JourneyCommentReference[]; }
 export type JourneyV2Turn =
   | { kind: "move"; playerId: string; dice: number; from: number; to: number; moveType: JourneyMoveType;
-      requestedRewards: ResourceAmount[]; resolvedRewards: ResourceAmount[]; appliedRewards: ResourceAmount[]; achievementEffects: JourneyV2AchievementEffect[]; }
-  | { kind: "skip"; playerId: string; };
+      requestedRewards: ResourceAmount[]; resolvedRewards: ResourceAmount[]; appliedRewards: ResourceAmount[]; achievementEffects: JourneyV2AchievementEffect[]; commentRefs: JourneyCommentReference[]; }
+  | { kind: "skip"; playerId: string; commentRefs: JourneyCommentReference[]; };
 export interface JourneyV2Round { index: number; occurredAt: string; turns: JourneyV2Turn[]; }
-export interface JourneyV2State { moveIndex: number; status: JourneyGameStatus; map: Record<number, JourneyMapCell>; players: JourneyV2Player[]; rounds: JourneyV2Round[]; forumLog: string[]; }
+export interface JourneyV2State { moveIndex: number; status: JourneyGameStatus; map: Record<number, JourneyMapCell>; players: JourneyV2Player[]; rounds: JourneyV2Round[]; forumLog: string[]; commentState?: JourneyCommentState; }
 export interface JourneyV2Game {
   storageFormat: "v2"; createdAt: string; updatedAt: string; djName: string; projectId: string; configId: string; configName: string;
   forumTopicId: number | null; resources: ResourceSnapshot[]; rules: JourneyRules; stateV2: JourneyV2State;

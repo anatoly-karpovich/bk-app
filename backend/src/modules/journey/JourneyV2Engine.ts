@@ -2,13 +2,9 @@ import type { ResourceAmount, ResourceHoldings, ResourceSnapshot } from "../rewa
 import { ResourceInventoryService, RewardResolver } from "../rewards";
 import { JourneyRoundValidationError } from "./errors";
 import { JourneyRewardCommentFormatter, type FormattedRewardApplication } from "./domain/JourneyRewardCommentFormatter";
-import {
-  buildJourneyEmptyJackpotRewardComment,
-  buildJourneyLimitComment,
-  buildJourneyResourceAchievementComment,
-  buildJourneyResourceMoveComment,
-  buildJourneySkipComment,
-} from "./domain/commentTemplates";
+import { renderJourneyCommentTemplate } from "./domain/commentTemplates";
+import { JourneyCommentTemplateRotator } from "./domain/JourneyCommentTemplateRotator";
+import { toJourneyMoveCommentTemplateKind } from "./domain/types";
 import { buildJourneyRoundMarker, JOURNEY_GAME_STARTED_MARKER } from "./JourneyForumMarkers";
 import {
   getJourneyAchievements,
@@ -21,6 +17,8 @@ import {
 } from "./domain/config";
 import type {
   JourneyAchievement,
+  JourneyCommentReference,
+  JourneyCommentTemplateKind,
   JourneyAchievementProgress,
   JourneyHistoryEntryView,
   JourneyMapCell,
@@ -46,6 +44,7 @@ export class JourneyV2Engine {
     private readonly rewardResolver: RewardResolver,
     private readonly inventory: ResourceInventoryService,
     private readonly rewardCommentFormatter: JourneyRewardCommentFormatter,
+    private readonly commentTemplateRotator: JourneyCommentTemplateRotator,
   ) {}
 
   createGame(
@@ -62,6 +61,7 @@ export class JourneyV2Engine {
     } = {},
   ): JourneyV2Game {
     const createdAt = now();
+    const random = options.randomFn ?? Math.random;
     const rules = normalizeJourneyRules(options.rules);
     const resources = clone(options.resources ?? []);
     const initial = this.inventory.apply(
@@ -95,9 +95,10 @@ export class JourneyV2Engine {
       stateV2: {
         moveIndex: 0,
         status: "in_progress",
-        map: this.createMap(rules, players.length, options.randomFn ?? Math.random),
+        map: this.createMap(rules, players.length, random),
         players,
         rounds: [],
+        commentState: this.commentTemplateRotator.createState(random),
         forumLog: [
           JOURNEY_GAME_STARTED_MARKER,
           ...players.map((player) => `${player.nickname} — [${this.formatHoldings(player.balance, resources)}]`),
@@ -123,7 +124,9 @@ export class JourneyV2Engine {
       if (player) turns.set(playerId, this.buildMove(player, dice, next));
     });
     this.applyJackpots(next, turns, random);
-    const orderedTurns = active.map((player) => turns.get(player.id) ?? { kind: "skip" as const, playerId: player.id });
+    const orderedTurns = active.map(
+      (player) => turns.get(player.id) ?? { kind: "skip" as const, playerId: player.id, commentRefs: [] },
+    );
     orderedTurns.forEach((turn) => {
       if (turn.kind !== "move") return;
       const player = this.findPlayer(next, turn.playerId)!;
@@ -139,6 +142,7 @@ export class JourneyV2Engine {
       );
     });
     const round: JourneyV2Round = { index: next.stateV2.moveIndex, occurredAt: now(), turns: orderedTurns };
+    this.assignCommentReferences(next, round, random);
     next.stateV2.rounds.push(round);
     next.stateV2.forumLog.push(...this.buildComments(next, round));
     next.updatedAt = round.occurredAt;
@@ -300,6 +304,7 @@ export class JourneyV2Engine {
       resolvedRewards: clone(resolved),
       appliedRewards: application.rewards.map((entry) => entry.applied),
       achievementEffects: [],
+      commentRefs: [],
     };
   }
   private applyJackpots(game: JourneyV2Game, turns: Map<string, JourneyV2Turn>, random: RandomFn): void {
@@ -369,6 +374,7 @@ export class JourneyV2Engine {
       requestedRewards: clone(resolved),
       resolvedRewards: clone(resolved),
       appliedRewards: application.rewards.map((entry) => entry.applied),
+      commentRefs: [],
     });
   }
   private moveType(resolved: ResourceAmount[], applied: ResourceAmount[]): JourneyMoveType {
@@ -449,7 +455,7 @@ export class JourneyV2Engine {
       buildJourneyRoundMarker(round.index),
       ...round.turns.flatMap((turn) => {
         const player = this.findPlayer(game, turn.playerId)!;
-        if (turn.kind === "skip") return [buildJourneySkipComment(player.nickname)];
+        if (turn.kind === "skip") return this.renderRewardComments(game, turn.commentRefs, player.nickname, null);
         return [...this.buildAchievementComments(game, player, turn), ...this.buildMoveComments(game, player, turn)];
       }),
     ];
@@ -460,55 +466,11 @@ export class JourneyV2Engine {
     player: JourneyV2Player,
     turn: Extract<JourneyV2Turn, { kind: "move" }>,
   ): string[] {
-    if (turn.moveType === MOVE_TYPES.EMPTY_JACKPOT) {
-      return [
-        buildJourneyResourceMoveComment({
-          playerNickname: player.nickname,
-          moveType: turn.moveType,
-          rewardLabel: "",
-          requestedRewardLabel: "",
-        }),
-      ];
-    }
-
-    if (turn.moveType === MOVE_TYPES.FINISH) {
-      return [
-        buildJourneyResourceMoveComment({
-          playerNickname: player.nickname,
-          moveType: turn.moveType,
-          rewardLabel: "",
-          requestedRewardLabel: "",
-        }),
-      ];
-    }
-
-    if (turn.moveType === MOVE_TYPES.JACKPOT) {
-      if (!turn.resolvedRewards.length) {
-        return [buildJourneyEmptyJackpotRewardComment(player.nickname)];
-      }
-
-      return this.buildRewardOutcomeComments(
-        player.nickname,
-        this.rewardCommentFormatter.format(game.resources, turn.resolvedRewards, turn.appliedRewards),
-        turn.moveType,
-      );
-    }
-
-    if (!turn.resolvedRewards.length) {
-      return [
-        buildJourneyResourceMoveComment({
-          playerNickname: player.nickname,
-          moveType: MOVE_TYPES.EMPTY,
-          rewardLabel: "",
-          requestedRewardLabel: "",
-        }),
-      ];
-    }
-
-    return this.buildRewardOutcomeComments(
+    return this.renderRewardComments(
+      game,
+      turn.commentRefs,
       player.nickname,
       this.rewardCommentFormatter.format(game.resources, turn.resolvedRewards, turn.appliedRewards),
-      turn.moveType,
     );
   }
 
@@ -519,51 +481,100 @@ export class JourneyV2Engine {
   ): string[] {
     return turn.achievementEffects.flatMap((effect) => {
       const achievement = this.achievement(game, effect.name) ?? { name: effect.name };
-
       const formatted = this.rewardCommentFormatter.format(
         game.resources,
         effect.resolvedRewards,
         effect.appliedRewards,
       );
-
-      const comments = [
-        buildJourneyResourceAchievementComment({
-          playerNickname: player.nickname,
-          achievement,
-          rewardLabel: this.toRewardTemplateLabel(formatted),
-        }),
-      ];
-
-      this.appendLimitComments(comments, formatted, " за достижение");
-      return comments;
+      return this.renderRewardComments(game, effect.commentRefs, player.nickname, formatted, achievement);
     });
   }
 
-  private buildRewardOutcomeComments(
-    nickname: string,
-    formatted: FormattedRewardApplication,
-    moveType: JourneyMoveType,
-  ): string[] {
-    const comments = [
-      buildJourneyResourceMoveComment({
-        playerNickname: nickname,
-        moveType,
-        rewardLabel: this.toRewardTemplateLabel(formatted) ?? "",
-        requestedRewardLabel: this.toResolvedRewardTemplateLabel(formatted) ?? "",
-      }),
-    ];
+  private assignCommentReferences(game: JourneyV2Game, round: JourneyV2Round, random: RandomFn): void {
+    const state = this.getCommentState(game, random);
+    round.turns.forEach((turn) => {
+      if (turn.kind === "skip") {
+        turn.commentRefs = [this.commentTemplateRotator.takeNext(state, "skip", random)];
+        return;
+      }
 
-    this.appendLimitComments(comments, formatted);
-    return comments;
+      turn.achievementEffects.forEach((effect) => {
+        const formatted = this.rewardCommentFormatter.format(
+          game.resources,
+          effect.resolvedRewards,
+          effect.appliedRewards,
+        );
+        effect.commentRefs = [
+          this.commentTemplateRotator.takeNext(state, this.achievementCommentKind(effect.name, formatted), random),
+          ...this.limitCommentReferences(state, formatted, random),
+        ];
+      });
+
+      const formatted = this.rewardCommentFormatter.format(game.resources, turn.resolvedRewards, turn.appliedRewards);
+      turn.commentRefs = [
+        this.commentTemplateRotator.takeNext(state, this.moveCommentKind(turn), random),
+        ...this.limitCommentReferences(state, formatted, random),
+      ];
+    });
   }
 
-  private appendLimitComments(comments: string[], formatted: FormattedRewardApplication, suffix = ""): void {
-    if (formatted.unappliedGain) {
-      comments.push(buildJourneyLimitComment("gain", formatted.unappliedGain, suffix));
+  private getCommentState(game: JourneyV2Game, random: RandomFn) {
+    game.stateV2.commentState ??= this.commentTemplateRotator.createState(random);
+    return game.stateV2.commentState;
+  }
+
+  private moveCommentKind(turn: Extract<JourneyV2Turn, { kind: "move" }>): JourneyCommentTemplateKind {
+    if (turn.moveType === MOVE_TYPES.JACKPOT && !turn.resolvedRewards.length) return "jackpot:empty_reward";
+    if (!turn.resolvedRewards.length && turn.moveType !== MOVE_TYPES.EMPTY_JACKPOT && turn.moveType !== MOVE_TYPES.FINISH) {
+      return "move:moveWithoutBonus";
     }
-    if (formatted.unappliedLoss) {
-      comments.push(buildJourneyLimitComment("loss", formatted.unappliedLoss, suffix));
-    }
+    if (turn.moveType === MOVE_TYPES.ACHIEVEMENT) return toJourneyMoveCommentTemplateKind(MOVE_TYPES.EMPTY);
+    return toJourneyMoveCommentTemplateKind(turn.moveType);
+  }
+
+  private achievementCommentKind(name: string, formatted: FormattedRewardApplication): JourneyCommentTemplateKind {
+    if (!this.toRewardTemplateLabel(formatted)) return "achievement:empty_reward";
+    if (name === JOURNEY_ACHIEVEMENT_NAMES.UNLUCKY) return "achievement:unlucky";
+    if (name === JOURNEY_ACHIEVEMENT_NAMES.CAREFUL) return "achievement:careful";
+    if (name === JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR) return "achievement:collector";
+    return "achievement:lucky";
+  }
+
+  private limitCommentReferences(
+    state: NonNullable<JourneyV2Game["stateV2"]["commentState"]>,
+    formatted: FormattedRewardApplication,
+    random: RandomFn,
+  ): JourneyCommentReference[] {
+    return [
+      ...(formatted.unappliedGain ? [this.commentTemplateRotator.takeNext(state, "limit:gain", random)] : []),
+      ...(formatted.unappliedLoss ? [this.commentTemplateRotator.takeNext(state, "limit:loss", random)] : []),
+    ];
+  }
+
+  private renderRewardComments(
+    game: JourneyV2Game,
+    references: JourneyCommentReference[],
+    nickname: string,
+    formatted: FormattedRewardApplication | null,
+    achievement?: Pick<JourneyAchievement, "name" | "title" | "description">,
+  ): string[] {
+    const state = this.getCommentState(game, Math.random);
+    return references.map((reference) => {
+      const template = this.commentTemplateRotator.getTemplate(state, reference);
+      const limitLabel = reference.kind === "limit:gain"
+        ? formatted?.unappliedGain
+        : reference.kind === "limit:loss"
+          ? formatted?.unappliedLoss
+          : null;
+      return renderJourneyCommentTemplate(template.text, {
+        nickname,
+        rewardLabel: limitLabel ?? (formatted ? this.toRewardTemplateLabel(formatted) : null) ?? "",
+        requestedRewardLabel: (formatted ? this.toResolvedRewardTemplateLabel(formatted) : null) ?? "",
+        context: achievement ? " за достижение" : "",
+        achievement: achievement?.title ?? achievement?.name ?? "",
+        description: achievement?.description ?? "",
+      });
+    });
   }
 
   private toRewardTemplateLabel(formatted: FormattedRewardApplication): string | null {
