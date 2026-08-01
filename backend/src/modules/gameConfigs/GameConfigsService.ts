@@ -2,7 +2,7 @@ import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
 import type { ProjectResource } from "../projects/domain/types";
 import { getCurrencySnapshots } from "../rewards";
-import { normalizeBattleshipsRules } from "../battleships/domain/config";
+import { normalizeBattleshipsRules, validateBattleshipsRules } from "../battleships/domain/config";
 import type { BattleshipsRulesInput } from "../battleships/domain/types";
 import { normalizeJourneyRules, validateJourneyRules } from "../journey/domain/config";
 import type { JourneyRulesInput } from "../journey/domain/types";
@@ -74,6 +74,7 @@ export class GameConfigsService {
     const rules = this.normalizeRules(input.gameType, input.rules);
     this.assertRulesUseProjectResources(rules, project.resources);
     if (input.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
+    if (input.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
     const created = await this.repository.create({
       projectId,
       gameType: input.gameType,
@@ -114,6 +115,7 @@ export class GameConfigsService {
     const rules = this.normalizeRules(current.gameType, input.rules);
     this.assertRulesUseProjectResources(rules, project.resources);
     if (current.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
+    if (current.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
     const updated = await this.repository.update(projectId, gameConfigId, {
       projectId,
       gameType: current.gameType,

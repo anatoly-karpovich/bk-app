@@ -24,7 +24,7 @@ export class GameConfigReadModelFactory {
       case "journey":
         return this.createJourneyReadModel(configId, config, currencies, resources);
       case "battleships":
-        return this.createBattleshipsReadModel(configId, config, currencies);
+        return this.createBattleshipsReadModel(configId, config, resources);
       case "lotto":
         return this.createLottoReadModel(configId, config, currencies);
     }
@@ -63,7 +63,7 @@ export class GameConfigReadModelFactory {
     };
   }
 
-  private createBattleshipsReadModel(configId: string, config: BattleshipsGameConfig, currencies: ConfigCurrency[]) {
+  private createBattleshipsReadModel(configId: string, config: BattleshipsGameConfig, resources: ResourceSnapshot[]) {
     const rules = normalizeBattleshipsRules(config.rules);
     const boardConfig = getBattleshipsBoardConfig(rules);
     const configFields = this.publicConfigFields(config);
@@ -76,11 +76,7 @@ export class GameConfigReadModelFactory {
         boardSize: boardConfig.boardSize,
         maxShots: boardConfig.maxShots,
         fleet: buildBattleshipsFleetSummary(boardConfig),
-        hitPrizeLabel:
-          formatCurrencyValues(boardConfig.prizes.shoot, currencies, {
-            showPlus: true,
-            includeZero: false,
-          }) || "0",
+        hitPrizeLabel: this.formatRewardPool(boardConfig.rewards.hit, resources),
       },
     };
   }
@@ -116,5 +112,11 @@ export class GameConfigReadModelFactory {
   private publicConfigFields<TConfig extends AnyGameConfig>(config: TConfig): TConfig {
     const { _id: _ignored, ...fields } = structuredClone(config) as TConfig & { _id?: unknown };
     return fields as TConfig;
+  }
+
+  private formatRewardPool(pool: import("../rewards").RewardPool, resources: ResourceSnapshot[]): string {
+    if (pool.mode !== "all") return pool.mode;
+    const labels = pool.rewards.map((reward) => `${reward.amount > 0 ? "+" : ""}${reward.amount} ${resources.find((resource) => resource.id === reward.resourceId)?.label ?? reward.resourceId}`);
+    return labels.join(", ") || "0";
   }
 }

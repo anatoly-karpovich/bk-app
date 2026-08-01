@@ -15,15 +15,9 @@ export interface JourneyResourceDefinition {
   precision?: number;
 }
 
-export interface JourneyResourceAmount {
-  resourceId: string;
-  amount: number;
-}
-
-export type RewardPool =
-  | { mode: "all"; rewards: JourneyResourceAmount[] }
-  | { mode: "weighted_one"; options: Array<{ reward: JourneyResourceAmount | null; weight: number }> }
-  | { mode: "independent"; options: Array<{ reward: JourneyResourceAmount; chanceBps: number }> };
+import type { ResourceAmount, RewardPool as SharedRewardPool } from "../rewards/types";
+export type JourneyResourceAmount = ResourceAmount;
+export type RewardPool = SharedRewardPool;
 
 export interface ResourceLimit {
   resourceId: string;

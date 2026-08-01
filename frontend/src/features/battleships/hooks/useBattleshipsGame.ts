@@ -140,7 +140,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     [gameConfigs, selectedGameConfigId],
   );
   const selectedBattleshipsRules = selectedBattleshipsGameConfig?.rules ?? null;
-  const resolvedCurrencies = game?.currencies ?? selectedProject?.currencies ?? [];
+  const resolvedResources = game?.resources ?? selectedProject?.resources ?? [];
   const boardConfig = useMemo(
     () => game?.derived.boardConfig ?? (selectedBattleshipsRules ? getBattleshipsBoardConfig(selectedBattleshipsRules) : null),
     [game, selectedBattleshipsRules],
@@ -376,7 +376,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     requestError,
     gameConfigsError,
     selectedBattleshipsRules,
-    resolvedCurrencies,
+    resolvedResources,
     boardConfig,
     fleetSummary,
     canStartGame,

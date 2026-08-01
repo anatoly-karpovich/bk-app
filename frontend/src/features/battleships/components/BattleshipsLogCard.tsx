@@ -1,17 +1,18 @@
 import HistoryEduRoundedIcon from "@mui/icons-material/HistoryEduRounded";
 import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
-import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
+import { formatResourceAmounts } from "../../rewards/resourceAmounts";
+import type { ResourceDefinition } from "../../rewards/types";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import { formatBattleshipsTimestamp } from "../mappers/battleships.mapper";
 import type { BattleshipsShot } from "../types";
 
 interface BattleshipsLogCardProps {
   shots: BattleshipsShot[];
-  currencies: CurrencyDefinition[];
+  resources: ResourceDefinition[];
 }
 
-export default function BattleshipsLogCard({ shots, currencies }: BattleshipsLogCardProps) {
+export default function BattleshipsLogCard({ shots, resources }: BattleshipsLogCardProps) {
   return (
     <Card>
       <CardHeader title={battleshipsTexts.cards.logTitle} subheader={battleshipsTexts.cards.logSubtitle} />
@@ -44,10 +45,10 @@ export default function BattleshipsLogCard({ shots, currencies }: BattleshipsLog
                 </Stack>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap" useFlexGap>
                   <Typography variant="body2" color="text.secondary">
-                    Изменение приза: {formatCurrencyValues(shot.prizeDelta, currencies, { showPlus: true, includeZero: false }) || "0"}
+                    Изменение приза: {formatResourceAmounts(shot.prizeDelta, resources, { showPlus: true }) || "0"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Накоплено: {formatCurrencyValues(shot.totalPrize, currencies, { includeZero: false }) || "0"}
+                    Накоплено: {formatResourceAmounts(shot.totalPrize, resources) || "0"}
                   </Typography>
                 </Stack>
               </Stack>

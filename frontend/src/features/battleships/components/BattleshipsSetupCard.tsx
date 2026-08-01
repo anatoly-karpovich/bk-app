@@ -4,14 +4,15 @@ import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/ma
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
+import { formatRewardPool } from "../../rewards/resourceAmounts";
+import type { ResourceDefinition } from "../../rewards/types";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardRules } from "../types";
 
 interface BattleshipsSetupCardProps {
   playerName: string;
   boardConfig: BattleshipsBoardRules | null;
-  currencies: CurrencyDefinition[];
+  resources: ResourceDefinition[];
   fleetSummary: string[];
   actionsDisabled: boolean;
   canStartGame: boolean;
@@ -23,7 +24,7 @@ interface BattleshipsSetupCardProps {
 export default function BattleshipsSetupCard({
   playerName,
   boardConfig,
-  currencies,
+  resources,
   fleetSummary,
   actionsDisabled,
   canStartGame,
@@ -60,7 +61,7 @@ export default function BattleshipsSetupCard({
                 <AppChip label={`Поле: ${boardConfig.boardSize}x${boardConfig.boardSize}`} color="secondary" />
                 <AppChip label={`Попытки: ${boardConfig.maxShots}`} color="info" />
                 <AppChip
-                  label={`Попадание: ${formatCurrencyValues(boardConfig.prizes.shoot, currencies, { showPlus: true, includeZero: false }) || "0"}`}
+                  label={`Попадание: ${formatRewardPool(boardConfig.rewards.hit, resources)}`}
                   color="success"
                 />
               </Stack>

@@ -4,7 +4,7 @@ import { FormControlLabel, IconButton, MenuItem, Stack, Switch, Typography } fro
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import type { ProjectResource } from "../../projects/types";
-import type { JourneyResourceAmount, RewardPool } from "../../journey/types";
+import type { ResourceAmount, RewardPool } from "../../rewards/types";
 
 interface RewardPoolEditorProps {
   pool: RewardPool;
@@ -15,7 +15,7 @@ interface RewardPoolEditorProps {
   showModeSelector?: boolean;
 }
 
-function createAmount(resources: ProjectResource[], excludedResourceIds: readonly string[] = []): JourneyResourceAmount {
+function createAmount(resources: ProjectResource[], excludedResourceIds: readonly string[] = []): ResourceAmount {
   return {
     resourceId: resources.find((resource) => !excludedResourceIds.includes(resource.id))?.id ?? resources[0]?.id ?? "",
     amount: 1,
@@ -37,10 +37,10 @@ function ResourceAmountFields({
   disabled,
   onChange,
 }: {
-  amount: JourneyResourceAmount;
+  amount: ResourceAmount;
   resources: ProjectResource[];
   disabled: boolean;
-  onChange: (amount: JourneyResourceAmount) => void;
+  onChange: (amount: ResourceAmount) => void;
 }) {
   return (
     <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} sx={{ flex: 1 }}>
@@ -74,10 +74,10 @@ function ResourceAmountFields({
 }
 
 function AllRewardsEditor({ rewards, resources, disabled, onChange, emptyLabel }: {
-  rewards: JourneyResourceAmount[];
+  rewards: ResourceAmount[];
   resources: ProjectResource[];
   disabled: boolean;
-  onChange: (rewards: JourneyResourceAmount[]) => void;
+  onChange: (rewards: ResourceAmount[]) => void;
   emptyLabel: string;
 }) {
   const addedResourceIds = rewards.map((reward) => reward.resourceId);

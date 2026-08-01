@@ -1,6 +1,7 @@
 import type { ResourceAmount, ResourceHoldings, ResourceSnapshot } from "../rewards";
-import { ResourceInventoryService, RewardResolver } from "../rewards";
+import { RewardGrantService } from "../rewards";
 import { JourneyRoundValidationError } from "./errors";
+import { JourneyResourceInventoryService } from "./domain/JourneyResourceInventoryService";
 import { JourneyRewardCommentFormatter, type FormattedRewardApplication } from "./domain/JourneyRewardCommentFormatter";
 import { JOURNEY_FORUM_MAP_CELL_TEMPLATE, renderJourneyCommentTemplate } from "./domain/commentTemplates";
 import { JourneyCommentTemplateRotator } from "./domain/JourneyCommentTemplateRotator";
@@ -47,8 +48,8 @@ const hasNegative = (rewards: readonly ResourceAmount[]) => rewards.some((reward
 
 export class JourneyV2Engine {
   constructor(
-    private readonly rewardResolver: RewardResolver,
-    private readonly inventory: ResourceInventoryService,
+    private readonly rewardGrantService: RewardGrantService,
+    private readonly inventory: JourneyResourceInventoryService,
     private readonly rewardCommentFormatter: JourneyRewardCommentFormatter,
     private readonly commentTemplateRotator: JourneyCommentTemplateRotator,
   ) {}
@@ -72,7 +73,7 @@ export class JourneyV2Engine {
     const resources = clone(options.resources ?? []);
     const initial = this.inventory.apply(
       {},
-      this.rewardResolver.resolve(rules.initialRewardPool),
+      this.rewardGrantService.resolve(rules.initialRewardPool),
       rules.resourceLimits,
     ).holdings;
     const players = [...new Set(nicknames.map((name) => name.trim()).filter(Boolean))]
@@ -291,7 +292,7 @@ export class JourneyV2Engine {
   ): Extract<JourneyV2Turn, { kind: "move" }> {
     const to = Math.min(player.position + dice, getJourneyConfig(game.rules, game.resources).finishPosition);
     const cell = game.stateV2.map[to];
-    const resolved = cell && !cell.isJackpot ? this.rewardResolver.resolve(cell.rewardPool) : [];
+    const resolved = cell && !cell.isJackpot ? this.rewardGrantService.resolve(cell.rewardPool) : [];
     const application = this.inventory.apply(player.balance, resolved, game.rules.resourceLimits);
     return {
       kind: "move",
@@ -327,7 +328,7 @@ export class JourneyV2Engine {
           if (eligible.length) {
             const winner = eligible[randomInteger(0, eligible.length - 1, random)];
             const player = this.findPlayer(game, winner.playerId)!;
-            const resolved = this.rewardResolver.resolve(cell.rewardPool);
+            const resolved = this.rewardGrantService.resolve(cell.rewardPool);
             const applied = this.inventory
               .apply(player.balance, resolved, game.rules.resourceLimits)
               .rewards.map((entry) => entry.applied);
@@ -371,7 +372,7 @@ export class JourneyV2Engine {
     game: JourneyV2Game,
   ): void {
     if (player.achievementNames.includes(achievement.name)) return;
-    const resolved = this.rewardResolver.resolve(achievement.rewardPool);
+    const resolved = this.rewardGrantService.resolve(achievement.rewardPool);
     const application = this.inventory.apply(player.balance, resolved, game.rules.resourceLimits);
     player.achievementNames.push(achievement.name);
     player.balance = application.holdings;

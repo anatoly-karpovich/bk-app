@@ -13,6 +13,7 @@ import { ForumTopicService } from "../modules/forumTopic/ForumTopicService";
 import { JourneyController } from "../modules/journey/JourneyController";
 import { JourneyV2Engine } from "../modules/journey/JourneyV2Engine";
 import { JourneyCommentTemplateRotator } from "../modules/journey/domain/JourneyCommentTemplateRotator";
+import { JourneyResourceInventoryService } from "../modules/journey/domain/JourneyResourceInventoryService";
 import { JourneyRewardCommentFormatter } from "../modules/journey/domain/JourneyRewardCommentFormatter";
 import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
@@ -21,7 +22,7 @@ import { JourneyForumMovesImporter } from "../modules/journey/JourneyForumMovesI
 import { JourneyForumPlayersImporter } from "../modules/journey/JourneyForumPlayersImporter";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
-import { CryptoRandomizer, LoggingRandomizer, ResourceInventoryService, RewardResolver } from "../modules/rewards";
+import { CryptoRandomizer, LoggingRandomizer, RewardGrantService } from "../modules/rewards";
 import { LottoController } from "../modules/lotto/LottoController";
 import { LottoEngine } from "../modules/lotto/LottoEngine";
 import { LottoReadModelFactory } from "../modules/lotto/LottoReadModelFactory";
@@ -65,7 +66,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const gameConfigsController = new GameConfigsController(gameConfigsService);
 
-  const battleshipsEngine = new BattleshipsEngine();
+  const cryptoRandomizer = new CryptoRandomizer();
+  const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
+  const rewardGrantService = new RewardGrantService(randomizer);
+  const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
   const battleshipsReadModelFactory = new BattleshipsReadModelFactory(battleshipsEngine);
   const battleshipsService = new BattleshipsService(
     battleshipsRepository,
@@ -74,16 +78,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigsService,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
-
-  const cryptoRandomizer = new CryptoRandomizer();
-  const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
-  const rewardResolver = new RewardResolver(randomizer);
-  const resourceInventoryService = new ResourceInventoryService();
+  const journeyResourceInventoryService = new JourneyResourceInventoryService();
   const journeyCommentTemplateRotator = new JourneyCommentTemplateRotator();
   const journeyRewardCommentFormatter = new JourneyRewardCommentFormatter();
   const journeyV2Engine = new JourneyV2Engine(
-    rewardResolver,
-    resourceInventoryService,
+    rewardGrantService,
+    journeyResourceInventoryService,
     journeyRewardCommentFormatter,
     journeyCommentTemplateRotator,
   );

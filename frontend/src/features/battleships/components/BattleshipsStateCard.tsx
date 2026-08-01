@@ -2,7 +2,7 @@ import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import { Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import { formatCurrencyValues } from "../../../lib/currencyValues";
+import { formatResourceAmounts } from "../../rewards/resourceAmounts";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsPersistedGame } from "../types";
 
@@ -35,7 +35,7 @@ export default function BattleshipsStateCard({
             />
             <AppChip label={`Игрок: ${game.playerName}`} color="primary" />
             <AppChip
-              label={`Приз: ${formatCurrencyValues(derived.currentPrize, game.currencies, { includeZero: false }) || "0"}`}
+              label={`Приз: ${formatResourceAmounts(derived.currentPrize, game.resources) || "0"}`}
               color="success"
             />
             <AppChip label={`Попыток: ${derived.attemptsLeft}/${derived.boardConfig.maxShots}`} color="warning" />
@@ -76,8 +76,8 @@ export default function BattleshipsStateCard({
             {derived.lastShot ? (
               <Typography>
                 {derived.lastShot.coordinateLabel}: {derived.lastShot.resultLabel} (
-                {formatCurrencyValues(derived.lastShot.prizeDelta, game.currencies, { showPlus: true, includeZero: false }) || "0"})
-                {" - "}итого {formatCurrencyValues(derived.lastShot.totalPrize, game.currencies, { includeZero: false }) || "0"}
+                {formatResourceAmounts(derived.lastShot.prizeDelta, game.resources, { showPlus: true }) || "0"})
+                {" - "}итого {formatResourceAmounts(derived.lastShot.totalPrize, game.resources) || "0"}
               </Typography>
             ) : (
               <Typography color="text.secondary">Выстрелов еще не было.</Typography>

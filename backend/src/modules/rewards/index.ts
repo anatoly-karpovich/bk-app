@@ -7,6 +7,7 @@ export type {
 } from "./domain/reward.types";
 export { CryptoRandomizer } from "./infrastructure/CryptoRandomizer";
 export { LoggingRandomizer } from "./infrastructure/LoggingRandomizer";
-export { RewardResolver } from "./services/RewardResolver";
-export { ResourceInventoryService } from "./services/ResourceInventoryService";
+export { RewardGrantService } from "./services/RewardGrantService";
 export { assertValidResourceAmount, assertValidResourceLimits, getCurrencySnapshots, getResourceById } from "./domain/resources";
+export { addResourceAmounts, normalizeResourceAmounts } from "./domain/resourceAmounts";
+export { validateRewardPool } from "./domain/validateRewardPool";

@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import { formatCurrencyValues } from "../../../lib/currencyValues";
+import { formatResourceAmounts } from "../../rewards/resourceAmounts";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import { formatBattleshipsTimestamp, getBattleshipsSavedGameStatusLabel } from "../mappers/battleships.mapper";
 import type { BattleshipsSavedGameSummary } from "../types";
@@ -116,7 +116,7 @@ export default function BattleshipsSavedGamesDialog({
                           <AppChip
                             size="small"
                             variant="outlined"
-                            label={`${savedGamesTexts.prize}: ${formatCurrencyValues(game.currentPrize, game.currencies, { includeZero: false }) || "0"}`}
+                            label={`${savedGamesTexts.prize}: ${formatResourceAmounts(game.currentPrize, game.resources) || "0"}`}
                           />
                           {isCurrentGame ? <AppChip size="small" color="secondary" label={savedGamesTexts.current} /> : null}
                         </Stack>
@@ -176,7 +176,7 @@ export default function BattleshipsSavedGamesDialog({
                         {savedGamesTexts.dj}: {game.djName || "Не указан"}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Валюты: {game.currencies.map((currency) => currency.label).join(", ")}
+                        Ресурсы: {game.resources.map((resource) => resource.label).join(", ")}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {savedGamesTexts.board}: {game.boardSize}x{game.boardSize}

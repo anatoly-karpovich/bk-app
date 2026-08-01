@@ -16,7 +16,7 @@ import { BattleshipsEngine } from "./BattleshipsEngine";
 import type { BattleshipsGameDocument } from "./BattleshipsRepository";
 
 export class BattleshipsReadModelFactory {
-  constructor(private readonly engine = new BattleshipsEngine()) {}
+  constructor(private readonly engine: BattleshipsEngine) {}
 
   create(document: WithId<BattleshipsGameDocument>): BattleshipsGameReadModel {
     const { _id, ...game } = document;
@@ -73,7 +73,7 @@ export class BattleshipsReadModelFactory {
       maxShots: boardConfig.maxShots,
       attemptsLeft: this.engine.getAttemptsLeft(normalizedGame),
       currentPrize: this.clone(this.engine.getCurrentPrize(normalizedGame)),
-      currencies: this.clone(normalizedGame.currencies),
+      resources: this.clone(normalizedGame.resources),
       shotsCount: normalizedGame.shots.length,
     };
   }

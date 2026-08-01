@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ResourceInventoryService, RewardResolver, type Randomizer, type ResourceSnapshot } from "../../rewards";
+import { RewardGrantService, type Randomizer, type ResourceSnapshot } from "../../rewards";
 import { JourneyV2Engine } from "../JourneyV2Engine";
 import { JourneyCommentTemplateRotator } from "./JourneyCommentTemplateRotator";
+import { JourneyResourceInventoryService } from "./JourneyResourceInventoryService";
 import {
   buildJourneyResourceAchievementComment,
   buildJourneyResourceMoveComment,
@@ -56,8 +57,8 @@ function rules(overrides: Partial<JourneyRules> = {}): JourneyRules {
 
 function createEngine(): JourneyV2Engine {
   return new JourneyV2Engine(
-    new RewardResolver(randomizer),
-    new ResourceInventoryService(),
+    new RewardGrantService(randomizer),
+    new JourneyResourceInventoryService(),
     new JourneyRewardCommentFormatter(),
     new JourneyCommentTemplateRotator(),
   );
