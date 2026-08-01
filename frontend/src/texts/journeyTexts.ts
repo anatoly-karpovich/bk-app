@@ -1,5 +1,4 @@
 export const journeyTexts = {
-  breadcrumbs: "Combats DJ / Карта Мародёров",
   pageTitle: "Карта Мародёров",
   pageDescription: "Рабочий экран ведущего: запуск партии, ввод ходов, карта, состояние игроков и готовый лог для форума.",
   actions: {

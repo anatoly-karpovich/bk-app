@@ -3,6 +3,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, Box, Card, CardContent, Chip, Divider, Grid, IconButton, MenuItem, Stack, Typography } from "@mui/material";
+import PageBreadcrumbs from "../../components/PageBreadcrumbs";
 import AppPillButton from "../../components/ui/AppPillButton";
 import AppTextInput from "../../components/ui/AppTextInput";
 import type { Project, ProjectCurrency, ProjectItem, ProjectMutationInput } from "./types";
@@ -217,7 +218,8 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
     <Stack spacing={3}>
       <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={1.5} alignItems={{ md: "center" }}>
         <Box>
-          <Typography variant="h4">Проект</Typography>
+          <PageBreadcrumbs pagePath="/project" />
+          <Typography variant="h4" sx={{ mt: 1 }}>Настройки проекта</Typography>
           <Typography color="text.secondary">Настройте общие сведения и каталог ресурсов для новых игровых конфигов.</Typography>
         </Box>
         <AppPillButton startIcon={<SaveRoundedIcon />} loading={isSaving} disabled={!canSave} onClick={() => void saveProject()}>Сохранить изменения</AppPillButton>

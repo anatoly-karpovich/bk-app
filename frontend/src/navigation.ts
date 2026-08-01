@@ -1,0 +1,37 @@
+import { appHeaderTexts } from "./texts/appHeaderTexts";
+
+export const navigationGroups = [
+  {
+    id: "games",
+    label: appHeaderTexts.nav.games,
+    items: [
+      { key: "journey", label: appHeaderTexts.nav.journey, to: "/journey" },
+      { key: "lotto", label: appHeaderTexts.nav.lotto, to: "/lotto" },
+      { key: "battleship", label: appHeaderTexts.nav.battleship, to: "/battleship" },
+    ],
+  },
+  {
+    id: "settings",
+    label: appHeaderTexts.nav.settings,
+    items: [
+      { key: "project", label: appHeaderTexts.nav.project, to: "/project" },
+      { key: "configs", label: appHeaderTexts.nav.configs, to: "/configs" },
+    ],
+  },
+] as const;
+
+export type NavigationGroup = typeof navigationGroups[number];
+export type NavigationGroupId = NavigationGroup["id"];
+export type NavigationItem = NavigationGroup["items"][number];
+export type NavigationItemKey = NavigationItem["key"];
+
+export function findNavigationItem(pathname: string): { group: NavigationGroup; item: NavigationItem } | null {
+  for (const group of navigationGroups) {
+    const item = group.items.find((candidate) => candidate.to === pathname);
+    if (item) {
+      return { group, item };
+    }
+  }
+
+  return null;
+}

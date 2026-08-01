@@ -29,6 +29,7 @@ export default function JourneyPageHeader({
 }: JourneyPageHeaderProps) {
   return (
     <GamePageHeader
+      breadcrumbPath="/journey"
       title={journeyTexts.pageTitle}
       description={journeyTexts.pageDescription}
       chips={pageStatusChips}

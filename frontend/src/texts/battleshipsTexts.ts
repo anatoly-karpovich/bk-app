@@ -1,5 +1,4 @@
 export const battleshipsTexts = {
-  breadcrumbs: "Combats DJ / Морской бой",
   pageTitle: "Морской бой",
   pageDescription:
     "Открытая доска для ведущего: поле и корабли видны сразу, а клики по клеткам применяют выстрел, пересчитывают приз и пополняют лог ходов.",
