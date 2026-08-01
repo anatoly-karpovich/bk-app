@@ -22,7 +22,10 @@ Current feature structure includes:
 features/
   projects/
     api/
+    components/
     hooks/
+    projectPage.helpers.ts
+    ProjectPage.tsx
   journey/
     api/
     components/
@@ -321,6 +324,16 @@ The frontend consumes project-scoped APIs; the old `features/configs` layer and 
 - Reuse shared `features/rewards` reward-pool types and amount-formatting helpers, plus `features/configs/components/RewardPoolEditor`, when a game needs them. Game-specific components may choose their labels and layout, but must not duplicate pool mechanics or local prize calculation.
 - If project/preset management UI is added, it must use Project/GameConfig CRUD and permanent-delete semantics. Archive, restore, duplicate, versioning, and optimistic locking are out of MVP.
 
+### Project Settings page
+
+`features/projects/ProjectPage.tsx` is the host-facing editor for project identity and its resource catalog.
+
+- Keep one local `ProjectDraft` for unsaved edits and one selected resource id for the editor context. Adding, selecting, or removing a draft resource must not persist data until the explicit save action succeeds.
+- Present one selected-resource editor, not a grid of editors for every resource. Keep project-specific presentation in `features/projects/components/` (`ProjectResourceList`, `ProjectResourceEditor`, and `ProjectResourceUsage`). Do not generalize these components until another feature needs the same semantic UI.
+- Load config usage through existing project/config APIs and show it as display-only context. Do not duplicate or mutate game rules in this page.
+- Use the same top-level `Grid container spacing={3}` composition as Journey, Battleships, and Lotto. Do not wrap the page in an extra layout that changes the shared 24px column gap or its alignment with `GamePageHeader`.
+- Use `GamePageHeader`, default themed `Card`/`CardContent`, `h5` card headings, and the shared UI primitives. Do not introduce project-only variants for standard cards, buttons, chips, inputs, or alerts.
+
 ---
 
 ## OOP preference
@@ -410,9 +423,10 @@ Good:
 texts/journeyTexts.ts
 texts/appHeaderTexts.ts
 texts/lottoTexts.ts
+texts/projectTexts.ts
 ```
 
-Keep Battleships and Lotto copy in their dedicated text files rather than scattering strings through cards or dialogs.
+Keep Battleships, Lotto, and Project Settings copy in their dedicated text files rather than scattering strings through pages, cards, or helpers. Project Settings uses `texts/projectTexts.ts` for labels, statuses, accessibility text, and config-usage copy.
 
 ---
 
@@ -446,6 +460,8 @@ Current shared UI patterns that should stay consistent across Battleships and Lo
 * shared player-name input styling via `GamePlayerNameInput`
 * shared confirm dialog and saved-game action vocabulary
 * saved-games presentation that surfaces project/config context and host metadata clearly
+
+Project Settings follows the same visual system: its header uses `GamePageHeader`; the root grid uses `spacing={3}`; standard cards use the themed MUI defaults; and `h5` is the shared card-title scale already used by game `CardHeader`s. Extend `theme.ts` only for a rule used by more than one feature; do not move project-specific selectable-resource or preview styles into the global theme.
 
 ---
 
