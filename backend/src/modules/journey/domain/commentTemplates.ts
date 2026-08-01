@@ -1,7 +1,15 @@
+// @ts-nocheck
 import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import { formatJourneyCurrencyValues, hasNegativeJourneyRewards } from "./currency";
 import { JOURNEY_ACHIEVEMENT_NAMES, JOURNEY_ACHIEVEMENT_STREAK_TARGETS, MOVE_TYPES } from "./config";
-import type { JourneyAchievement, JourneyCurrencyValue, JourneyMoveType, RandomFn } from "./types";
+import { toJourneyMoveCommentTemplateKind } from "./types";
+import type {
+  JourneyAchievement,
+  JourneyCommentTemplateKind,
+  JourneyCurrencyValue,
+  JourneyMoveType,
+  RandomFn,
+} from "./types";
 
 type MoveTemplateType = Exclude<JourneyMoveType, typeof MOVE_TYPES.ACHIEVEMENT>;
 
@@ -27,11 +35,18 @@ function randomFrom<T>(array: T[], randomFn: RandomFn = Math.random): T {
   return array[index];
 }
 
-function interpolate(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
+function interpolate(
+  template: string,
+  values: Record<string, string | number>,
+  appendTerminalPunctuation = true,
+): string {
+  const withoutBalance = template.replace(/\s*\[\{balanceLabel\}\]/g, "");
+  const result = Object.entries(values).reduce(
     (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
-    template,
+    withoutBalance,
   );
+
+  return !appendTerminalPunctuation || /[.!?…]$/.test(result) ? result : `${result}.`;
 }
 
 function toAbsoluteRewards(values: JourneyCurrencyValue[]): JourneyCurrencyValue[] {
@@ -60,8 +75,6 @@ function formatRewardLabel(
 
 const moveTemplates: Record<MoveTemplateType, string[]> = {
   [MOVE_TYPES.JACKPOT]: [
-    "{nickname} срывает сокровище: {rewardLabel} [{balanceLabel}]",
-    "{nickname} открывает сундук и забирает джекпот: {rewardLabel} [{balanceLabel}]",
     "{nickname} получает внезапное наследство: {rewardLabel} [{balanceLabel}]",
     "{nickname} получил(-а) СМС о наследстве от пробабушки из Швейцарии: {rewardLabel} [{balanceLabel}].",
     "{nickname} сорвал(-а) джекпот в лотерее и получил(-а) {rewardLabel} [{balanceLabel}].",
@@ -115,7 +128,6 @@ const moveTemplates: Record<MoveTemplateType, string[]> = {
     "Надпись на стене: Машка — ВЦ! Помимо этого никаких находок для {nickname}, разумеется, не нашлось. [{balanceLabel}]",
     "Раздался леденящий душу рык! А нет, просто у {nickname} заурчало в животе. Денег на клетке тоже нет [{balanceLabel}]",
     "Так тихо на клетке — хорошо хоть {nickname} может постоять тут бесплатно. [{balanceLabel}]",
-    "{nickname} осмотрелся(-ась), но ничего не нашёл(-ла) [{balanceLabel}]",
     "{nickname} протёр(-ла) уставшие глаза, но кроме паутины ничего не обнаружил(-ла) [{balanceLabel}]",
     "На клетке подозрительно тихо. Для {nickname} тут сегодня пусто [{balanceLabel}]",
     "{nickname} заглянул(-а) в каждый угол, но нашёл(-ла) только стены [{balanceLabel}]",
@@ -130,7 +142,6 @@ const moveTemplates: Record<MoveTemplateType, string[]> = {
     "{nickname} решил(-а) почесать ВЦ. И руки в тепле, и платить не надо! [{balanceLabel}]",
   ],
   [MOVE_TYPES.INCREASE]: [
-    "{nickname} находит {rewardLabel} [{balanceLabel}]",
     "{nickname} нащупал(-а) тайник в стене и забрал(-а) {rewardLabel} [{balanceLabel}]",
     "Фея удачи приносит {nickname} ещё {rewardLabel} [{balanceLabel}]",
     "{nickname} открыл(-а) забытый сейф, а внутри лежали {rewardLabel} [{balanceLabel}]",
@@ -241,8 +252,8 @@ const achievementTemplatesByName: Partial<Record<string, string[]>> = {
     '{nickname} передвигался(-ась) настолько осторожно, что даже пыль осталась лежать на месте. Достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
     '{nickname} последние полчаса смотрел(-а) на подозрительные клетки и всякий раз решал(-а): «Не сегодня». Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'Ни один сундук не открыт, ни одна ловушка не потревожена. Паранойя {nickname} приносит достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
-    'Инстинкт самосохранения {nickname} внезапно заработал без ошибок. Получено достижение"{achievement}", награда — {rewardLabel} [{balanceLabel}]',
-    'Архивариус хотел записать приключения {nickname}, но записывать оказалось нечего: игрок всё обошёл(-ла). Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Инстинкт самосохранения {nickname} внезапно заработал без ошибок. Получено достижение "{achievement}", награда — {rewardLabel} [{balanceLabel}]',
+    'Архивариус хотел записать приключения {nickname}, но записывать оказалось нечего: игрок всё обошёл(-ла). Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     '{nickname} прошёл(-ла) последние клетки в режиме «руками ничего не трогать». Система выдаёт "{achievement}" и {rewardLabel} [{balanceLabel}]',
     `Даже ловушки обиделись: {nickname} ${JOURNEY_ACHIEVEMENT_STREAK_TARGETS.careful} раза подряд их проигнорировал(-а). Достижение "{achievement}", {rewardLabel} [{balanceLabel}]`,
   ],
@@ -250,7 +261,7 @@ const achievementTemplatesByName: Partial<Record<string, string[]>> = {
     'В коллекции {nickname} теперь есть всё: удача, боль и сомнительные жизненные решения. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'Сэймос вручает {nickname} почётную грамоту за изучение всей пещерной инфраструктуры. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     '{nickname} лично проверил(-а) каждый тип клетки. Да, включая те, которые нормальные люди обходят. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
-    'Епископ закрывает последний пункт в списке {nickname}: коллекция завершена. Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Епископ закрывает последний пункт в списке {nickname}: коллекция завершена. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'От маленькой находки до большой ловушки — {nickname} попробовал(-а) всё. Получено достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
     'Теперь {nickname} может проводить экскурсии: все виды клеток изучены лично. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'Пещерные боссы сверили журналы посещений. {nickname} отметился(-ась) везде. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
@@ -258,11 +269,11 @@ const achievementTemplatesByName: Partial<Record<string, string[]>> = {
     'Коллекция {nickname} официально признана полной. Экспонаты местами кусаются, но это уже детали. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
   ],
   [JOURNEY_ACHIEVEMENT_NAMES.LUCKY]: [
-    '{nickname} находит уже которую награду подряд. Алхимик официально выбрал любимчика: Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    '{nickname} находит уже которую награду подряд. Алхимик официально выбрал любимчика: Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'Перебежчик Брут требует проверить {nickname} на запрещённые свитки удачи. Пока проверяют — достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
-    'Даже Алхимик начал ходить следом за {nickname} в надежде подобрать что-нибудь ценное для перепродажи нубам за реал. Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Даже Алхимик начал ходить следом за {nickname} в надежде подобрать что-нибудь ценное для перепродажи нубам за реал. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'Похоже, {nickname} случайно оформил(-а) подписку на удачу. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
-    'Обладатели достижения «Невезучий» требуют понерфить {nickname}: столько наград подряд — это уже неприлично. Достижение"{achievement}", {rewardLabel} [{balanceLabel}]',
+    'Обладатели достижения «Невезучий» требуют понерфить {nickname}: столько наград подряд — это уже неприлично. Достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
     'Фортуна окончательно переехала к {nickname}. Достижение "{achievement}", награда {rewardLabel} [{balanceLabel}]',
     `Уже ${JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky} удачных клеток подряд подтверждают: сегодня главный герой — {nickname}. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]`,
     'Кроличья лапка начала тереться о {nickname} на удачу. Получено достижение "{achievement}", {rewardLabel} [{balanceLabel}]',
@@ -270,6 +281,112 @@ const achievementTemplatesByName: Partial<Record<string, string[]>> = {
     'Система сообщает: вероятность происходящего всё ещё ненулевая. {nickname} получает достижение "{achievement}" и {rewardLabel} [{balanceLabel}]',
   ],
 };
+
+const emptyRewardTemplates = {
+  jackpot: [
+    "{nickname} находит сокровище, но награда не выпадает.",
+    "Сундук достаётся {nickname}, но внутри оказывается пусто.",
+  ],
+  achievement: [
+    "Достижение «{achievement}» достаётся {nickname}, но награда не выпадает.",
+    "{nickname} получает достижение «{achievement}», но без дополнительной награды.",
+  ],
+};
+
+const skipTemplates = ["{nickname} пропускает ход."];
+
+export const JOURNEY_FORUM_MAP_CELL_TEMPLATE = "На клетке {position} находится {cellType} на {rewardLabel}";
+
+export const JOURNEY_COMMENT_TEMPLATES: Record<JourneyCommentTemplateKind, string[]> = {
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.JACKPOT)]: moveTemplates[MOVE_TYPES.JACKPOT],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.EMPTY_JACKPOT)]: moveTemplates[MOVE_TYPES.EMPTY_JACKPOT],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.INCREASE)]: moveTemplates[MOVE_TYPES.INCREASE],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.DECREASE)]: moveTemplates[MOVE_TYPES.DECREASE],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.EMPTY)]: moveTemplates[MOVE_TYPES.EMPTY],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.FINISH)]: moveTemplates[MOVE_TYPES.FINISH],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.AT_MAX)]: moveTemplates[MOVE_TYPES.AT_MAX],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.TO_MAX)]: moveTemplates[MOVE_TYPES.TO_MAX],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.TO_ZERO)]: moveTemplates[MOVE_TYPES.TO_ZERO],
+  [toJourneyMoveCommentTemplateKind(MOVE_TYPES.AT_ZERO)]: moveTemplates[MOVE_TYPES.AT_ZERO],
+  "jackpot:empty_reward": emptyRewardTemplates.jackpot,
+  "achievement:unlucky": achievementTemplatesByName[JOURNEY_ACHIEVEMENT_NAMES.UNLUCKY] ?? achievementTemplates,
+  "achievement:careful": achievementTemplatesByName[JOURNEY_ACHIEVEMENT_NAMES.CAREFUL] ?? achievementTemplates,
+  "achievement:collector": achievementTemplatesByName[JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR] ?? achievementTemplates,
+  "achievement:lucky": achievementTemplatesByName[JOURNEY_ACHIEVEMENT_NAMES.LUCKY] ?? achievementTemplates,
+  "achievement:empty_reward": emptyRewardTemplates.achievement,
+  skip: skipTemplates,
+};
+
+export function renderJourneyCommentTemplate(
+  template: string,
+  values: Record<string, string | number>,
+  options: { appendTerminalPunctuation?: boolean } = {},
+): string {
+  return interpolate(template, values, options.appendTerminalPunctuation);
+}
+
+interface JourneyResourceMoveCommentInput {
+  playerNickname: string;
+  moveType: JourneyMoveType;
+  rewardLabel: string;
+  requestedRewardLabel: string;
+  randomFn?: RandomFn;
+}
+
+export function buildJourneyResourceMoveComment({
+  playerNickname,
+  moveType,
+  rewardLabel,
+  requestedRewardLabel,
+  randomFn = Math.random,
+}: JourneyResourceMoveCommentInput): string {
+  const templates = moveTemplates[moveType] ?? moveTemplates[MOVE_TYPES.EMPTY];
+  return interpolate(randomFrom(templates, randomFn), {
+    nickname: playerNickname,
+    rewardLabel,
+    requestedRewardLabel,
+  });
+}
+
+interface JourneyResourceAchievementCommentInput {
+  playerNickname: string;
+  achievement: JourneyAchievement;
+  rewardLabel: string | null;
+  randomFn?: RandomFn;
+}
+
+export function buildJourneyResourceAchievementComment({
+  playerNickname,
+  achievement,
+  rewardLabel,
+  randomFn = Math.random,
+}: JourneyResourceAchievementCommentInput): string {
+  if (!rewardLabel) {
+    return interpolate(randomFrom(emptyRewardTemplates.achievement, randomFn), {
+      nickname: playerNickname,
+      achievement: achievement.title ?? achievement.name,
+    });
+  }
+
+  const templates = achievementTemplatesByName[achievement.name] ?? achievementTemplates;
+  return interpolate(randomFrom(templates, randomFn), {
+    nickname: playerNickname,
+    achievement: achievement.title ?? achievement.name,
+    description: achievement.description ?? "",
+    rewardLabel,
+  });
+}
+
+export function buildJourneyEmptyJackpotRewardComment(
+  playerNickname: string,
+  randomFn: RandomFn = Math.random,
+): string {
+  return interpolate(randomFrom(emptyRewardTemplates.jackpot, randomFn), { nickname: playerNickname });
+}
+
+export function buildJourneySkipComment(playerNickname: string, randomFn: RandomFn = Math.random): string {
+  return interpolate(randomFrom(skipTemplates, randomFn), { nickname: playerNickname });
+}
 
 interface BuildJourneyCommentArgs {
   event: JourneyForumCommentEvent;

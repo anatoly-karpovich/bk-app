@@ -1,139 +1,58 @@
-import type { CurrencyValue } from "../../../common/currencyValues";
-import type { CurrencySnapshot } from "../../../common/currency";
+import type { ResourceAmount, ResourceSnapshot, RewardPool } from "../../rewards";
 
 export type RandomFn = () => number;
-
 export type BattleshipsGameStatus = "in_progress" | "finished";
 export type BattleshipsShotResult = "miss" | "hit" | "kill";
 
-export interface BattleshipsShipConfig {
-  size: number;
-  amount: number;
+export interface BattleshipsShipConfig { size: number; amount: number; }
+export interface BattleshipsRewards {
+  hit: RewardPool;
+  destroyBonusByShipSize: Record<number, RewardPool>;
 }
-
-export interface BattleshipsCurrencyValue extends CurrencyValue {}
-
-export interface BattleshipsPrizes {
-  shoot: BattleshipsCurrencyValue[];
-  destroyBonus: Record<number, BattleshipsCurrencyValue[]>;
-}
-
 export interface BattleshipsBoardRules {
   boardSize: number;
   ships: BattleshipsShipConfig[];
   maxShots: number;
-  prizes: BattleshipsPrizes;
+  rewards: BattleshipsRewards;
 }
-
 export interface BattleshipsBoardRulesInput {
   boardSize?: number;
   ships?: BattleshipsShipConfig[];
   maxShots?: number;
-  prizes?: {
-    shoot?: BattleshipsCurrencyValue[];
-    destroyBonus?: Record<string | number, BattleshipsCurrencyValue[]>;
-  };
+  rewards?: Partial<BattleshipsRewards>;
+  /** Legacy currency-only configuration, normalized to rewards.all. */
+  prizes?: { shoot?: Array<{ currencyId: string; value: number }>; destroyBonus?: Record<string | number, Array<{ currencyId: string; value: number }>>; };
 }
-
-export interface BattleshipsRules {
-  selectedBoardSize: number;
-  boards: Record<string, BattleshipsBoardRules>;
-}
-
-export interface BattleshipsRulesInput {
-  selectedBoardSize?: number;
-  boards?: Record<string | number, BattleshipsBoardRulesInput>;
-}
-
-export interface BattleshipsShipCell {
-  row: number;
-  column: number;
-  isHit: boolean;
-}
-
-export interface BattleshipsShip {
-  size: number;
-  cells: BattleshipsShipCell[];
-}
-
+export interface BattleshipsRules { selectedBoardSize: number; boards: Record<string, BattleshipsBoardRules>; }
+export interface BattleshipsRulesInput { selectedBoardSize?: number; boards?: Record<string | number, BattleshipsBoardRulesInput>; }
+export interface BattleshipsShipCell { row: number; column: number; isHit: boolean; }
+export interface BattleshipsShip { size: number; cells: BattleshipsShipCell[]; }
+export interface BattleshipsRewardGrant { source: "hit" | "destroy_bonus" | "legacy"; rewards: ResourceAmount[]; }
 export interface BattleshipsShot {
   createdAt: string;
   row: number;
   column: number;
   result: BattleshipsShotResult;
-  prizeDelta: BattleshipsCurrencyValue[];
-  totalPrize: BattleshipsCurrencyValue[];
+  rewardGrants: BattleshipsRewardGrant[];
+  prizeDelta: ResourceAmount[];
+  totalPrize: ResourceAmount[];
   shipSize: number | null;
 }
-
 export interface BattleshipsGame {
-  createdAt: string;
-  updatedAt: string;
-  status: BattleshipsGameStatus;
-  playerName: string;
-  djName: string;
-  projectId: string;
-  configId: string;
-  configName: string;
-  currencies: CurrencySnapshot[];
-  rules: BattleshipsRules;
-  board: number[][];
-  ships: BattleshipsShip[];
-  shots: BattleshipsShot[];
+  createdAt: string; updatedAt: string; status: BattleshipsGameStatus; playerName: string; djName: string;
+  projectId: string; configId: string; configName: string; resources: ResourceSnapshot[]; rules: BattleshipsRules;
+  board: number[][]; ships: BattleshipsShip[]; shots: BattleshipsShot[];
 }
-
-export interface BattleshipsBoardCellReadModel {
-  row: number;
-  column: number;
-  coordinateLabel: string;
-  shipSize: number;
-  hasShot: boolean;
-  isHit: boolean;
-}
-
-export interface BattleshipsShotReadModel extends BattleshipsShot {
-  coordinateLabel: string;
-  resultLabel: string;
-}
-
+export interface BattleshipsBoardCellReadModel { row: number; column: number; coordinateLabel: string; shipSize: number; hasShot: boolean; isHit: boolean; }
+export interface BattleshipsShotReadModel extends BattleshipsShot { coordinateLabel: string; resultLabel: string; }
 export interface BattleshipsGameDerivedData {
-  boardConfig: BattleshipsBoardRules;
-  gameIsOver: boolean;
-  attemptsLeft: number;
-  currentPrize: BattleshipsCurrencyValue[];
-  boardLetters: string[];
-  destroyedShipsCount: number;
-  totalShipsCount: number;
-  fleetSummary: string[];
-  lastShot: BattleshipsShotReadModel | null;
+  boardConfig: BattleshipsBoardRules; gameIsOver: boolean; attemptsLeft: number; currentPrize: ResourceAmount[];
+  boardLetters: string[]; destroyedShipsCount: number; totalShipsCount: number; fleetSummary: string[]; lastShot: BattleshipsShotReadModel | null;
 }
-
-export type BattleshipsGameReadModel = Omit<BattleshipsGame, "board" | "shots"> & {
-  id: string;
-  board: BattleshipsBoardCellReadModel[][];
-  shots: BattleshipsShotReadModel[];
-  derived: BattleshipsGameDerivedData;
-};
-
+export type BattleshipsGameReadModel = Omit<BattleshipsGame, "board" | "shots"> & { id: string; board: BattleshipsBoardCellReadModel[][]; shots: BattleshipsShotReadModel[]; derived: BattleshipsGameDerivedData; };
 export interface BattleshipsGameListItemReadModel {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  status: BattleshipsGameStatus;
-  playerName: string;
-  djName: string;
-  projectId: string;
-  configId: string;
-  configName: string;
-  boardSize: number;
-  maxShots: number;
-  attemptsLeft: number;
-  currentPrize: BattleshipsCurrencyValue[];
-  currencies: CurrencySnapshot[];
-  shotsCount: number;
+  id: string; createdAt: string; updatedAt: string; status: BattleshipsGameStatus; playerName: string; djName: string;
+  projectId: string; configId: string; configName: string; boardSize: number; maxShots: number; attemptsLeft: number;
+  currentPrize: ResourceAmount[]; resources: ResourceSnapshot[]; shotsCount: number;
 }
-
-export interface BattleshipsShotInput {
-  row: number;
-  column: number;
-}
+export interface BattleshipsShotInput { row: number; column: number; }

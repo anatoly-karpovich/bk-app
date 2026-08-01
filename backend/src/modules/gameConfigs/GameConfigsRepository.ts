@@ -68,31 +68,6 @@ export class GameConfigsRepository {
     await collection.deleteMany({ projectId });
   }
 
-  async upsertByLegacyIdentity(
-    projectId: string,
-    gameType: GameType,
-    legacyConfigId: string,
-    config: AnyGameConfig,
-  ): Promise<WithId<GameConfigDocument> | null> {
-    const collection = await this.getCollection();
-
-    return collection.findOneAndUpdate(
-      { projectId, gameType, legacyConfigId },
-      {
-        $set: {
-          ...config,
-          projectId,
-          gameType,
-          legacyConfigId,
-        },
-      },
-      {
-        upsert: true,
-        returnDocument: "after",
-      },
-    );
-  }
-
   private async getCollection() {
     return this.mongoDatabase.getCollection<GameConfigDocument>(GAME_CONFIGS_COLLECTION);
   }

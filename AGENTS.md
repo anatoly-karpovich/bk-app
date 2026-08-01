@@ -67,7 +67,7 @@ Important principles:
 
 - separate UI, API, domain, persistence, and configuration concerns
 - avoid duplicating game rules between frontend and backend
-- keep project-level config concerns explicit, including shared project currency
+- keep project-level config concerns explicit, including shared project resources (currencies and items)
 - treat `Project` and project-owned `GameConfig` presets as the active configuration model
 - prefer shared source components for repeated host-facing UI patterns such as player-name inputs, page headers, and saved-game actions
 - prefer extracting shared UI/layout components once the same structure appears in more than one feature
@@ -90,7 +90,7 @@ Use it to keep responsibilities clean and avoid mixing unrelated concerns.
 The backend is the source of truth for:
 
 - game state
-- projects, project-owned game-config presets, and project currency
+- projects, project-owned game-config presets, and project resources
 - game rules
 - parsing and resolving game actions
 - persistence
@@ -121,7 +121,18 @@ The frontend is responsible for:
 
 Frontend must not own final game rules or final game state.
 
-Project-level currency and preset rules must be read from project-scoped backend APIs, not recreated independently per frontend feature.
+Project-level resources and preset rules must be read from project-scoped backend APIs, not recreated independently per frontend feature.
+
+---
+
+## Shared rewards and game-owned payouts
+
+`RewardGrantService` is a backend dependency that resolves a `RewardPool` into the resources that dropped. It owns pool mechanics only: `all`, `weighted_one`, and `independent` selection.
+
+- Inject the service into game engines; do not make it depend on a game, player balances, limits, recipient selection, or persistence.
+- Each game owns when a pool is resolved, which recipients get its result, how it is split, and its domain limits. Keep this policy in that game's domain classes.
+- Persist every resolved grant or payout in game state. Restored games and undo/read paths must display the saved outcome, never re-resolve a pool.
+- Presets may reference project resources, but games retain their resource snapshot so historical results remain interpretable after a project catalog changes.
 
 Current host-facing pages such as Journey, Battleships, and Lotto should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
 

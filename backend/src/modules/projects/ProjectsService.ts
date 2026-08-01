@@ -1,11 +1,17 @@
-import { ProjectCodeConflictError, ProjectCurrencyInUseError, ProjectNotFoundError } from "./errors";
+import {
+  ProjectCodeConflictError,
+  ProjectCodeImmutableError,
+  ProjectCurrencyInUseError,
+  ProjectNotFoundError,
+  ProjectResourceImmutableError,
+} from "./errors";
 import { BattleshipsRepository } from "../battleships/BattleshipsRepository";
 import { GameConfigsRepository } from "../gameConfigs/GameConfigsRepository";
-import { collectCurrencyIdsFromRules } from "../gameConfigs/domain/currencyReferences";
+import { collectResourceIdsFromRules } from "../gameConfigs/domain/resourceReferences";
 import { JourneyRepository } from "../journey/JourneyRepository";
 import { LottoRepository } from "../lotto/LottoRepository";
-import { normalizeProjectCurrencies } from "./domain/normalizeProjectCurrencies";
-import type { Project, ProjectCurrency, ProjectReadModel } from "./domain/types";
+import { normalizeProjectResources } from "./domain/normalizeProjectCurrencies";
+import type { Project, ProjectCurrency, ProjectReadModel, ProjectResource } from "./domain/types";
 import { ProjectsRepository } from "./ProjectsRepository";
 
 export class ProjectsService {
@@ -38,7 +44,7 @@ export class ProjectsService {
     code: string;
     name: string;
     description: string;
-    currencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt">>;
+    resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
   }): Promise<ProjectReadModel> {
     const code = input.code.trim();
     const existing = await this.repository.findByCode(code);
@@ -52,10 +58,9 @@ export class ProjectsService {
       code,
       name: input.name.trim(),
       description: input.description.trim(),
-      currencies: normalizeProjectCurrencies(input.currencies, now),
+      resources: normalizeProjectResources(input.resources, now),
       createdAt: now,
       updatedAt: now,
-      legacyConfigId: null,
     });
 
     if (!created) {
@@ -71,7 +76,7 @@ export class ProjectsService {
       code: string;
       name: string;
       description: string;
-      currencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt">>;
+    resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
     },
   ): Promise<ProjectReadModel> {
     const current = await this.repository.findById(projectId);
@@ -82,27 +87,24 @@ export class ProjectsService {
 
     const code = input.code.trim();
     if (code !== current.code) {
-      const existing = await this.repository.findByCode(code);
-      if (existing && existing._id.toHexString() !== projectId) {
-        throw new ProjectCodeConflictError(code);
-      }
+      throw new ProjectCodeImmutableError();
     }
 
-    await this.assertUsedCurrenciesAreNotRemoved(projectId, current.currencies, input.currencies);
+    const usedResourceIds = await this.assertUsedResourcesAreNotRemoved(projectId, current.resources, input.resources);
+    this.assertExistingResourcesAreCompatible(current.resources, input.resources, usedResourceIds);
 
     const updated = await this.repository.update(projectId, {
       code,
       name: input.name.trim(),
       description: input.description.trim(),
-      currencies: normalizeProjectCurrencies(
-        input.currencies.map((currency) => ({
-          ...currency,
-          createdAt: current.currencies.find((currentCurrency) => currentCurrency.id === currency.id)?.createdAt,
+      resources: normalizeProjectResources(
+        input.resources.map((resource) => ({
+          ...resource,
+          createdAt: current.resources.find((currentResource) => currentResource.id === resource.id)?.createdAt,
         })),
       ),
       createdAt: current.createdAt,
       updatedAt: new Date().toISOString(),
-      legacyConfigId: current.legacyConfigId ?? null,
     });
 
     if (!updated) {
@@ -131,45 +133,78 @@ export class ProjectsService {
     }
   }
 
-  private async assertUsedCurrenciesAreNotRemoved(
+  private async assertUsedResourcesAreNotRemoved(
     projectId: string,
-    currentCurrencies: ProjectCurrency[],
-    nextCurrencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt">>,
-  ): Promise<void> {
-    const nextCurrencyIds = new Set(nextCurrencies.map((currency) => currency.id.trim()));
-    const removedCurrencyIds = currentCurrencies
-      .map((currency) => currency.id)
-      .filter((currencyId) => !nextCurrencyIds.has(currencyId));
+    currentResources: ProjectResource[],
+    nextResources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>,
+  ): Promise<Set<string>> {
+    const nextResourceIds = new Set(nextResources.map((resource) => resource.id.trim()));
+    const removedResourceIds = currentResources.map((resource) => resource.id).filter((resourceId) => !nextResourceIds.has(resourceId));
+    const configs = await this.gameConfigsRepository.findByProjectId(projectId);
+    const usedResourceIds = new Set(configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]));
 
-    if (!removedCurrencyIds.length) {
-      return;
+    if (!removedResourceIds.length) {
+      return usedResourceIds;
     }
 
-    const configs = await this.gameConfigsRepository.findByProjectId(projectId);
-    const usedCurrencyIds = new Set(configs.flatMap((config) => [...collectCurrencyIdsFromRules(config.rules)]));
-    const inUseCurrencyIds = removedCurrencyIds.filter((currencyId) => usedCurrencyIds.has(currencyId));
+    const inUseCurrencyIds = removedResourceIds.filter((resourceId) => usedResourceIds.has(resourceId));
 
     if (inUseCurrencyIds.length) {
       throw new ProjectCurrencyInUseError(inUseCurrencyIds);
+    }
+
+    return usedResourceIds;
+  }
+
+  private assertExistingResourcesAreCompatible(
+    currentResources: ProjectResource[],
+    nextResources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>,
+    usedResourceIds: Set<string>,
+  ): void {
+    const nextResourcesById = new Map(nextResources.map((resource) => [resource.id.trim(), resource]));
+
+    for (const currentResource of currentResources) {
+      const nextResource = nextResourcesById.get(currentResource.id);
+      if (!nextResource) {
+        continue;
+      }
+
+      if (nextResource.code.trim() !== currentResource.code) {
+        throw new ProjectResourceImmutableError(currentResource.id, "code");
+      }
+
+      if (nextResource.type !== currentResource.type) {
+        throw new ProjectResourceImmutableError(currentResource.id, "type");
+      }
+
+      if (
+        usedResourceIds.has(currentResource.id) &&
+        currentResource.type === "currency" &&
+        nextResource.type === "currency"
+      ) {
+        const nextCurrency = nextResource as Omit<ProjectCurrency, "createdAt" | "updatedAt">;
+        if (nextCurrency.valueType !== currentResource.valueType || nextCurrency.precision !== currentResource.precision) {
+          throw new ProjectResourceImmutableError(currentResource.id, "currencyFormat");
+        }
+      }
     }
   }
 
   private async toReadModel(project: { _id: { toHexString(): string } } & Project): Promise<ProjectReadModel> {
     const configs = await this.gameConfigsRepository.findByProjectId(project._id.toHexString());
-    const usedCurrencyIds = new Set(configs.flatMap((config) => [...collectCurrencyIdsFromRules(config.rules)]));
+    const usedResourceIds = new Set(configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]));
 
     return {
       id: project._id.toHexString(),
       code: project.code,
       name: project.name,
       description: project.description,
-      currencies: project.currencies.map((currency) => ({
-        ...structuredClone(currency),
-        canDelete: !usedCurrencyIds.has(currency.id),
+      resources: project.resources.map((resource) => ({
+        ...structuredClone(resource),
+        canDelete: !usedResourceIds.has(resource.id),
       })),
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
-      legacyConfigId: project.legacyConfigId ?? null,
     };
   }
 }

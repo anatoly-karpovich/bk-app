@@ -29,6 +29,7 @@ export default function BattleshipsPageHeader({
 }: BattleshipsPageHeaderProps) {
   return (
     <GamePageHeader
+      breadcrumbPath="/battleship"
       title={battleshipsTexts.pageTitle}
       description={battleshipsTexts.pageDescription}
       chips={pageStatusChips}

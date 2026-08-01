@@ -243,7 +243,6 @@ async function run(): Promise<void> {
       currencies,
       createdAt: typeof project.createdAt === "string" ? project.createdAt : timestamp,
       updatedAt: timestamp,
-      legacyConfigId: typeof project.legacyConfigId === "string" ? project.legacyConfigId : null,
     };
   });
   const currenciesByProjectId = new Map(projects.map((project) => [project._id.toHexString(), project.currencies]));
@@ -266,7 +265,6 @@ async function run(): Promise<void> {
       rules,
       createdAt: typeof config.createdAt === "string" ? config.createdAt : timestamp,
       updatedAt: timestamp,
-      legacyConfigId: typeof config.legacyConfigId === "string" ? config.legacyConfigId : null,
     };
   });
 

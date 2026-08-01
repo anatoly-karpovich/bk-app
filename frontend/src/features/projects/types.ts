@@ -1,25 +1,36 @@
 import type { BattleshipsRules } from "../battleships/types";
-import type { JourneyRules } from "../journey/types";
+import type { JourneyAchievementsMap, JourneyConfig, JourneyRules } from "../journey/types";
 import type { LottoRewardDistributionMode, LottoRules } from "../lotto/types";
 
 export interface ProjectCurrency {
+  type: "currency";
   id: string;
   code: string;
   name: string;
   label: string;
-  shortLabel?: string;
   valueType: "integer" | "decimal";
   precision: number;
   createdAt: string;
   updatedAt: string;
   canDelete: boolean;
 }
+export interface ProjectItem {
+  type: "item";
+  id: string;
+  code: string;
+  name: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  canDelete: boolean;
+}
+export type ProjectResource = ProjectCurrency | ProjectItem;
 
 export interface ProjectMutationInput {
   code: string;
   name: string;
   description: string;
-  currencies: Array<Omit<ProjectCurrency, "createdAt" | "updatedAt" | "canDelete">>;
+  resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt" | "canDelete">>;
 }
 
 export interface Project {
@@ -27,10 +38,11 @@ export interface Project {
   code: string;
   name: string;
   description: string;
+  resources: ProjectResource[];
+  /** Compatibility projection for currency-only games. */
   currencies: ProjectCurrency[];
   createdAt: string;
   updatedAt: string;
-  legacyConfigId?: string | null;
 }
 
 export type GameType = "journey" | "battleships" | "lotto";
@@ -71,10 +83,12 @@ interface BaseGameConfig<TGameType extends GameType, TRules, TSummary> {
   summary: TSummary;
   createdAt: string;
   updatedAt: string;
-  legacyConfigId?: string | null;
 }
 
-export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary>;
+export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary> & {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+};
 export type BattleshipsGameConfig = BaseGameConfig<"battleships", BattleshipsRules, BattleshipsGameConfigSummary>;
 export type LottoGameConfig = BaseGameConfig<"lotto", LottoRules, LottoGameConfigSummary>;
 

@@ -6,13 +6,14 @@ import BattleshipsPage from "./features/battleships/BattleshipsPage";
 import GameConfigsPage from "./features/configs/GameConfigsPage";
 import JourneyPage from "./features/journey/JourneyPage";
 import LottoPage from "./features/lotto/LottoPage";
+import ProjectPage from "./features/projects/ProjectPage";
 import { useProjects } from "./features/projects/hooks/useProjects";
 
 const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
 
 export default function App() {
   const [djName, setDjName] = useState(() => localStorage.getItem(DJ_NAME_STORAGE_KEY) ?? "");
-  const { projects, selectedProject, error, actions } = useProjects();
+  const { projects, selectedProject, error, isSaving, actions } = useProjects();
 
   useEffect(() => {
     localStorage.setItem(DJ_NAME_STORAGE_KEY, djName);
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/project" element={<ProjectPage selectedProject={selectedProject} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
         </Routes>

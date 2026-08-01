@@ -48,7 +48,7 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
     gameConfigsError,
     selectedLottoRules,
     resolvedRules,
-    resolvedCurrencies,
+    resolvedResources,
     canStartGame,
     headerActionsDisabled,
     boardActionsDisabled,
@@ -136,7 +136,7 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
               />
             )}
 
-            {game?.derived.gameIsOver ? <LottoResultsCard game={game} currencies={resolvedCurrencies} /> : null}
+            {game?.derived.gameIsOver ? <LottoResultsCard game={game} resources={resolvedResources} /> : null}
             <LottoLogCard events={game?.events} />
           </Stack>
         </Grid>
@@ -157,7 +157,7 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
         open={rulesDialogOpen}
         onClose={() => actions.setRulesDialogOpen(false)}
         rules={resolvedRules}
-        currencies={resolvedCurrencies}
+        resources={resolvedResources}
       />
 
       <LottoSavedGamesDialog

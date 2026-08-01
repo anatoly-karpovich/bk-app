@@ -10,6 +10,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
   MenuItem,
   Select,
   Stack,
@@ -20,28 +21,18 @@ import type { SelectChangeEvent } from "@mui/material/Select";
 import type { SxProps, Theme } from "@mui/material/styles";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { NavLink, useLocation } from "react-router-dom";
 import type { Project } from "../features/projects/types";
+import { navigationGroups, type NavigationGroupId, type NavigationItemKey } from "../navigation";
 import { appHeaderTexts } from "../texts/appHeaderTexts";
 import AppPillButton from "./ui/AppPillButton";
 import AppTextInput from "./ui/AppTextInput";
-
-interface NavItem {
-  label: string;
-  to: string;
-  icon: JSX.Element;
-  disabled: boolean;
-}
-
-interface NavMenuButtonProps {
-  item: NavItem;
-  active: boolean;
-  onClick?: () => void;
-}
 
 interface AppHeaderProps {
   djName: string;
@@ -51,60 +42,21 @@ interface AppHeaderProps {
   onSelectedProjectChange: (nextProjectId: string) => void;
 }
 
-const navItems: NavItem[] = [
-  {
-    label: appHeaderTexts.nav.journey,
-    to: "/journey",
-    icon: <TravelExploreRoundedIcon />,
-    disabled: false,
-  },
-  {
-    label: appHeaderTexts.nav.lotto,
-    to: "/lotto",
-    icon: <CasinoRoundedIcon />,
-    disabled: false,
-  },
-  {
-    label: appHeaderTexts.nav.battleship,
-    to: "/battleship",
-    icon: <DirectionsBoatRoundedIcon />,
-    disabled: false,
-  },
-  {
-    label: appHeaderTexts.nav.configs,
-    to: "/configs",
-    icon: <TuneRoundedIcon />,
-    disabled: false,
-  },
-];
+const navigationItemIcons: Record<NavigationItemKey, JSX.Element> = {
+  journey: <TravelExploreRoundedIcon />,
+  lotto: <CasinoRoundedIcon />,
+  battleship: <DirectionsBoatRoundedIcon />,
+  project: <FolderRoundedIcon />,
+  configs: <TuneRoundedIcon />,
+};
 
-function NavMenuButton({ item, active, onClick }: NavMenuButtonProps) {
-  const buttonSx: SxProps<Theme> = {
-    px: 2,
-    minHeight: 40,
-    borderRadius: (theme) => theme.customRadii.pill,
-    fontWeight: 700,
-    justifyContent: "flex-start",
-    color: active ? "primary.main" : "text.primary",
-    backgroundColor: active ? "rgba(79, 70, 229, 0.10)" : "transparent",
-    "&:hover": {
-      backgroundColor: active ? "rgba(79, 70, 229, 0.14)" : "rgba(15, 23, 42, 0.04)",
-    },
-  };
+const navigationGroupIcons: Record<NavigationGroupId, JSX.Element> = {
+  games: <SportsEsportsRoundedIcon />,
+  settings: <TuneRoundedIcon />,
+};
 
-  if (item.disabled) {
-    return (
-      <AppPillButton disabled startIcon={item.icon} sx={buttonSx}>
-        {item.label}
-      </AppPillButton>
-    );
-  }
-
-  return (
-    <AppPillButton component={NavLink} to={item.to} startIcon={item.icon} color="inherit" sx={buttonSx} onClick={onClick}>
-      {item.label}
-    </AppPillButton>
-  );
+function isGroupActive(groupId: NavigationGroupId, pathname: string): boolean {
+  return navigationGroups.find((group) => group.id === groupId)?.items.some((item) => pathname.startsWith(item.to)) ?? false;
 }
 
 export default function AppHeader({
@@ -116,6 +68,19 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [openGroupId, setOpenGroupId] = useState<NavigationGroupId | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const openGroup = navigationGroups.find((group) => group.id === openGroupId) ?? null;
+
+  function openNavigationMenu(groupId: NavigationGroupId, anchor: HTMLElement) {
+    setOpenGroupId(groupId);
+    setMenuAnchor(anchor);
+  }
+
+  function closeNavigationMenu() {
+    setOpenGroupId(null);
+    setMenuAnchor(null);
+  }
 
   return (
     <>
@@ -173,9 +138,32 @@ export default function AppHeader({
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center" sx={{ display: { xs: "none", md: "flex" }, flexWrap: "wrap" }}>
-                {navItems.map((item) => (
-                  <NavMenuButton key={item.to} item={item} active={!item.disabled && location.pathname.startsWith(item.to)} />
-                ))}
+                {navigationGroups.map((group) => {
+                  const active = isGroupActive(group.id, location.pathname);
+
+                  return (
+                    <AppPillButton
+                      key={group.id}
+                      color="inherit"
+                      startIcon={navigationGroupIcons[group.id]}
+                      endIcon={<ExpandMoreRoundedIcon />}
+                      aria-haspopup="menu"
+                      aria-expanded={openGroupId === group.id ? "true" : undefined}
+                      onClick={(event) => openNavigationMenu(group.id, event.currentTarget)}
+                      sx={{
+                        px: 2,
+                        minHeight: 40,
+                        borderRadius: (theme) => theme.customRadii.pill,
+                        fontWeight: 700,
+                        color: active ? "primary.main" : "text.primary",
+                        backgroundColor: active ? "rgba(79, 70, 229, 0.10)" : "transparent",
+                        "&:hover": { backgroundColor: active ? "rgba(79, 70, 229, 0.14)" : "rgba(15, 23, 42, 0.04)" },
+                      }}
+                    >
+                      {group.label}
+                    </AppPillButton>
+                  );
+                })}
               </Stack>
             </Stack>
 
@@ -235,43 +223,61 @@ export default function AppHeader({
         </Container>
       </AppBar>
 
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(openGroup)}
+        onClose={closeNavigationMenu}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        PaperProps={{ sx: { mt: 0.75, minWidth: 240, borderRadius: (theme) => theme.customRadii.md } }}
+      >
+        {openGroup?.items.map((item) => (
+          <MenuItem
+            key={item.to}
+            component={NavLink}
+            to={item.to}
+            selected={location.pathname.startsWith(item.to)}
+            onClick={closeNavigationMenu}
+            sx={{ py: 1.1, pr: 2.5, fontWeight: 600 }}
+          >
+            <ListItemIcon sx={{ minWidth: 38, color: "inherit" }}>{navigationItemIcons[item.key]}</ListItemIcon>
+            <ListItemText primary={item.label} />
+          </MenuItem>
+        ))}
+      </Menu>
+
       <Drawer anchor="left" open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}>
         <Box sx={{ width: 280, p: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ px: 1.5, py: 1, fontWeight: 700 }}>
-            {appHeaderTexts.mobileGamesTitle}
-          </Typography>
-          <List disablePadding>
-            {navItems.map((item) => {
-              const active = !item.disabled && location.pathname.startsWith(item.to);
+          {navigationGroups.map((group) => (
+            <Box key={group.id} sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ px: 1.5, py: 1, fontWeight: 700 }}>
+                {group.label}
+              </Typography>
+              <List disablePadding>
+                {group.items.map((item) => {
+                  const active = location.pathname.startsWith(item.to);
 
-              if (item.disabled) {
-                return (
-                  <ListItemButton key={item.to} disabled sx={{ borderRadius: (theme) => theme.customRadii.md, mb: 0.5 }}>
-                    <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                    <ListItemText primary={item.label} />
-                  </ListItemButton>
-                );
-              }
-
-              return (
-                <ListItemButton
-                  key={item.to}
-                  component={NavLink}
-                  to={item.to}
-                  onClick={() => setMobileNavOpen(false)}
-                  sx={{
-                    borderRadius: (theme) => theme.customRadii.md,
-                    mb: 0.5,
-                    backgroundColor: active ? "rgba(79, 70, 229, 0.10)" : "transparent",
-                    color: active ? "primary.main" : "text.primary",
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.label} />
-                </ListItemButton>
-              );
-            })}
-          </List>
+                  return (
+                    <ListItemButton
+                      key={item.to}
+                      component={NavLink}
+                      to={item.to}
+                      onClick={() => setMobileNavOpen(false)}
+                      sx={{
+                        borderRadius: (theme) => theme.customRadii.md,
+                        mb: 0.5,
+                        backgroundColor: active ? "rgba(79, 70, 229, 0.10)" : "transparent",
+                        color: active ? "primary.main" : "text.primary",
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>{navigationItemIcons[item.key]}</ListItemIcon>
+                      <ListItemText primary={item.label} />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Box>
+          ))}
         </Box>
       </Drawer>
     </>

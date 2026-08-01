@@ -1,78 +1,57 @@
-import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
+import {
+  assertValidResourceAmount,
+  assertValidResourceLimits,
+  type AllRewardPool,
+  type Resource,
+  type ResourceSnapshot,
+  type RewardPool,
+} from "../../rewards";
 import type {
   JourneyAchievementsMap,
   JourneyConfig,
-  JourneyCurrencyValue,
   JourneyJackpotCountMode,
   JourneyMapCell,
   JourneyRules,
   JourneyRulesInput,
 } from "./types";
 
-function clone<T>(value: T): T {
-  return structuredClone(value);
-}
-
-function normalizeCurrencyValues(values: JourneyCurrencyValue[]): JourneyCurrencyValue[] {
-  return values
-    .map((value) => ({
-      currencyId: value.currencyId.trim(),
-      value: Math.trunc(value.value),
-    }))
-    .filter((value) => value.currencyId);
-}
-
-function normalizePositiveInteger(value: unknown, fallbackValue: number): number {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) {
-    return fallbackValue;
-  }
-  return Math.max(1, Math.trunc(numericValue));
-}
-
-function normalizeNonNegativeInteger(value: unknown, fallbackValue: number, maximumValue = Number.POSITIVE_INFINITY): number {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) {
-    return fallbackValue;
-  }
-  return Math.min(maximumValue, Math.max(0, Math.trunc(numericValue)));
-}
-
-function normalizeAchievementRewards(rewards: JourneyCurrencyValue[] | undefined): JourneyCurrencyValue[] {
-  return normalizeCurrencyValues(Array.isArray(rewards) ? rewards : []);
-}
+const all = (...rewards: Array<{ resourceId: string; amount: number }>): AllRewardPool => ({ mode: "all", rewards });
+const clone = <T>(value: T): T => structuredClone(value);
+const positiveInteger = (value: unknown, fallback: number) =>
+  Number.isFinite(Number(value)) ? Math.max(1, Math.trunc(Number(value))) : fallback;
+const nonNegativeInteger = (value: unknown, fallback: number, max = Infinity) =>
+  Number.isFinite(Number(value)) ? Math.min(max, Math.max(0, Math.trunc(Number(value)))) : fallback;
 
 export const JOURNEY_MAX_JACKPOT_COUNT = 7;
 export const DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT = 3;
-
+export const JOURNEY_CORE_CELL_IDS = ["small", "medium", "large"] as const;
 export const DEFAULT_JOURNEY_RULES: JourneyRules = {
-  initialRewards: [{ currencyId: "default", value: 15 }],
+  initialRewardPool: all({ resourceId: "default", amount: 15 }),
   minDice: 1,
   maxDice: 5,
-  maxPrizes: [{ currencyId: "default", value: 30 }],
+  resourceLimits: [{ resourceId: "default", min: 0, max: 30 }],
   mapSize: 50,
   jackpot: {
     countMode: "fixed",
     count: 7,
-    playersPerJackpot: DEFAULT_JOURNEY_PLAYERS_PER_JACKPOT,
-    rewards: [{ currencyId: "default", value: 30 }],
+    playersPerJackpot: 3,
+    rewardPool: all({ resourceId: "default", amount: 30 }),
   },
   cells: [
-    { id: "bonus_2", kind: "bonus", rewards: [{ currencyId: "default", value: 2 }], count: 12 },
-    { id: "bonus_3", kind: "bonus", rewards: [{ currencyId: "default", value: 3 }], count: 5 },
-    { id: "bonus_5", kind: "bonus", rewards: [{ currencyId: "default", value: 5 }], count: 2 },
-    { id: "trap_3", kind: "trap", rewards: [{ currencyId: "default", value: -3 }], count: 2 },
-    { id: "trap_2", kind: "trap", rewards: [{ currencyId: "default", value: -2 }], count: 4 },
-    { id: "trap_1", kind: "trap", rewards: [{ currencyId: "default", value: -1 }], count: 4 },
+    { id: "small", kind: "bonus", mapLabel: "S", rewardPool: all({ resourceId: "default", amount: 2 }), count: 12 },
+    { id: "medium", kind: "bonus", mapLabel: "M", rewardPool: all({ resourceId: "default", amount: 3 }), count: 5 },
+    { id: "large", kind: "bonus", mapLabel: "L", rewardPool: all({ resourceId: "default", amount: 5 }), count: 2 },
+    { id: "large", kind: "trap", mapLabel: "L", rewardPool: all({ resourceId: "default", amount: -3 }), count: 2 },
+    { id: "medium", kind: "trap", mapLabel: "M", rewardPool: all({ resourceId: "default", amount: -2 }), count: 4 },
+    { id: "small", kind: "trap", mapLabel: "S", rewardPool: all({ resourceId: "default", amount: -1 }), count: 4 },
   ],
   achievements: {
-    unlucky: { rewards: [{ currencyId: "default", value: 5 }] },
-    careful: { rewards: [{ currencyId: "default", value: 5 }] },
-    collector: { rewards: [{ currencyId: "default", value: 5 }] },
-    lucky: { rewards: [{ currencyId: "default", value: 5 }] },
+    unlucky: { rewardPool: all({ resourceId: "default", amount: 5 }) },
+    careful: { rewardPool: all({ resourceId: "default", amount: 5 }) },
+    collector: { rewardPool: all({ resourceId: "default", amount: 5 }) },
+    lucky: { rewardPool: all({ resourceId: "default", amount: 5 }) },
   },
 };
-
 export const MOVE_TYPES = {
   JACKPOT: "moveWithJackpot",
   EMPTY_JACKPOT: "moveWithEmptyJackpot",
@@ -86,7 +65,6 @@ export const MOVE_TYPES = {
   AT_ZERO: "moveWithZeroPrize",
   ACHIEVEMENT: "moveToAchievement",
 } as const;
-
 export const JOURNEY_ACHIEVEMENT_NAMES = {
   JACKPOT: "Jackpot",
   UNLUCKY: "Unlucky",
@@ -94,177 +72,276 @@ export const JOURNEY_ACHIEVEMENT_NAMES = {
   COLLECTOR: "Collector",
   LUCKY: "Lucky",
 } as const;
+export const JOURNEY_ACHIEVEMENT_STREAK_TARGETS = { unlucky: 3, careful: 4, lucky: 5 } as const;
 
-export const JOURNEY_ACHIEVEMENT_STREAK_TARGETS = {
-  unlucky: 3,
-  careful: 4,
-  lucky: 5,
-} as const;
+export function getJourneyCellKey(kind: JourneyMapCell["kind"], id: string): string {
+  return `${kind}:${id}`;
+}
+
+export function getJourneyCellMapLabel(cell: Pick<JourneyMapCell, "id" | "kind" | "mapLabel">): string {
+  const configuredLabel = cell.mapLabel?.trim();
+  if (configuredLabel) return configuredLabel;
+  if ((JOURNEY_CORE_CELL_IDS as readonly string[]).includes(cell.id)) return cell.id.slice(0, 1).toUpperCase();
+  const legacyId = cell.id.replace(`${cell.kind}_`, "");
+  if ((JOURNEY_CORE_CELL_IDS as readonly string[]).includes(legacyId)) return legacyId.slice(0, 1).toUpperCase();
+  return cell.id.slice(0, 3).toUpperCase() || "?";
+}
 
 export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): JourneyRules {
-  const rules = clone(DEFAULT_JOURNEY_RULES);
-
+  const defaults = clone(DEFAULT_JOURNEY_RULES);
+  const raw = rawRules as JourneyRulesInput & Record<string, unknown>;
+  const {
+    initialRewards: legacyInitialRewards,
+    maxPrizes: legacyMaxPrizes,
+    jackpot: rawJackpotInput,
+    cells: rawCellsInput,
+    achievements: rawAchievementsInput,
+    ...canonicalRuleFields
+  } = raw;
+  const legacyPool = (values: unknown): AllRewardPool => ({
+    mode: "all",
+    rewards: Array.isArray(values)
+      ? values.flatMap((value) => {
+          const record = value as { currencyId?: unknown; value?: unknown };
+          return typeof record.currencyId === "string" && typeof record.value === "number"
+            ? [{ resourceId: record.currencyId, amount: record.value }]
+            : [];
+        })
+      : [],
+  });
+  const resolvedPool = (pool: unknown, legacyValues: unknown, fallback: RewardPool): RewardPool => {
+    const legacy = legacyPool(legacyValues);
+    if (pool && typeof pool === "object" && "mode" in pool) {
+      const candidate = pool as RewardPool;
+      // Older frontend payloads added an empty all-pool beside the actual legacy rewards.
+      if (candidate.mode === "all" && candidate.rewards.length === 0 && legacy.rewards.length) return legacy;
+      return clone(candidate);
+    }
+    return legacy.rewards.length ? legacy : clone(fallback);
+  };
+  const rawJackpot = (rawJackpotInput ?? {}) as Record<string, unknown>;
+  const { rewards: legacyJackpotRewards, ...canonicalJackpotFields } = rawJackpot;
+  const rawAchievements = (rawAchievementsInput ?? {}) as Record<string, Record<string, unknown>>;
+  const rawCells = Array.isArray(rawCellsInput) ? (rawCellsInput as unknown as Array<Record<string, unknown>>) : [];
+  const legacyLimits = Array.isArray(legacyMaxPrizes)
+    ? legacyMaxPrizes.flatMap((value) => {
+        const record = value as { currencyId?: unknown; value?: unknown };
+        return typeof record.currencyId === "string" && typeof record.value === "number"
+          ? [{ resourceId: record.currencyId, min: 0, max: record.value }]
+          : [];
+      })
+    : null;
   return {
-    ...rules,
-    ...rawRules,
-    initialRewards: normalizeCurrencyValues(rawRules.initialRewards ?? rules.initialRewards),
-    minDice: normalizePositiveInteger(rawRules.minDice ?? rules.minDice, rules.minDice),
-    maxDice: normalizePositiveInteger(rawRules.maxDice ?? rules.maxDice, rules.maxDice),
-    mapSize: normalizePositiveInteger(rawRules.mapSize ?? rules.mapSize, rules.mapSize),
-    maxPrizes:
-      rawRules.maxPrizes === null ? null : normalizeCurrencyValues(rawRules.maxPrizes ?? rules.maxPrizes ?? []),
+    ...defaults,
+    ...canonicalRuleFields,
+    initialRewardPool: resolvedPool(raw.initialRewardPool, legacyInitialRewards, defaults.initialRewardPool),
+    minDice: positiveInteger(rawRules.minDice, defaults.minDice),
+    maxDice: positiveInteger(rawRules.maxDice, defaults.maxDice),
+    mapSize: positiveInteger(rawRules.mapSize, defaults.mapSize),
+    resourceLimits: Array.isArray(rawRules.resourceLimits)
+      ? clone(rawRules.resourceLimits)
+      : (legacyLimits ?? defaults.resourceLimits),
     jackpot: {
-      ...rules.jackpot,
-      ...(rawRules.jackpot ?? {}),
-      countMode: normalizeJourneyJackpotCountMode(rawRules.jackpot?.countMode),
-      count: normalizeNonNegativeInteger(
-        rawRules.jackpot?.count ?? rules.jackpot.count,
-        rules.jackpot.count,
-        JOURNEY_MAX_JACKPOT_COUNT,
-      ),
-      playersPerJackpot: normalizePositiveInteger(
-        rawRules.jackpot?.playersPerJackpot ?? rules.jackpot.playersPerJackpot,
-        rules.jackpot.playersPerJackpot,
-      ),
-      rewards: normalizeCurrencyValues(rawRules.jackpot?.rewards ?? rules.jackpot.rewards),
+      ...defaults.jackpot,
+      ...canonicalJackpotFields,
+      countMode: rawRules.jackpot?.countMode === "by_players" ? "by_players" : "fixed",
+      count: nonNegativeInteger(rawRules.jackpot?.count, defaults.jackpot.count, JOURNEY_MAX_JACKPOT_COUNT),
+      playersPerJackpot: positiveInteger(rawRules.jackpot?.playersPerJackpot, defaults.jackpot.playersPerJackpot),
+      rewardPool: resolvedPool(rawJackpot.rewardPool, legacyJackpotRewards, defaults.jackpot.rewardPool),
     },
+    cells: rawCells.length
+      ? rawCells.map((cell) => {
+          const kind = cell.kind === "trap" ? "trap" : "bonus";
+          const rawId = String(cell.id ?? "");
+          const legacyCoreId = rawId.replace(`${kind}_`, "");
+          const id = (JOURNEY_CORE_CELL_IDS as readonly string[]).includes(legacyCoreId) ? legacyCoreId : rawId;
+          return {
+            id,
+            kind,
+            mapLabel: getJourneyCellMapLabel({ id, kind, mapLabel: typeof cell.mapLabel === "string" ? cell.mapLabel.trim() : "" }),
+            count: nonNegativeInteger(cell.count, 0),
+            rewardPool: resolvedPool(cell.rewardPool, cell.rewards, defaults.cells[0].rewardPool),
+          };
+        })
+      : defaults.cells,
     achievements: {
       unlucky: {
-        rewards: normalizeAchievementRewards(
-          rawRules.achievements?.unlucky?.rewards ?? rules.achievements.unlucky.rewards,
+        rewardPool: resolvedPool(
+          rawAchievements.unlucky?.rewardPool,
+          rawAchievements.unlucky?.rewards,
+          defaults.achievements.unlucky.rewardPool,
         ),
       },
       careful: {
-        rewards: normalizeAchievementRewards(
-          rawRules.achievements?.careful?.rewards ?? rules.achievements.careful.rewards,
+        rewardPool: resolvedPool(
+          rawAchievements.careful?.rewardPool,
+          rawAchievements.careful?.rewards,
+          defaults.achievements.careful.rewardPool,
         ),
       },
       collector: {
-        rewards: normalizeAchievementRewards(
-          rawRules.achievements?.collector?.rewards ?? rules.achievements.collector.rewards,
+        rewardPool: resolvedPool(
+          rawAchievements.collector?.rewardPool,
+          rawAchievements.collector?.rewards,
+          defaults.achievements.collector.rewardPool,
         ),
       },
       lucky: {
-        rewards: normalizeAchievementRewards(rawRules.achievements?.lucky?.rewards ?? rules.achievements.lucky.rewards),
+        rewardPool: resolvedPool(
+          rawAchievements.lucky?.rewardPool,
+          rawAchievements.lucky?.rewards,
+          defaults.achievements.lucky.rewardPool,
+        ),
       },
     },
-    cells:
-      Array.isArray(rawRules.cells) && rawRules.cells.length
-        ? rawRules.cells.map((cell) => ({
-            id: cell.id,
-            kind: cell.kind,
-            count: normalizeNonNegativeInteger(cell.count, 0),
-            rewards: normalizeCurrencyValues(cell.rewards),
-          }))
-        : rules.cells,
   };
 }
-
-function normalizeJourneyJackpotCountMode(value: unknown): JourneyJackpotCountMode {
-  return value === "by_players" ? "by_players" : "fixed";
+export function getJourneyJackpotCount(rules: JourneyRules = DEFAULT_JOURNEY_RULES, playersCount = 0): number {
+  const normalized = normalizeJourneyRules(rules);
+  return normalized.jackpot.countMode === "fixed"
+    ? normalized.jackpot.count
+    : Math.min(
+        JOURNEY_MAX_JACKPOT_COUNT,
+        Math.ceil(Math.max(0, Math.trunc(playersCount)) / normalized.jackpot.playersPerJackpot),
+      );
 }
-
-export function getJourneyJackpotCount(
-  rules: JourneyRules = DEFAULT_JOURNEY_RULES,
-  playersCount = 0,
-): number {
-  const normalizedRules = normalizeJourneyRules(rules);
-
-  if (normalizedRules.jackpot.countMode === "fixed") {
-    return normalizedRules.jackpot.count;
-  }
-
-  const normalizedPlayersCount = Math.max(0, Math.trunc(playersCount));
-  return Math.min(
-    JOURNEY_MAX_JACKPOT_COUNT,
-    Math.ceil(normalizedPlayersCount / normalizedRules.jackpot.playersPerJackpot),
-  );
-}
-
 export function getJourneyConfig(
   rules: JourneyRules = DEFAULT_JOURNEY_RULES,
-  currencies: ConfigCurrency[] = [{ id: "default", label: "фишек" }],
+  resources: ResourceSnapshot[] = [],
 ): JourneyConfig {
-  const normalizedRules = normalizeJourneyRules(rules);
-
+  const normalized = normalizeJourneyRules(rules);
   return {
-    mapSize: normalizedRules.mapSize,
-    finishPosition: normalizedRules.mapSize + 1,
-    initialRewards: normalizedRules.initialRewards,
-    minDice: normalizedRules.minDice,
-    maxDice: normalizedRules.maxDice,
-    maxPrizes: normalizedRules.maxPrizes,
-    jackpotRewards: normalizedRules.jackpot.rewards,
-    currencies: clone(currencies),
+    mapSize: normalized.mapSize,
+    finishPosition: normalized.mapSize + 1,
+    initialRewardPool: clone(normalized.initialRewardPool),
+    minDice: normalized.minDice,
+    maxDice: normalized.maxDice,
+    resourceLimits: clone(normalized.resourceLimits),
+    jackpotRewardPool: clone(normalized.jackpot.rewardPool),
+    resources: clone(resources),
   };
 }
-
 export function getJourneyBonusCells(
   rules: JourneyRules = DEFAULT_JOURNEY_RULES,
   playersCount = 0,
 ): Array<{ cell: JourneyMapCell; amount: number }> {
-  const normalizedRules = normalizeJourneyRules(rules);
-
+  const normalized = normalizeJourneyRules(rules);
   return [
     {
       cell: {
         id: "jackpot",
         kind: "bonus",
-        rewards: normalizedRules.jackpot.rewards,
+        mapLabel: "🏆",
+        rewardPool: clone(normalized.jackpot.rewardPool),
         isJackpot: true,
         winner: null,
       },
-      amount: getJourneyJackpotCount(normalizedRules, playersCount),
+      amount: getJourneyJackpotCount(normalized, playersCount),
     },
-    ...normalizedRules.cells.map((cell) => ({
-      cell: {
-        id: cell.id,
-        kind: cell.kind,
-        rewards: cell.rewards,
-      },
+    ...normalized.cells.map((cell) => ({
+      cell: { id: cell.id, kind: cell.kind, mapLabel: getJourneyCellMapLabel(cell), rewardPool: clone(cell.rewardPool) },
       amount: cell.count,
     })),
   ];
 }
-
 export function getJourneyAchievements(rules: JourneyRules = DEFAULT_JOURNEY_RULES): JourneyAchievementsMap {
-  const normalizedRules = normalizeJourneyRules(rules);
-
+  const normalized = normalizeJourneyRules(rules);
   return {
     JACKPOT: {
       name: JOURNEY_ACHIEVEMENT_NAMES.JACKPOT,
       title: "Сокровище",
-      rewards: normalizedRules.jackpot.rewards,
+      rewardPool: clone(normalized.jackpot.rewardPool),
     },
     UNLUCKY: {
       name: JOURNEY_ACHIEVEMENT_NAMES.UNLUCKY,
       title: "Невезучий",
-      rewards: normalizedRules.achievements.unlucky.rewards,
+      rewardPool: clone(normalized.achievements.unlucky.rewardPool),
       description: "Попадание на 3 клетки с ловушками подряд",
     },
     CAREFUL: {
       name: JOURNEY_ACHIEVEMENT_NAMES.CAREFUL,
       title: "Осторожный",
-      rewards: normalizedRules.achievements.careful.rewards,
+      rewardPool: clone(normalized.achievements.careful.rewardPool),
       description: "Попадание на 4 пустые клетки подряд",
     },
     COLLECTOR: {
       name: JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR,
       title: "Коллекционер",
-      rewards: normalizedRules.achievements.collector.rewards,
+      rewardPool: clone(normalized.achievements.collector.rewardPool),
       description: "Попадание на все виды бонусных, ловушек и пустую клетку",
     },
     LUCKY: {
       name: JOURNEY_ACHIEVEMENT_NAMES.LUCKY,
       title: "Счастливчик",
-      rewards: normalizedRules.achievements.lucky.rewards,
+      rewardPool: clone(normalized.achievements.lucky.rewardPool),
       description: "Попадание на 5 клеток с наградой подряд, без учёта сокровища",
     },
   };
 }
-
-const normalizedDefaultRules = normalizeJourneyRules(DEFAULT_JOURNEY_RULES);
-
-export const JOURNEY_CONFIG = getJourneyConfig(normalizedDefaultRules);
-export const JOURNEY_BONUS_CELLS = getJourneyBonusCells(normalizedDefaultRules);
-export const JOURNEY_ACHIEVEMENTS = getJourneyAchievements(normalizedDefaultRules);
+export function validateJourneyRules(rules: JourneyRules, resources: readonly Resource[]): void {
+  const resourcesById = new Map(resources.map((resource) => [resource.id, resource]));
+  const validatePool = (pool: RewardPool, location: string, expectedSign?: "positive" | "negative") => {
+    const amounts =
+      pool.mode === "all"
+        ? pool.rewards
+        : pool.mode === "weighted_one"
+          ? pool.options.flatMap((option) => (option.reward ? [option.reward] : []))
+          : pool.options.map((option) => option.reward);
+    if (pool.mode === "weighted_one") {
+      if (
+        !pool.options.length ||
+        pool.options.some((option) => !Number.isSafeInteger(option.weight) || option.weight <= 0)
+      )
+        throw new Error(`${location}: weighted options require positive integer weights`);
+    }
+    if (
+      pool.mode === "independent" &&
+      pool.options.some(
+        (option) => !Number.isInteger(option.chanceBps) || option.chanceBps < 0 || option.chanceBps > 10_000,
+      )
+    )
+      throw new Error(`${location}: chanceBps must be an integer from 0 to 10000`);
+    amounts.forEach((amount) => {
+      assertValidResourceAmount(amount, resourcesById);
+      const resource = resourcesById.get(amount.resourceId)!;
+      if (expectedSign === "positive" && amount.amount < 0)
+        throw new Error(`${location}: bonus rewards must be positive`);
+      if (expectedSign === "negative" && (resource.type !== "currency" || amount.amount > 0))
+        throw new Error(`${location}: trap rewards must be negative currencies`);
+    });
+  };
+  if (rules.initialRewardPool.mode !== "all") throw new Error("Initial Journey rewards must use mode 'all'");
+  validatePool(rules.initialRewardPool, "Initial rewards", "positive");
+  validatePool(rules.jackpot.rewardPool, "Jackpot", "positive");
+  rules.cells.forEach((cell) =>
+    validatePool(cell.rewardPool, `Cell '${cell.id}'`, cell.kind === "bonus" ? "positive" : "negative"),
+  );
+  (["bonus", "trap"] as const).forEach((kind) => {
+    const cells = rules.cells.filter((cell) => cell.kind === kind);
+    const ids = new Set<string>();
+    cells.forEach((cell) => {
+      if (!/^[a-z][a-z0-9_-]{0,47}$/.test(cell.id)) {
+        throw new Error(`Cell '${cell.id}': id must use lowercase letters, numbers, underscores, or hyphens`);
+      }
+      if (ids.has(cell.id)) throw new Error(`Duplicate ${kind} cell id '${cell.id}'`);
+      ids.add(cell.id);
+      if (Array.from(cell.mapLabel).length < 1 || Array.from(cell.mapLabel).length > 3) {
+        throw new Error(`Cell '${cell.id}': mapLabel must contain 1 to 3 characters`);
+      }
+    });
+    JOURNEY_CORE_CELL_IDS.forEach((id) => {
+      const cell = cells.find((candidate) => candidate.id === id);
+      if (!cell) throw new Error(`Missing required ${kind} cell '${id}'`);
+      if (cell.mapLabel !== id.slice(0, 1).toUpperCase()) {
+        throw new Error(`Core ${kind} cell '${id}' must use mapLabel '${id.slice(0, 1).toUpperCase()}'`);
+      }
+    });
+  });
+  Object.entries(rules.achievements).forEach(([name, achievement]) =>
+    validatePool(achievement.rewardPool, `Achievement '${name}'`, "positive"),
+  );
+  assertValidResourceLimits(rules.resourceLimits, resourcesById);
+}
+export const JOURNEY_CONFIG = getJourneyConfig();
+export const JOURNEY_BONUS_CELLS = getJourneyBonusCells();
+export const JOURNEY_ACHIEVEMENTS = getJourneyAchievements();

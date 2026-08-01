@@ -9,7 +9,7 @@ The backend must become the source of truth for:
 - game state
 - game rules
 - game configs
-- project currency
+- project resources (currencies and items)
 - parsing and domain transformations
 - persistent data
 
@@ -271,6 +271,21 @@ All Journey game reads return `JourneyGameView`, built from compact V2 state. Do
 
 The same principle applies to Battleships and Lotto: their engines own the game-result logic, while controllers and services stay at orchestration level.
 
+## Shared rewards and resources
+
+`modules/rewards` owns reusable reward value types, reward-pool validation, and `RewardGrantService`. `RewardGrantService` resolves only what dropped from an `all`, `weighted_one`, or `independent` pool; it must be injected into engines through the composition root.
+
+It must not know a game's players, balances, limits, recipient policy, or persistence. Game domains own those rules and persist the resolved outcome:
+
+- Journey applies its own inventory limits and balances. Limits apply only to ordinary map-cell rewards; initial rewards, jackpots, and achievement rewards bypass them.
+- Journey keeps each resolved grant in the game state. Its read model and forum state must total the limited base reward plus the saved achievement and jackpot grants; never infer bonus values from a mutable preset or reroll a pool.
+- Journey forum state prints a player's saved achievement and jackpot grants as a separate readable bonus list beneath the total reward.
+- A limited Journey map-cell reward is described only by its `MOVE_TYPES.AT_MAX` or `MOVE_TYPES.TO_MAX` comment. Do not add a separate limit comment; retained legacy limit-template references exist only to render old saved snapshots.
+- Battleships resolves pools at hit/destroy triggers, stores grants and cumulative results, and undo restores saved state without rerolling.
+- Lotto resolves each prize group once, uses `LottoPayoutDistributor` to assign its saved result to recipients, and reads prize tables from persisted payouts. A split pool with item rewards is invalid until an explicit item-distribution policy exists.
+
+Do not create a generic reward application service that absorbs these game policies. Shared stateless helpers are appropriate for common resource arithmetic or pool validation; use domain classes for game-specific distribution policies.
+
 ## Battleships module expectations
 
 Battleships should keep the same ownership split:
@@ -290,10 +305,11 @@ The Battleships engine should be the only place that knows how to:
 - generate the board and ship placement
 - apply a shot
 - undo the last shot
-- calculate prize deltas
+- resolve hit/destroy reward pools and persist their grants
+- calculate cumulative prize results
 - determine attempts left and finished state
 
-The Battleships read-model factory is the correct place for host-facing derived fields such as visible board cells, coordinate labels, fleet summary, and current prize snapshots.
+The Battleships read-model factory is the correct place for host-facing derived fields such as visible board cells, coordinate labels, fleet summary, and saved prize snapshots. It must not resolve pools again.
 
 ## Lotto module expectations
 
@@ -316,20 +332,22 @@ The Lotto engine should be the only place that knows how to:
 - remove players from an active game
 - determine when the game is finished
 - resolve first-place and second-place winners
+- resolve prize pools once per winner group and persist payouts
 - build the legacy grouped summary of remaining numbers
 
-The Lotto read-model factory is the correct place for host-facing derived fields such as prize tables, visible winner groups, event ordering for UI, and saved-game metadata.
+The Lotto read-model factory is the correct place for host-facing derived fields such as prize tables from saved payouts, visible winner groups, event ordering for UI, and saved-game metadata. It must not recalculate prize allocation from rules.
 
 ---
 
-## Projects, presets, and currencies
+## Projects, presets, and resources
 
 The active configuration model is `Project` plus project-owned `GameConfig` presets. `/api/configs` and the legacy config runtime module do not exist.
 
-- Projects own the reusable currency pool.
-- GameConfig belongs to one project and one game type; its rules may reference only currencies from that project.
-- Validate currency IDs, numeric values, and currency precision before saving a preset.
+- Projects own the reusable resource catalog (currencies and items).
+- GameConfig belongs to one project and one game type; its rules may reference only resources from that project.
+- Validate resource IDs, amounts, pool semantics, and currency precision before saving a preset.
 - New games must be created from a project-scoped preset and keep `projectId` + `configId`.
+- A game stores the resource snapshot required to interpret its saved grants and payouts; do not rely on the mutable project catalog when reading a historical game.
 - Project and GameConfig deletion is permanent in MVP. Do not implement archive/restore, duplicate flows, versions, or optimistic locking unless scope changes.
 - The legacy `configs` repository/types/normalizer are offline backup-import adapters only; never mount them in DI, routes, or startup bootstrap.
 
@@ -558,7 +576,7 @@ When improving the backend, prioritize:
 2. Preserve composition root discipline when adding modules.
 3. Remove duplicated frontend engine logic.
 4. Introduce shared DTO/types strategy if needed.
-5. Keep adding games as separate backend modules with config snapshots and backend-owned currency/rule sources.
+5. Keep adding games as separate backend modules with config/resource snapshots and backend-owned rule sources.
 6. Extract common game abstractions only after at least two or three games exist.
 7. Preserve module-specific product rules already encoded in Battleships and Lotto instead of flattening them into a premature generic game framework.
 

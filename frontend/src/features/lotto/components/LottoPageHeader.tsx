@@ -29,6 +29,7 @@ export default function LottoPageHeader({
 }: LottoPageHeaderProps) {
   return (
     <GamePageHeader
+      breadcrumbPath="/lotto"
       title={lottoTexts.pageTitle}
       description={lottoTexts.pageDescription}
       chips={pageStatusChips}

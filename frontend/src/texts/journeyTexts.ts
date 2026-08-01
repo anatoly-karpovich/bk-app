@@ -1,5 +1,4 @@
 export const journeyTexts = {
-  breadcrumbs: "Combats DJ / Карта Мародёров",
   pageTitle: "Карта Мародёров",
   pageDescription: "Рабочий экран ведущего: запуск партии, ввод ходов, карта, состояние игроков и готовый лог для форума.",
   actions: {
@@ -107,8 +106,8 @@ export const journeyTexts = {
   },
   mapLegend: {
     empty: "· Пусто",
-    bonus: "+N Бонус",
-    trap: "-N Ловушка",
+    bonus: "S/M/L Бонус",
+    trap: "S/M/L Ловушка",
     treasure: "🏆 Сокровище",
   },
   hover: {

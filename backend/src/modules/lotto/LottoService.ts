@@ -35,7 +35,7 @@ export class LottoService {
 
     const nextGame = this.engine.createGame(payload.players, {
       rules: gameConfigContext.config.rules,
-      currencies: gameConfigContext.projectCurrencies,
+      resources: gameConfigContext.projectResources,
       djName: payload.djName,
       projectId,
       configId: payload.gameConfigId,

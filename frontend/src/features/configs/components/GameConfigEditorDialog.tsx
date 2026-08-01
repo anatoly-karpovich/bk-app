@@ -58,11 +58,11 @@ export default function GameConfigEditorDialog({
 
     switch (gameConfig.gameType) {
       case "journey":
-        return <JourneyConfigEditor rules={rules as JourneyRules} currencies={project.currencies} disabled={isSaving} onChange={setRules} />;
+        return <JourneyConfigEditor rules={rules as JourneyRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
       case "battleships":
-        return <BattleshipsConfigEditor rules={rules as BattleshipsRules} currencies={project.currencies} disabled={isSaving} onChange={setRules} />;
+        return <BattleshipsConfigEditor rules={rules as BattleshipsRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
       case "lotto":
-        return <LottoConfigEditor rules={rules as LottoRules} currencies={project.currencies} disabled={isSaving} onChange={setRules} />;
+        return <LottoConfigEditor rules={rules as LottoRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
     }
   }
 
@@ -85,8 +85,8 @@ export default function GameConfigEditorDialog({
                 </Stack>
                 <Divider />
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">Валюты проекта:</Typography>
-                  {project.currencies.map((currency) => <Chip key={currency.id} size="small" label={currency.label} />)}
+                  <Typography variant="body2" color="text.secondary">Ресурсы проекта:</Typography>
+                  {project.resources.map((resource) => <Chip key={resource.id} size="small" label={`${resource.label} (${resource.type === "currency" ? "валюта" : "предмет"})`} />)}
                 </Stack>
               </Stack>
             </Box>

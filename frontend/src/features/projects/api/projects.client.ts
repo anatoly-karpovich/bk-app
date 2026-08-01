@@ -19,15 +19,19 @@ import {
 const PROJECTS_API_BASE_URL = "/api/projects";
 
 export async function getProjectsRequest(): Promise<Project[]> {
-  return await apiClient.get<Project[]>(PROJECTS_API_BASE_URL);
+  return (await apiClient.get<Array<Omit<Project, "currencies">>>(PROJECTS_API_BASE_URL)).map(normalizeProject);
 }
 
 export async function createProjectRequest(input: ProjectMutationInput): Promise<Project> {
-  return await apiClient.post<Project>(PROJECTS_API_BASE_URL, input);
+  return normalizeProject(await apiClient.post<Omit<Project, "currencies">>(PROJECTS_API_BASE_URL, input));
 }
 
 export async function updateProjectRequest(projectId: string, input: ProjectMutationInput): Promise<Project> {
-  return await apiClient.put<Project>(`${PROJECTS_API_BASE_URL}/${encodeURIComponent(projectId)}`, input);
+  return normalizeProject(await apiClient.put<Omit<Project, "currencies">>(`${PROJECTS_API_BASE_URL}/${encodeURIComponent(projectId)}`, input));
+}
+
+function normalizeProject(project: Omit<Project, "currencies">): Project {
+  return { ...project, currencies: project.resources.filter((resource): resource is Project["currencies"][number] => resource.type === "currency") };
 }
 
 export async function deleteProjectRequest(projectId: string): Promise<unknown> {

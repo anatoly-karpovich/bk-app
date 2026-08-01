@@ -12,6 +12,9 @@ import { ForumTopicController } from "../modules/forumTopic/ForumTopicController
 import { ForumTopicService } from "../modules/forumTopic/ForumTopicService";
 import { JourneyController } from "../modules/journey/JourneyController";
 import { JourneyV2Engine } from "../modules/journey/JourneyV2Engine";
+import { JourneyCommentTemplateRotator } from "../modules/journey/domain/JourneyCommentTemplateRotator";
+import { JourneyResourceInventoryService } from "../modules/journey/domain/JourneyResourceInventoryService";
+import { JourneyRewardCommentFormatter } from "../modules/journey/domain/JourneyRewardCommentFormatter";
 import { JourneyParser } from "../modules/journey/JourneyParser";
 import { JourneyReadModelFactory } from "../modules/journey/JourneyReadModelFactory";
 import { JourneyForumStateFormatter } from "../modules/journey/JourneyForumStateFormatter";
@@ -19,8 +22,10 @@ import { JourneyForumMovesImporter } from "../modules/journey/JourneyForumMovesI
 import { JourneyForumPlayersImporter } from "../modules/journey/JourneyForumPlayersImporter";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { JourneyService } from "../modules/journey/JourneyService";
+import { CryptoRandomizer, LoggingRandomizer, RewardGrantService } from "../modules/rewards";
 import { LottoController } from "../modules/lotto/LottoController";
 import { LottoEngine } from "../modules/lotto/LottoEngine";
+import { LottoPayoutDistributor } from "../modules/lotto/domain/LottoPayoutDistributor";
 import { LottoReadModelFactory } from "../modules/lotto/LottoReadModelFactory";
 import { LottoRepository } from "../modules/lotto/LottoRepository";
 import { LottoService } from "../modules/lotto/LottoService";
@@ -62,7 +67,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const gameConfigsController = new GameConfigsController(gameConfigsService);
 
-  const battleshipsEngine = new BattleshipsEngine();
+  const cryptoRandomizer = new CryptoRandomizer();
+  const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
+  const rewardGrantService = new RewardGrantService(randomizer);
+  const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
   const battleshipsReadModelFactory = new BattleshipsReadModelFactory(battleshipsEngine);
   const battleshipsService = new BattleshipsService(
     battleshipsRepository,
@@ -71,9 +79,16 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigsService,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
-
-  const journeyV2Engine = new JourneyV2Engine();
-  const journeyReadModelFactory = new JourneyReadModelFactory();
+  const journeyResourceInventoryService = new JourneyResourceInventoryService();
+  const journeyCommentTemplateRotator = new JourneyCommentTemplateRotator();
+  const journeyRewardCommentFormatter = new JourneyRewardCommentFormatter();
+  const journeyV2Engine = new JourneyV2Engine(
+    rewardGrantService,
+    journeyResourceInventoryService,
+    journeyRewardCommentFormatter,
+    journeyCommentTemplateRotator,
+  );
+  const journeyReadModelFactory = new JourneyReadModelFactory(journeyV2Engine);
   const journeyForumStateFormatter = new JourneyForumStateFormatter();
   const forumTopicService = new ForumTopicService();
   const journeyForumMovesImporter = new JourneyForumMovesImporter(forumTopicService);
@@ -91,7 +106,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const journeyController = new JourneyController(journeyService);
 
-  const lottoEngine = new LottoEngine();
+  const lottoEngine = new LottoEngine(rewardGrantService, new LottoPayoutDistributor());
   const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
   const lottoService = new LottoService(
     lottoRepository,

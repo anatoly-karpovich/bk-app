@@ -1,39 +1,50 @@
-import type { ProjectCurrency } from "./types";
+import type { ProjectCurrency, ProjectResource } from "./types";
 
-export function normalizeProjectCurrencies(
-  currencies: Array<Partial<ProjectCurrency>>,
+export function normalizeProjectResources(
+  resources: Array<Partial<ProjectResource>>,
   timestamp = new Date().toISOString(),
-): ProjectCurrency[] {
+): ProjectResource[] {
   const ids = new Set<string>();
   const codes = new Set<string>();
 
-  return currencies.map((currency, index) => {
-    const id = currency.id?.trim() || `currency_${index + 1}`;
-    const code = currency.code?.trim() || id;
-    const label = currency.label?.trim() || currency.name?.trim() || code;
-    const name = currency.name?.trim() || label;
-    const precision = Math.max(0, Math.min(8, Math.trunc(currency.precision ?? 0)));
-    const valueType = currency.valueType === "decimal" ? "decimal" : "integer";
+  return resources.map((resource, index) => {
+    const id = resource.id?.trim() || `resource_${index + 1}`;
+    const code = resource.code?.trim() || id;
+    const label = resource.label?.trim() || resource.name?.trim() || code;
+    const name = resource.name?.trim() || label;
+    const type = resource.type === "item" ? "item" : "currency";
+    const valueType = "valueType" in resource && resource.valueType === "decimal" ? "decimal" : "integer";
+    const precision = valueType === "decimal" && "precision" in resource && typeof resource.precision === "number"
+      ? resource.precision
+      : valueType === "decimal"
+        ? 1
+        : 0;
 
     if (ids.has(id) || codes.has(code)) {
-      throw new Error(`Project currencies must have unique id and code: ${id}`);
+      throw new Error(`Project resources must have unique id and code: ${id}`);
     }
 
     ids.add(id);
     codes.add(code);
-
-    const shortLabel = currency.shortLabel?.trim() || undefined;
 
     return {
       id,
       code,
       name,
       label,
-      ...(shortLabel ? { shortLabel } : {}),
-      valueType,
-      precision,
-      createdAt: currency.createdAt || timestamp,
+      type,
+      ...(type === "currency" ? { valueType, precision } : {}),
+      createdAt: resource.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    } as ProjectResource;
   });
+}
+
+/** Offline backup scripts still use the currency-only pre-resource format. */
+export function normalizeProjectCurrencies(
+  currencies: Array<Partial<ProjectCurrency>>,
+  timestamp = new Date().toISOString(),
+): ProjectCurrency[] {
+  return normalizeProjectResources(currencies.map((currency) => ({ ...currency, type: "currency" })), timestamp)
+    .filter((resource): resource is ProjectCurrency => resource.type === "currency");
 }

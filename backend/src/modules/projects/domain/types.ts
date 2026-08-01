@@ -1,32 +1,20 @@
+import type { Resource } from "../../rewards";
+
 export interface Project {
   code: string;
   name: string;
   description: string;
-  currencies: ProjectCurrency[];
-  createdAt: string;
-  updatedAt: string;
-  legacyConfigId?: string | null;
-}
-
-export type ProjectCurrencyValueType = "integer" | "decimal";
-
-export interface ProjectCurrency {
-  id: string;
-  code: string;
-  name: string;
-  label: string;
-  shortLabel?: string;
-  valueType: ProjectCurrencyValueType;
-  precision: number;
+  resources: ProjectResource[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ProjectCurrencyReadModel extends ProjectCurrency {
-  canDelete: boolean;
-}
+export type ProjectResource = Resource & { createdAt: string; updatedAt: string };
+export type ProjectCurrency = Extract<ProjectResource, { type: "currency" }>;
 
-export interface ProjectReadModel extends Project {
+export type ProjectResourceReadModel = ProjectResource & { canDelete: boolean };
+
+export type ProjectReadModel = Omit<Project, "resources"> & {
   id: string;
-  currencies: ProjectCurrencyReadModel[];
-}
+  resources: ProjectResourceReadModel[];
+};

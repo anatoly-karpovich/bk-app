@@ -44,6 +44,9 @@ features/
     mappers/
     storage.ts
     types.ts
+  rewards/
+    types.ts
+    resourceAmounts.ts
 components/
   players/
 texts/
@@ -209,8 +212,8 @@ This applies equally to Journey, Battleships, Lotto, and future games.
 
 Specific frontend boundary reminders:
 
-* Battleships frontend must not generate the final board, resolve hits, calculate prizes, or decide when the game is over.
-* Lotto frontend must not decide draw order, winner placement, prize allocation, or final legacy summary text.
+* Battleships frontend must not generate the final board, resolve reward pools, calculate prizes, or decide when the game is over. It displays saved grants and totals returned by backend.
+* Lotto frontend must not decide draw order, winner placement, resolve reward pools, distribute payouts, or build final legacy summary text. It displays saved payouts returned by backend.
 * Lotto may contain setup-only helpers for host convenience, for example draft number generation before game creation, but backend validation and final rules remain authoritative.
 
 ---
@@ -288,8 +291,9 @@ The frontend consumes project-scoped APIs; the old `features/configs` layer and 
 
 - Load the active project through `features/projects` and load presets by project + game type.
 - Create, restore, mutate, and delete games only through `/api/projects/:projectId/...` routes.
-- Persist only lightweight selected project/preset identifiers; never persist project data, preset rules, currencies, or game state as a source of truth.
-- Display currencies from the project or a game snapshot returned by backend. Do not recreate currency defaults per feature.
+- Persist only lightweight selected project/preset identifiers; never persist project data, preset rules, resources, or game state as a source of truth.
+- Display resources from the project or a game snapshot returned by backend. Do not recreate resource defaults per feature.
+- Reuse shared `features/rewards` reward-pool types and amount-formatting helpers, plus `features/configs/components/RewardPoolEditor`, when a game needs them. Game-specific components may choose their labels and layout, but must not duplicate pool mechanics or local prize calculation.
 - If project/preset management UI is added, it must use Project/GameConfig CRUD and permanent-delete semantics. Archive, restore, duplicate, versioning, and optimistic locking are out of MVP.
 
 ---

@@ -1,13 +1,7 @@
-import { addCurrencyValues, normalizeCurrencyValues } from "../../common/currencyValues";
-import {
-  createDefaultCurrencySnapshot,
-  normalizeCurrencySnapshots,
-  type CurrencySnapshot,
-} from "../../common/currency";
+import { addResourceAmounts, type ResourceAmount, type ResourceSnapshot, RewardGrantService } from "../rewards";
 import { getBattleshipsBoardConfig, normalizeBattleshipsRules } from "./domain/config";
 import type {
   BattleshipsBoardRules,
-  BattleshipsCurrencyValue,
   BattleshipsGame,
   BattleshipsRules,
   BattleshipsShip,
@@ -18,53 +12,24 @@ import type {
 } from "./domain/types";
 import { BattleshipsShotValidationError } from "./errors";
 
-type LegacyBattleshipsBoardRules = {
-  boardSize: number;
-  ships: BattleshipsBoardRules["ships"];
-  maxShots: number;
-  currency?: string;
-  prizes: {
-    shoot?: BattleshipsCurrencyValue[] | number;
-    destroyBonus?: Record<string | number, BattleshipsCurrencyValue[] | number>;
-  };
-};
-
-type LegacyBattleshipsRules = {
-  selectedBoardSize: number;
-  boards: Record<string, LegacyBattleshipsBoardRules>;
-};
-
-type LegacyBattleshipsShot = Omit<BattleshipsShot, "prizeDelta" | "totalPrize"> & {
-  prizeDelta?: BattleshipsCurrencyValue[] | number;
-  totalPrize?: BattleshipsCurrencyValue[] | number;
-};
-
-type LegacyBattleshipsGame = Omit<BattleshipsGame, "rules" | "currencies" | "shots"> & {
-  currencies?: CurrencySnapshot[];
-  rules: LegacyBattleshipsRules;
-  shots: LegacyBattleshipsShot[];
-};
-
 export class BattleshipsEngine {
+  constructor(private readonly rewardGrantService: RewardGrantService) {}
+
   normalizeGame(game: BattleshipsGame | null): BattleshipsGame | null {
     if (!game) {
       return null;
     }
 
-    const legacyGame = this.clone(game) as LegacyBattleshipsGame;
-    const legacyCurrencyLabel = this.resolveLegacyCurrencyLabel(legacyGame.rules);
-    const currencies = this.normalizeCurrencies(legacyGame.currencies, legacyCurrencyLabel);
-    const defaultCurrencyId = currencies[0]?.id ?? "default";
     const normalizedGame: BattleshipsGame = {
-      ...legacyGame,
-      playerName: legacyGame.playerName.trim(),
-      djName: legacyGame.djName.trim(),
-      projectId: legacyGame.projectId?.trim() ?? "",
-      configId: legacyGame.configId.trim(),
-      configName: legacyGame.configName.trim(),
-      currencies,
-      rules: normalizeBattleshipsRules(this.normalizeLegacyRules(legacyGame.rules, defaultCurrencyId)),
-      shots: this.normalizeShots(legacyGame.shots, defaultCurrencyId),
+      ...this.clone(game),
+      playerName: game.playerName.trim(),
+      djName: game.djName.trim(),
+      projectId: game.projectId?.trim() ?? "",
+      configId: game.configId.trim(),
+      configName: game.configName.trim(),
+      resources: this.clone(game.resources),
+      rules: normalizeBattleshipsRules(game.rules),
+      shots: this.normalizeShots(game.shots),
     };
 
     normalizedGame.status = this.computeStatus(normalizedGame);
@@ -77,7 +42,7 @@ export class BattleshipsEngine {
     options: {
       randomFn?: RandomFn;
       rules: BattleshipsRules;
-      currencies: CurrencySnapshot[];
+      resources: ResourceSnapshot[];
       djName?: string;
       projectId?: string;
       configId?: string;
@@ -86,7 +51,7 @@ export class BattleshipsEngine {
   ): BattleshipsGame {
     const now = new Date().toISOString();
     const rules = normalizeBattleshipsRules(options.rules);
-    const currencies = this.normalizeCurrencies(options.currencies);
+    const resources = this.clone(options.resources);
     const boardConfig = getBattleshipsBoardConfig(rules);
     const { board, ships } = this.generateBoard(boardConfig, options.randomFn);
 
@@ -99,7 +64,7 @@ export class BattleshipsEngine {
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
-      currencies,
+      resources,
       rules,
       board,
       ships,
@@ -126,26 +91,32 @@ export class BattleshipsEngine {
     const shipCell = ship?.cells.find((cell) => cell.row === row && cell.column === column) ?? null;
 
     let result: "miss" | "hit" | "kill" = "miss";
-    let prizeDelta: BattleshipsCurrencyValue[] = [];
+    let rewardGrants: BattleshipsShot["rewardGrants"] = [];
     let shipSize: number | null = null;
 
     if (ship && shipCell) {
       shipCell.isHit = true;
       shipSize = ship.size;
       result = ship.cells.every((cell) => cell.isHit) ? "kill" : "hit";
-      prizeDelta =
-        result === "kill"
-          ? addCurrencyValues(boardConfig.prizes.shoot, boardConfig.prizes.destroyBonus[ship.size] ?? [])
-          : normalizeCurrencyValues(boardConfig.prizes.shoot);
+      rewardGrants = [{ source: "hit", rewards: this.rewardGrantService.resolve(boardConfig.rewards.hit) }];
+      if (result === "kill") {
+        rewardGrants.push({
+          source: "destroy_bonus",
+          rewards: this.rewardGrantService.resolve(boardConfig.rewards.destroyBonusByShipSize[ship.size]),
+        });
+      }
     }
+
+    const prizeDelta = addResourceAmounts(...rewardGrants.map((grant) => grant.rewards));
 
     nextGame.shots.push({
       createdAt: new Date().toISOString(),
       row,
       column,
       result,
+      rewardGrants,
       prizeDelta,
-      totalPrize: addCurrencyValues(previousPrize, prizeDelta),
+      totalPrize: addResourceAmounts(previousPrize, prizeDelta),
       shipSize,
     });
 
@@ -179,7 +150,7 @@ export class BattleshipsEngine {
       }
     }
 
-    nextGame.shots = this.normalizeShots(nextGame.shots, nextGame.currencies[0]?.id ?? "default");
+    nextGame.shots = this.normalizeShots(nextGame.shots);
     return this.finalizeGame(nextGame);
   }
 
@@ -192,8 +163,8 @@ export class BattleshipsEngine {
     return Math.max(0, boardConfig.maxShots - game.shots.length);
   }
 
-  getCurrentPrize(game: BattleshipsGame): BattleshipsCurrencyValue[] {
-    return addCurrencyValues(...game.shots.map((shot) => shot.prizeDelta));
+  getCurrentPrize(game: BattleshipsGame): ResourceAmount[] {
+    return addResourceAmounts(...game.shots.map((shot) => shot.prizeDelta));
   }
 
   getDestroyedShipsCount(game: BattleshipsGame): number {
@@ -337,74 +308,15 @@ export class BattleshipsEngine {
     return ships.find((ship) => ship.cells.some((cell) => cell.row === row && cell.column === column)) ?? null;
   }
 
-  private normalizeLegacyRules(rules: LegacyBattleshipsRules, defaultCurrencyId: string): BattleshipsRules {
-    return {
-      selectedBoardSize: rules.selectedBoardSize,
-      boards: Object.fromEntries(
-        Object.entries(rules.boards).map(([boardKey, board]) => [
-          boardKey,
-          {
-            boardSize: board.boardSize,
-            ships: board.ships,
-            maxShots: board.maxShots,
-            prizes: {
-              shoot: this.toCurrencyValues(board.prizes?.shoot, defaultCurrencyId),
-              destroyBonus: Object.fromEntries(
-                Object.entries(board.prizes?.destroyBonus ?? {}).map(([size, rewardSet]) => [
-                  size,
-                  this.toCurrencyValues(rewardSet, defaultCurrencyId),
-                ]),
-              ),
-            },
-          },
-        ]),
-      ),
-    };
-  }
-
-  private normalizeShots(shots: LegacyBattleshipsShot[], defaultCurrencyId: string): BattleshipsShot[] {
-    let runningTotal: BattleshipsCurrencyValue[] = [];
+  private normalizeShots(shots: BattleshipsShot[]): BattleshipsShot[] {
+    let runningTotal: ResourceAmount[] = [];
 
     return shots.map((shot) => {
-      const prizeDelta = this.toCurrencyValues(shot.prizeDelta, defaultCurrencyId);
-      runningTotal = addCurrencyValues(runningTotal, prizeDelta);
-
-      return {
-        ...shot,
-        prizeDelta,
-        totalPrize: runningTotal,
-      };
+      const rewardGrants = this.clone(shot.rewardGrants);
+      const prizeDelta = addResourceAmounts(...rewardGrants.map((grant) => grant.rewards));
+      runningTotal = addResourceAmounts(runningTotal, prizeDelta);
+      return { ...this.clone(shot), rewardGrants, prizeDelta, totalPrize: runningTotal };
     });
-  }
-
-  private toCurrencyValues(
-    values: BattleshipsCurrencyValue[] | number | undefined,
-    defaultCurrencyId: string,
-  ): BattleshipsCurrencyValue[] {
-    if (Array.isArray(values)) {
-      return normalizeCurrencyValues(values);
-    }
-
-    if (!Number.isFinite(values)) {
-      return [];
-    }
-
-    const numericValue = Number(values);
-    return [{ currencyId: defaultCurrencyId, value: Number(numericValue.toFixed(2)) }];
-  }
-
-  private normalizeCurrencies(currencies: CurrencySnapshot[] | undefined, legacyCurrencyLabel?: string): CurrencySnapshot[] {
-    const normalizedCurrencies = normalizeCurrencySnapshots(currencies ?? []);
-
-    if (normalizedCurrencies.length) {
-      return normalizedCurrencies;
-    }
-
-    return [createDefaultCurrencySnapshot(legacyCurrencyLabel)];
-  }
-
-  private resolveLegacyCurrencyLabel(rules: LegacyBattleshipsRules): string | undefined {
-    return Object.values(rules.boards ?? {}).find((board) => typeof board.currency === "string")?.currency;
   }
 
   private clone<T>(value: T): T {

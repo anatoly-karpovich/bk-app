@@ -1,4 +1,6 @@
 export const JOURNEY_GAME_STARTED_MARKER = "==================== Игра началась ====================";
+export const JOURNEY_GAME_RESULTS_MARKER = "==================== Итоги ====================";
+export const JOURNEY_GAME_MAP_MARKER = "==================== Карта ====================";
 
 const JOURNEY_FORUM_MARKER_PATTERN = /^\s*=+\s*(?<label>Игра\s+началась|Ход\s+(?<roundIndex>\d+))\s*=+(?:\s|$)/iu;
 

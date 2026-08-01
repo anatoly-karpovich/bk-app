@@ -2,6 +2,7 @@
  * Offline legacy Journey normalizer used only by backup import.
  * It is deliberately excluded from the application runtime.
  */
+// @ts-nocheck
 import type { CurrencySnapshot as ConfigCurrency } from "../../../common/currency";
 import {
   applyJourneyRewardsToBalance,

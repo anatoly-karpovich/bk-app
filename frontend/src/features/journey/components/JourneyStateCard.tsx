@@ -24,9 +24,9 @@ import AppPillButton from "../../../components/ui/AppPillButton";
 import type {
   JourneyAchievementsMap,
   JourneyAchievementProgress,
-  JourneyCurrencyDefinition,
   JourneyPageGame,
   JourneyCollectorTarget,
+  JourneyResourceDefinition,
   JourneyTimelineEntry,
 } from "../types";
 
@@ -34,7 +34,7 @@ interface JourneyStateCardProps {
   game: JourneyPageGame | null;
   playerTimelines: Record<string, JourneyTimelineEntry[]>;
   journeyAchievements: JourneyAchievementsMap;
-  journeyCurrencies: JourneyCurrencyDefinition[];
+  journeyResources: JourneyResourceDefinition[];
   collectorTargets: JourneyCollectorTarget[];
   achievementProgressByPlayerId: Record<string, JourneyAchievementProgress>;
   isAddingForumState: boolean;
@@ -45,19 +45,19 @@ export default function JourneyStateCard({
   game,
   playerTimelines,
   journeyAchievements,
-  journeyCurrencies,
+  journeyResources,
   collectorTargets,
   achievementProgressByPlayerId,
   isAddingForumState,
   onGetForumState,
 }: JourneyStateCardProps) {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const collectorTargetsById = useMemo(
+  const collectorTargetsByKey = useMemo(
     () =>
       Object.fromEntries(
-        collectorTargets.map((target) => [target.id, getCollectorTargetLabel(target, journeyCurrencies)]),
+        collectorTargets.map((target) => [target.key, getCollectorTargetLabel(target, journeyResources)]),
       ),
-    [collectorTargets, journeyCurrencies],
+    [collectorTargets, journeyResources],
   );
   const jackpotWinnerNicknames = useMemo(
     () =>
@@ -135,7 +135,7 @@ export default function JourneyStateCard({
                         </Stack>
                       </TableCell>
                       <TableCell align="right">{player.position}</TableCell>
-                      <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyCurrencies)}]</TableCell>
+                      <TableCell align="right">[{getJourneyPlayerBalanceLabel(player, journeyResources)}]</TableCell>
                       <TableCell align="right">
                         {player.bonuses.length}
                       </TableCell>
@@ -174,7 +174,7 @@ export default function JourneyStateCard({
                                         label={
                                           achievementProgress.collector.achieved
                                             ? journeyTexts.progress.obtained
-                                            : `${achievementProgress.collector.obtainedCellIds.length} ${journeyTexts.progress.of} ${collectorTargets.length}`
+                                            : `${achievementProgress.collector.obtainedCellKeys.length} ${journeyTexts.progress.of} ${collectorTargets.length}`
                                         }
                                       />
                                     </Stack>
@@ -187,13 +187,13 @@ export default function JourneyStateCard({
                                       {journeyTexts.progress.obtained}:
                                     </Typography>
                                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                                      {achievementProgress.collector.obtainedCellIds.length ? (
-                                        achievementProgress.collector.obtainedCellIds.map((cellId) => (
+                                      {achievementProgress.collector.obtainedCellKeys.length ? (
+                                        achievementProgress.collector.obtainedCellKeys.map((cellKey) => (
                                           <AppChip
-                                            key={`${player.id}-obtained-${cellId}`}
+                                            key={`${player.id}-obtained-${cellKey}`}
                                             size="small"
                                             color="success"
-                                            label={collectorTargetsById[cellId] ?? cellId}
+                                            label={collectorTargetsByKey[cellKey] ?? cellKey}
                                           />
                                         ))
                                       ) : (
@@ -211,13 +211,13 @@ export default function JourneyStateCard({
                                       {journeyTexts.progress.missing}:
                                     </Typography>
                                     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                                      {achievementProgress.collector.missingCellIds.length ? (
-                                        achievementProgress.collector.missingCellIds.map((cellId) => (
+                                      {achievementProgress.collector.missingCellKeys.length ? (
+                                        achievementProgress.collector.missingCellKeys.map((cellKey) => (
                                           <AppChip
-                                            key={`${player.id}-missing-${cellId}`}
+                                            key={`${player.id}-missing-${cellKey}`}
                                             size="small"
                                             variant="outlined"
-                                            label={collectorTargetsById[cellId] ?? cellId}
+                                            label={collectorTargetsByKey[cellKey] ?? cellKey}
                                           />
                                         ))
                                       ) : (
@@ -300,7 +300,7 @@ export default function JourneyStateCard({
                                         }}
                                       >
                                         <Typography variant="body2">
-                                          {getHistoryEntrySummary(entry, journeyCurrencies)}
+                                          {getHistoryEntrySummary(entry, journeyResources)}
                                         </Typography>
                                         {entry.achievementsAwarded?.length ? (
                                           <Stack

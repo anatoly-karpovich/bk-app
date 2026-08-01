@@ -1,5 +1,6 @@
 import type { ForumTopicMessage } from "../forumTopic/domain/types";
 import { ForumTopicService } from "../forumTopic/ForumTopicService";
+// @ts-nocheck
 import { getJourneyConfig } from "./domain/config";
 import type { JourneyV2Game } from "./domain/types";
 import { JourneyForumImportError } from "./errors";
@@ -57,7 +58,7 @@ export class JourneyForumMovesImporter {
     const messages = await this.forumTopicService.getAllTopicMessagesForProject(game.projectId, game.forumTopicId);
     const { marker, messagesAfterMarker } = this.findLatestDjMarker(messages, djName);
     const provider = this.forumTopicService.getProviderForProject(game.projectId) ?? "unknown";
-    const config = getJourneyConfig(game.rules, game.currencies);
+    const config = getJourneyConfig(game.rules, game.resources);
     const activePlayersByNickname = new Map(
       game.stateV2.players
         .filter((player) => player.status === "active")

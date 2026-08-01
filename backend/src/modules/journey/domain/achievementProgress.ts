@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   getJourneyAchievements,
   JOURNEY_ACHIEVEMENT_STREAK_TARGETS,

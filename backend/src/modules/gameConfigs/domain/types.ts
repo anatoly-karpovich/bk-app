@@ -1,5 +1,5 @@
 import type { BattleshipsRules } from "../../battleships/domain/types";
-import type { JourneyRules } from "../../journey/domain/types";
+import type { JourneyAchievementsMap, JourneyConfig, JourneyRules } from "../../journey/domain/types";
 import type { LottoRules } from "../../lotto/domain/types";
 import type { CurrencySnapshot } from "../../../common/currency";
 
@@ -38,7 +38,6 @@ interface BaseGameConfig<TRules, TGameType extends GameType> {
   rules: TRules;
   createdAt: string;
   updatedAt: string;
-  legacyConfigId?: string | null;
 }
 
 export type JourneyGameConfig = BaseGameConfig<JourneyRules, "journey">;
@@ -55,7 +54,6 @@ export interface GameConfigDocument {
   rules: JourneyRules | BattleshipsRules | LottoRules;
   createdAt: string;
   updatedAt: string;
-  legacyConfigId?: string | null;
 }
 
 type BaseGameConfigReadModel<TConfig extends AnyGameConfig, TSummary> = TConfig & {
@@ -63,7 +61,10 @@ type BaseGameConfigReadModel<TConfig extends AnyGameConfig, TSummary> = TConfig 
   summary: TSummary;
 };
 
-export type JourneyGameConfigReadModel = BaseGameConfigReadModel<JourneyGameConfig, JourneyGameConfigSummary>;
+export type JourneyGameConfigReadModel = BaseGameConfigReadModel<JourneyGameConfig, JourneyGameConfigSummary> & {
+  journeyConfig: JourneyConfig;
+  journeyAchievements: JourneyAchievementsMap;
+};
 export type BattleshipsGameConfigReadModel = BaseGameConfigReadModel<BattleshipsGameConfig, BattleshipsGameConfigSummary>;
 export type LottoGameConfigReadModel = BaseGameConfigReadModel<LottoGameConfig, LottoGameConfigSummary>;
 
@@ -74,5 +75,6 @@ export type AnyGameConfigReadModel =
 
 export interface GameConfigContext<TConfig extends AnyGameConfig = AnyGameConfig> {
   projectCurrencies: CurrencySnapshot[];
+  projectResources: import("../../rewards").ResourceSnapshot[];
   config: TConfig;
 }

@@ -2,7 +2,8 @@ import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, List, ListItem, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
+import { formatRewardPool } from "../../rewards/resourceAmounts";
+import type { ResourceDefinition } from "../../rewards/types";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardRules } from "../types";
 
@@ -10,7 +11,7 @@ interface BattleshipsRulesDialogProps {
   open: boolean;
   onClose: () => void;
   boardConfig: BattleshipsBoardRules | null;
-  currencies: CurrencyDefinition[];
+  resources: ResourceDefinition[];
   fleetSummary: string[];
 }
 
@@ -18,7 +19,7 @@ export default function BattleshipsRulesDialog({
   open,
   onClose,
   boardConfig,
-  currencies,
+  resources,
   fleetSummary,
 }: BattleshipsRulesDialogProps) {
   return (
@@ -31,7 +32,7 @@ export default function BattleshipsRulesDialog({
               <AppChip label={`Поле: ${boardConfig.boardSize}x${boardConfig.boardSize}`} color="secondary" />
               <AppChip label={`Попытки: ${boardConfig.maxShots}`} color="info" />
               <AppChip
-                label={`Попадание: ${formatCurrencyValues(boardConfig.prizes.shoot, currencies, { showPlus: true, includeZero: false }) || "0"}`}
+                label={`Попадание: ${formatRewardPool(boardConfig.rewards.hit, resources)}`}
                 color="success"
               />
             </Stack>
@@ -60,19 +61,19 @@ export default function BattleshipsRulesDialog({
                   <Typography>Мимо: +0</Typography>
                 </ListItem>
                 <ListItem disableGutters>
-                  <Typography>Ранен: {formatCurrencyValues(boardConfig.prizes.shoot, currencies, { showPlus: true, includeZero: false }) || "0"}</Typography>
+                  <Typography>Ранен: {formatRewardPool(boardConfig.rewards.hit, resources)}</Typography>
                 </ListItem>
                 <ListItem disableGutters>
                   <Typography>
-                    Убит: {formatCurrencyValues(boardConfig.prizes.shoot, currencies, { showPlus: true, includeZero: false }) || "0"} за попадание и бонус за добитый корабль:
+                    Убит: награда за попадание и бонус за добитый корабль:
                   </Typography>
                 </ListItem>
-                {Object.entries(boardConfig.prizes.destroyBonus)
+                {Object.entries(boardConfig.rewards.destroyBonusByShipSize)
                   .sort((left, right) => Number(right[0]) - Number(left[0]))
                   .map(([shipSize, rewards]) => (
                     <ListItem key={shipSize} disableGutters sx={{ pl: 2 }}>
                       <Typography>
-                        {shipSize}-палубный: {formatCurrencyValues(rewards, currencies, { showPlus: true, includeZero: false }) || "0"}
+                        {shipSize}-палубный: {formatRewardPool(rewards, resources)}
                       </Typography>
                     </ListItem>
                   ))}

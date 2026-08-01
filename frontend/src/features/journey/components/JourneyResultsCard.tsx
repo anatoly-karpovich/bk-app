@@ -2,20 +2,20 @@ import { Alert, Box, Card, CardContent, CardHeader, Stack, Typography } from "@m
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import { getJourneyPlayerBalanceLabel } from "../journey-page.helpers";
-import type { JourneyCurrencyDefinition, JourneyPlayerReadModel } from "../types";
+import type { JourneyPlayerReadModel, JourneyResourceDefinition } from "../types";
 
 interface JourneyResultsCardProps {
   gameIsOver: boolean;
   finishedPlayers: JourneyPlayerReadModel[];
   results: JourneyPlayerReadModel[];
-  currencies: JourneyCurrencyDefinition[];
+  resources: JourneyResourceDefinition[];
 }
 
 export default function JourneyResultsCard({
   gameIsOver,
   finishedPlayers,
   results,
-  currencies,
+  resources,
 }: JourneyResultsCardProps) {
   if (!gameIsOver) {
     return null;
@@ -41,7 +41,7 @@ export default function JourneyResultsCard({
               >
                 <Typography fontWeight={700}>{player.nickname}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  [{getJourneyPlayerBalanceLabel(player, currencies)}]
+                  [{getJourneyPlayerBalanceLabel(player, resources)}]
                 </Typography>
               </Box>
             ))}

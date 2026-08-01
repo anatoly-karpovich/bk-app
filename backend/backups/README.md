@@ -73,3 +73,21 @@ npm run backup:restore-new-schema:prod -- --source backups/prod-backup-2026-07-1
 The script loads all files and verifies their manifest counts before changing live collections. It stages the new data, swaps collections one at a time, and keeps old collections temporarily for rollback if a swap fails. On full success it permanently removes the temporary rollback collections and the old `configs` collection.
 
 Do not run `migrate:prod` after this restore: the restored data already uses the new schema, while that migration expects legacy `configs` documents.
+
+## Migrating reward-pool game configs in place
+
+For an already running production database, first create a full raw archive. Then migrate project resources and Journey configs, followed by canonical reward-pool rules for every game type. The second step also fixes legacy Journey cell IDs and empty map labels. Both migration scripts are dry-run by default and do not modify saved games.
+
+```powershell
+cd backend
+npm run backup:export-raw:prod -- --output backups/prod-before-game-config-reward-pools-YYYY-MM-DD
+
+npm run db:migrate:resources-rewards:prod
+npm run db:migrate:resources-rewards:prod -- --apply
+
+npm run db:migrate:game-config-reward-pools:prod
+npm run db:migrate:game-config-reward-pools:prod -- --apply
+npm run db:migrate:game-config-reward-pools:prod
+```
+
+The final dry-run must report `configsToMigrate: 0` before treating the migration as complete.

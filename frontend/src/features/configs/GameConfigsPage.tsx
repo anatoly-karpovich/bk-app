@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { Alert, Box, Card, CardActions, CardContent, CircularProgress, Divider, Grid, Stack, Tab, Tabs, Typography } from "@mui/material";
+import PageBreadcrumbs from "../../components/PageBreadcrumbs";
 import AppPillButton from "../../components/ui/AppPillButton";
 import { getGameConfigRequest } from "../projects/api/projects.client";
 import type { AnyGameConfig, GameType, Project, UpdateGameConfigInput } from "../projects/types";
@@ -107,7 +108,8 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
       <Stack spacing={3}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1.5} alignItems={{ sm: "center" }}>
           <Box>
-            <Typography variant="h4">Конфиги игр</Typography>
+            <PageBreadcrumbs pagePath="/configs" />
+            <Typography variant="h4" sx={{ mt: 1 }}>Игровые конфиги</Typography>
             <Typography color="text.secondary">Проект «{selectedProject.name}». Конфиг применяется к новым играм; уже созданные игры хранят свой снимок правил.</Typography>
           </Box>
           <AppPillButton startIcon={<RefreshRoundedIcon />} onClick={() => void actions.loadGameConfigs()} loading={isLoading}>Обновить</AppPillButton>
