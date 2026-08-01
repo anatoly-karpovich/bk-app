@@ -1,4 +1,4 @@
-import type { CurrencyDefinition, CurrencyValue } from "../../lib/currencyValues";
+import type { ResourceAmount, ResourceDefinition, RewardPool } from "../rewards/types";
 
 export type LottoRewardDistributionMode = "full_per_winner" | "split_pool";
 export type LottoGameStatus = "in_progress" | "finished";
@@ -6,15 +6,13 @@ export type LottoPlayerStatus = "active" | "removed" | "winner_first" | "winner_
 export type LottoEventType = "number_drawn" | "player_removed" | "game_finished" | "prizes_awarded";
 export type LottoChipColor = "default" | "primary" | "secondary" | "success" | "error" | "info" | "warning";
 
-export interface LottoCurrencyValue extends CurrencyValue {}
-
 export interface LottoRules {
   min: number;
   max: number;
   cardNumbersAmount: number;
-  firstPlacePrize: LottoCurrencyValue[];
-  secondPlacePrize: LottoCurrencyValue[];
-  otherActivePlayersPrize: LottoCurrencyValue[];
+  firstPlacePrize: RewardPool;
+  secondPlacePrize: RewardPool;
+  otherActivePlayersPrize: RewardPool;
   rewardDistributionMode: LottoRewardDistributionMode;
 }
 
@@ -42,7 +40,7 @@ export interface LottoPrizeTableEntry {
   playerId: string;
   nickname: string;
   remainingCount: number;
-  prize: LottoCurrencyValue[];
+  prize: ResourceAmount[];
   payoutStatus: string;
 }
 
@@ -69,7 +67,7 @@ export interface LottoPersistedGame {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: CurrencyDefinition[];
+  resources: ResourceDefinition[];
   rules: LottoRules;
   drawnNumbers: number[];
   availableNumbers: number[];
@@ -88,7 +86,7 @@ export interface LottoSavedGameSummary {
   projectId: string;
   configId: string;
   configName: string;
-  currencies: CurrencyDefinition[];
+  resources: ResourceDefinition[];
   drawCount: number;
   playersCount: number;
   firstPlaceWinners: string[];

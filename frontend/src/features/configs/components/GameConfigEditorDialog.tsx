@@ -62,7 +62,7 @@ export default function GameConfigEditorDialog({
       case "battleships":
         return <BattleshipsConfigEditor rules={rules as BattleshipsRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
       case "lotto":
-        return <LottoConfigEditor rules={rules as LottoRules} currencies={project.currencies} disabled={isSaving} onChange={setRules} />;
+        return <LottoConfigEditor rules={rules as LottoRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
     }
   }
 

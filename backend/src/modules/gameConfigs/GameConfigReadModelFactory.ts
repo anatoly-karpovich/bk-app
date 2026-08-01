@@ -26,7 +26,7 @@ export class GameConfigReadModelFactory {
       case "battleships":
         return this.createBattleshipsReadModel(configId, config, resources);
       case "lotto":
-        return this.createLottoReadModel(configId, config, currencies);
+        return this.createLottoReadModel(configId, config, resources);
     }
   }
 
@@ -81,7 +81,7 @@ export class GameConfigReadModelFactory {
     };
   }
 
-  private createLottoReadModel(configId: string, config: LottoGameConfig, currencies: ConfigCurrency[]) {
+  private createLottoReadModel(configId: string, config: LottoGameConfig, resources: ResourceSnapshot[]) {
     const rules = normalizeLottoRules(config.rules);
     const configFields = this.publicConfigFields(config);
 
@@ -92,18 +92,9 @@ export class GameConfigReadModelFactory {
       summary: {
         range: getLottoRangeLabel(rules),
         cardNumbersAmount: rules.cardNumbersAmount,
-        firstPlacePrizeLabel:
-          formatCurrencyValues(rules.firstPlacePrize, currencies, {
-            includeZero: false,
-          }) || "0",
-        secondPlacePrizeLabel:
-          formatCurrencyValues(rules.secondPlacePrize, currencies, {
-            includeZero: false,
-          }) || "0",
-        otherActivePlayersPrizeLabel:
-          formatCurrencyValues(rules.otherActivePlayersPrize, currencies, {
-            includeZero: false,
-          }) || "0",
+        firstPlacePrizeLabel: this.formatRewardPool(rules.firstPlacePrize, resources),
+        secondPlacePrizeLabel: this.formatRewardPool(rules.secondPlacePrize, resources),
+        otherActivePlayersPrizeLabel: this.formatRewardPool(rules.otherActivePlayersPrize, resources),
         rewardDistributionMode: rules.rewardDistributionMode,
       },
     };

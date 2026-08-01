@@ -1,11 +1,10 @@
-import { divideCurrencyValues, hasAnyNonZeroCurrencyValues, normalizeCurrencyValues } from "../../common/currencyValues";
 import type { WithId } from "mongodb";
 import { LottoEngine } from "./LottoEngine";
 import type { LottoGameListItemReadModel, LottoGameReadModel, LottoPrizeTableEntry } from "./domain/types";
 import type { LottoGameDocument } from "./LottoRepository";
 
 export class LottoReadModelFactory {
-  constructor(private readonly engine = new LottoEngine()) {}
+  constructor(private readonly engine: LottoEngine) {}
 
   create(document: WithId<LottoGameDocument>): LottoGameReadModel {
     const { _id, ...game } = document;
@@ -18,15 +17,7 @@ export class LottoReadModelFactory {
     const players = this.engine.getPlayerViews(normalizedGame);
     const firstPlaceWinners = players.filter((player) => player.status === "winner_first");
     const secondPlaceWinners = players.filter((player) => player.status === "winner_second");
-    const otherPrizePlayers =
-      normalizedGame.status === "finished" && hasAnyNonZeroCurrencyValues(normalizedGame.rules.otherActivePlayersPrize)
-        ? players.filter(
-            (player) =>
-              player.status === "active" &&
-              !firstPlaceWinners.some((winner) => winner.id === player.id) &&
-              !secondPlaceWinners.some((winner) => winner.id === player.id),
-          )
-        : [];
+    const otherPrizePlayers = players.filter((player) => normalizedGame.payouts.some((payout) => payout.place === 3 && payout.playerId === player.id));
 
     return {
       id: _id.toHexString(),
@@ -65,7 +56,7 @@ export class LottoReadModelFactory {
       projectId: normalizedGame.projectId,
       configId: normalizedGame.configId,
       configName: normalizedGame.configName,
-      currencies: this.clone(normalizedGame.currencies),
+      resources: this.clone(normalizedGame.resources),
       drawCount: normalizedGame.drawnNumbers.length,
       playersCount: normalizedGame.players.filter((player) => player.status !== "removed").length,
       firstPlaceWinners: this.engine.getFirstPlaceWinners(normalizedGame).map((player) => player.nickname),
@@ -82,39 +73,11 @@ export class LottoReadModelFactory {
       return [];
     }
 
-    const rewardMode = game.rules.rewardDistributionMode;
-    const resolvePrize = (totalPrize: LottoPrizeTableEntry["prize"], winnersCount: number) =>
-      rewardMode === "split_pool" && winnersCount > 0 ? divideCurrencyValues(totalPrize, winnersCount) : normalizeCurrencyValues(totalPrize);
-
-    return [
-      ...firstPlaceWinners.map<LottoPrizeTableEntry>((player) => ({
-        place: 1,
-        placeLabel: "1 место",
-        playerId: player.id,
-        nickname: player.nickname,
-        remainingCount: player.remainingCount,
-        prize: resolvePrize(game.rules.firstPlacePrize, firstPlaceWinners.length),
-        payoutStatus: rewardMode === "split_pool" ? "Доля банка" : "Полная выплата",
-      })),
-      ...secondPlaceWinners.map<LottoPrizeTableEntry>((player) => ({
-        place: 2,
-        placeLabel: "2 место",
-        playerId: player.id,
-        nickname: player.nickname,
-        remainingCount: player.remainingCount,
-        prize: resolvePrize(game.rules.secondPlacePrize, secondPlaceWinners.length),
-        payoutStatus: rewardMode === "split_pool" ? "Доля банка" : "Полная выплата",
-      })),
-      ...otherPrizePlayers.map<LottoPrizeTableEntry>((player) => ({
-        place: 3,
-        placeLabel: "Остальные",
-        playerId: player.id,
-        nickname: player.nickname,
-        remainingCount: player.remainingCount,
-        prize: resolvePrize(game.rules.otherActivePlayersPrize, otherPrizePlayers.length),
-        payoutStatus: rewardMode === "split_pool" ? "Доля банка" : "Полная выплата",
-      })),
-    ];
+    const playersById = new Map([...firstPlaceWinners, ...secondPlaceWinners, ...otherPrizePlayers].map((player) => [player.id, player]));
+    return game.payouts.map<LottoPrizeTableEntry>((payout) => {
+      const player = playersById.get(payout.playerId)!;
+      return { place: payout.place, placeLabel: payout.place === 1 ? "1 место" : payout.place === 2 ? "2 место" : "Остальные", playerId: player.id, nickname: player.nickname, remainingCount: player.remainingCount, prize: this.clone(payout.awardedRewards), payoutStatus: payout.payoutStatus === "split_pool" ? "Доля банка" : "Полная выплата" };
+    });
   }
 
   private clone<T>(value: T): T {

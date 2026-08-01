@@ -1,6 +1,7 @@
 import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, Typography } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
-import { formatCurrencyValues, type CurrencyDefinition } from "../../../lib/currencyValues";
+import { formatRewardPool } from "../../rewards/resourceAmounts";
+import type { ResourceDefinition } from "../../rewards/types";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoRules } from "../types";
 
@@ -8,10 +9,10 @@ interface LottoRulesDialogProps {
   open: boolean;
   onClose: () => void;
   rules: LottoRules | null;
-  currencies: CurrencyDefinition[];
+  resources: ResourceDefinition[];
 }
 
-export default function LottoRulesDialog({ open, onClose, rules, currencies }: LottoRulesDialogProps) {
+export default function LottoRulesDialog({ open, onClose, rules, resources }: LottoRulesDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{lottoTexts.rulesDialogTitle}</DialogTitle>
@@ -29,13 +30,13 @@ export default function LottoRulesDialog({ open, onClose, rules, currencies }: L
               Чисел в карточке: {rules.cardNumbersAmount}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Приз за 1 место: {formatCurrencyValues(rules.firstPlacePrize, currencies, { includeZero: false }) || "0"}
+              Приз за 1 место: {formatRewardPool(rules.firstPlacePrize, resources)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Приз за 2 место: {formatCurrencyValues(rules.secondPlacePrize, currencies, { includeZero: false }) || "0"}
+              Приз за 2 место: {formatRewardPool(rules.secondPlacePrize, resources)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Приз остальным активным игрокам: {formatCurrencyValues(rules.otherActivePlayersPrize, currencies, { includeZero: false }) || "0"}
+              Приз остальным активным игрокам: {formatRewardPool(rules.otherActivePlayersPrize, resources)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Режим распределения:{" "}

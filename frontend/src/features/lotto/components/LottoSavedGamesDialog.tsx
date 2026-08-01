@@ -167,7 +167,7 @@ export default function LottoSavedGamesDialog({
                       }}
                     >
                       <Typography variant="body2" color="text.secondary">
-                        Валюты: {game.currencies.map((currency) => currency.label).join(", ")}
+                        Ресурсы: {game.resources.map((resource) => resource.label).join(", ")}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         {savedGamesTexts.winners}: {game.firstPlaceWinners.length ? game.firstPlaceWinners.join(", ") : "Пока нет"}

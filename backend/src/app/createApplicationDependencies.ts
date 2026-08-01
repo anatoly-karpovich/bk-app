@@ -25,6 +25,7 @@ import { JourneyService } from "../modules/journey/JourneyService";
 import { CryptoRandomizer, LoggingRandomizer, RewardGrantService } from "../modules/rewards";
 import { LottoController } from "../modules/lotto/LottoController";
 import { LottoEngine } from "../modules/lotto/LottoEngine";
+import { LottoPayoutDistributor } from "../modules/lotto/domain/LottoPayoutDistributor";
 import { LottoReadModelFactory } from "../modules/lotto/LottoReadModelFactory";
 import { LottoRepository } from "../modules/lotto/LottoRepository";
 import { LottoService } from "../modules/lotto/LottoService";
@@ -105,7 +106,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
   );
   const journeyController = new JourneyController(journeyService);
 
-  const lottoEngine = new LottoEngine();
+  const lottoEngine = new LottoEngine(rewardGrantService, new LottoPayoutDistributor());
   const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
   const lottoService = new LottoService(
     lottoRepository,

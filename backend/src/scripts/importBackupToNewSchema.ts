@@ -8,6 +8,7 @@ import { BattleshipsEngine } from "../modules/battleships/BattleshipsEngine";
 import { CryptoRandomizer, RewardGrantService } from "../modules/rewards";
 import { normalizeJourneyGame } from "../modules/journey/domain/engine";
 import { LottoEngine } from "../modules/lotto/LottoEngine";
+import { LottoPayoutDistributor } from "../modules/lotto/domain/LottoPayoutDistributor";
 import type { GameType } from "../modules/gameConfigs/domain/types";
 
 type LegacyDocument = Record<string, unknown> & { _id: ObjectId };
@@ -89,7 +90,7 @@ function normalizeGameCollection(
 ): { documents: LegacyDocument[]; unresolved: UnresolvedGame[] } {
   const unresolved: UnresolvedGame[] = [];
   const battleshipsEngine = new BattleshipsEngine(new RewardGrantService(new CryptoRandomizer()));
-  const lottoEngine = new LottoEngine();
+  const lottoEngine = new LottoEngine(new RewardGrantService(new CryptoRandomizer()), new LottoPayoutDistributor());
   const gameType: GameType = collectionName.startsWith("journey")
     ? "journey"
     : collectionName.startsWith("battleships")
