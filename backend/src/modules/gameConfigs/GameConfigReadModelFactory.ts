@@ -107,7 +107,11 @@ export class GameConfigReadModelFactory {
 
   private formatRewardPool(pool: import("../rewards").RewardPool, resources: ResourceSnapshot[]): string {
     if (pool.mode !== "all") return pool.mode;
-    const labels = pool.rewards.map((reward) => `${reward.amount > 0 ? "+" : ""}${reward.amount} ${resources.find((resource) => resource.id === reward.resourceId)?.label ?? reward.resourceId}`);
+    const labels = pool.rewards.map((reward) => {
+      const resource = resources.find((candidate) => candidate.id === reward.resourceId);
+      const label = resource?.label ?? reward.resourceId;
+      return resource?.type === "item" ? `${label} ×${Math.abs(reward.amount)}` : `${reward.amount > 0 ? "+" : ""}${reward.amount} ${label}`;
+    });
     return labels.join(", ") || "0";
   }
 }

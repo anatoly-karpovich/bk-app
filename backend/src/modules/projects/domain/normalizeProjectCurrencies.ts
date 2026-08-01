@@ -14,7 +14,11 @@ export function normalizeProjectResources(
     const name = resource.name?.trim() || label;
     const type = resource.type === "item" ? "item" : "currency";
     const valueType = "valueType" in resource && resource.valueType === "decimal" ? "decimal" : "integer";
-    const precision = valueType === "decimal" ? 1 : 0;
+    const precision = valueType === "decimal" && "precision" in resource && typeof resource.precision === "number"
+      ? resource.precision
+      : valueType === "decimal"
+        ? 1
+        : 0;
 
     if (ids.has(id) || codes.has(code)) {
       throw new Error(`Project resources must have unique id and code: ${id}`);
@@ -23,16 +27,11 @@ export function normalizeProjectResources(
     ids.add(id);
     codes.add(code);
 
-    const shortLabel = resource.shortLabel?.trim() || undefined;
-    const unitLabel = resource.unitLabel?.trim() || undefined;
-
     return {
       id,
       code,
       name,
       label,
-      ...(shortLabel ? { shortLabel } : {}),
-      ...(unitLabel ? { unitLabel } : {}),
       type,
       ...(type === "currency" ? { valueType, precision } : {}),
       createdAt: resource.createdAt || timestamp,

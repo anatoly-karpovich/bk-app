@@ -4,7 +4,7 @@ import type { Resource, ResourceAmount, ResourceLimit, ResourceSnapshot } from "
 export function getCurrencySnapshots(resources: readonly ResourceSnapshot[]): CurrencySnapshot[] {
   return resources
     .filter((resource): resource is Extract<ResourceSnapshot, { type: "currency" }> => resource.type === "currency")
-    .map(({ type: _type, unitLabel: _unitLabel, ...currency }) => ({ ...currency }));
+    .map(({ type: _type, ...currency }) => ({ ...currency }));
 }
 
 export function getResourceById(resources: readonly Resource[], resourceId: string): Resource | undefined {

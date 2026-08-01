@@ -1,11 +1,17 @@
-import { ProjectCodeConflictError, ProjectCurrencyInUseError, ProjectNotFoundError } from "./errors";
+import {
+  ProjectCodeConflictError,
+  ProjectCodeImmutableError,
+  ProjectCurrencyInUseError,
+  ProjectNotFoundError,
+  ProjectResourceImmutableError,
+} from "./errors";
 import { BattleshipsRepository } from "../battleships/BattleshipsRepository";
 import { GameConfigsRepository } from "../gameConfigs/GameConfigsRepository";
 import { collectResourceIdsFromRules } from "../gameConfigs/domain/resourceReferences";
 import { JourneyRepository } from "../journey/JourneyRepository";
 import { LottoRepository } from "../lotto/LottoRepository";
 import { normalizeProjectResources } from "./domain/normalizeProjectCurrencies";
-import type { Project, ProjectReadModel, ProjectResource } from "./domain/types";
+import type { Project, ProjectCurrency, ProjectReadModel, ProjectResource } from "./domain/types";
 import { ProjectsRepository } from "./ProjectsRepository";
 
 export class ProjectsService {
@@ -81,13 +87,11 @@ export class ProjectsService {
 
     const code = input.code.trim();
     if (code !== current.code) {
-      const existing = await this.repository.findByCode(code);
-      if (existing && existing._id.toHexString() !== projectId) {
-        throw new ProjectCodeConflictError(code);
-      }
+      throw new ProjectCodeImmutableError();
     }
 
-    await this.assertUsedResourcesAreNotRemoved(projectId, current.resources, input.resources);
+    const usedResourceIds = await this.assertUsedResourcesAreNotRemoved(projectId, current.resources, input.resources);
+    this.assertExistingResourcesAreCompatible(current.resources, input.resources, usedResourceIds);
 
     const updated = await this.repository.update(projectId, {
       code,
@@ -133,20 +137,56 @@ export class ProjectsService {
     projectId: string,
     currentResources: ProjectResource[],
     nextResources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>,
-  ): Promise<void> {
+  ): Promise<Set<string>> {
     const nextResourceIds = new Set(nextResources.map((resource) => resource.id.trim()));
     const removedResourceIds = currentResources.map((resource) => resource.id).filter((resourceId) => !nextResourceIds.has(resourceId));
-
-    if (!removedResourceIds.length) {
-      return;
-    }
-
     const configs = await this.gameConfigsRepository.findByProjectId(projectId);
     const usedResourceIds = new Set(configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]));
+
+    if (!removedResourceIds.length) {
+      return usedResourceIds;
+    }
+
     const inUseCurrencyIds = removedResourceIds.filter((resourceId) => usedResourceIds.has(resourceId));
 
     if (inUseCurrencyIds.length) {
       throw new ProjectCurrencyInUseError(inUseCurrencyIds);
+    }
+
+    return usedResourceIds;
+  }
+
+  private assertExistingResourcesAreCompatible(
+    currentResources: ProjectResource[],
+    nextResources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>,
+    usedResourceIds: Set<string>,
+  ): void {
+    const nextResourcesById = new Map(nextResources.map((resource) => [resource.id.trim(), resource]));
+
+    for (const currentResource of currentResources) {
+      const nextResource = nextResourcesById.get(currentResource.id);
+      if (!nextResource) {
+        continue;
+      }
+
+      if (nextResource.code.trim() !== currentResource.code) {
+        throw new ProjectResourceImmutableError(currentResource.id, "code");
+      }
+
+      if (nextResource.type !== currentResource.type) {
+        throw new ProjectResourceImmutableError(currentResource.id, "type");
+      }
+
+      if (
+        usedResourceIds.has(currentResource.id) &&
+        currentResource.type === "currency" &&
+        nextResource.type === "currency"
+      ) {
+        const nextCurrency = nextResource as Omit<ProjectCurrency, "createdAt" | "updatedAt">;
+        if (nextCurrency.valueType !== currentResource.valueType || nextCurrency.precision !== currentResource.precision) {
+          throw new ProjectResourceImmutableError(currentResource.id, "currencyFormat");
+        }
+      }
     }
   }
 

@@ -3,7 +3,13 @@ import { RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { projectIdParamsSchema, projectMutationSchema } from "./projects.schemas";
 import { ProjectsService } from "./ProjectsService";
-import { ProjectCodeConflictError, ProjectCurrencyInUseError, ProjectNotFoundError } from "./errors";
+import {
+  ProjectCodeConflictError,
+  ProjectCodeImmutableError,
+  ProjectCurrencyInUseError,
+  ProjectNotFoundError,
+  ProjectResourceImmutableError,
+} from "./errors";
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
@@ -105,7 +111,12 @@ export class ProjectsController {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (error instanceof ProjectCodeConflictError || error instanceof ProjectCurrencyInUseError) {
+    if (
+      error instanceof ProjectCodeConflictError ||
+      error instanceof ProjectCodeImmutableError ||
+      error instanceof ProjectCurrencyInUseError ||
+      error instanceof ProjectResourceImmutableError
+    ) {
       return res.status(409).json({ success: false, message: error.message });
     }
 

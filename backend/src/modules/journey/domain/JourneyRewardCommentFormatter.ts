@@ -8,6 +8,7 @@ interface RewardApplicationEntry {
 
 interface RewardResourceView {
   id: string;
+  type: "currency" | "item";
   label: string;
 }
 
@@ -97,7 +98,8 @@ export class JourneyRewardCommentFormatter {
   private toResourceView(resource: ResourceSnapshot | undefined, resourceId: string): RewardResourceView {
     return {
       id: resourceId,
-      label: resource?.unitLabel ?? resource?.shortLabel ?? resource?.label ?? resource?.name ?? resourceId,
+      type: resource?.type ?? "currency",
+      label: resource?.label ?? resource?.name ?? resourceId,
     };
   }
 
@@ -110,6 +112,10 @@ export class JourneyRewardCommentFormatter {
   }
 
   private formatResourceAmount(resource: RewardResourceView, amount: number): string {
+    if (resource.type === "item") {
+      return `${resource.label} ×${Math.abs(amount)}`;
+    }
+
     return `${Math.abs(amount)} ${resource.label}`;
   }
 }

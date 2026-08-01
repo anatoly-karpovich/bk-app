@@ -516,10 +516,7 @@ export class JourneyV2Engine {
   }
   private formatHoldings(holdings: ResourceHoldings, resources: ResourceSnapshot[]) {
     return this.holdingsEntries(holdings, resources)
-      .map(
-        (entry) =>
-          `${entry.amount} ${resources.find((resource) => resource.id === entry.resourceId)?.label ?? entry.resourceId}`,
-      )
+      .map((entry) => this.formatResourceAmount(entry, resources))
       .join(", ");
   }
   private buildComments(game: JourneyV2Game, round: JourneyV2Round): string[] {
@@ -690,13 +687,18 @@ export class JourneyV2Engine {
 
   private formatRewardAmounts(rewards: ResourceAmount[], resources: ResourceSnapshot[]): string {
     return rewards
-      .map((reward) => {
-        const label = resources.find((resource) => resource.id === reward.resourceId)?.unitLabel
-          ?? resources.find((resource) => resource.id === reward.resourceId)?.shortLabel
-          ?? resources.find((resource) => resource.id === reward.resourceId)?.label
-          ?? reward.resourceId;
-        return `${reward.amount > 0 ? "+" : ""}${reward.amount} ${label}`;
-      })
+      .map((reward) => this.formatResourceAmount(reward, resources, true))
       .join(", ") || "0";
+  }
+
+  private formatResourceAmount(reward: ResourceAmount, resources: ResourceSnapshot[], showPlus = false): string {
+    const resource = resources.find((candidate) => candidate.id === reward.resourceId);
+    const label = resource?.label ?? reward.resourceId;
+
+    if (resource?.type === "item") {
+      return `${label} ×${Math.abs(reward.amount)}`;
+    }
+
+    return `${showPlus && reward.amount > 0 ? "+" : ""}${reward.amount} ${label}`;
   }
 }

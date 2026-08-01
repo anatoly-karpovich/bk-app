@@ -3,7 +3,6 @@ export interface CurrencySnapshot {
   label: string;
   code?: string;
   name?: string;
-  shortLabel?: string;
   valueType?: "integer" | "decimal";
   precision?: number;
   createdAt?: string;

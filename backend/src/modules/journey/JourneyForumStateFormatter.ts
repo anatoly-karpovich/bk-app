@@ -35,7 +35,11 @@ export class JourneyForumStateFormatter {
   ): string {
     const values = amounts
       .filter((entry) => entry.amount !== 0)
-      .map((entry) => `${entry.amount} ${game.configuration.resources.find((resource) => resource.id === entry.resourceId)?.label ?? entry.resourceId}`);
+      .map((entry) => {
+        const resource = game.configuration.resources.find((candidate) => candidate.id === entry.resourceId);
+        const label = resource?.label ?? entry.resourceId;
+        return resource?.type === "item" ? `${label} ×${Math.abs(entry.amount)}` : `${entry.amount} ${label}`;
+      });
     return values.join(", ") || emptyLabel;
   }
 }

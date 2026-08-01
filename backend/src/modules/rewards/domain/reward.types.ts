@@ -5,8 +5,6 @@ export interface ResourceBase {
   code: string;
   name: string;
   label: string;
-  shortLabel?: string;
-  unitLabel?: string;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -20,6 +20,7 @@ import type { SelectChangeEvent } from "@mui/material/Select";
 import type { SxProps, Theme } from "@mui/material/styles";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
+import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
@@ -68,6 +69,12 @@ const navItems: NavItem[] = [
     label: appHeaderTexts.nav.battleship,
     to: "/battleship",
     icon: <DirectionsBoatRoundedIcon />,
+    disabled: false,
+  },
+  {
+    label: appHeaderTexts.nav.project,
+    to: "/project",
+    icon: <FolderRoundedIcon />,
     disabled: false,
   },
   {

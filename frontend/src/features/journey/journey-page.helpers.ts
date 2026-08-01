@@ -66,7 +66,9 @@ export function formatJourneyResourceAmounts(
 
   return [...knownAmounts, ...unknownAmounts]
     .filter(({ amount }) => includeZero || amount !== 0)
-    .map(({ resource, amount }) => `${showPlus && amount > 0 ? "+" : ""}${amount} ${resource.label}`)
+    .map(({ resource, amount }) => resource.type === "item"
+      ? `${resource.label} ×${Math.abs(amount)}`
+      : `${showPlus && amount > 0 ? "+" : ""}${amount} ${resource.label}`)
     .join(", ");
 }
 

@@ -8,7 +8,6 @@ export interface ProjectCurrency {
   code: string;
   name: string;
   label: string;
-  shortLabel?: string;
   valueType: "integer" | "decimal";
   precision: number;
   createdAt: string;
@@ -21,8 +20,6 @@ export interface ProjectItem {
   code: string;
   name: string;
   label: string;
-  shortLabel?: string;
-  unitLabel?: string;
   createdAt: string;
   updatedAt: string;
   canDelete: boolean;

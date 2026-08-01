@@ -8,6 +8,4 @@ export interface ResourceDefinition {
   id: string;
   type: "currency" | "item";
   label: string;
-  shortLabel?: string;
-  unitLabel?: string;
 }

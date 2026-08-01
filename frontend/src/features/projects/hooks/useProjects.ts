@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getProjectsRequest } from "../api/projects.client";
+import { getProjectsRequest, updateProjectRequest } from "../api/projects.client";
 import { loadSelectedProjectId, saveSelectedProjectId } from "../storage";
-import type { Project } from "../types";
+import type { Project, ProjectMutationInput } from "../types";
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Project request failed";
@@ -11,6 +11,7 @@ export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState(() => loadSelectedProjectId() ?? "");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
@@ -47,6 +48,22 @@ export function useProjects() {
     saveSelectedProjectId(nextProjectId);
   }, []);
 
+  const updateProject = useCallback(async (projectId: string, input: ProjectMutationInput): Promise<Project | null> => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const updatedProject = await updateProjectRequest(projectId, input);
+      setProjects((currentProjects) => currentProjects.map((project) => project.id === updatedProject.id ? updatedProject : project));
+      return updatedProject;
+    } catch (nextError) {
+      setError(getErrorMessage(nextError));
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null,
     [projects, selectedProjectId],
@@ -57,10 +74,12 @@ export function useProjects() {
     selectedProjectId,
     selectedProject,
     isLoading,
+    isSaving,
     error,
     actions: {
       loadProjects,
       selectProject,
+      updateProject,
     },
   };
 }

@@ -1,7 +1,16 @@
 import type { ResourceAmount, ResourceDefinition, RewardPool } from "./types";
 
 export function formatResourceAmounts(values: readonly ResourceAmount[], resources: readonly ResourceDefinition[], options: { showPlus?: boolean } = {}): string {
-  return values.map((value) => `${options.showPlus && value.amount > 0 ? "+" : ""}${value.amount} ${resources.find((resource) => resource.id === value.resourceId)?.unitLabel ?? resources.find((resource) => resource.id === value.resourceId)?.shortLabel ?? resources.find((resource) => resource.id === value.resourceId)?.label ?? value.resourceId}`).join(", ");
+  return values.map((value) => {
+    const resource = resources.find((candidate) => candidate.id === value.resourceId);
+    const label = resource?.label ?? value.resourceId;
+
+    if (resource?.type === "item") {
+      return `${label} ×${Math.abs(value.amount)}`;
+    }
+
+    return `${options.showPlus && value.amount > 0 ? "+" : ""}${value.amount} ${label}`;
+  }).join(", ");
 }
 
 export function formatRewardPool(pool: RewardPool, resources: readonly ResourceDefinition[]): string {

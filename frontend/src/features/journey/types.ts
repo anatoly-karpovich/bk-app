@@ -9,8 +9,6 @@ export interface JourneyResourceDefinition {
   code: string;
   name: string;
   label: string;
-  shortLabel?: string;
-  unitLabel?: string;
   valueType?: "integer" | "decimal";
   precision?: number;
 }
