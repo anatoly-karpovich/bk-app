@@ -1,4 +1,5 @@
-import { Alert, Button, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
+import { Button, Card, CardContent, CardHeader, Divider, Stack, Typography } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoPersistedGame } from "../types";
 
@@ -30,7 +31,7 @@ export default function LottoStateCard({
       />
       <CardContent>
         {!game ? (
-          <Alert severity="info">{lottoTexts.alerts.stateEmpty}</Alert>
+          <AppInfoAlert>{lottoTexts.alerts.stateEmpty}</AppInfoAlert>
         ) : (
           <Stack spacing={1.5} divider={<Divider flexItem />}>
             <Typography variant="body2" color="text.secondary">

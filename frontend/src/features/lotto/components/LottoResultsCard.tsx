@@ -1,5 +1,4 @@
 import {
-  Alert,
   Card,
   CardContent,
   CardHeader,
@@ -13,6 +12,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { formatResourceAmounts } from "../../rewards/resourceAmounts";
 import type { ResourceDefinition } from "../../rewards/types";
 import { lottoTexts } from "../../../texts/lottoTexts";
@@ -29,9 +29,9 @@ export default function LottoResultsCard({ game, resources }: LottoResultsCardPr
       <CardHeader title={lottoTexts.cards.resultsTitle} subheader={lottoTexts.cards.resultsSubtitle} />
       <CardContent>
         {!game ? (
-          <Alert severity="info">{lottoTexts.alerts.resultsPending}</Alert>
+          <AppInfoAlert>{lottoTexts.alerts.resultsPending}</AppInfoAlert>
         ) : !game.derived.gameIsOver ? (
-          <Alert severity="info">{lottoTexts.alerts.resultsPending}</Alert>
+          <AppInfoAlert>{lottoTexts.alerts.resultsPending}</AppInfoAlert>
         ) : (
           <Stack spacing={2}>
             <Paper

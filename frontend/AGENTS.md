@@ -107,6 +107,31 @@ If multiple game pages need breadcrumbs or other framing/navigation UI, do not k
 
 When multiple setup flows need the same visual treatment for player nickname fields, prefer one shared component for that visual primitive. At the moment `components/players/GamePlayerNameInput.tsx` is the shared source for the player-name input look.
 
+## Shared component workflow
+
+When adding or changing a game page, always look for an existing shared component before writing local UI.
+
+Use this order:
+
+1. Check `src/components/` and `src/components/ui/` for a component with the same semantic role.
+2. If there is no shared component, inspect the equivalent UI in Journey, Battleships, and Lotto.
+3. If the same UI or interaction exists in another game, extract or move it into `src/components/` or `src/components/ui/` as part of the same change, then use that shared source in every applicable game.
+4. Create a feature-local component only when the structure or behavior is genuinely game-specific.
+
+Do not fork a component merely because its text, icon, disabled state, or callback differs. Pass those details as props when the visual role is the same.
+
+Current shared sources include:
+
+* `components/GamePageHeader.tsx` for the game-page frame and host actions.
+* `components/players/GamePlayerNameInput.tsx` for player-name inputs.
+* `components/GameStartButton.tsx` for starting a new game.
+* `components/GameActionButton.tsx` for compact icon-and-label game actions.
+* `components/AddPlayerButton.tsx` for the standard `+ Добавить` player action.
+* `components/ui/AppInfoAlert.tsx` for neutral blue informational messages with the standard `i` icon. Do not use it for errors, warnings, or success messages.
+* `components/ui/AppPillButton.tsx`, `AppTextInput.tsx`, `AppChip.tsx`, `AppConfirmDialog.tsx`, and `AppBreadcrumbs.tsx` for their corresponding UI primitives.
+
+Keep shared components presentational and configurable. Feature components retain game-specific copy and callbacks; shared components own repeated markup and visual rules.
+
 ---
 
 ## React component rules

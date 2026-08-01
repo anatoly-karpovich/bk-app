@@ -1,6 +1,6 @@
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, List, ListItem, Stack, Typography } from "@mui/material";
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, List, ListItem, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import { formatRewardPool } from "../../rewards/resourceAmounts";
 import type { ResourceDefinition } from "../../rewards/types";
@@ -81,9 +81,9 @@ export default function BattleshipsRulesDialog({
             </Box>
           </Stack>
         ) : (
-          <Alert severity="info" icon={<MenuBookRoundedIcon fontSize="inherit" />}>
+          <AppInfoAlert>
             Battleships-конфиг пока не загружен.
-          </Alert>
+          </AppInfoAlert>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

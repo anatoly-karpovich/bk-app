@@ -1,7 +1,6 @@
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import {
-  Alert,
   Card,
   CardContent,
   CardHeader,
@@ -12,6 +11,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoPersistedGame, LottoPlayer } from "../types";
 
@@ -73,7 +73,7 @@ export default function LottoCardsCard({
       <CardHeader title={lottoTexts.cards.boardTitle} subheader={lottoTexts.cards.boardSubtitle} />
       <CardContent>
         {!game ? (
-          <Alert severity="info">{lottoTexts.alerts.stateEmpty}</Alert>
+          <AppInfoAlert>{lottoTexts.alerts.stateEmpty}</AppInfoAlert>
         ) : (
           <Grid container spacing={2}>
             {game.players.map((player) => (

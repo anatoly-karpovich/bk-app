@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import { Alert, Box, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import type { JourneyForumStateMessage } from "../types";
@@ -50,7 +51,7 @@ export default function JourneyForumStateDialog({ open, forumState, onClose }: J
             {copyFailed ? <Alert severity="error" sx={{ mt: 2 }}>{journeyTexts.alerts.forumStateCopyFailed}</Alert> : null}
           </>
         ) : (
-          <Alert severity="info">{journeyTexts.alerts.forumStateUnavailable}</Alert>
+          <AppInfoAlert>{journeyTexts.alerts.forumStateUnavailable}</AppInfoAlert>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

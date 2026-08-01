@@ -1,9 +1,9 @@
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
-import SailingRoundedIcon from "@mui/icons-material/SailingRounded";
-import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import { Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import GameStartButton from "../../../components/GameStartButton";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppChip from "../../../components/ui/AppChip";
-import AppPillButton from "../../../components/ui/AppPillButton";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { formatRewardPool } from "../../rewards/resourceAmounts";
 import type { ResourceDefinition } from "../../rewards/types";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
@@ -37,33 +37,32 @@ export default function BattleshipsSetupCard({
       <CardHeader
         title={battleshipsTexts.cards.setupTitle}
         subheader={battleshipsTexts.cards.setupSubtitle}
+        sx={{ "& .MuiCardHeader-action": { mr: 0, mt: 0.5 } }}
         action={
-          <AppPillButton
-            variant="contained"
-            size="small"
+          <GameStartButton
+            label={battleshipsTexts.actions.newGame}
             startIcon={<DirectionsBoatRoundedIcon />}
             onClick={onStartGame}
             disabled={actionsDisabled || !canStartGame}
             loading={isStartingGame}
-            sx={{ mt: 0.5 }}
-          >
-            {battleshipsTexts.actions.newGame}
-          </AppPillButton>
+          />
         }
       />
       <CardContent>
         <Stack spacing={2}>
-          <GamePlayerNameInput label="Ник игрока" value={playerName} onChange={onPlayerNameChange} disabled={actionsDisabled} />
+          <GamePlayerNameInput
+            label="Ник игрока"
+            value={playerName}
+            onChange={onPlayerNameChange}
+            disabled={actionsDisabled}
+          />
 
           {boardConfig ? (
             <Stack spacing={1.5}>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <AppChip label={`Поле: ${boardConfig.boardSize}x${boardConfig.boardSize}`} color="secondary" />
                 <AppChip label={`Попытки: ${boardConfig.maxShots}`} color="info" />
-                <AppChip
-                  label={`Попадание: ${formatRewardPool(boardConfig.rewards.hit, resources)}`}
-                  color="success"
-                />
+                <AppChip label={`Попадание: ${formatRewardPool(boardConfig.rewards.hit, resources)}`} color="success" />
               </Stack>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {fleetSummary.map((item) => (
@@ -72,9 +71,9 @@ export default function BattleshipsSetupCard({
               </Stack>
             </Stack>
           ) : (
-            <Alert severity="info" icon={<SailingRoundedIcon fontSize="inherit" />}>
+            <AppInfoAlert>
               Battleships-конфиг пока недоступен для выбранного проекта.
-            </Alert>
+            </AppInfoAlert>
           )}
 
           <Typography variant="body2" color="text.secondary">

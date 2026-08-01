@@ -1,14 +1,16 @@
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import { Card, CardContent, CardHeader, IconButton, Stack, Typography } from "@mui/material";
+import AddPlayerButton from "../../../components/AddPlayerButton";
+import GameActionButton from "../../../components/GameActionButton";
+import GameStartButton from "../../../components/GameStartButton";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
 import AppChip from "../../../components/ui/AppChip";
-import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyTexts } from "../../../texts/journeyTexts";
+import JourneyActionPanel from "./JourneyActionPanel";
 
 interface JourneyPlayersSetupCardProps {
   playerNames: string[];
@@ -51,45 +53,48 @@ export default function JourneyPlayersSetupCard({
     <Card>
       <CardHeader
         title={
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h5">{journeyTexts.cards.playersTitle}</Typography>
-            {validPlayersCount > 0 ? (
-              <AppChip
-                color="primary"
-                label={validPlayersCount}
-                size="small"
-                sx={{ fontWeight: 700, "& .MuiChip-label": { px: 1 } }}
-              />
-            ) : null}
+          <Stack spacing={1}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Typography variant="h5">{journeyTexts.cards.playersTitle}</Typography>
+                {validPlayersCount > 0 ? (
+                  <AppChip
+                    color="primary"
+                    label={validPlayersCount}
+                    size="small"
+                    sx={{ fontWeight: 700, "& .MuiChip-label": { px: 1 } }}
+                  />
+                ) : null}
+              </Stack>
+
+              <Stack direction="row" spacing={1} alignItems="center">
+                <AppTextInput
+                  label={journeyTexts.fields.forumTopic}
+                  placeholder={journeyTexts.placeholders.forumTopic}
+                  value={forumTopicId}
+                  onChange={(event) => onForumTopicIdChange(event.target.value.replace(/\D/g, ""))}
+                  disabled={actionsDisabled}
+                  size="small"
+                  inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                  sx={{ width: { xs: "auto", sm: 180 }, flexGrow: { xs: 1, sm: 0 } }}
+                />
+                <GameStartButton
+                  label={journeyTexts.actions.newGame}
+                  startIcon={<PlayArrowRoundedIcon />}
+                  onClick={onStartGame}
+                  disabled={actionsDisabled || !canStartGame}
+                  loading={isStartingGame}
+                />
+              </Stack>
+            </Stack>
+
+            <Typography variant="body2" color="text.secondary">
+              {journeyTexts.cards.playersSubtitle}
+            </Typography>
           </Stack>
         }
         titleTypographyProps={{ component: "div" }}
-        subheader={journeyTexts.cards.playersSubtitle}
-        action={
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mt: 0.5 }}>
-            <AppTextInput
-              label={journeyTexts.fields.forumTopic}
-              placeholder={journeyTexts.placeholders.forumTopic}
-              value={forumTopicId}
-              onChange={(event) => onForumTopicIdChange(event.target.value.replace(/\D/g, ""))}
-              disabled={actionsDisabled}
-              size="small"
-              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-              sx={{ width: { xs: "100%", sm: 180 } }}
-            />
-            <AppPillButton
-              variant="contained"
-              size="small"
-              startIcon={<PlayArrowRoundedIcon />}
-              onClick={onStartGame}
-              disabled={actionsDisabled || !canStartGame}
-              loading={isStartingGame}
-              sx={{ alignSelf: { xs: "flex-end", sm: "center" }, whiteSpace: "nowrap" }}
-            >
-              {journeyTexts.actions.newGame}
-            </AppPillButton>
-          </Stack>
-        }
+        sx={{ "& .MuiCardHeader-content": { minWidth: 0 } }}
       />
       <CardContent>
         <Stack spacing={2}>
@@ -109,23 +114,22 @@ export default function JourneyPlayersSetupCard({
             </Stack>
           ))}
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <AppPillButton variant="outlined" startIcon={<AddRoundedIcon />} onClick={onAddPlayerField} disabled={actionsDisabled}>
-              {journeyTexts.actions.addPlayer}
-            </AppPillButton>
-            <AppPillButton
-              variant="outlined"
-              startIcon={<ForumRoundedIcon />}
+          <JourneyActionPanel>
+            <AddPlayerButton onClick={onAddPlayerField} disabled={actionsDisabled} />
+            <GameActionButton
+              label={journeyTexts.actions.fromForum}
+              icon={<ForumRoundedIcon />}
               onClick={onImportPlayersFromForum}
               disabled={actionsDisabled || !canImportPlayersFromForum}
               loading={isImportingPlayersFromForum}
-            >
-              {journeyTexts.actions.importPlayersFromForum}
-            </AppPillButton>
-            <AppPillButton variant="outlined" startIcon={<UploadFileRoundedIcon />} onClick={onOpenImport} disabled={actionsDisabled}>
-              {journeyTexts.actions.importPlayers}
-            </AppPillButton>
-          </Stack>
+            />
+            <GameActionButton
+              label={journeyTexts.actions.import}
+              icon={<UploadFileRoundedIcon />}
+              onClick={onOpenImport}
+              disabled={actionsDisabled}
+            />
+          </JourneyActionPanel>
         </Stack>
       </CardContent>
     </Card>

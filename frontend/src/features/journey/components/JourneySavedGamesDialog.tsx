@@ -21,6 +21,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import AppChip from "../../../components/ui/AppChip";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import { formatJourneyResourceAmounts } from "../journey-page.helpers";
@@ -109,7 +110,7 @@ export default function JourneySavedGamesDialog({
           </Stack>
         ) : null}
 
-        {!loading && !games.length ? <Alert severity="info">{savedGamesTexts.empty}</Alert> : null}
+        {!loading && !games.length ? <AppInfoAlert>{savedGamesTexts.empty}</AppInfoAlert> : null}
 
         {!loading && games.length ? (
           <Stack spacing={1.5}>

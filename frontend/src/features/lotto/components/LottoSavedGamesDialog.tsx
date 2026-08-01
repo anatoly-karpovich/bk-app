@@ -17,6 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import { formatLottoTimestamp, getLottoSavedGameStatusLabel } from "../mappers/lotto.mapper";
@@ -81,7 +82,7 @@ export default function LottoSavedGamesDialog({
           </Stack>
         ) : null}
 
-        {!loading && !games.length ? <Alert severity="info">{savedGamesTexts.empty}</Alert> : null}
+        {!loading && !games.length ? <AppInfoAlert>{savedGamesTexts.empty}</AppInfoAlert> : null}
 
         {!loading && games.length ? (
           <Stack spacing={1.5}>

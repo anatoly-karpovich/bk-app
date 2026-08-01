@@ -1,4 +1,5 @@
-import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import { Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import { formatLottoTimestamp } from "../mappers/lotto.mapper";
 import type { LottoEvent } from "../types";
@@ -15,7 +16,7 @@ export default function LottoLogCard({ events }: LottoLogCardProps) {
       <CardHeader title={lottoTexts.cards.logTitle} subheader={lottoTexts.cards.logSubtitle} />
       <CardContent>
         {!sortedEvents.length ? (
-          <Alert severity="info">{lottoTexts.alerts.logEmpty}</Alert>
+          <AppInfoAlert>{lottoTexts.alerts.logEmpty}</AppInfoAlert>
         ) : (
           <Stack spacing={1.5}>
             {sortedEvents.map((event, index) => (

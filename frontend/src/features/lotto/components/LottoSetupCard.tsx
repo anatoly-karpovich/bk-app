@@ -1,10 +1,10 @@
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { Card, CardContent, CardHeader, Grid, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, CardHeader, Grid, IconButton, Stack, Typography } from "@mui/material";
+import AddPlayerButton from "../../../components/AddPlayerButton";
+import GameStartButton from "../../../components/GameStartButton";
 import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
-import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import { getLottoCardPlaceholder } from "../mappers/lotto.mapper";
@@ -44,18 +44,15 @@ export default function LottoSetupCard({
       <CardHeader
         title={lottoTexts.cards.setupTitle}
         subheader={lottoTexts.cards.setupSubtitle}
+        sx={{ "& .MuiCardHeader-action": { mr: 0, mt: 0.5 } }}
         action={
-          <AppPillButton
-            variant="contained"
-            size="small"
+          <GameStartButton
+            label={lottoTexts.actions.newGame}
             startIcon={<CasinoRoundedIcon />}
             onClick={onStartGame}
             disabled={actionsDisabled || !canStartGame}
             loading={isStartingGame}
-            sx={{ mt: 0.5 }}
-          >
-            {lottoTexts.actions.newGame}
-          </AppPillButton>
+          />
         }
       />
       <CardContent>
@@ -130,15 +127,9 @@ export default function LottoSetupCard({
             })}
           </Grid>
 
-          <AppPillButton
-            variant="outlined"
-            startIcon={<AddRoundedIcon />}
-            onClick={onAddPlayerField}
-            disabled={actionsDisabled}
-            sx={{ alignSelf: "flex-start" }}
-          >
-            {lottoTexts.actions.addPlayer}
-          </AppPillButton>
+          <Box sx={{ alignSelf: "flex-start" }}>
+            <AddPlayerButton onClick={onAddPlayerField} disabled={actionsDisabled} />
+          </Box>
         </Stack>
       </CardContent>
     </Card>

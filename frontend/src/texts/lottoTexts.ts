@@ -12,7 +12,6 @@ export const lottoTexts = {
     cancel: "Отмена",
     delete: "Удалить",
     removePlayer: "Исключить игрока",
-    addPlayer: "Добавить игрока",
     generateCard: "Сгенерировать",
   },
   alerts: {

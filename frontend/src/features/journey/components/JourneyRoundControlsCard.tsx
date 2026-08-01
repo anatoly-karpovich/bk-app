@@ -5,9 +5,10 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import { isValidDiceValue } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
-import AppPillButton from "../../../components/ui/AppPillButton";
+import GameActionButton from "../../../components/GameActionButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import type { JourneyConfig, JourneyMoveInputs, JourneyPlayerReadModel, JourneySkippedPlayers } from "../types";
+import JourneyActionPanel from "./JourneyActionPanel";
 
 interface JourneyRoundControlsCardProps {
   activePlayers: JourneyPlayerReadModel[];
@@ -104,35 +105,30 @@ export default function JourneyRoundControlsCard({
             <Alert severity="success">{journeyTexts.alerts.allPlayersFinished}</Alert>
           )}
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <AppPillButton
-              variant="outlined"
-              startIcon={<ForumRoundedIcon />}
+          <JourneyActionPanel>
+            <GameActionButton
+              label={journeyTexts.actions.fromForum}
+              icon={<ForumRoundedIcon />}
               onClick={onPreviewForumMoves}
               disabled={actionsDisabled || !canImportMovesFromForum}
               loading={isPreviewingForumMoves}
-            >
-              {journeyTexts.actions.importMovesFromForum}
-            </AppPillButton>
-            <AppPillButton
-              variant="outlined"
-              startIcon={<UploadFileRoundedIcon />}
+            />
+            <GameActionButton
+              label={journeyTexts.actions.import}
+              icon={<UploadFileRoundedIcon />}
               onClick={onOpenImport}
               disabled={actionsDisabled}
               loading={isImportingMoves}
-            >
-              {journeyTexts.actions.importMoves}
-            </AppPillButton>
-            <AppPillButton
+            />
+            <GameActionButton
+              label={journeyTexts.actions.apply}
+              icon={<PlayArrowRoundedIcon />}
               variant="contained"
-              startIcon={<PlayArrowRoundedIcon />}
               onClick={onSubmitRound}
               disabled={actionsDisabled || !canSubmitRound}
               loading={isSubmittingRound}
-            >
-              {journeyTexts.actions.applyMove}
-            </AppPillButton>
-          </Stack>
+            />
+          </JourneyActionPanel>
         </Stack>
       </CardContent>
     </Card>
