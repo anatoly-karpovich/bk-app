@@ -1,6 +1,6 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack } from "@mui/material";
+import { Alert, FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell, RewardPool } from "../../journey/types";
@@ -25,6 +25,18 @@ const achievementLabels = {
 const coreJourneyCellIds = new Set(["small", "medium", "large"]);
 
 export default function JourneyConfigEditor({ rules, resources, disabled, onChange }: JourneyConfigEditorProps) {
+  const hasCompleteRules = Boolean(
+    rules.initialRewardPool
+    && rules.jackpot?.rewardPool
+    && Array.isArray(rules.cells)
+    && rules.cells.every((cell) => cell.rewardPool)
+    && (Object.keys(achievementLabels) as Array<keyof typeof achievementLabels>).every((achievement) => rules.achievements?.[achievement]?.rewardPool),
+  );
+
+  if (!hasCompleteRules) {
+    return <Alert severity="warning">Конфиг загружен в устаревшем формате. Обновите бэкенд и перезагрузите страницу: сервер вернёт нормализованные правила для редактирования.</Alert>;
+  }
+
   const jackpot = rules.jackpot;
   const cells = Array.isArray(rules.cells) ? rules.cells : [];
   const achievements = rules.achievements ?? {};

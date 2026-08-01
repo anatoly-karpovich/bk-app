@@ -14,5 +14,19 @@ export function validateLottoRules(rules: LottoRules, resources: readonly Resour
   const pools = [rules.firstPlacePrize, rules.secondPlacePrize, rules.otherActivePlayersPrize];
   pools.forEach((pool) => { validateRewardPool(pool, resourcesById); const values = pool.mode === "all" ? pool.rewards : pool.mode === "weighted_one" ? pool.options.flatMap((option) => option.reward ? [option.reward] : []) : pool.options.map((option) => option.reward); if (values.some((value) => value.amount < 0)) throw new Error("Lotto rewards must be positive"); if (rules.rewardDistributionMode === "split_pool" && values.some((value) => resourcesById.get(value.resourceId)?.type === "item")) throw new Error("Split Lotto reward pools cannot contain items"); });
 }
-function pool(value: unknown, fallback: RewardPool): RewardPool { if (value && typeof value === "object" && "mode" in value) return clone(value as RewardPool); if (Array.isArray(value)) return { mode: "all", rewards: value.flatMap((entry) => { const record = entry as { currencyId?: unknown; value?: unknown }; return typeof record.currencyId === "string" && typeof record.value === "number" ? [{ resourceId: record.currencyId, amount: record.value }] : []; }) }; return clone(fallback); }
+function pool(value: unknown, fallback: RewardPool): RewardPool {
+  if (value && typeof value === "object" && "mode" in value) return clone(value as RewardPool);
+  if (Array.isArray(value)) {
+    return {
+      mode: "all",
+      rewards: value.flatMap((entry) => {
+        const record = entry as { currencyId?: unknown; value?: unknown };
+        return typeof record.currencyId === "string" && typeof record.value === "number" && record.value !== 0
+          ? [{ resourceId: record.currencyId, amount: record.value }]
+          : [];
+      }),
+    };
+  }
+  return clone(fallback);
+}
 function integer(value: unknown, fallback: number): number { return Number.isFinite(Number(value)) ? Math.trunc(Number(value)) : fallback; }

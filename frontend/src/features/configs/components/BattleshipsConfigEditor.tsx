@@ -9,7 +9,11 @@ import RewardPoolEditor, { createRewardPool } from "./RewardPoolEditor";
 import RuleSection from "./RuleSection";
 
 interface BattleshipsConfigEditorProps { rules: BattleshipsRules; resources: ProjectResource[]; disabled: boolean; onChange: (rules: BattleshipsRules) => void; }
-function getActiveBoard(rules: BattleshipsRules): BattleshipsBoardRules | null { return rules.boards[String(rules.selectedBoardSize)] ?? Object.values(rules.boards)[0] ?? null; }
+
+function getActiveBoard(rules: BattleshipsRules): BattleshipsBoardRules | null {
+  const boards = rules.boards ?? {};
+  return boards[String(rules.selectedBoardSize)] ?? Object.values(boards)[0] ?? null;
+}
 
 export default function BattleshipsConfigEditor({ rules, resources, disabled, onChange }: BattleshipsConfigEditorProps) {
   const boards = rules.boards ?? {};

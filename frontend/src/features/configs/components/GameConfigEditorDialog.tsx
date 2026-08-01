@@ -85,8 +85,8 @@ export default function GameConfigEditorDialog({
                 </Stack>
                 <Divider />
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">Валюты проекта:</Typography>
-                  {project.currencies.map((currency) => <Chip key={currency.id} size="small" label={currency.label} />)}
+                  <Typography variant="body2" color="text.secondary">Ресурсы проекта:</Typography>
+                  {project.resources.map((resource) => <Chip key={resource.id} size="small" label={`${resource.label} (${resource.type === "currency" ? "валюта" : "предмет"})`} />)}
                 </Stack>
               </Stack>
             </Box>

@@ -7,7 +7,7 @@ import type { ProjectResource } from "../../projects/types";
 import type { ResourceAmount, RewardPool } from "../../rewards/types";
 
 interface RewardPoolEditorProps {
-  pool: RewardPool;
+  pool?: RewardPool;
   resources: ProjectResource[];
   disabled: boolean;
   onChange: (pool: RewardPool) => void;
@@ -108,14 +108,18 @@ export function createRewardPool(mode: RewardPool["mode"], resources: ProjectRes
   return { mode, options: resources.length ? [{ reward, chanceBps: 10_000 }] : [] };
 }
 
+const emptyRewardPool: RewardPool = { mode: "all", rewards: [] };
+
 export default function RewardPoolEditor({
-  pool,
+  pool: providedPool,
   resources,
   disabled,
   onChange,
   emptyLabel = "Награды не заданы.",
   showModeSelector = true,
 }: RewardPoolEditorProps) {
+  const pool = providedPool ?? emptyRewardPool;
+
   return (
     <Stack spacing={1.5}>
       {showModeSelector ? (
