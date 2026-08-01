@@ -5,10 +5,8 @@ import {
   getJourneyCellKey,
   getJourneyCellMapLabel,
   getJourneyConfig,
-  JOURNEY_ACHIEVEMENT_NAMES,
 } from "./domain/config";
 import type {
-  JourneyAchievement,
   JourneyGameListItemReadModel,
   JourneyGameView,
   JourneyV2Game,
@@ -98,26 +96,26 @@ export class JourneyReadModelFactory {
         nickname: player.nickname,
         status: player.status,
         position: player.position,
-        balanceEntries: entries(player.balance, game.resources),
+        balanceEntries: entries(this.engine.getPlayerRewardSummary(game, player).balanceEntries, game.resources),
       })),
     };
   }
   private player(player: JourneyV2Player, game: JourneyV2Game): JourneyGameView["state"]["players"][number] {
-    const achievements = getJourneyAchievements(game.rules);
+    const rewards = this.engine.getPlayerRewardSummary(game, player);
     return {
       id: player.id,
       nickname: player.nickname,
       status: player.status,
       position: player.position,
-      balanceEntries: entries(player.balance, game.resources),
-      bonuses: player.achievementNames
-        .filter((name) => name !== JOURNEY_ACHIEVEMENT_NAMES.JACKPOT)
-        .map((name) => Object.values(achievements).find((achievement) => achievement.name === name))
-        .filter((achievement): achievement is JourneyAchievement => Boolean(achievement))
-        .map(clone),
+      baseRewardEntries: entries(rewards.baseRewardEntries, game.resources),
+      bonusRewardEntries: entries(rewards.bonusRewardEntries, game.resources),
+      balanceEntries: entries(rewards.balanceEntries, game.resources),
+      bonuses: clone(rewards.bonuses),
     };
   }
 }
 const clone = <T>(value: T): T => structuredClone(value);
-const entries = (holdings: Record<string, number>, resources: JourneyV2Game["resources"]): ResourceAmount[] =>
-  resources.map((resource) => ({ resourceId: resource.id, amount: holdings[resource.id] ?? 0 }));
+const entries = (amounts: readonly ResourceAmount[], resources: JourneyV2Game["resources"]): ResourceAmount[] => {
+  const byResourceId = new Map(amounts.map((amount) => [amount.resourceId, amount.amount]));
+  return resources.map((resource) => ({ resourceId: resource.id, amount: byResourceId.get(resource.id) ?? 0 }));
+};

@@ -47,7 +47,7 @@ export class JourneyCommentTemplateRotator {
   }
 
   getTemplate(state: JourneyCommentState, reference: JourneyCommentReference): JourneyCommentTemplate {
-    const template = state.snapshot[reference.kind].find((candidate) => candidate.id === reference.templateId);
+    const template = state.snapshot[reference.kind]?.find((candidate) => candidate.id === reference.templateId);
     if (!template) throw new Error(`Journey comment template "${reference.templateId}" was not found`);
     return template;
   }

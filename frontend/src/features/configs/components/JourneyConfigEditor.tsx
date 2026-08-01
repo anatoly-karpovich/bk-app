@@ -1,9 +1,9 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { Alert, FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack } from "@mui/material";
+import { Alert, FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack, Switch } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
-import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell, RewardPool } from "../../journey/types";
+import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell, ResourceLimit, RewardPool } from "../../journey/types";
 import type { ProjectResource } from "../../projects/types";
 import RewardPoolEditor, { createRewardPool } from "./RewardPoolEditor";
 import RuleSection from "./RuleSection";
@@ -40,6 +40,7 @@ export default function JourneyConfigEditor({ rules, resources, disabled, onChan
   const jackpot = rules.jackpot;
   const cells = Array.isArray(rules.cells) ? rules.cells : [];
   const achievements = rules.achievements ?? {};
+  const resourceLimits = rules.resourceLimits ?? [];
 
   function patchRules(patch: Partial<JourneyRules>) {
     onChange({ ...rules, ...patch });
@@ -55,6 +56,28 @@ export default function JourneyConfigEditor({ rules, resources, disabled, onChan
     });
   }
 
+  function toggleResourceLimits(enabled: boolean) {
+    if (!enabled) {
+      patchRules({ resourceLimits: [] });
+      return;
+    }
+
+    const firstResource = resources[0];
+    patchRules({ resourceLimits: firstResource ? [{ resourceId: firstResource.id, min: 0, max: 0 }] : [] });
+  }
+
+  function updateResourceLimit(index: number, patch: Partial<ResourceLimit>) {
+    patchRules({ resourceLimits: resourceLimits.map((limit, currentIndex) => currentIndex === index ? { ...limit, ...patch } : limit) });
+  }
+
+  function addResourceLimit() {
+    const usedResourceIds = new Set(resourceLimits.map((limit) => limit.resourceId));
+    const resource = resources.find((candidate) => !usedResourceIds.has(candidate.id));
+    if (resource) {
+      patchRules({ resourceLimits: [...resourceLimits, { resourceId: resource.id, min: 0, max: 0 }] });
+    }
+  }
+
   return (
     <Stack spacing={2.5}>
       <RuleSection title="Основные параметры" description="Размер поля и допустимый диапазон броска кубика.">
@@ -68,6 +91,28 @@ export default function JourneyConfigEditor({ rules, resources, disabled, onChan
           <Grid item xs={12} sm={4}>
             <AppTextInput fullWidth type="number" label="Максимальный бросок" value={rules.maxDice ?? 0} disabled={disabled} inputProps={{ min: 1, step: 1 }} onChange={(event) => patchRules({ maxDice: Number(event.target.value) })} />
           </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={<Switch checked={resourceLimits.length > 0} disabled={disabled || !resources.length} onChange={(_event, enabled) => toggleResourceLimits(enabled)} />}
+              label="Включить лимит наград"
+            />
+          </Grid>
+          {resourceLimits.map((limit, index) => {
+            const resource = resources.find((candidate) => candidate.id === limit.resourceId);
+            const step = resource?.type === "currency" && resource.valueType === "decimal" ? 10 ** -(resource.precision ?? 0) : 1;
+            return (
+              <Grid key={`${limit.resourceId}-${index}`} item xs={12}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+                  <AppTextInput select size="small" label="Ресурс" value={limit.resourceId} disabled={disabled} onChange={(event) => updateResourceLimit(index, { resourceId: event.target.value })} sx={{ minWidth: { sm: 240 }, flex: 1 }}>
+                    {resources.filter((candidate) => candidate.id === limit.resourceId || !resourceLimits.some((other, otherIndex) => otherIndex !== index && other.resourceId === candidate.id)).map((candidate) => <MenuItem key={candidate.id} value={candidate.id}>{candidate.label} ({candidate.type === "currency" ? "валюта" : "предмет"})</MenuItem>)}
+                  </AppTextInput>
+                  <AppTextInput size="small" type="number" label="Максимум" value={limit.max ?? ""} disabled={disabled} inputProps={{ min: 0, step }} onChange={(event) => updateResourceLimit(index, { max: event.target.value === "" ? undefined : Number(event.target.value) })} sx={{ minWidth: { sm: 180 } }} />
+                  <IconButton aria-label="Отключить лимит ресурса" color="error" onClick={() => patchRules({ resourceLimits: resourceLimits.filter((_limit, currentIndex) => currentIndex !== index) })} disabled={disabled}><DeleteOutlineRoundedIcon /></IconButton>
+                </Stack>
+              </Grid>
+            );
+          })}
+          {resourceLimits.length && resourceLimits.length < resources.length ? <Grid item xs={12}><AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={addResourceLimit} disabled={disabled}>Добавить лимит ресурса</AppPillButton></Grid> : null}
         </Grid>
       </RuleSection>
 

@@ -293,11 +293,6 @@ const emptyRewardTemplates = {
   ],
 };
 
-const limitTemplates = {
-  gain: ["Не начислено{context}: {rewardLabel} — достигнут максимальный лимит."],
-  loss: ["Не списано{context}: {rewardLabel} — достигнут минимальный лимит."],
-};
-
 const skipTemplates = ["{nickname} пропускает ход."];
 
 export const JOURNEY_FORUM_MAP_CELL_TEMPLATE = "На клетке {position} находится {cellType} на {rewardLabel}";
@@ -319,8 +314,6 @@ export const JOURNEY_COMMENT_TEMPLATES: Record<JourneyCommentTemplateKind, strin
   "achievement:collector": achievementTemplatesByName[JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR] ?? achievementTemplates,
   "achievement:lucky": achievementTemplatesByName[JOURNEY_ACHIEVEMENT_NAMES.LUCKY] ?? achievementTemplates,
   "achievement:empty_reward": emptyRewardTemplates.achievement,
-  "limit:gain": limitTemplates.gain,
-  "limit:loss": limitTemplates.loss,
   skip: skipTemplates,
 };
 
@@ -389,15 +382,6 @@ export function buildJourneyEmptyJackpotRewardComment(
   randomFn: RandomFn = Math.random,
 ): string {
   return interpolate(randomFrom(emptyRewardTemplates.jackpot, randomFn), { nickname: playerNickname });
-}
-
-export function buildJourneyLimitComment(
-  kind: "gain" | "loss",
-  rewardLabel: string,
-  context = "",
-  randomFn: RandomFn = Math.random,
-): string {
-  return interpolate(randomFrom(limitTemplates[kind], randomFn), { rewardLabel, context });
 }
 
 export function buildJourneySkipComment(playerNickname: string, randomFn: RandomFn = Math.random): string {

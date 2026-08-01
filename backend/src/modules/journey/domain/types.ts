@@ -19,9 +19,10 @@ export type JourneyCommentTemplateKind = JourneyMoveCommentTemplateKind
   | "achievement:collector"
   | "achievement:lucky"
   | "achievement:empty_reward"
-  | "limit:gain"
-  | "limit:loss"
   | "skip";
+/** Only for rendering snapshots written before limit messages were removed. */
+export type JourneyLegacyCommentTemplateKind = "limit:gain" | "limit:loss";
+export type JourneyStoredCommentTemplateKind = JourneyCommentTemplateKind | JourneyLegacyCommentTemplateKind;
 
 export function toJourneyMoveCommentTemplateKind(
   moveType: Exclude<JourneyMoveType, "moveToAchievement">,
@@ -30,10 +31,10 @@ export function toJourneyMoveCommentTemplateKind(
 }
 
 export interface JourneyCommentTemplate { id: string; text: string; }
-export type JourneyCommentTemplatesSnapshot = Record<JourneyCommentTemplateKind, JourneyCommentTemplate[]>;
-export type JourneyLastSelectedCommentIds = Partial<Record<JourneyCommentTemplateKind, string>>;
+export type JourneyCommentTemplatesSnapshot = Record<JourneyCommentTemplateKind, JourneyCommentTemplate[]> & Partial<Record<JourneyLegacyCommentTemplateKind, JourneyCommentTemplate[]>>;
+export type JourneyLastSelectedCommentIds = Partial<Record<JourneyStoredCommentTemplateKind, string>>;
 export interface JourneyCommentState { snapshot: JourneyCommentTemplatesSnapshot; lastSelectedIds: JourneyLastSelectedCommentIds; }
-export interface JourneyCommentReference { kind: JourneyCommentTemplateKind; templateId: string; }
+export interface JourneyCommentReference { kind: JourneyStoredCommentTemplateKind; templateId: string; }
 
 /** Offline legacy-normalization shape. Runtime Journey V2 uses ResourceAmount. */
 export interface JourneyCurrencyValue { currencyId: string; value: number; }
@@ -85,7 +86,7 @@ export interface JourneyMapCell { id: string; kind: JourneyCellKind; mapLabel?: 
 
 export interface JourneyV2Player {
   id: string; nickname: string; status: JourneyPlayerStatus; removedAt: string | null; removedReason: string | null;
-  position: number; balance: ResourceHoldings; achievementNames: string[];
+  position: number; balance: ResourceHoldings; initialRewards?: ResourceAmount[]; achievementNames: string[];
 }
 export interface JourneyV2AchievementEffect { name: string; requestedRewards: ResourceAmount[]; resolvedRewards: ResourceAmount[]; appliedRewards: ResourceAmount[]; commentRefs: JourneyCommentReference[]; }
 export type JourneyV2Turn =
@@ -99,7 +100,13 @@ export interface JourneyV2Game {
   forumTopicId: number | null; resources: ResourceSnapshot[]; rules: JourneyRules; stateV2: JourneyV2State;
 }
 
-export interface JourneyGameViewPlayer { id: string; nickname: string; status: JourneyPlayerStatus; position: number; balanceEntries: ResourceAmount[]; bonuses: JourneyAchievement[]; }
+export interface JourneyAwardedBonus {
+  name: string; title?: string; description?: string; source: "achievement" | "jackpot"; appliedRewards: ResourceAmount[];
+}
+export interface JourneyGameViewPlayer {
+  id: string; nickname: string; status: JourneyPlayerStatus; position: number;
+  baseRewardEntries: ResourceAmount[]; bonusRewardEntries: ResourceAmount[]; balanceEntries: ResourceAmount[]; bonuses: JourneyAwardedBonus[];
+}
 export interface JourneyHistoryEntryView {
   createdAt: string; roundIndex: number | string; skipped: boolean; previousPosition: number | null; currentPosition: number | null;
   requestedRewards: ResourceAmount[]; resolvedRewards: ResourceAmount[]; appliedRewards: ResourceAmount[];

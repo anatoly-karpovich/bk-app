@@ -69,6 +69,14 @@ export interface JourneyAchievement {
   description?: string;
 }
 
+export interface JourneyAwardedBonus {
+  name: string;
+  title?: string;
+  description?: string;
+  source: "achievement" | "jackpot";
+  appliedRewards: JourneyResourceAmount[];
+}
+
 export type JourneyAchievementsMap = Record<"JACKPOT" | "UNLUCKY" | "CAREFUL" | "COLLECTOR" | "LUCKY", JourneyAchievement>;
 
 export interface JourneyMapCell {
@@ -85,8 +93,10 @@ export interface JourneyPlayerReadModel {
   nickname: string;
   status: JourneyPlayerStatus;
   position: number;
+  baseRewardEntries: JourneyResourceAmount[];
+  bonusRewardEntries: JourneyResourceAmount[];
   balanceEntries: JourneyResourceAmount[];
-  bonuses: JourneyAchievement[];
+  bonuses: JourneyAwardedBonus[];
 }
 
 export interface JourneyTimelineEntry {

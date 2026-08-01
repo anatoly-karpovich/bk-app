@@ -277,7 +277,10 @@ The same principle applies to Battleships and Lotto: their engines own the game-
 
 It must not know a game's players, balances, limits, recipient policy, or persistence. Game domains own those rules and persist the resolved outcome:
 
-- Journey applies its own inventory limits and balances.
+- Journey applies its own inventory limits and balances. Limits apply only to ordinary map-cell rewards; initial rewards, jackpots, and achievement rewards bypass them.
+- Journey keeps each resolved grant in the game state. Its read model and forum state must total the limited base reward plus the saved achievement and jackpot grants; never infer bonus values from a mutable preset or reroll a pool.
+- Journey forum state prints a player's saved achievement and jackpot grants as a separate readable bonus list beneath the total reward.
+- A limited Journey map-cell reward is described only by its `MOVE_TYPES.AT_MAX` or `MOVE_TYPES.TO_MAX` comment. Do not add a separate limit comment; retained legacy limit-template references exist only to render old saved snapshots.
 - Battleships resolves pools at hit/destroy triggers, stores grants and cumulative results, and undo restores saved state without rerolling.
 - Lotto resolves each prize group once, uses `LottoPayoutDistributor` to assign its saved result to recipients, and reads prize tables from persisted payouts. A split pool with item rewards is invalid until an explicit item-distribution policy exists.
 

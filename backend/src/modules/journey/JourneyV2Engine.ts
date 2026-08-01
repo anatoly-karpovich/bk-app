@@ -1,5 +1,5 @@
 import type { ResourceAmount, ResourceHoldings, ResourceSnapshot } from "../rewards";
-import { RewardGrantService } from "../rewards";
+import { addResourceAmounts, RewardGrantService } from "../rewards";
 import { JourneyRoundValidationError } from "./errors";
 import { JourneyResourceInventoryService } from "./domain/JourneyResourceInventoryService";
 import { JourneyRewardCommentFormatter, type FormattedRewardApplication } from "./domain/JourneyRewardCommentFormatter";
@@ -27,6 +27,7 @@ import type {
   JourneyCommentReference,
   JourneyCommentTemplateKind,
   JourneyAchievementProgress,
+  JourneyAwardedBonus,
   JourneyHistoryEntryView,
   JourneyMapCell,
   JourneyMoveInput,
@@ -71,11 +72,9 @@ export class JourneyV2Engine {
     const random = options.randomFn ?? Math.random;
     const rules = normalizeJourneyRules(options.rules);
     const resources = clone(options.resources ?? []);
-    const initial = this.inventory.apply(
-      {},
-      this.rewardGrantService.resolve(rules.initialRewardPool),
-      rules.resourceLimits,
-    ).holdings;
+    const initialApplication = this.inventory.apply({}, this.rewardGrantService.resolve(rules.initialRewardPool));
+    const initialRewards = initialApplication.rewards.map((entry) => entry.applied);
+    const initial = initialApplication.holdings;
     const players = [...new Set(nicknames.map((name) => name.trim()).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, ["ru-RU", "en-US"], { sensitivity: "base" }))
       .map((nickname) => ({
@@ -86,6 +85,7 @@ export class JourneyV2Engine {
         removedReason: null,
         position: 0,
         balance: clone(initial),
+        initialRewards: clone(initialRewards),
         achievementNames: [],
       }));
     return {
@@ -138,7 +138,6 @@ export class JourneyV2Engine {
       if (turn.kind !== "move") return;
       const player = this.findPlayer(next, turn.playerId)!;
       player.position = turn.to;
-      player.balance = this.inventory.apply(player.balance, turn.resolvedRewards, next.rules.resourceLimits).holdings;
       player.status = this.playerStatus(player, next);
     });
     orderedTurns.forEach((turn) => {
@@ -151,6 +150,7 @@ export class JourneyV2Engine {
     const round: JourneyV2Round = { index: next.stateV2.moveIndex, occurredAt: now(), turns: orderedTurns };
     this.assignCommentReferences(next, round, random);
     next.stateV2.rounds.push(round);
+    this.refreshPlayerBalances(next);
     next.stateV2.forumLog.push(...this.buildComments(next, round));
     next.updatedAt = round.occurredAt;
     return next.stateV2.players.some((player) => player.status === "active") ? next : this.finishGame(next);
@@ -274,6 +274,38 @@ export class JourneyV2Engine {
     );
   }
 
+  getPlayerRewardSummary(
+    game: JourneyV2Game,
+    player: JourneyV2Player,
+  ): { baseRewardEntries: ResourceAmount[]; bonusRewardEntries: ResourceAmount[]; balanceEntries: ResourceAmount[]; bonuses: JourneyAwardedBonus[] } {
+    const baseRewards = [...this.initialRewardsFor(player, game)];
+    const bonuses: JourneyAwardedBonus[] = [];
+
+    game.stateV2.rounds.forEach((round) => {
+      round.turns
+        .filter((turn): turn is Extract<JourneyV2Turn, { kind: "move" }> => turn.kind === "move" && turn.playerId === player.id)
+        .forEach((turn) => {
+          if (turn.moveType === MOVE_TYPES.JACKPOT) {
+            bonuses.push(this.awardedBonus(game, JOURNEY_ACHIEVEMENT_NAMES.JACKPOT, "jackpot", turn.appliedRewards));
+          } else {
+            baseRewards.push(...turn.appliedRewards);
+          }
+          turn.achievementEffects.forEach((effect) => {
+            bonuses.push(this.awardedBonus(game, effect.name, "achievement", effect.appliedRewards));
+          });
+        });
+    });
+
+    const baseRewardEntries = addResourceAmounts(baseRewards);
+    const bonusRewardEntries = addResourceAmounts(bonuses.flatMap((bonus) => bonus.appliedRewards));
+    return {
+      baseRewardEntries,
+      bonusRewardEntries,
+      balanceEntries: addResourceAmounts(baseRewardEntries, bonusRewardEntries),
+      bonuses,
+    };
+  }
+
   private createMap(rules: JourneyRules, players: number, random: RandomFn): Record<number, JourneyMapCell> {
     const available = Array.from({ length: rules.mapSize }, (_, index) => index + 1);
     const map: Record<number, JourneyMapCell> = {};
@@ -293,7 +325,7 @@ export class JourneyV2Engine {
     const to = Math.min(player.position + dice, getJourneyConfig(game.rules, game.resources).finishPosition);
     const cell = game.stateV2.map[to];
     const resolved = cell && !cell.isJackpot ? this.rewardGrantService.resolve(cell.rewardPool) : [];
-    const application = this.inventory.apply(player.balance, resolved, game.rules.resourceLimits);
+    const application = this.inventory.apply(this.baseHoldings(game, player), resolved, game.rules.resourceLimits);
     return {
       kind: "move",
       playerId: player.id,
@@ -329,9 +361,7 @@ export class JourneyV2Engine {
             const winner = eligible[randomInteger(0, eligible.length - 1, random)];
             const player = this.findPlayer(game, winner.playerId)!;
             const resolved = this.rewardGrantService.resolve(cell.rewardPool);
-            const applied = this.inventory
-              .apply(player.balance, resolved, game.rules.resourceLimits)
-              .rewards.map((entry) => entry.applied);
+            const applied = this.inventory.apply(player.balance, resolved).rewards.map((entry) => entry.applied);
             cell.winner = { nickname: player.nickname };
             Object.assign(winner, {
               moveType: MOVE_TYPES.JACKPOT,
@@ -373,9 +403,8 @@ export class JourneyV2Engine {
   ): void {
     if (player.achievementNames.includes(achievement.name)) return;
     const resolved = this.rewardGrantService.resolve(achievement.rewardPool);
-    const application = this.inventory.apply(player.balance, resolved, game.rules.resourceLimits);
+    const application = this.inventory.apply(player.balance, resolved);
     player.achievementNames.push(achievement.name);
-    player.balance = application.holdings;
     turn.achievementEffects.push({
       name: achievement.name,
       requestedRewards: clone(resolved),
@@ -445,6 +474,43 @@ export class JourneyV2Engine {
   private achievement(game: JourneyV2Game, name: string) {
     return Object.values(getJourneyAchievements(game.rules)).find((achievement) => achievement.name === name) ?? null;
   }
+  private awardedBonus(
+    game: JourneyV2Game,
+    name: string,
+    source: JourneyAwardedBonus["source"],
+    appliedRewards: readonly ResourceAmount[],
+  ): JourneyAwardedBonus {
+    const template = name === JOURNEY_ACHIEVEMENT_NAMES.JACKPOT
+      ? getJourneyAchievements(game.rules).JACKPOT
+      : this.achievement(game, name);
+    return {
+      name,
+      title: template?.title,
+      description: template?.description,
+      source,
+      appliedRewards: appliedRewards.map((reward) => ({ ...reward })),
+    };
+  }
+  private initialRewardsFor(player: JourneyV2Player, game: JourneyV2Game): ResourceAmount[] {
+    if (player.initialRewards) return clone(player.initialRewards);
+    // Old V2 documents did not retain a separately rolled initial reward. A deterministic `all` pool
+    // can be recovered safely; other legacy pools remain untouched rather than being rolled again.
+    return game.rules.initialRewardPool.mode === "all" ? game.rules.initialRewardPool.rewards.map((reward) => ({ ...reward })) : [];
+  }
+  private baseHoldings(game: JourneyV2Game, player: JourneyV2Player): ResourceHoldings {
+    return this.holdingsFromAmounts(this.getPlayerRewardSummary(game, player).baseRewardEntries);
+  }
+  private holdingsFromAmounts(amounts: readonly ResourceAmount[]): ResourceHoldings {
+    return addResourceAmounts(amounts).reduce<ResourceHoldings>((holdings, amount) => {
+      holdings[amount.resourceId] = amount.amount;
+      return holdings;
+    }, {});
+  }
+  private refreshPlayerBalances(game: JourneyV2Game): void {
+    game.stateV2.players.forEach((player) => {
+      player.balance = this.holdingsFromAmounts(this.getPlayerRewardSummary(game, player).balanceEntries);
+    });
+  }
   private holdingsEntries(holdings: ResourceHoldings, resources: ResourceSnapshot[]): ResourceAmount[] {
     return resources.map((resource) => ({ resourceId: resource.id, amount: holdings[resource.id] ?? 0 }));
   }
@@ -513,14 +579,12 @@ export class JourneyV2Engine {
         );
         effect.commentRefs = [
           this.commentTemplateRotator.takeNext(state, this.achievementCommentKind(effect.name, formatted), random),
-          ...this.limitCommentReferences(state, formatted, random),
         ];
       });
 
       const formatted = this.rewardCommentFormatter.format(game.resources, turn.resolvedRewards, turn.appliedRewards);
       turn.commentRefs = [
         this.commentTemplateRotator.takeNext(state, this.moveCommentKind(turn), random),
-        ...this.limitCommentReferences(state, formatted, random),
       ];
     });
   }
@@ -545,17 +609,6 @@ export class JourneyV2Engine {
     if (name === JOURNEY_ACHIEVEMENT_NAMES.CAREFUL) return "achievement:careful";
     if (name === JOURNEY_ACHIEVEMENT_NAMES.COLLECTOR) return "achievement:collector";
     return "achievement:lucky";
-  }
-
-  private limitCommentReferences(
-    state: NonNullable<JourneyV2Game["stateV2"]["commentState"]>,
-    formatted: FormattedRewardApplication,
-    random: RandomFn,
-  ): JourneyCommentReference[] {
-    return [
-      ...(formatted.unappliedGain ? [this.commentTemplateRotator.takeNext(state, "limit:gain", random)] : []),
-      ...(formatted.unappliedLoss ? [this.commentTemplateRotator.takeNext(state, "limit:loss", random)] : []),
-    ];
   }
 
   private renderRewardComments(

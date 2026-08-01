@@ -150,13 +150,19 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
       rewardPool: resolvedPool(rawJackpot.rewardPool, legacyJackpotRewards, defaults.jackpot.rewardPool),
     },
     cells: rawCells.length
-      ? rawCells.map((cell) => ({
-          id: String(cell.id ?? ""),
-          kind: cell.kind === "trap" ? "trap" : "bonus",
-          mapLabel: typeof cell.mapLabel === "string" ? cell.mapLabel.trim() : "",
-          count: nonNegativeInteger(cell.count, 0),
-          rewardPool: resolvedPool(cell.rewardPool, cell.rewards, defaults.cells[0].rewardPool),
-        }))
+      ? rawCells.map((cell) => {
+          const kind = cell.kind === "trap" ? "trap" : "bonus";
+          const rawId = String(cell.id ?? "");
+          const legacyCoreId = rawId.replace(`${kind}_`, "");
+          const id = (JOURNEY_CORE_CELL_IDS as readonly string[]).includes(legacyCoreId) ? legacyCoreId : rawId;
+          return {
+            id,
+            kind,
+            mapLabel: getJourneyCellMapLabel({ id, kind, mapLabel: typeof cell.mapLabel === "string" ? cell.mapLabel.trim() : "" }),
+            count: nonNegativeInteger(cell.count, 0),
+            rewardPool: resolvedPool(cell.rewardPool, cell.rewards, defaults.cells[0].rewardPool),
+          };
+        })
       : defaults.cells,
     achievements: {
       unlucky: {

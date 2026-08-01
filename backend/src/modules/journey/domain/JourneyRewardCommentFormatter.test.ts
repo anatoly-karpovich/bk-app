@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { RewardGrantService, type Randomizer, type ResourceSnapshot } from "../../rewards";
 import { JourneyV2Engine } from "../JourneyV2Engine";
+import { JourneyForumStateFormatter } from "../JourneyForumStateFormatter";
+import { JourneyReadModelFactory } from "../JourneyReadModelFactory";
 import { JourneyCommentTemplateRotator } from "./JourneyCommentTemplateRotator";
 import { JourneyResourceInventoryService } from "./JourneyResourceInventoryService";
 import {
@@ -10,7 +12,7 @@ import {
   JOURNEY_COMMENT_TEMPLATES,
 } from "./commentTemplates";
 import { MOVE_TYPES } from "./config";
-import type { JourneyRules } from "./types";
+import type { JourneyGameView, JourneyRules } from "./types";
 import { JourneyRewardCommentFormatter } from "./JourneyRewardCommentFormatter";
 import {
   buildJourneyRoundMarker,
@@ -114,6 +116,45 @@ test("renders Journey move and achievement texts from templates without the bala
   assert.ok(!achievementComment.includes("["));
 });
 
+test("lists saved achievement and jackpot grants in the forum state", () => {
+  const game = {
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    configuration: { resources },
+    state: {
+      players: [{
+        id: "player",
+        nickname: "Анатолий",
+        status: "active",
+        position: 5,
+        baseRewardEntries: [{ resourceId: "coins", amount: 5 }],
+        bonusRewardEntries: [{ resourceId: "coins", amount: 5 }, { resourceId: "key", amount: 1 }],
+        balanceEntries: [{ resourceId: "coins", amount: 10 }, { resourceId: "key", amount: 1 }],
+        bonuses: [
+          {
+            name: "Lucky",
+            title: "Счастливчик",
+            source: "achievement" as const,
+            appliedRewards: [{ resourceId: "coins", amount: 5 }, { resourceId: "key", amount: 1 }],
+          },
+          { name: "Jackpot", title: "Сокровище", source: "jackpot" as const, appliedRewards: [] },
+        ],
+      }],
+    },
+  } as JourneyGameView;
+
+  assert.equal(
+    new JourneyForumStateFormatter().create(game).text,
+    [
+      "==================== Текущее положение ====================",
+      "",
+      "Анатолий: Итоговая награда: [10 монет, 1 ключ], Клетка: [5]",
+      "   Бонусы:",
+      "   - Сокровище: [без дополнительной награды]",
+      "   - Достижение «Счастливчик»: [5 монет, 1 ключ]",
+    ].join("\n"),
+  );
+});
+
 test("rotates every template in a group before it repeats and restores by template id", () => {
   const rotator = new JourneyCommentTemplateRotator();
   const kind = "move:moveWithIncreasingPrize" as const;
@@ -152,7 +193,7 @@ test("stores selected comment template references in a new Journey round", () =>
   );
 });
 
-test("writes a limited cell reward from resolved and applied values", () => {
+test("writes a limited cell reward with only its move comment", () => {
   const engine = createEngine();
   const game = engine.createGame(["Анатолий"], {
     resources,
@@ -180,11 +221,13 @@ test("writes a limited cell reward from resolved and applied values", () => {
 
   const next = engine.makeRound(game, [{ playerId: player.id, dice: 1 }]);
 
-  const [roundTitle, moveComment, limitComment] = next.stateV2.forumLog.slice(-3);
+  const [roundTitle, moveComment] = next.stateV2.forumLog.slice(-2);
   assert.equal(roundTitle, buildJourneyRoundMarker(1));
   assert.match(moveComment, /5 монет и 1 ключ/);
   assert.ok(!moveComment.includes("["));
-  assert.equal(limitComment, "Не начислено: 5 монет — достигнут максимальный лимит.");
+  assert.equal(next.stateV2.rounds[0].turns[0].kind === "move"
+    ? next.stateV2.rounds[0].turns[0].commentRefs.length
+    : 0, 1);
 });
 
 test("uses shared forum markers for the game start and each move", () => {
@@ -252,6 +295,75 @@ test("uses moveType to distinguish won, empty, and already claimed jackpots", ()
   assert.ok(claimed.stateV2.forumLog.slice(-2).some((comment) => !comment.includes("[") && comment.length > 0));
 });
 
+test("does not apply a base-reward limit to a jackpot", () => {
+  const engine = createEngine();
+  const game = engine.createGame(["Анатолий"], {
+    resources,
+    rules: rules({
+      initialRewardPool: all({ resourceId: "coins", amount: 5 }),
+      resourceLimits: [{ resourceId: "coins", min: 0, max: 5 }],
+    }),
+  });
+  game.stateV2.map = {
+    1: {
+      id: "jackpot",
+      kind: "bonus",
+      isJackpot: true,
+      rewardPool: all({ resourceId: "coins", amount: 5 }),
+      winner: null,
+    },
+  };
+  const player = game.stateV2.players[0];
+
+  const next = engine.makeRound(game, [{ playerId: player.id, dice: 1 }]);
+
+  assert.equal(next.stateV2.players[0].balance.coins, 10);
+  const turn = next.stateV2.rounds[0].turns[0];
+  assert.equal(turn.kind, "move");
+  assert.deepEqual(turn.appliedRewards, [{ resourceId: "coins", amount: 5 }]);
+});
+
+test("keeps base rewards limited separately from saved jackpot rewards in the game view and forum state", () => {
+  const engine = createEngine();
+  const game = engine.createGame(["Анатолий"], {
+    resources,
+    rules: rules({
+      initialRewardPool: all({ resourceId: "coins", amount: 5 }),
+      resourceLimits: [{ resourceId: "coins", min: 0, max: 5 }],
+    }),
+  });
+  game.stateV2.map = {
+    1: {
+      id: "jackpot",
+      kind: "bonus",
+      isJackpot: true,
+      rewardPool: all({ resourceId: "coins", amount: 7 }, { resourceId: "key", amount: 1 }),
+      winner: null,
+    },
+    2: { id: "bonus", kind: "bonus", rewardPool: all({ resourceId: "coins", amount: 2 }) },
+  };
+  const player = game.stateV2.players[0];
+
+  const afterJackpot = engine.makeRound(game, [{ playerId: player.id, dice: 1 }]);
+  const afterBaseMove = engine.makeRound(afterJackpot, [{ playerId: player.id, dice: 1 }]);
+  const summary = engine.getPlayerRewardSummary(afterBaseMove, afterBaseMove.stateV2.players[0]);
+
+  assert.deepEqual(summary.baseRewardEntries, [{ resourceId: "coins", amount: 5 }]);
+  assert.deepEqual(summary.bonusRewardEntries, [{ resourceId: "coins", amount: 7 }, { resourceId: "key", amount: 1 }]);
+  assert.deepEqual(summary.balanceEntries, [{ resourceId: "coins", amount: 12 }, { resourceId: "key", amount: 1 }]);
+  assert.equal(summary.bonuses[0].name, "Jackpot");
+  assert.equal(summary.bonuses[0].source, "jackpot");
+  assert.deepEqual(summary.bonuses[0].appliedRewards, [{ resourceId: "coins", amount: 7 }, { resourceId: "key", amount: 1 }]);
+  assert.deepEqual(afterBaseMove.stateV2.rounds[1].turns[0].kind === "move"
+    ? afterBaseMove.stateV2.rounds[1].turns[0].appliedRewards
+    : [], [{ resourceId: "coins", amount: 0 }]);
+
+  const view = new JourneyReadModelFactory(engine).create({ ...afterBaseMove, _id: { toHexString: () => "journey" } } as any);
+  assert.deepEqual(view.state.players[0].balanceEntries, summary.balanceEntries);
+  assert.deepEqual(view.state.players[0].bonuses, summary.bonuses);
+  assert.match(new JourneyForumStateFormatter().create(view).text, /12 монет, 1 ключ/);
+});
+
 test("reports an empty weighted jackpot as a won jackpot without a reward", () => {
   const engine = createEngine();
   const game = engine.createGame(["Анатолий"], { resources, rules: rules() });
@@ -271,7 +383,7 @@ test("reports an empty weighted jackpot as a won jackpot without a reward", () =
   assert.ok(next.stateV2.forumLog.some((comment) => /награда не выпадает|внутри оказывается пусто/.test(comment)));
 });
 
-test("writes an achievement reward and its limit before the move comment", () => {
+test("does not apply a base-reward limit to an achievement reward", () => {
   const engine = createEngine();
   const game = engine.createGame(["Анатолий"], {
     resources,
@@ -294,17 +406,9 @@ test("writes an achievement reward and its limit before the move comment", () =>
     next = engine.makeRound(next, [{ playerId: player.id, dice: 1 }]);
   }
 
-  const achievementIndex = next.stateV2.forumLog.reduce(
-    (lastIndex, comment, index) => (comment.includes("Осторожный") ? index : lastIndex),
-    -1,
-  );
-  const limitIndex = next.stateV2.forumLog.lastIndexOf(
-    "Не начислено за достижение: 5 монет — достигнут максимальный лимит.",
-  );
-  const moveIndex = limitIndex + 1;
-
-  assert.ok(achievementIndex >= 0);
-  assert.ok(achievementIndex < limitIndex);
-  assert.ok(limitIndex < moveIndex);
-  assert.ok(!next.stateV2.forumLog[moveIndex].includes("["));
+  assert.equal(next.stateV2.players[0].balance.coins, 10);
+  const awarded = next.stateV2.rounds[3].turns[0];
+  assert.equal(awarded.kind, "move");
+  assert.deepEqual(awarded.achievementEffects[0].appliedRewards, [{ resourceId: "coins", amount: 10 }]);
+  assert.ok(!next.stateV2.forumLog.some((comment) => comment.includes("достигнут максимальный лимит")));
 });
