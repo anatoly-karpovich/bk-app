@@ -1,4 +1,5 @@
 import type { AnyGameConfig, Project, ProjectCurrency, ProjectItem, ProjectMutationInput } from "./types";
+import { projectTexts } from "../../texts/projectTexts";
 
 export type ProjectCurrencyDraft = Omit<ProjectCurrency, "createdAt" | "updatedAt"> & { isNew: boolean };
 export type ProjectItemDraft = Omit<ProjectItem, "createdAt" | "updatedAt"> & { isNew: boolean };
@@ -15,12 +16,6 @@ export interface ResourceConfigUsage {
   configName: string;
   usageLabel: string;
 }
-
-const gameNames: Record<AnyGameConfig["gameType"], string> = {
-  journey: "Карта Мародёров",
-  lotto: "Лото",
-  battleships: "Морской бой",
-};
 
 function createResourceId(): string {
   return `resource_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -130,8 +125,8 @@ export function getResourceConfigUsages(resourceId: string, gameConfigs: readonl
   return gameConfigs
     .filter((config) => configReferencesResource(config, resourceId))
     .map((config) => ({
-      gameName: gameNames[config.gameType],
+      gameName: projectTexts.usage.gameNames[config.gameType],
       configName: config.name,
-      usageLabel: "Правила и награды",
+      usageLabel: projectTexts.usage.rulesAndRewards,
     }));
 }

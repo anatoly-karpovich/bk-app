@@ -3,6 +3,7 @@ import { Box, Card, CardContent, Divider, Grid, IconButton, MenuItem, Stack, Typ
 import AppChip from "../../../components/ui/AppChip";
 import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import AppTextInput from "../../../components/ui/AppTextInput";
+import { projectTexts } from "../../../texts/projectTexts";
 import type { ProjectCurrencyDraft, ProjectResourceDraft } from "../projectPage.helpers";
 
 interface ProjectResourceEditorProps {
@@ -14,7 +15,7 @@ interface ProjectResourceEditorProps {
 }
 
 function getPreview(resource: ProjectResourceDraft): string {
-  const label = resource.label || (resource.type === "currency" ? "единиц" : "Название предмета");
+  const label = resource.label || (resource.type === "currency" ? projectTexts.resource.currencyPreviewPlaceholder : projectTexts.resource.itemPreviewPlaceholder);
   return resource.type === "currency" ? `30 ${label}` : `${label} ×1`;
 }
 
@@ -29,14 +30,14 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5} sx={{ pb: 2, borderBottom: "1px solid", borderColor: "divider" }}>
             <Box sx={{ minWidth: 0 }}>
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                <Typography variant="h5">{resource.label || "Новый ресурс"}</Typography>
-                <AppChip size="small" color="secondary" label={resource.type === "currency" ? "Валюта" : "Предмет"} />
-                <AppChip size="small" label={isUsedByConfig ? "Используется в конфигах" : resource.isNew ? "Новый ресурс" : "Не используется в конфигах"} />
+                <Typography variant="h5">{resource.label || projectTexts.resource.newResource}</Typography>
+                <AppChip size="small" color="secondary" label={resource.type === "currency" ? projectTexts.resource.currency : projectTexts.resource.item} />
+                <AppChip size="small" label={isUsedByConfig ? projectTexts.resource.usedInConfigs : resource.isNew ? projectTexts.resource.newResource : projectTexts.resource.unusedInConfigs} />
               </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Настройки выбранного ресурса</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{projectTexts.resource.editorSubtitle}</Typography>
             </Box>
             <IconButton
-              aria-label={`Удалить ресурс ${resource.label || resource.code || resource.id}`}
+              aria-label={projectTexts.resource.deleteAriaLabel(resource.label || resource.code || resource.id)}
               color="error"
               disabled={!canRemove || disabled}
               onClick={onRemove}
@@ -47,7 +48,7 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
 
           {isUsedByConfig ? (
             <AppInfoAlert>
-              Этот ресурс используется в игровом конфиге. Его нельзя удалить{resource.type === "currency" ? " или изменить формат валюты." : "."}
+              {projectTexts.alerts.resourceUsed(resource.type === "currency")}
             </AppInfoAlert>
           ) : null}
 
@@ -56,7 +57,7 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
               <AppTextInput
                 fullWidth
                 size="small"
-                label="Название"
+                label={projectTexts.resource.nameLabel}
                 value={resource.label}
                 disabled={disabled}
                 onChange={(event) => onChange({ ...resource, label: event.target.value })}
@@ -70,7 +71,7 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
                     select
                     fullWidth
                     size="small"
-                    label="Формат суммы"
+                    label={projectTexts.resource.valueTypeLabel}
                     value={resource.valueType}
                     disabled={currencyFormatLocked}
                     onChange={(event) => {
@@ -78,8 +79,8 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
                       onChange({ ...resource, valueType, precision: valueType === "integer" ? 0 : resource.precision || 1 });
                     }}
                   >
-                    <MenuItem value="integer">Целая</MenuItem>
-                    <MenuItem value="decimal">Десятичная</MenuItem>
+                    <MenuItem value="integer">{projectTexts.resource.integerValueType}</MenuItem>
+                    <MenuItem value="decimal">{projectTexts.resource.decimalValueType}</MenuItem>
                   </AppTextInput>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -87,7 +88,7 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
                     fullWidth
                     size="small"
                     type="number"
-                    label="Знаков после запятой"
+                    label={projectTexts.resource.precisionLabel}
                     value={resource.precision}
                     disabled={currencyFormatLocked || resource.valueType === "integer"}
                     inputProps={{ min: 0, max: 1, step: 1 }}
@@ -102,8 +103,8 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
 
           <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>Предпросмотр</Typography>
-              <Typography variant="caption" color="text.secondary">Так ресурс будет отображаться внутри игр.</Typography>
+              <Typography variant="subtitle1" fontWeight={700}>{projectTexts.resource.previewTitle}</Typography>
+              <Typography variant="caption" color="text.secondary">{projectTexts.resource.previewSubtitle}</Typography>
             </Box>
             <Box sx={{ px: 1.75, py: 0.85, borderRadius: "999px", bgcolor: "rgba(79, 70, 229, 0.1)", color: "primary.main", fontWeight: 700, whiteSpace: "nowrap" }}>
               {getPreview(resource)}

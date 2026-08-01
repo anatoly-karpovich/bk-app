@@ -4,6 +4,7 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, Card, CardContent, Grid, Stack, Typography } from "@mui/material";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppTextInput from "../../components/ui/AppTextInput";
+import { projectTexts } from "../../texts/projectTexts";
 import { useGameConfigs } from "../configs/hooks/useGameConfigs";
 import ProjectResourceEditor from "./components/ProjectResourceEditor";
 import ProjectResourceList from "./components/ProjectResourceList";
@@ -45,7 +46,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
   }, [selectedProject]);
 
   if (!selectedProject || !draft || !selectedResource) {
-    return <Alert severity="warning">Выберите проект, чтобы изменить его параметры и ресурсы.</Alert>;
+    return <Alert severity="warning">{projectTexts.alerts.projectRequired}</Alert>;
   }
 
   function updateResource(nextResource: ProjectResourceDraft) {
@@ -85,15 +86,15 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
       <Grid item xs={12}>
         <GamePageHeader
           breadcrumbPath="/project"
-          title="Настройки проекта"
-          description="Общие сведения проекта и каталог ресурсов, доступных новым игровым конфигам."
+          title={projectTexts.page.title}
+          description={projectTexts.page.description}
           chips={[
-            { label: `Проект: ${selectedProject.name}` },
-            { label: `Ресурсов: ${draft.resources.length}`, color: "secondary" },
+            { label: projectTexts.page.projectChip(selectedProject.name) },
+            { label: projectTexts.page.resourcesChip(draft.resources.length), color: "secondary" },
           ]}
           actions={[
-            { key: "reset", label: "Сбросить", icon: <RefreshRoundedIcon />, onClick: resetDraft, disabled: isSaving, variant: "text", color: "inherit" },
-            { key: "save", label: "Сохранить изменения", icon: <SaveRoundedIcon />, onClick: () => void saveProject(), disabled: !canSave, loading: isSaving, variant: "contained" },
+            { key: "reset", label: projectTexts.page.reset, icon: <RefreshRoundedIcon />, onClick: resetDraft, disabled: isSaving, variant: "text", color: "inherit" },
+            { key: "save", label: projectTexts.page.save, icon: <SaveRoundedIcon />, onClick: () => void saveProject(), disabled: !canSave, loading: isSaving, variant: "contained" },
           ]}
         />
       </Grid>
@@ -106,12 +107,12 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
             <CardContent>
               <Stack spacing={1.5}>
                 <Stack spacing={0.25}>
-                  <Typography variant="h5">Сведения о проекте</Typography>
-                  <Typography variant="body2" color="text.secondary">Название, код и описание проекта</Typography>
+                  <Typography variant="h5">{projectTexts.projectDetails.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{projectTexts.projectDetails.subtitle}</Typography>
                 </Stack>
-                <AppTextInput fullWidth size="small" label="Название" value={draft.name} disabled={isSaving} onChange={(event) => setDraft((current) => current ? { ...current, name: event.target.value } : current)} />
-                <AppTextInput fullWidth size="small" label="Код проекта" value={selectedProject.code} disabled helperText="Код проекта неизменяем." />
-                <AppTextInput fullWidth size="small" multiline minRows={3} label="Описание" value={draft.description} disabled={isSaving} onChange={(event) => setDraft((current) => current ? { ...current, description: event.target.value } : current)} />
+                <AppTextInput fullWidth size="small" label={projectTexts.projectDetails.nameLabel} value={draft.name} disabled={isSaving} onChange={(event) => setDraft((current) => current ? { ...current, name: event.target.value } : current)} />
+                <AppTextInput fullWidth size="small" label={projectTexts.projectDetails.codeLabel} value={selectedProject.code} disabled helperText={projectTexts.projectDetails.codeHelper} />
+                <AppTextInput fullWidth size="small" multiline minRows={3} label={projectTexts.projectDetails.descriptionLabel} value={draft.description} disabled={isSaving} onChange={(event) => setDraft((current) => current ? { ...current, description: event.target.value } : current)} />
               </Stack>
             </CardContent>
           </Card>

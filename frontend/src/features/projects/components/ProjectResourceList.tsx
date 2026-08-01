@@ -4,6 +4,7 @@ import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 import TollRoundedIcon from "@mui/icons-material/TollRounded";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
+import { projectTexts } from "../../../texts/projectTexts";
 import type { ProjectResourceDraft } from "../projectPage.helpers";
 
 interface ProjectResourceListProps {
@@ -16,9 +17,7 @@ interface ProjectResourceListProps {
 }
 
 function getResourceMeta(resource: ProjectResourceDraft): string {
-  const type = resource.type === "currency" ? "Валюта" : "Предмет";
-  if (resource.isNew) return `${type} · новый ресурс`;
-  return `${type} · ${resource.canDelete ? "не используется в конфигах" : "используется в конфигах"}`;
+  return projectTexts.resource.meta(resource.type, resource.isNew ? "new" : resource.canDelete ? "unused" : "used");
 }
 
 export default function ProjectResourceList({
@@ -35,11 +34,11 @@ export default function ProjectResourceList({
         <Stack spacing={2}>
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
             <Box>
-              <Typography variant="h5">Ресурсы</Typography>
-              <Typography variant="body2" color="text.secondary">Выберите ресурс для редактирования</Typography>
+              <Typography variant="h5">{projectTexts.resource.listTitle}</Typography>
+              <Typography variant="body2" color="text.secondary">{projectTexts.resource.listSubtitle}</Typography>
             </Box>
             <Box
-              aria-label={`Ресурсов: ${resources.length}`}
+              aria-label={projectTexts.resource.countAriaLabel(resources.length)}
               sx={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", bgcolor: "primary.main", color: "primary.contrastText", fontSize: 12, fontWeight: 700 }}
             >
               {resources.length}
@@ -84,7 +83,7 @@ export default function ProjectResourceList({
                     <Icon fontSize="small" />
                   </Box>
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="subtitle2" noWrap>{resource.label || "Новый ресурс"}</Typography>
+                    <Typography variant="subtitle2" noWrap>{resource.label || projectTexts.resource.newResource}</Typography>
                     <Typography variant="caption" color="text.secondary" noWrap>{getResourceMeta(resource)}</Typography>
                   </Box>
                   <ChevronRightRoundedIcon color="disabled" fontSize="small" />
@@ -94,8 +93,8 @@ export default function ProjectResourceList({
           </Stack>
 
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-            <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} disabled={disabled} onClick={onAddCurrency}>Валюта</AppPillButton>
-            <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} disabled={disabled} onClick={onAddItem}>Предмет</AppPillButton>
+            <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} disabled={disabled} onClick={onAddCurrency}>{projectTexts.resource.addCurrency}</AppPillButton>
+            <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} disabled={disabled} onClick={onAddItem}>{projectTexts.resource.addItem}</AppPillButton>
           </Stack>
         </Stack>
       </CardContent>
