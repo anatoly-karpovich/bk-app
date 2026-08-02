@@ -12,7 +12,6 @@ import {
 import {
   battleshipsGameIdParamsSchema,
   battleshipsShotSchema,
-  createBattleshipsGameDjNameSchema,
   createBattleshipsGamePlayerNameSchema,
   createBattleshipsGamePresetSchema,
   createBattleshipsGameProjectParamsSchema,
@@ -52,15 +51,9 @@ export class BattleshipsController {
         { gameConfigId: req.body?.gameConfigId },
         "Body field 'gameConfigId' must be a valid game config id",
       );
-      const { djName } = parseRequest(
-        createBattleshipsGameDjNameSchema,
-        { djName: req.body?.djName },
-        "Body field 'djName' must be a string when provided",
-      );
-      const game = await this.battleshipsService.createBattleshipsGameSnapshotInProject(projectId, {
+      const game = await this.battleshipsService.createBattleshipsGameSnapshotInProject(req.authUser!, projectId, {
         playerName,
         gameConfigId,
-        djName,
       });
 
       return res.status(201).json({
@@ -94,9 +87,9 @@ export class BattleshipsController {
     }
   };
 
-  listBattleshipsGames = async (_req: Request, res: Response) => {
+  listBattleshipsGames = async (req: Request, res: Response) => {
     try {
-      const games = await this.battleshipsService.listBattleshipsGameSnapshots(getProjectId(_req));
+      const games = await this.battleshipsService.listBattleshipsGameSnapshots(req.authUser!, getProjectId(req));
 
       return res.status(200).json({
         success: true,
@@ -118,7 +111,7 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const game = await this.battleshipsService.getBattleshipsGameSnapshot(getProjectId(req), gameId);
+      const game = await this.battleshipsService.getBattleshipsGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -162,7 +155,7 @@ export class BattleshipsController {
         req.query,
         "Query parameter 'status' must be either 'in_progress' or 'finished'",
       );
-      const game = await this.battleshipsService.getLatestBattleshipsGameSnapshot(getProjectId(req), status);
+      const game = await this.battleshipsService.getLatestBattleshipsGameSnapshot(req.authUser!, getProjectId(req), status);
 
       return res.status(200).json({
         success: true,
@@ -203,7 +196,7 @@ export class BattleshipsController {
         req.body,
         "Body fields 'row' and 'column' must be positive integers",
       );
-      const updatedGame = await this.battleshipsService.submitBattleshipsShot(getProjectId(req), gameId, shot);
+      const updatedGame = await this.battleshipsService.submitBattleshipsShot(req.authUser!, getProjectId(req), gameId, shot);
 
       return res.status(200).json({
         success: true,
@@ -250,7 +243,7 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const updatedGame = await this.battleshipsService.undoBattleshipsShot(getProjectId(req), gameId);
+      const updatedGame = await this.battleshipsService.undoBattleshipsShot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -297,7 +290,7 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      await this.battleshipsService.deleteBattleshipsGameSnapshot(getProjectId(req), gameId);
+      await this.battleshipsService.deleteBattleshipsGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,

@@ -5,6 +5,8 @@ export interface Project {
   name: string;
   description: string;
   resources: ProjectResource[];
+  createdByUserId: string;
+  updatedByUserId: string;
   createdAt: string;
   updatedAt: string;
 }

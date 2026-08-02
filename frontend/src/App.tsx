@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
 import BattleshipsPage from "./features/battleships/BattleshipsPage";
@@ -11,16 +11,28 @@ import JourneyPage from "./features/journey/JourneyPage";
 import LottoPage from "./features/lotto/LottoPage";
 import ProjectPage from "./features/projects/ProjectPage";
 import { useProjects } from "./features/projects/hooks/useProjects";
-
-const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
+import LoginPage from "./features/auth/LoginPage";
+import { ProtectedRoute } from "./features/auth/ProtectedRoute";
+import { useAuth } from "./features/auth/useAuth";
+import { AdminRoute } from "./features/auth/AdminRoute";
+import UsersPage from "./features/users/UsersPage";
+import DashboardPage from "./features/dashboard/DashboardPage";
 
 export default function App() {
-  const [djName, setDjName] = useState(() => localStorage.getItem(DJ_NAME_STORAGE_KEY) ?? "");
+  return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
+}
+
+function AuthenticatedApp() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { projects, selectedProject, error, isSaving, actions } = useProjects();
+  const djName = selectedProject ? user?.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? "" : "";
 
   useEffect(() => {
-    localStorage.setItem(DJ_NAME_STORAGE_KEY, djName);
-  }, [djName]);
+    const redirectToDashboard = () => navigate("/", { replace: true });
+    window.addEventListener("bk:access-forbidden", redirectToDashboard);
+    return () => window.removeEventListener("bk:access-forbidden", redirectToDashboard);
+  }, [navigate]);
 
   return (
     <Box
@@ -31,8 +43,8 @@ export default function App() {
       }}
     >
       <AppHeader
-        djName={djName}
-        onDjNameChange={setDjName}
+        user={user!}
+        onLogout={() => logout()}
         projects={projects}
         selectedProjectId={selectedProject?.id ?? ""}
         onSelectedProjectChange={actions.selectProject}
@@ -45,7 +57,7 @@ export default function App() {
         ) : null}
 
         <Routes>
-          <Route path="/" element={<Navigate to="/journey" replace />} />
+          <Route path="/" element={<DashboardPage user={user!} />} />
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
@@ -54,7 +66,9 @@ export default function App() {
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />
+          <Route path="/users" element={<AdminRoute><UsersPage projects={projects} /></AdminRoute>} />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Container>
     </Box>

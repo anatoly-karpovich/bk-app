@@ -59,6 +59,8 @@ export class LottoEngine {
       projectId?: string;
       configId?: string;
       configName?: string;
+      hostUserId?: string;
+      hostSnapshot?: import("../auth/domain/types").HostSnapshot;
     },
   ): LottoGame {
     const now = new Date().toISOString();
@@ -75,6 +77,8 @@ export class LottoEngine {
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
+      hostUserId: options.hostUserId,
+      hostSnapshot: options.hostSnapshot ? this.clone(options.hostSnapshot) : undefined,
       resources,
       rules,
       drawnNumbers: [],

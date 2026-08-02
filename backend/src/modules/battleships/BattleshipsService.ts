@@ -10,6 +10,8 @@ import type {
   BattleshipsGameReadModel,
   BattleshipsShotInput,
 } from "./domain/types";
+import type { CurrentUser } from "../auth/domain/types";
+import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import {
   BattleshipsGameNotFoundError,
   BattleshipsGamesNotFoundError,
@@ -33,15 +35,19 @@ export class BattleshipsService {
   ) {}
 
   async createBattleshipsGameSnapshotInProject(
+    actor: CurrentUser,
     projectId: string,
     payload: Omit<CreateBattleshipsGamePayload, "configId"> & { gameConfigId: string },
   ): Promise<BattleshipsGameResponse> {
+    const hostSnapshot = getHostSnapshot(actor, projectId);
     const gameConfigContext = await this.gameConfigsService.getBattleshipsGameConfigContext(projectId, payload.gameConfigId);
 
     const nextGame = this.engine.createGame(payload.playerName, {
       rules: gameConfigContext.config.rules,
       resources: gameConfigContext.projectResources,
-      djName: payload.djName,
+      djName: hostSnapshot.nickname,
+      hostUserId: actor.id,
+      hostSnapshot,
       projectId,
       configId: payload.gameConfigId,
       configName: gameConfigContext.config.name,
@@ -59,22 +65,26 @@ export class BattleshipsService {
     return this.serializeBattleshipsGame(createdGame);
   }
 
-  async getBattleshipsGameSnapshot(projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+  async getBattleshipsGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+    assertProjectAccess(actor, projectId);
     const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!game) {
       throw new BattleshipsGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, game.hostUserId);
 
     return this.serializeBattleshipsGame(game);
   }
 
-  async listBattleshipsGameSnapshots(projectId: string): Promise<BattleshipsGameListResponse> {
+  async listBattleshipsGameSnapshots(actor: CurrentUser, projectId: string): Promise<BattleshipsGameListResponse> {
+    assertProjectAccess(actor, projectId);
     const games = await this.repository.findByProjectId(projectId);
-    return games.map((game) => this.readModelFactory.createListItem(game));
+    return games.filter((game) => actor.role === "admin" || game.hostUserId === actor.id).map((game) => this.readModelFactory.createListItem(game));
   }
 
   async getLatestBattleshipsGameSnapshot(
+    actor: CurrentUser,
     projectId: string,
     status?: BattleshipsGameDocument["status"],
   ): Promise<BattleshipsGameResponse> {
@@ -83,16 +93,19 @@ export class BattleshipsService {
     if (!latestGame) {
       throw new BattleshipsGamesNotFoundError(status);
     }
+    assertOwnedByUser(actor, latestGame.hostUserId);
 
     return this.serializeBattleshipsGame(latestGame);
   }
 
-  async submitBattleshipsShot(projectId: string, gameId: string, shot: BattleshipsShotInput): Promise<BattleshipsGameResponse> {
+  async submitBattleshipsShot(actor: CurrentUser, projectId: string, gameId: string, shot: BattleshipsShotInput): Promise<BattleshipsGameResponse> {
+    assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new BattleshipsGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, currentGame.hostUserId);
 
     const nextGame = this.engine.makeShot(currentGame, shot);
     const updatedGame = await this.saveBattleshipsGameDocument(projectId, gameId, nextGame);
@@ -104,12 +117,14 @@ export class BattleshipsService {
     return updatedGame;
   }
 
-  async undoBattleshipsShot(projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+  async undoBattleshipsShot(actor: CurrentUser, projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+    assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new BattleshipsGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, currentGame.hostUserId);
 
     const nextGame = this.engine.undoLastShot(currentGame);
     const updatedGame = await this.saveBattleshipsGameDocument(projectId, gameId, nextGame);
@@ -121,7 +136,11 @@ export class BattleshipsService {
     return updatedGame;
   }
 
-  async deleteBattleshipsGameSnapshot(projectId: string, gameId: string): Promise<void> {
+  async deleteBattleshipsGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<void> {
+    assertProjectAccess(actor, projectId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
+    if (!currentGame) throw new BattleshipsGameNotFoundError(gameId);
+    assertOwnedByUser(actor, currentGame.hostUserId);
     const deleted = await this.repository.delete(gameId, projectId);
 
     if (!deleted) {

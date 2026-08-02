@@ -83,6 +83,9 @@ interface BaseGameConfig<TGameType extends GameType, TRules, TSummary> {
   summary: TSummary;
   createdAt: string;
   updatedAt: string;
+  isSystem: boolean;
+  createdByUserId: string;
+  updatedByUserId: string;
 }
 
 export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary> & {

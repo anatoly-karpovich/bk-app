@@ -45,6 +45,10 @@ export class ProjectsRepository {
     return result.deletedCount > 0;
   }
 
+  async assignBootstrapOwnership(userId: string): Promise<void> {
+    await (await this.getCollection()).updateMany({}, { $set: { createdByUserId: userId, updatedByUserId: userId } });
+  }
+
   private async getCollection() {
     return this.mongoDatabase.getCollection<ProjectDocument>(PROJECTS_COLLECTION);
   }

@@ -19,7 +19,6 @@ export async function createJourneyGameRequest(payload: {
   projectId: string;
   gameConfigId: string;
   nicknames: string[];
-  djName?: string;
   forumTopicId?: number;
 }): Promise<JourneyPageGame> {
   const { projectId, ...body } = payload;
@@ -55,7 +54,7 @@ export async function previewJourneyForumMovesRequest(
 
 export async function importJourneyPlayersFromForumRequest(
   projectId: string,
-  payload: { forumTopicId: number; djName: string },
+  payload: { forumTopicId: number },
 ): Promise<string[]> {
   return await apiClient.post<string[]>(`${getProjectJourneyApiBaseUrl(projectId)}/forum-players`, payload);
 }
@@ -87,11 +86,8 @@ export async function deleteJourneyGameRequest(projectId: string, gameId: string
   return await apiClient.delete<unknown>(`${getProjectJourneyApiBaseUrl(projectId)}/games/${gameId}`);
 }
 
-export async function parseJourneyPlayersRequest(text: string, djName: string): Promise<string[]> {
-  return await apiClient.post<string[]>(`${JOURNEY_API_BASE_URL}/parse/players`, {
-    text,
-    djName,
-  });
+export async function parseJourneyPlayersRequest(projectId: string, text: string): Promise<string[]> {
+  return await apiClient.post<string[]>(`${getProjectJourneyApiBaseUrl(projectId)}/parse/players`, { text });
 }
 
 export async function parseJourneyMovesRequest(text: string): Promise<Record<string, number>> {

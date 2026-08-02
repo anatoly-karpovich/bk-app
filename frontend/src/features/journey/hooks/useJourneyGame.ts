@@ -445,7 +445,6 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
         projectId: selectedProject.id,
         gameConfigId: selectedJourneyGameConfig.id,
         nicknames: cleanNames,
-        djName: djName.trim(),
         forumTopicId: parsedForumTopicId,
       });
 
@@ -498,7 +497,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     setIsImportingPlayers(true);
 
     try {
-      const importedNames = await parseJourneyPlayersRequest(playersImportText, djName);
+      if (!selectedProject?.id) return false;
+      const importedNames = await parseJourneyPlayersRequest(selectedProject.id, playersImportText);
 
       if (!importedNames.length) {
         return false;
@@ -527,7 +527,6 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     try {
       const importedNames = await importJourneyPlayersFromForumRequest(selectedProject.id, {
         forumTopicId: parsedForumTopicId,
-        djName: djName.trim(),
       });
 
       if (!importedNames.length) {

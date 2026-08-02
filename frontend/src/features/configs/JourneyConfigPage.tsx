@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
+import { useAuth } from "../auth/useAuth";
 import { journeyConfigTexts } from "../../texts/journeyConfigTexts";
 import type { JourneyRules } from "../journey/types";
 import type { Project } from "../projects/types";
@@ -65,8 +66,14 @@ interface JourneyConfigPageProps {
 export default function JourneyConfigPage({ selectedProject }: JourneyConfigPageProps) {
   const { configId } = useParams<{ configId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<JourneyConfigPageSectionId>("general");
-  const { source, draft, error, isLoading, isSaving, actions } = useJourneyConfigEditor(selectedProject, configId);
+  const { user } = useAuth();
+  const { source, draft, error, isLoading, isSaving, isCreating, actions } = useJourneyConfigEditor(
+    selectedProject,
+    configId,
+    searchParams.get("sourceConfigId"),
+  );
   const changedSections = useMemo(() => getChangedSections(source, draft), [draft, source]);
 
   if (!selectedProject) {
@@ -90,8 +97,17 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
   }
 
   const activeSectionDetails = journeyConfigTexts.sections.details[activeSection];
+  const canEdit = isCreating || user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
+  const editorDisabled = isSaving || !canEdit;
   const bonusCount = draft.rules.cells.filter((cell) => cell.kind === "bonus").length;
   const trapCount = draft.rules.cells.filter((cell) => cell.kind === "trap").length;
+
+  async function saveConfig() {
+    const saved = await actions.save();
+    if (saved && isCreating) {
+      navigate(`/configs/journey/${encodeURIComponent(saved.id)}`, { replace: true });
+    }
+  }
 
   return (
     <Grid container spacing={3} alignItems="flex-start">
@@ -112,12 +128,12 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               color: changedSections.length ? "warning" : "default",
             },
           ]}
-          actions={[
+          actions={canEdit ? [
             {
               key: "save",
               label: journeyConfigTexts.page.save,
               icon: <SaveRoundedIcon />,
-              onClick: () => void actions.save(),
+              onClick: () => void saveConfig(),
               disabled: isSaving || !changedSections.length,
               loading: isSaving,
               variant: "contained",
@@ -131,7 +147,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               variant: "text",
               color: "inherit",
             },
-          ]}
+          ] : []}
         />
       </Grid>
 
@@ -140,6 +156,8 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
           <Alert severity="error">{error}</Alert>
         </Grid>
       ) : null}
+
+      {!canEdit ? <Grid item xs={12}><Alert severity="info">Этот конфиг доступен только для просмотра. Создайте свою копию системного конфига, чтобы изменить правила.</Alert></Grid> : null}
 
       <Grid item xs={12} lg={4} xl={3}>
         <JourneyConfigSectionNav
@@ -166,7 +184,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
                 descriptionLabel={journeyConfigTexts.general.configDescription}
                 source={source}
                 draft={draft}
-                disabled={isSaving}
+                disabled={editorDisabled}
                 onChange={actions.updateDraft}
               />
               <ConfigSummaryCard
@@ -194,7 +212,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : activeSection === "cells" ? (
@@ -202,7 +220,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : (
@@ -210,7 +228,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               activeSection={activeSection}
               onChange={(rules) => actions.updateDraft({ rules })}
             />

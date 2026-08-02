@@ -21,6 +21,9 @@ import type {
   LottoGameConfig,
 } from "./domain/types";
 import { GameConfigCurrencyValidationError, GameConfigNameConflictError, GameConfigNotFoundError } from "./errors";
+import type { CurrentUser } from "../auth/domain/types";
+import { assertOwnedByUser, assertProjectAccess } from "../auth/authorization";
+import { ForbiddenError } from "../../common/errors";
 
 export class GameConfigsService {
   constructor(
@@ -29,7 +32,8 @@ export class GameConfigsService {
     private readonly readModelFactory: GameConfigReadModelFactory,
   ) {}
 
-  async listProjectGameConfigs(projectId: string, gameType: GameType): Promise<AnyGameConfigReadModel[]> {
+  async listProjectGameConfigs(actor: CurrentUser, projectId: string, gameType: GameType): Promise<AnyGameConfigReadModel[]> {
+    assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
 
     if (!project) {
@@ -45,7 +49,8 @@ export class GameConfigsService {
       .sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
 
-  async getProjectGameConfig(projectId: string, gameConfigId: string): Promise<AnyGameConfigReadModel> {
+  async getProjectGameConfig(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<AnyGameConfigReadModel> {
+    assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
@@ -60,9 +65,11 @@ export class GameConfigsService {
   }
 
   async createProjectGameConfig(
+    actor: CurrentUser,
     projectId: string,
     input: { gameType: GameType; name: string; description: string; rules: unknown },
   ): Promise<AnyGameConfigReadModel> {
+    assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
@@ -70,18 +77,21 @@ export class GameConfigsService {
 
     const name = input.name.trim();
     await this.assertNameAvailable(projectId, input.gameType, name);
-    const now = new Date().toISOString();
     const rules = this.normalizeRules(input.gameType, input.rules);
     this.assertRulesUseProjectResources(rules, project.resources);
     if (input.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
     if (input.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
     if (input.gameType === "lotto") validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
+    const now = new Date().toISOString();
     const created = await this.repository.create({
       projectId,
       gameType: input.gameType,
       name,
       description: input.description.trim(),
       rules,
+      isSystem: false,
+      createdByUserId: actor.id,
+      updatedByUserId: actor.id,
       createdAt: now,
       updatedAt: now,
     });
@@ -94,10 +104,12 @@ export class GameConfigsService {
   }
 
   async updateProjectGameConfig(
+    actor: CurrentUser,
     projectId: string,
     gameConfigId: string,
     input: { name: string; description: string; rules: unknown },
   ): Promise<AnyGameConfigReadModel> {
+    assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
@@ -107,6 +119,8 @@ export class GameConfigsService {
     if (!current) {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
+    if (current.isSystem && actor.role !== "admin") throw new ForbiddenError();
+    if (!current.isSystem) assertOwnedByUser(actor, current.createdByUserId);
 
     const name = input.name.trim();
     if (name !== current.name) {
@@ -124,6 +138,9 @@ export class GameConfigsService {
       name,
       description: input.description.trim(),
       rules,
+      isSystem: current.isSystem,
+      createdByUserId: current.createdByUserId,
+      updatedByUserId: actor.id,
       createdAt: current.createdAt,
       updatedAt: new Date().toISOString(),
     });
@@ -135,7 +152,12 @@ export class GameConfigsService {
     return this.readModelFactory.create(updated._id.toHexString(), updated as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
   }
 
-  async deleteProjectGameConfig(projectId: string, gameConfigId: string): Promise<void> {
+  async deleteProjectGameConfig(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<void> {
+    assertProjectAccess(actor, projectId);
+    const current = await this.repository.findByIdAndProjectId(gameConfigId, projectId);
+    if (!current) throw new GameConfigNotFoundError(projectId, gameConfigId);
+    if (current.isSystem) throw new ForbiddenError("System configs cannot be deleted", { code: "FORBIDDEN" });
+    assertOwnedByUser(actor, current.createdByUserId);
     const deleted = await this.repository.delete(projectId, gameConfigId);
     if (!deleted) {
       throw new GameConfigNotFoundError(projectId, gameConfigId);

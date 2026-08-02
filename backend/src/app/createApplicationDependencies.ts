@@ -32,18 +32,34 @@ import { LottoService } from "../modules/lotto/LottoService";
 import { ProjectsController } from "../modules/projects/ProjectsController";
 import { ProjectsRepository } from "../modules/projects/ProjectsRepository";
 import { ProjectsService } from "../modules/projects/ProjectsService";
+import { AuthController } from "../modules/auth/AuthController";
+import { AuthService } from "../modules/auth/AuthService";
+import { PasswordHasher } from "../modules/auth/PasswordHasher";
+import { SessionsRepository } from "../modules/auth/SessionsRepository";
+import { UsersRepository } from "../modules/auth/UsersRepository";
+import { UsersController } from "../modules/users/UsersController";
+import { UsersService } from "../modules/users/UsersService";
 
 export interface ApplicationDependencies {
+  authController: AuthController;
+  authService: AuthService;
   battleshipsController: BattleshipsController;
   forumTopicController: ForumTopicController;
   gameConfigsController: GameConfigsController;
   journeyController: JourneyController;
   lottoController: LottoController;
   projectsController: ProjectsController;
+  usersController: UsersController;
 }
 
 export function createApplicationDependencies(): ApplicationDependencies {
   const mongoDatabase = getDefaultMongoDatabase();
+
+  const usersRepository = new UsersRepository(mongoDatabase);
+  const sessionsRepository = new SessionsRepository(mongoDatabase);
+  const passwordHasher = new PasswordHasher();
+  const authService = new AuthService(usersRepository, sessionsRepository, passwordHasher);
+  const authController = new AuthController(authService);
 
   const projectsRepository = new ProjectsRepository(mongoDatabase);
   const gameConfigsRepository = new GameConfigsRepository(mongoDatabase);
@@ -56,8 +72,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyRepository,
     battleshipsRepository,
     lottoRepository,
+    usersRepository,
   );
   const projectsController = new ProjectsController(projectsService);
+  const usersController = new UsersController(new UsersService(usersRepository, sessionsRepository, passwordHasher, projectsRepository));
 
   const gameConfigReadModelFactory = new GameConfigReadModelFactory();
   const gameConfigsService = new GameConfigsService(
@@ -119,11 +137,14 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const forumTopicController = new ForumTopicController(forumTopicService);
 
   return {
+    authController,
+    authService,
     battleshipsController,
     forumTopicController,
     gameConfigsController,
     journeyController,
     lottoController,
     projectsController,
+    usersController,
   };
 }

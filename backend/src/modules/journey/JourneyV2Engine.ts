@@ -66,6 +66,8 @@ export class JourneyV2Engine {
       configId?: string;
       configName?: string;
       forumTopicId?: number;
+      hostUserId?: string;
+      hostSnapshot?: import("../auth/domain/types").HostSnapshot;
     } = {},
   ): JourneyV2Game {
     const createdAt = now();
@@ -96,6 +98,8 @@ export class JourneyV2Engine {
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId ?? "",
       configName: options.configName ?? "",
+      hostUserId: options.hostUserId,
+      hostSnapshot: options.hostSnapshot ? clone(options.hostSnapshot) : undefined,
       forumTopicId: options.forumTopicId ?? null,
       resources,
       rules,

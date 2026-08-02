@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
+import type { ReactElement } from "react";
 import AppChip from "../../../components/ui/AppChip";
 
 interface ConfigContextChipProps {
   label: string;
-  icon: ReactNode;
+  icon: ReactElement;
 }
 
 export default function ConfigContextChip({ label, icon }: ConfigContextChipProps) {

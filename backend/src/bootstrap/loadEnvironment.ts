@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 let environmentLoaded = false;
@@ -8,11 +9,10 @@ export function loadEnvironment(): void {
   }
 
   const envFile = process.env.BK_APP_ENV_FILE?.trim();
+  const resolvedEnvFile = path.resolve(process.cwd(), envFile || ".env");
 
-  if (envFile) {
-    process.loadEnvFile(path.resolve(process.cwd(), envFile));
-  } else {
-    process.loadEnvFile();
+  if (existsSync(resolvedEnvFile)) {
+    process.loadEnvFile(resolvedEnvFile);
   }
 
   environmentLoaded = true;

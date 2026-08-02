@@ -13,6 +13,11 @@ import { LottoRepository } from "../lotto/LottoRepository";
 import { normalizeProjectResources } from "./domain/normalizeProjectCurrencies";
 import type { Project, ProjectCurrency, ProjectReadModel, ProjectResource } from "./domain/types";
 import { ProjectsRepository } from "./ProjectsRepository";
+import type { CurrentUser } from "../auth/domain/types";
+import { assertProjectAccess } from "../auth/authorization";
+import { UsersRepository } from "../auth/UsersRepository";
+
+const DEFAULT_ADMIN_PROJECT_NICKNAME = "Геральт из Ривии";
 
 export class ProjectsService {
   constructor(
@@ -21,16 +26,20 @@ export class ProjectsService {
     private readonly journeyRepository: JourneyRepository,
     private readonly battleshipsRepository: BattleshipsRepository,
     private readonly lottoRepository: LottoRepository,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
-  async listProjects(): Promise<ProjectReadModel[]> {
+  async listProjects(actor: CurrentUser): Promise<ProjectReadModel[]> {
     const projects = await this.repository.findAll();
-
-    const readModels = await Promise.all(projects.map((project) => this.toReadModel(project)));
+    const visibleProjects = actor.role === "admin"
+      ? projects
+      : projects.filter((project) => actor.projectProfiles.some((profile) => profile.projectId === project._id.toHexString()));
+    const readModels = await Promise.all(visibleProjects.map((project) => this.toReadModel(project)));
     return readModels.sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
 
-  async getProjectByIdOrThrow(projectId: string): Promise<ProjectReadModel> {
+  async getProjectByIdOrThrow(actor: CurrentUser, projectId: string): Promise<ProjectReadModel> {
+    assertProjectAccess(actor, projectId);
     const project = await this.repository.findById(projectId);
 
     if (!project) {
@@ -40,7 +49,7 @@ export class ProjectsService {
     return await this.toReadModel(project);
   }
 
-  async createProject(input: {
+  async createProject(actor: CurrentUser, input: {
     code: string;
     name: string;
     description: string;
@@ -59,6 +68,8 @@ export class ProjectsService {
       name: input.name.trim(),
       description: input.description.trim(),
       resources: normalizeProjectResources(input.resources, now),
+      createdByUserId: actor.id,
+      updatedByUserId: actor.id,
       createdAt: now,
       updatedAt: now,
     });
@@ -67,10 +78,20 @@ export class ProjectsService {
       throw new Error("Failed to load created project");
     }
 
-    return await this.toReadModel(created);
+    const project = await this.toReadModel(created);
+    const currentUser = await this.usersRepository.findById(actor.id);
+    if (currentUser && !currentUser.projectProfiles.some((profile) => profile.projectId === project.id)) {
+      await this.usersRepository.updateById(actor.id, {
+        projectProfiles: [...currentUser.projectProfiles, { projectId: project.id, nickname: DEFAULT_ADMIN_PROJECT_NICKNAME }],
+        updatedAt: new Date(),
+        updatedByUserId: actor.id,
+      });
+    }
+    return project;
   }
 
   async updateProject(
+    actor: CurrentUser,
     projectId: string,
     input: {
       code: string;
@@ -104,6 +125,8 @@ export class ProjectsService {
         })),
       ),
       createdAt: current.createdAt,
+      createdByUserId: current.createdByUserId,
+      updatedByUserId: actor.id,
       updatedAt: new Date().toISOString(),
     });
 
@@ -125,6 +148,7 @@ export class ProjectsService {
       this.journeyRepository.deleteByProjectId(projectId),
       this.battleshipsRepository.deleteByProjectId(projectId),
       this.lottoRepository.deleteByProjectId(projectId),
+      this.usersRepository.removeProjectProfiles(projectId),
     ]);
 
     const deleted = await this.repository.delete(projectId);
@@ -205,6 +229,8 @@ export class ProjectsService {
       })),
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+      createdByUserId: project.createdByUserId,
+      updatedByUserId: project.updatedByUserId,
     };
   }
 }

@@ -307,7 +307,6 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
         projectId: selectedProject.id,
         playerName: playerName.trim(),
         gameConfigId: selectedBattleshipsGameConfig.id,
-        djName: djName.trim(),
       });
 
       setGame(nextGame);

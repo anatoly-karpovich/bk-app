@@ -68,6 +68,10 @@ export class GameConfigsRepository {
     await collection.deleteMany({ projectId });
   }
 
+  async assignBootstrapOwnership(userId: string): Promise<void> {
+    await (await this.getCollection()).updateMany({}, { $set: { isSystem: true, createdByUserId: userId, updatedByUserId: userId } });
+  }
+
   private async getCollection() {
     return this.mongoDatabase.getCollection<GameConfigDocument>(GAME_CONFIGS_COLLECTION);
   }

@@ -6,8 +6,9 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
+import { useAuth } from "../auth/useAuth";
 import { lottoConfigTexts } from "../../texts/lottoConfigTexts";
 import type { LottoRules } from "../lotto/types";
 import type { Project } from "../projects/types";
@@ -63,12 +64,16 @@ interface LottoConfigPageProps {
 
 export default function LottoConfigPage({ selectedProject }: LottoConfigPageProps) {
   const { configId } = useParams<{ configId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<LottoConfigSectionId>("general");
-  const { source, draft, error, isLoading, isSaving, actions } = useGameConfigEditor(
+  const { source, draft, error, isLoading, isSaving, isCreating, actions } = useGameConfigEditor(
     selectedProject,
     configId,
     "lotto",
     lottoConfigTexts.alerts,
+    searchParams.get("sourceConfigId"),
   );
   const changedSections = useMemo(() => getChangedSections(source, draft), [draft, source]);
 
@@ -93,6 +98,8 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
   }
 
   const activeSectionDetails = lottoConfigTexts.sections.details[activeSection];
+  const canEdit = isCreating || user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
+  const editorDisabled = isSaving || !canEdit;
   const summaryItems = [
     { label: lottoConfigTexts.general.range, value: `${draft.rules.min}–${draft.rules.max}` },
     { label: lottoConfigTexts.general.cardNumbers, value: lottoConfigTexts.general.cardNumbersValue(draft.rules.cardNumbersAmount) },
@@ -105,6 +112,13 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
       value: formatRewardPool(draft.rules.secondPlacePrize, selectedProject.resources),
     },
   ];
+
+  async function saveConfig() {
+    const saved = await actions.save();
+    if (saved && isCreating) {
+      navigate(`/configs/lotto/${encodeURIComponent(saved.id)}`, { replace: true });
+    }
+  }
 
   return (
     <Grid container spacing={3} alignItems="flex-start">
@@ -125,12 +139,12 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
               color: changedSections.length ? "warning" : "default",
             },
           ]}
-          actions={[
+          actions={canEdit ? [
             {
               key: "save",
               label: lottoConfigTexts.page.save,
               icon: <SaveRoundedIcon />,
-              onClick: () => void actions.save(),
+              onClick: () => void saveConfig(),
               disabled: isSaving || !changedSections.length,
               loading: isSaving,
               variant: "contained",
@@ -144,7 +158,7 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
               variant: "text",
               color: "inherit",
             },
-          ]}
+          ] : []}
         />
       </Grid>
 
@@ -153,6 +167,8 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
           <Alert severity="error">{error}</Alert>
         </Grid>
       ) : null}
+
+      {!canEdit ? <Grid item xs={12}><Alert severity="info">Этот конфиг доступен только для просмотра. Создайте свою копию системного конфига, чтобы изменить правила.</Alert></Grid> : null}
 
       <Grid item xs={12} lg={4} xl={3}>
         <ConfigSectionNav<LottoConfigSectionId>
@@ -183,7 +199,7 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
                 descriptionLabel={lottoConfigTexts.general.configDescription}
                 source={source}
                 draft={draft}
-                disabled={isSaving}
+                disabled={editorDisabled}
                 onChange={actions.updateDraft}
               />
               <ConfigSummaryCard
@@ -199,7 +215,7 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : null}
@@ -209,7 +225,7 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : null}
@@ -219,7 +235,7 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : null}

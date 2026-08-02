@@ -12,7 +12,6 @@ export async function createLottoGameRequest(payload: {
     cardNumbers: number[];
   }>;
   gameConfigId: string;
-  djName?: string;
 }): Promise<LottoPersistedGame> {
   const { projectId, ...body } = payload;
   return await apiClient.post<LottoPersistedGame>(
