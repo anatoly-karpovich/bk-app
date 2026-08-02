@@ -61,7 +61,7 @@ function AuthenticatedApp() {
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
-          <Route path="/project" element={<ProjectPage selectedProject={selectedProject} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
+          <Route path="/project" element={<ProjectPage selectedProject={selectedProject} canEdit={user?.role === "admin"} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />

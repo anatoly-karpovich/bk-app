@@ -9,6 +9,7 @@ export const projectTexts = {
   },
   alerts: {
     projectRequired: "Выберите проект, чтобы изменить его параметры и ресурсы.",
+    projectUpdateForbidden: "Только администратор может изменять настройки проекта.",
     configsLoadFailed: (error: string) => `Не удалось загрузить список конфигов: ${error}`,
     resourceUsed: (isCurrency: boolean) => `Этот ресурс используется в игровом конфиге. Его нельзя удалить${isCurrency ? " или изменить формат валюты." : "."}`,
   },

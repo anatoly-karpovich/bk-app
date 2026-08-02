@@ -46,8 +46,14 @@ export default function UsersPage({ projects }: UsersPageProps) {
   async function saveUser() {
     const profilesValid = form.projectProfiles.length > 0 && form.projectProfiles.every((profile) => profile.projectId && profile.nickname.trim());
     if (!form.displayName.trim() || !profilesValid) { setFormError("Заполните имя и хотя бы один профиль проекта с никнеймом."); return; }
-    if (!editorUser && (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(form.login.trim().toLocaleLowerCase()) || form.password.length < 10 || form.password !== form.confirmation)) {
-      setFormError(form.password !== form.confirmation ? "Подтверждение пароля не совпадает." : "Проверьте логин и пароль (минимум 10 символов)."); return;
+    if (!editorUser && !/^[a-z0-9][a-z0-9._-]{2,39}$/.test(form.login.trim().toLocaleLowerCase())) {
+      setFormError("Логин должен содержать от 3 до 40 символов: латинские буквы, цифры, . _ -."); return;
+    }
+    if (!editorUser && form.password.length < 10) {
+      setFormError("Пароль должен содержать не менее 10 символов."); return;
+    }
+    if (!editorUser && form.password !== form.confirmation) {
+      setFormError("Подтверждение пароля не совпадает."); return;
     }
     const successful = editorUser
       ? await actions.update(editorUser.id, toUserMutationInput(form))

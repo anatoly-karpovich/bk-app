@@ -3,6 +3,7 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, Card, CardContent, Grid, Stack, Typography } from "@mui/material";
 import GamePageHeader from "../../components/GamePageHeader";
+import AppInfoAlert from "../../components/ui/AppInfoAlert";
 import AppTextInput from "../../components/ui/AppTextInput";
 import { projectTexts } from "../../texts/projectTexts";
 import { useGameConfigs } from "../configs/hooks/useGameConfigs";
@@ -23,12 +24,13 @@ import type { Project, ProjectMutationInput } from "./types";
 
 interface ProjectPageProps {
   selectedProject: Project | null;
+  canEdit: boolean;
   error: string | null;
   isSaving: boolean;
   onUpdateProject: (projectId: string, input: ProjectMutationInput) => Promise<Project | null>;
 }
 
-export default function ProjectPage({ selectedProject, error, isSaving, onUpdateProject }: ProjectPageProps) {
+export default function ProjectPage({ selectedProject, canEdit, error, isSaving, onUpdateProject }: ProjectPageProps) {
   const [draft, setDraft] = useState<ProjectDraft | null>(selectedProject ? toProjectDraft(selectedProject) : null);
   const [selectedResourceId, setSelectedResourceId] = useState(selectedProject?.resources[0]?.id ?? "");
   const { gameConfigs, error: configsError, isLoading: isLoadingConfigs } = useGameConfigs(selectedProject?.id);
@@ -83,7 +85,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
   }
 
   async function saveProject() {
-    if (!canSave) {
+    if (!canEdit || !canSave) {
       return;
     }
 
@@ -107,7 +109,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
               label: projectTexts.page.save,
               icon: <SaveRoundedIcon />,
               onClick: () => void saveProject(),
-              disabled: !canSave,
+              disabled: !canEdit || !canSave,
               loading: isSaving,
               variant: "contained",
             },
@@ -116,7 +118,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
               label: projectTexts.page.reset,
               icon: <RefreshRoundedIcon />,
               onClick: resetDraft,
-              disabled: isSaving,
+              disabled: !canEdit || isSaving,
               variant: "text",
               color: "inherit",
             },
@@ -127,6 +129,11 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
       {error ? (
         <Grid item xs={12}>
           <Alert severity="error">{error}</Alert>
+        </Grid>
+      ) : null}
+      {!canEdit ? (
+        <Grid item xs={12}>
+          <AppInfoAlert>{projectTexts.alerts.projectUpdateForbidden}</AppInfoAlert>
         </Grid>
       ) : null}
 
@@ -146,7 +153,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
                   size="small"
                   label={projectTexts.projectDetails.nameLabel}
                   value={draft.name}
-                  disabled={isSaving}
+                  disabled={!canEdit || isSaving}
                   onChange={(event) =>
                     setDraft((current) => (current ? { ...current, name: event.target.value } : current))
                   }
@@ -166,7 +173,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
                   minRows={3}
                   label={projectTexts.projectDetails.descriptionLabel}
                   value={draft.description}
-                  disabled={isSaving}
+                  disabled={!canEdit || isSaving}
                   onChange={(event) =>
                     setDraft((current) => (current ? { ...current, description: event.target.value } : current))
                   }
@@ -178,7 +185,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
           <ProjectResourceList
             resources={draft.resources}
             selectedResourceId={selectedResource.id}
-            disabled={isSaving}
+            disabled={!canEdit || isSaving}
             onSelect={setSelectedResourceId}
             onAddCurrency={() => addResource(createCurrencyDraft())}
             onAddItem={() => addResource(createItemDraft())}
@@ -190,7 +197,7 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
         <Stack spacing={3}>
           <ProjectResourceEditor
             resource={selectedResource}
-            disabled={isSaving}
+            disabled={!canEdit || isSaving}
             canRemove={selectedResource.canDelete && draft.resources.length > 1}
             onChange={updateResource}
             onRemove={removeSelectedResource}
