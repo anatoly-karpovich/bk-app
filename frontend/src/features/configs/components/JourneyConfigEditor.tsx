@@ -6,6 +6,7 @@ import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyConfigTexts } from "../../../texts/journeyConfigTexts";
 import type { JourneyRules, ResourceLimit } from "../../journey/types";
 import type { ProjectResource } from "../../projects/types";
+import type { JourneyConfigSectionId } from "../types";
 import RewardPoolEditor from "./RewardPoolEditor";
 import RuleSection from "./RuleSection";
 
@@ -18,7 +19,6 @@ interface JourneyConfigEditorProps {
   activeSection?: JourneyConfigSectionId;
 }
 
-export type JourneyConfigSectionId = "map" | "rewards" | "jackpot" | "cells" | "achievements";
 type AchievementId = keyof JourneyRules["achievements"];
 
 const achievementIds = Object.keys(journeyConfigTexts.achievements.entries) as AchievementId[];

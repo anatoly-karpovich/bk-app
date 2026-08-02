@@ -1,19 +1,20 @@
 import { useMemo, useState } from "react";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
-import { Alert, Card, CardContent, CircularProgress, Grid, Stack, Typography } from "@mui/material";
+import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
-import AppChip from "../../components/ui/AppChip";
-import AppTextInput from "../../components/ui/AppTextInput";
 import { journeyConfigTexts } from "../../texts/journeyConfigTexts";
 import type { JourneyRules } from "../journey/types";
 import type { Project } from "../projects/types";
+import ConfigEditorWorkspaceHeader from "./components/ConfigEditorWorkspaceHeader";
+import ConfigGeneralSection from "./components/ConfigGeneralSection";
+import ConfigSummaryCard from "./components/ConfigSummaryCard";
 import JourneyConfigEditor from "./components/JourneyConfigEditor";
 import { JourneyCellsSection, JourneyJackpotSection } from "./components/JourneyConfigPageSections";
-import JourneyConfigSectionNav, { type JourneyConfigPageSectionId } from "./components/JourneyConfigSectionNav";
+import JourneyConfigSectionNav from "./components/JourneyConfigSectionNav";
 import { useJourneyConfigEditor } from "./hooks/useJourneyConfigEditor";
+import type { JourneyConfigPageSectionId } from "./types";
 
 function isSameValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
@@ -89,12 +90,8 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
   }
 
   const activeSectionDetails = journeyConfigTexts.sections.details[activeSection];
-  const activeSectionNavigation = journeyConfigTexts.sections[activeSection];
   const bonusCount = draft.rules.cells.filter((cell) => cell.kind === "bonus").length;
   const trapCount = draft.rules.cells.filter((cell) => cell.kind === "trap").length;
-  const resourceChips = selectedProject.resources.map(
-    (resource) => `${resource.label} · ${resource.type === "currency" ? "валюта" : "предмет"}`,
-  );
 
   return (
     <Grid container spacing={3} alignItems="flex-start">
@@ -151,120 +148,43 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
 
       <Grid item xs={12} lg={8} xl={9}>
         <Stack spacing={2.25}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                justifyContent="space-between"
-                alignItems={{ md: "center" }}
-                spacing={2}
-              >
-                <Stack spacing={0.5}>
-                  <Typography variant="h5">{activeSectionDetails.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {activeSectionDetails.description}
-                  </Typography>
-                </Stack>
-                {resourceChips.length ? (
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent={{ md: "flex-end" }}>
-                    {resourceChips.map((label) => (
-                      <AppChip
-                        key={label}
-                        size="small"
-                        label={label}
-                        color="primary"
-                        sx={{ bgcolor: "rgba(79, 70, 229, 0.1)", color: "primary.dark", fontWeight: 700 }}
-                      />
-                    ))}
-                  </Stack>
-                ) : null}
-              </Stack>
-            </CardContent>
-          </Card>
+          <ConfigEditorWorkspaceHeader
+            title={activeSectionDetails.title}
+            description={activeSectionDetails.description}
+            resources={selectedProject.resources}
+          />
 
           {activeSection === "general" ? (
             <Stack spacing={2.25}>
-              <Card>
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Stack spacing={0.25}>
-                      <Typography variant="h5">{journeyConfigTexts.general.title}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {journeyConfigTexts.general.description}
-                      </Typography>
-                    </Stack>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <AppTextInput
-                          fullWidth
-                          label={journeyConfigTexts.general.name}
-                          value={draft.name}
-                          changed={draft.name !== source.name}
-                          disabled={isSaving}
-                          required
-                          onChange={(event) => actions.updateDraft({ name: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <AppTextInput
-                          fullWidth
-                          label={journeyConfigTexts.general.configDescription}
-                          value={draft.description}
-                          changed={draft.description !== source.description}
-                          disabled={isSaving}
-                          onChange={(event) => actions.updateDraft({ description: event.target.value })}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Stack>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Stack
-                    direction={{ xs: "column", lg: "row" }}
-                    justifyContent="space-between"
-                    alignItems={{ lg: "center" }}
-                    spacing={2.25}
-                  >
-                    <Stack spacing={0.25} sx={{ maxWidth: { lg: 360 } }}>
-                      <Typography variant="h5">{journeyConfigTexts.general.summaryTitle}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {journeyConfigTexts.general.summaryDescription}
-                      </Typography>
-                    </Stack>
-                    <Grid container spacing={1.25} sx={{ flex: 1, maxWidth: { lg: 720 } }}>
-                      {[
-                        [journeyConfigTexts.general.map, journeyConfigTexts.general.mapValue(draft.rules.mapSize)],
-                        [journeyConfigTexts.general.move, `${draft.rules.minDice}–${draft.rules.maxDice}`],
-                        [
-                          journeyConfigTexts.general.jackpot,
-                          draft.rules.jackpot.countMode === "fixed"
-                            ? String(draft.rules.jackpot.count)
-                            : journeyConfigTexts.general.jackpotByPlayersValue(draft.rules.jackpot.playersPerJackpot),
-                        ],
-                        [
-                          journeyConfigTexts.general.cells,
-                          journeyConfigTexts.general.cellsValue(bonusCount, trapCount),
-                        ],
-                      ].map(([label, value]) => (
-                        <Grid key={label} item xs={12} sm={6}>
-                          <Card variant="outlined" sx={{ boxShadow: "none", bgcolor: "rgba(248, 250, 252, 0.8)" }}>
-                            <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
-                              <Typography variant="caption" color="text.secondary">
-                                {label}
-                              </Typography>
-                              <Typography variant="body2" fontWeight={700}>
-                                {value}
-                              </Typography>
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Stack>
-                </CardContent>
-              </Card>
+              <ConfigGeneralSection
+                title={journeyConfigTexts.general.title}
+                description={journeyConfigTexts.general.description}
+                nameLabel={journeyConfigTexts.general.name}
+                descriptionLabel={journeyConfigTexts.general.configDescription}
+                source={source}
+                draft={draft}
+                disabled={isSaving}
+                onChange={actions.updateDraft}
+              />
+              <ConfigSummaryCard
+                title={journeyConfigTexts.general.summaryTitle}
+                description={journeyConfigTexts.general.summaryDescription}
+                items={[
+                  { label: journeyConfigTexts.general.map, value: journeyConfigTexts.general.mapValue(draft.rules.mapSize) },
+                  { label: journeyConfigTexts.general.move, value: `${draft.rules.minDice}–${draft.rules.maxDice}` },
+                  {
+                    label: journeyConfigTexts.general.jackpot,
+                    value:
+                      draft.rules.jackpot.countMode === "fixed"
+                        ? String(draft.rules.jackpot.count)
+                        : journeyConfigTexts.general.jackpotByPlayersValue(draft.rules.jackpot.playersPerJackpot),
+                  },
+                  {
+                    label: journeyConfigTexts.general.cells,
+                    value: journeyConfigTexts.general.cellsValue(bonusCount, trapCount),
+                  },
+                ]}
+              />
             </Stack>
           ) : activeSection === "jackpot" ? (
             <JourneyJackpotSection

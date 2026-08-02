@@ -3,12 +3,8 @@ import { Alert, Box, Chip, CircularProgress, Dialog, DialogActions, DialogConten
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import type { BattleshipsRules } from "../../battleships/types";
-import type { LottoRules } from "../../lotto/types";
-import type { JourneyRules } from "../../journey/types";
 import type { AnyGameConfig, GameType, Project, UpdateGameConfigInput } from "../../projects/types";
 import BattleshipsConfigEditor from "./BattleshipsConfigEditor";
-import JourneyConfigEditor from "./JourneyConfigEditor";
-import LottoConfigEditor from "./LottoConfigEditor";
 
 const gameTypeLabels: Record<GameType, string> = {
   journey: "Карта Мародёров",
@@ -56,14 +52,11 @@ export default function GameConfigEditorDialog({
       return null;
     }
 
-    switch (gameConfig.gameType) {
-      case "journey":
-        return <JourneyConfigEditor rules={rules as JourneyRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
-      case "battleships":
-        return <BattleshipsConfigEditor rules={rules as BattleshipsRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
-      case "lotto":
-        return <LottoConfigEditor rules={rules as LottoRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
+    if (gameConfig.gameType === "battleships") {
+      return <BattleshipsConfigEditor rules={rules as BattleshipsRules} resources={project.resources} disabled={isSaving} onChange={setRules} />;
     }
+
+    return null;
   }
 
   return (

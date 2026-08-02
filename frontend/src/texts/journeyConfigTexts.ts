@@ -1,4 +1,4 @@
-import type { JourneyConfigSectionId } from "../features/configs/components/JourneyConfigEditor";
+import type { JourneyConfigSectionId } from "../features/configs/types";
 
 const sections: Record<"general" | JourneyConfigSectionId, { title: string; description: string }> = {
   general: { title: "Основные сведения", description: "Название, описание и сводка текущих правил." },
@@ -42,7 +42,7 @@ export const journeyConfigTexts = {
   cells: {
     title: "Клетки поля",
     description: "Типы бонусных клеток и ловушек.",
-    selectedEyebrow: "Выбранная клетка",
+    selectedBadge: "Выбранная клетка",
     addCell: "Добавить тип клетки",
     addResource: "Добавить ресурс",
     groups: {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { Box, Card, CardContent, FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack, Typography } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
@@ -9,6 +10,7 @@ import { formatRewardPool } from "../../rewards/resourceAmounts";
 import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell } from "../../journey/types";
 import type { ProjectResource } from "../../projects/types";
 import RewardPoolEditor from "./RewardPoolEditor";
+import ConfigContextChip from "./ConfigContextChip";
 
 function findResource(resources: ProjectResource[], id: string) {
   return resources.find((resource) => resource.id === id);
@@ -174,10 +176,13 @@ export function JourneyCellsSection({ rules, sourceRules, resources, disabled, o
           <CardContent>
             <Stack spacing={2}>
               <Stack direction="row" justifyContent="space-between">
-                <Box>
-                  <Typography variant="overline" color="primary.main">{journeyConfigTexts.cells.selectedEyebrow}</Typography>
+                <Stack spacing={0.75}>
+                  <ConfigContextChip
+                    label={journeyConfigTexts.cells.selectedBadge}
+                    icon={<TuneRoundedIcon fontSize="small" />}
+                  />
                   <Typography variant="h5">{journeyConfigTexts.cells.name(selected.kind, selected.id)}</Typography>
-                </Box>
+                </Stack>
                 <IconButton color="error" disabled={disabled || isCoreCell} onClick={() => onChange({ ...rules, cells: rules.cells.filter((_cell, index) => index !== selectedIndex) })}>
                   <DeleteOutlineRoundedIcon />
                 </IconButton>

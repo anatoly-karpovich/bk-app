@@ -73,8 +73,8 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
       return;
     }
 
-    if (config.gameType === "journey") {
-      navigate(`/configs/journey/${encodeURIComponent(config.id)}`);
+    if (config.gameType === "journey" || config.gameType === "lotto") {
+      navigate(`/configs/${config.gameType}/${encodeURIComponent(config.id)}`);
       return;
     }
 
