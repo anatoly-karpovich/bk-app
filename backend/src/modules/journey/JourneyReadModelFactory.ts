@@ -33,6 +33,8 @@ export class JourneyReadModelFactory {
         configId: game.configId,
         configName: game.configName,
         forumTopicId: game.forumTopicId,
+        hostUserId: game.hostUserId,
+        hostSnapshot: clone(game.hostSnapshot),
       },
       configuration: {
         resources: clone(game.resources),

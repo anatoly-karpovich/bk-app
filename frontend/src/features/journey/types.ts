@@ -115,7 +115,18 @@ export interface JourneyGameView {
   id: string;
   createdAt: string;
   updatedAt: string;
-  meta: { status: JourneyGameStatus; isOver: boolean; roundIndex: number; djName: string; projectId: string; configId: string; configName: string; forumTopicId: number | null };
+  meta: {
+    status: JourneyGameStatus;
+    isOver: boolean;
+    roundIndex: number;
+    djName: string;
+    projectId: string;
+    configId: string;
+    configName: string;
+    forumTopicId: number | null;
+    hostUserId?: string;
+    hostSnapshot?: { userId: string; displayName: string; nickname: string };
+  };
   configuration: { resources: JourneyResourceDefinition[]; rules: JourneyRules; journeyConfig: JourneyConfig; achievements: JourneyAchievementsMap; collectorTargets: JourneyCollectorTarget[] };
   state: { board: Record<number, JourneyMapCell>; players: JourneyPlayerReadModel[]; activePlayerIds: string[]; finishedPlayerIds: string[]; visiblePlayerIds: string[]; resultPlayerIds: string[] };
   achievements: { progressByPlayerId: Record<string, JourneyAchievementProgress> };
