@@ -8,6 +8,7 @@ export function createJourneyRouter(journeyController: JourneyController): Route
   router.get("/games", asyncHandler(journeyController.listJourneyGames));
   router.get("/games/latest", asyncHandler(journeyController.getLatestJourneyGame));
   router.post("/forum-players", asyncHandler(journeyController.importJourneyPlayersFromForum));
+  router.post("/parse/players", journeyController.parseJourneyPlayersFromForum);
   router.get("/games/:gameId/forum-state", asyncHandler(journeyController.getJourneyForumState));
   router.post("/games/:gameId/forum-moves/preview", asyncHandler(journeyController.previewJourneyForumMoves));
   router.get("/games/:gameId", asyncHandler(journeyController.getJourneyGameById));

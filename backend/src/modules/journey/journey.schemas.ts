@@ -36,7 +36,6 @@ export const createJourneyGameForumTopicSchema = z.object({
 
 export const importJourneyPlayersFromForumSchema = z.object({
   forumTopicId: z.number().int().positive(),
-  djName: z.string().trim().min(1),
 });
 
 export const journeyMoveInputSchema = z.object({
@@ -58,7 +57,6 @@ export const latestJourneyGameQuerySchema = z.object({
 
 export const journeyParsePlayersSchema = z.object({
   text: z.string(),
-  djName: z.string().optional(),
 });
 
 export const journeyParseMovesTextSchema = z.object({

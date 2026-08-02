@@ -14,6 +14,7 @@ export function errorMiddleware(
   if (error instanceof AppError) {
     return res.status(error.statusCode).json({
       success: false,
+      code: error.code,
       message: error.message,
       error: error.expose ? error.message : undefined,
     });
@@ -23,6 +24,7 @@ export function errorMiddleware(
 
   return res.status(500).json({
     success: false,
+    code: "INTERNAL_ERROR",
     message: "Internal server error",
     error: message,
   });

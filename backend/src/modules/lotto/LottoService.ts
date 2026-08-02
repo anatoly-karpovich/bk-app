@@ -5,6 +5,8 @@ import { LottoEngine } from "./LottoEngine";
 import { LottoReadModelFactory } from "./LottoReadModelFactory";
 import { LottoRepository, type LottoGameDocument } from "./LottoRepository";
 import type { LottoCreatePlayerInput, LottoGameListItemReadModel, LottoGameReadModel } from "./domain/types";
+import type { CurrentUser } from "../auth/domain/types";
+import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import {
   LottoGameNotFoundError,
   LottoGamesNotFoundError,
@@ -28,15 +30,19 @@ export class LottoService {
   ) {}
 
   async createLottoGameSnapshotInProject(
+    actor: CurrentUser,
     projectId: string,
     payload: Omit<CreateLottoGamePayload, "configId"> & { gameConfigId: string },
   ): Promise<LottoGameResponse> {
+    const hostSnapshot = getHostSnapshot(actor, projectId);
     const gameConfigContext = await this.gameConfigsService.getLottoGameConfigContext(projectId, payload.gameConfigId);
 
     const nextGame = this.engine.createGame(payload.players, {
       rules: gameConfigContext.config.rules,
       resources: gameConfigContext.projectResources,
-      djName: payload.djName,
+      djName: hostSnapshot.nickname,
+      hostUserId: actor.id,
+      hostSnapshot,
       projectId,
       configId: payload.gameConfigId,
       configName: gameConfigContext.config.name,
@@ -54,37 +60,44 @@ export class LottoService {
     return this.serializeLottoGame(createdGame);
   }
 
-  async getLottoGameSnapshot(projectId: string, gameId: string): Promise<LottoGameResponse> {
+  async getLottoGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<LottoGameResponse> {
+    assertProjectAccess(actor, projectId);
     const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!game) {
       throw new LottoGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, game.hostUserId);
 
     return this.serializeLottoGame(game);
   }
 
-  async listLottoGameSnapshots(projectId: string): Promise<LottoGameListResponse> {
+  async listLottoGameSnapshots(actor: CurrentUser, projectId: string): Promise<LottoGameListResponse> {
+    assertProjectAccess(actor, projectId);
     const games = await this.repository.findByProjectId(projectId);
-    return games.map((game) => this.readModelFactory.createListItem(game));
+    return games.filter((game) => actor.role === "admin" || game.hostUserId === actor.id).map((game) => this.readModelFactory.createListItem(game));
   }
 
-  async getLatestLottoGameSnapshot(projectId: string, status?: LottoGameDocument["status"]): Promise<LottoGameResponse> {
+  async getLatestLottoGameSnapshot(actor: CurrentUser, projectId: string, status?: LottoGameDocument["status"]): Promise<LottoGameResponse> {
+    assertProjectAccess(actor, projectId);
     const latestGame = await this.repository.findLatest(projectId, status);
 
     if (!latestGame) {
       throw new LottoGamesNotFoundError(status);
     }
+    assertOwnedByUser(actor, latestGame.hostUserId);
 
     return this.serializeLottoGame(latestGame);
   }
 
-  async drawNextLottoNumber(projectId: string, gameId: string): Promise<LottoGameResponse> {
+  async drawNextLottoNumber(actor: CurrentUser, projectId: string, gameId: string): Promise<LottoGameResponse> {
+    assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new LottoGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, currentGame.hostUserId);
 
     const nextGame = this.engine.drawNextNumber(currentGame);
     const updatedGame = await this.saveLottoGameDocument(projectId, gameId, nextGame);
@@ -96,12 +109,14 @@ export class LottoService {
     return updatedGame;
   }
 
-  async removeLottoPlayerFromSnapshot(projectId: string, gameId: string, playerId: string): Promise<LottoGameResponse> {
+  async removeLottoPlayerFromSnapshot(actor: CurrentUser, projectId: string, gameId: string, playerId: string): Promise<LottoGameResponse> {
+    assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new LottoGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, currentGame.hostUserId);
 
     const nextGame = this.engine.removePlayer(currentGame, playerId);
     const updatedGame = await this.saveLottoGameDocument(projectId, gameId, nextGame);
@@ -113,7 +128,11 @@ export class LottoService {
     return updatedGame;
   }
 
-  async deleteLottoGameSnapshot(projectId: string, gameId: string): Promise<void> {
+  async deleteLottoGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<void> {
+    assertProjectAccess(actor, projectId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
+    if (!currentGame) throw new LottoGameNotFoundError(gameId);
+    assertOwnedByUser(actor, currentGame.hostUserId);
     const deleted = await this.repository.delete(gameId, projectId);
 
     if (!deleted) {

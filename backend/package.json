@@ -39,11 +39,15 @@
     "db:migrate:game-config-reward-pools:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateGameConfigRewardPools.ts",
     "db:migrate:game-config-reward-pools:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migrateGameConfigRewardPools.ts",
     "db:replace-game-configs-from-backup:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/replaceLocalGameConfigsFromBackup.ts",
+    "db:migrate:auth-ownership": "tsx src/scripts/migrateAuthOwnership.ts",
+    "db:migrate:auth-ownership:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateAuthOwnership.ts",
     "backup:prod": "npm run backup:restore-new-schema:prod -- --source backups\\db-data-projects --confirm-replace"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.6.1",
     "mongodb": "^6.18.0",
     "zod": "^4.4.3"
   },

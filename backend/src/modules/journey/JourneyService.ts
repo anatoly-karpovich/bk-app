@@ -9,6 +9,8 @@ import { JourneyParser } from "./JourneyParser";
 import { JourneyReadModelFactory } from "./JourneyReadModelFactory";
 import { JourneyRepository, type JourneyGameDocument } from "./JourneyRepository";
 import type { JourneyGameListItemReadModel, JourneyGameStatus, JourneyGameView, JourneyMoveInput } from "./domain/types";
+import type { CurrentUser } from "../auth/domain/types";
+import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import {
   JourneyGameNotFoundError,
   JourneyGamesNotFoundError,
@@ -42,15 +44,19 @@ export class JourneyService {
   ) {}
 
   async createJourneyGameSnapshotInProject(
+    actor: CurrentUser,
     projectId: string,
     payload: Omit<CreateJourneyGamePayload, "configId"> & { gameConfigId: string },
   ): Promise<JourneyGameResponse> {
+    const hostSnapshot = getHostSnapshot(actor, projectId);
     const gameConfigContext = await this.gameConfigsService.getJourneyGameConfigContext(projectId, payload.gameConfigId);
 
     const nextGame = this.v2Engine.createGame(payload.nicknames, {
       rules: gameConfigContext.config.rules,
       resources: gameConfigContext.projectResources,
-      djName: payload.djName,
+      djName: hostSnapshot.nickname,
+      hostUserId: actor.id,
+      hostSnapshot,
       projectId,
       configId: payload.gameConfigId,
       configName: gameConfigContext.config.name,
@@ -69,62 +75,71 @@ export class JourneyService {
     return this.serializeJourneyGame(createdGame);
   }
 
-  async getJourneyGameSnapshot(projectId: string, gameId: string): Promise<JourneyGameResponse> {
+  async getJourneyGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<JourneyGameResponse> {
+    assertProjectAccess(actor, projectId);
     const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!game) {
       throw new JourneyGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, game.hostUserId);
 
     return this.serializeJourneyGame(game);
   }
 
-  async getJourneyForumState(projectId: string, gameId: string): Promise<JourneyForumStateMessage> {
-    const game = await this.getJourneyGameSnapshot(projectId, gameId);
+  async getJourneyForumState(actor: CurrentUser, projectId: string, gameId: string): Promise<JourneyForumStateMessage> {
+    const game = await this.getJourneyGameSnapshot(actor, projectId, gameId);
 
     return this.forumStateFormatter.create(game);
   }
 
-  async previewJourneyForumMoves(projectId: string, gameId: string): Promise<JourneyForumMovesPreview> {
+  async previewJourneyForumMoves(actor: CurrentUser, projectId: string, gameId: string): Promise<JourneyForumMovesPreview> {
+    assertProjectAccess(actor, projectId);
     const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!game) {
       throw new JourneyGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, game.hostUserId);
 
     return await this.forumMovesImporter.preview(game);
   }
 
-  async importJourneyPlayersFromForum(projectId: string, forumTopicId: number, djName: string): Promise<string[]> {
-    return await this.forumPlayersImporter.importPlayers(projectId, forumTopicId, djName);
+  async importJourneyPlayersFromForum(actor: CurrentUser, projectId: string, forumTopicId: number): Promise<string[]> {
+    return await this.forumPlayersImporter.importPlayers(projectId, forumTopicId, getHostSnapshot(actor, projectId).nickname);
   }
 
-  async listJourneyGameSnapshots(projectId: string): Promise<JourneyGameListResponse> {
+  async listJourneyGameSnapshots(actor: CurrentUser, projectId: string): Promise<JourneyGameListResponse> {
+    assertProjectAccess(actor, projectId);
     const games = await this.repository.findByProjectId(projectId);
-
-    return games.map((game) => this.readModelFactory.createListItem(game));
+    return games.filter((game) => actor.role === "admin" || game.hostUserId === actor.id).map((game) => this.readModelFactory.createListItem(game));
   }
 
-  async getLatestJourneyGameSnapshot(projectId: string, status?: JourneyGameStatus): Promise<JourneyGameResponse> {
+  async getLatestJourneyGameSnapshot(actor: CurrentUser, projectId: string, status?: JourneyGameStatus): Promise<JourneyGameResponse> {
+    assertProjectAccess(actor, projectId);
     const latestGame = await this.repository.findLatest(projectId, status);
 
     if (!latestGame) {
       throw new JourneyGamesNotFoundError(status);
     }
+    assertOwnedByUser(actor, latestGame.hostUserId);
 
     return this.serializeJourneyGame(latestGame);
   }
 
   async submitJourneyRound(
+    actor: CurrentUser,
     projectId: string,
     gameId: string,
     payload: SaveJourneyRoundPayload,
   ): Promise<JourneyGameResponse> {
+    assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new JourneyGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, currentGame.hostUserId);
 
     const nextGame = this.v2Engine.makeRound(currentGame, payload.moves, payload.skippedPlayerIds ?? []);
     const updatedGame = await this.saveJourneyGameDocument(projectId, gameId, nextGame);
@@ -137,15 +152,18 @@ export class JourneyService {
   }
 
   async removeJourneyPlayerFromSnapshot(
+    actor: CurrentUser,
     projectId: string,
     gameId: string,
     playerId: string,
   ): Promise<JourneyGameResponse> {
+    assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
     if (!currentGame) {
       throw new JourneyGameNotFoundError(gameId);
     }
+    assertOwnedByUser(actor, currentGame.hostUserId);
 
     const nextGame = this.v2Engine.removePlayer(currentGame, playerId);
     const updatedGame = await this.saveJourneyGameDocument(projectId, gameId, nextGame);
@@ -157,7 +175,11 @@ export class JourneyService {
     return updatedGame;
   }
 
-  async deleteJourneyGameSnapshot(projectId: string, gameId: string): Promise<void> {
+  async deleteJourneyGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<void> {
+    assertProjectAccess(actor, projectId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
+    if (!currentGame) throw new JourneyGameNotFoundError(gameId);
+    assertOwnedByUser(actor, currentGame.hostUserId);
     const deleted = await this.repository.delete(gameId, projectId);
 
     if (!deleted) {

@@ -10,7 +10,6 @@ import {
   LottoValidationError,
 } from "./errors";
 import {
-  createLottoGameDjNameSchema,
   createLottoGamePlayersSchema,
   createLottoGamePresetSchema,
   createLottoGameProjectParamsSchema,
@@ -52,15 +51,9 @@ export class LottoController {
         { gameConfigId: req.body?.gameConfigId },
         "Body field 'gameConfigId' must be a valid game config id",
       );
-      const { djName } = parseRequest(
-        createLottoGameDjNameSchema,
-        { djName: req.body?.djName },
-        "Body field 'djName' must be a string when provided",
-      );
-      const game = await this.lottoService.createLottoGameSnapshotInProject(projectId, {
+      const game = await this.lottoService.createLottoGameSnapshotInProject(req.authUser!, projectId, {
         players,
         gameConfigId,
-        djName,
       });
 
       return res.status(201).json({
@@ -94,9 +87,9 @@ export class LottoController {
     }
   };
 
-  listLottoGames = async (_req: Request, res: Response) => {
+  listLottoGames = async (req: Request, res: Response) => {
     try {
-      const games = await this.lottoService.listLottoGameSnapshots(getProjectId(_req));
+      const games = await this.lottoService.listLottoGameSnapshots(req.authUser!, getProjectId(req));
 
       return res.status(200).json({
         success: true,
@@ -118,7 +111,7 @@ export class LottoController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const game = await this.lottoService.getLottoGameSnapshot(getProjectId(req), gameId);
+      const game = await this.lottoService.getLottoGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -162,7 +155,7 @@ export class LottoController {
         req.query,
         "Query parameter 'status' must be either 'in_progress' or 'finished'",
       );
-      const game = await this.lottoService.getLatestLottoGameSnapshot(getProjectId(req), status);
+      const game = await this.lottoService.getLatestLottoGameSnapshot(req.authUser!, getProjectId(req), status);
 
       return res.status(200).json({
         success: true,
@@ -198,7 +191,7 @@ export class LottoController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      const updatedGame = await this.lottoService.drawNextLottoNumber(getProjectId(req), gameId);
+      const updatedGame = await this.lottoService.drawNextLottoNumber(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,
@@ -247,7 +240,7 @@ export class LottoController {
         req.params,
         "Route parameter 'playerId' is required",
       );
-      const updatedGame = await this.lottoService.removeLottoPlayerFromSnapshot(getProjectId(req), gameId, playerId);
+      const updatedGame = await this.lottoService.removeLottoPlayerFromSnapshot(req.authUser!, getProjectId(req), gameId, playerId);
 
       return res.status(200).json({
         success: true,
@@ -291,7 +284,7 @@ export class LottoController {
         req.params,
         "Route parameter 'gameId' is required",
       );
-      await this.lottoService.deleteLottoGameSnapshot(getProjectId(req), gameId);
+      await this.lottoService.deleteLottoGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
         success: true,

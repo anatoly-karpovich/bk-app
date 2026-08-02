@@ -62,7 +62,10 @@ export function formatJourneyResourceAmounts(
   const knownAmounts = resources.map((resource) => ({ resource, amount: valuesByResourceId.get(resource.id) ?? 0 }));
   const unknownAmounts = [...valuesByResourceId]
     .filter(([resourceId]) => !resources.some((resource) => resource.id === resourceId))
-    .map(([resourceId, amount]) => ({ resource: { id: resourceId, label: resourceId }, amount }));
+    .map(([resourceId, amount]) => ({
+      resource: { id: resourceId, type: "currency" as const, code: resourceId, name: resourceId, label: resourceId },
+      amount,
+    }));
 
   return [...knownAmounts, ...unknownAmounts]
     .filter(({ amount }) => includeZero || amount !== 0)

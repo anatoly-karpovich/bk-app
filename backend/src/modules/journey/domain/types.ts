@@ -97,6 +97,7 @@ export interface JourneyV2Round { index: number; occurredAt: string; turns: Jour
 export interface JourneyV2State { moveIndex: number; status: JourneyGameStatus; map: Record<number, JourneyMapCell>; players: JourneyV2Player[]; rounds: JourneyV2Round[]; forumLog: string[]; commentState?: JourneyCommentState; }
 export interface JourneyV2Game {
   storageFormat: "v2"; createdAt: string; updatedAt: string; djName: string; projectId: string; configId: string; configName: string;
+  hostUserId?: string; hostSnapshot?: import("../../auth/domain/types").HostSnapshot;
   forumTopicId: number | null; resources: ResourceSnapshot[]; rules: JourneyRules; stateV2: JourneyV2State;
 }
 
@@ -124,6 +125,7 @@ export interface JourneyGameView {
 export interface JourneyGameListItemReadModel {
   id: string; createdAt: string; updatedAt: string; status: JourneyGameStatus; djName: string; projectId: string; configId: string; configName: string;
   resources: ResourceSnapshot[]; roundsCount: number; players: Array<{ id: string; nickname: string; status: JourneyPlayerStatus; position: number; balanceEntries: ResourceAmount[]; }>;
+  hostUserId?: string;
 }
 export interface JourneyMoveInput { playerId: string; dice: number; }
 export interface JourneyCollectorProgress { achieved: boolean; obtainedCellKeys: string[]; missingCellKeys: string[]; }

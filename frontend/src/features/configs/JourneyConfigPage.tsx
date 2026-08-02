@@ -4,6 +4,7 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
+import { useAuth } from "../auth/useAuth";
 import { journeyConfigTexts } from "../../texts/journeyConfigTexts";
 import type { JourneyRules } from "../journey/types";
 import type { Project } from "../projects/types";
@@ -66,6 +67,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
   const { configId } = useParams<{ configId: string }>();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<JourneyConfigPageSectionId>("general");
+  const { user } = useAuth();
   const { source, draft, error, isLoading, isSaving, actions } = useJourneyConfigEditor(selectedProject, configId);
   const changedSections = useMemo(() => getChangedSections(source, draft), [draft, source]);
 
@@ -90,6 +92,8 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
   }
 
   const activeSectionDetails = journeyConfigTexts.sections.details[activeSection];
+  const canEdit = user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
+  const editorDisabled = isSaving || !canEdit;
   const bonusCount = draft.rules.cells.filter((cell) => cell.kind === "bonus").length;
   const trapCount = draft.rules.cells.filter((cell) => cell.kind === "trap").length;
 
@@ -112,7 +116,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               color: changedSections.length ? "warning" : "default",
             },
           ]}
-          actions={[
+          actions={canEdit ? [
             {
               key: "save",
               label: journeyConfigTexts.page.save,
@@ -131,7 +135,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               variant: "text",
               color: "inherit",
             },
-          ]}
+          ] : []}
         />
       </Grid>
 
@@ -140,6 +144,8 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
           <Alert severity="error">{error}</Alert>
         </Grid>
       ) : null}
+
+      {!canEdit ? <Grid item xs={12}><Alert severity="info">Этот конфиг доступен только для просмотра. Создайте свою копию системного конфига, чтобы изменить правила.</Alert></Grid> : null}
 
       <Grid item xs={12} lg={4} xl={3}>
         <JourneyConfigSectionNav
@@ -166,7 +172,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
                 descriptionLabel={journeyConfigTexts.general.configDescription}
                 source={source}
                 draft={draft}
-                disabled={isSaving}
+                disabled={editorDisabled}
                 onChange={actions.updateDraft}
               />
               <ConfigSummaryCard
@@ -194,7 +200,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : activeSection === "cells" ? (
@@ -202,7 +208,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               onChange={(rules) => actions.updateDraft({ rules })}
             />
           ) : (
@@ -210,7 +216,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               rules={draft.rules}
               sourceRules={source.rules}
               resources={selectedProject.resources}
-              disabled={isSaving}
+              disabled={editorDisabled}
               activeSection={activeSection}
               onChange={(rules) => actions.updateDraft({ rules })}
             />

@@ -47,6 +47,8 @@ export class BattleshipsEngine {
       projectId?: string;
       configId?: string;
       configName?: string;
+      hostUserId?: string;
+      hostSnapshot?: import("../auth/domain/types").HostSnapshot;
     },
   ): BattleshipsGame {
     const now = new Date().toISOString();
@@ -64,6 +66,8 @@ export class BattleshipsEngine {
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",
       configName: options.configName?.trim() ?? "",
+      hostUserId: options.hostUserId,
+      hostSnapshot: options.hostSnapshot ? this.clone(options.hostSnapshot) : undefined,
       resources,
       rules,
       board,

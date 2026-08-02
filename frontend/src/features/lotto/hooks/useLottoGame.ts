@@ -356,7 +356,6 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
           cardNumbers: parseLottoNumbersInput(player.cardNumbers),
         })),
         gameConfigId: selectedLottoGameConfig.id,
-        djName: djName.trim(),
       });
 
       setGame(nextGame);

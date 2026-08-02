@@ -1,5 +1,7 @@
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import { Box, Card, CardContent, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import { Box, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import { gameConfigsTexts } from "../../../texts/gameConfigsTexts";
 import type { AnyGameConfig } from "../../projects/types";
@@ -49,10 +51,12 @@ function getSummaryItems(config: AnyGameConfig): ConfigSummaryItem[] {
 
 interface GameConfigCardProps {
   config: AnyGameConfig;
+  canEdit: boolean;
   onOpen: (config: AnyGameConfig) => void;
+  onClone: (config: AnyGameConfig) => void;
 }
 
-export default function GameConfigCard({ config, onOpen }: GameConfigCardProps) {
+export default function GameConfigCard({ config, canEdit, onOpen, onClone }: GameConfigCardProps) {
   const summaryItems = getSummaryItems(config);
   const editAriaLabel = gameConfigsTexts.card.editAriaLabel(config.name);
 
@@ -66,23 +70,18 @@ export default function GameConfigCard({ config, onOpen }: GameConfigCardProps) 
               {config.description || gameConfigsTexts.card.noDescription}
             </Typography>
           </Box>
-          <Tooltip title={editAriaLabel}>
-            <IconButton
-              aria-label={editAriaLabel}
-              onClick={() => onOpen(config)}
-              sx={{
-                width: 42,
-                height: 42,
-                flexShrink: 0,
-                borderRadius: 1.75,
-                bgcolor: "rgba(79, 70, 229, 0.1)",
-                color: "primary.main",
-                "&:hover": { bgcolor: "rgba(79, 70, 229, 0.16)" },
-              }}
-            >
-              <EditRoundedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={0.5}>
+            {config.isSystem ? <Tooltip title="Создать копию системного конфига"><IconButton aria-label="Создать копию системного конфига" onClick={() => onClone(config)}><ContentCopyRoundedIcon fontSize="small" /></IconButton></Tooltip> : null}
+            <Tooltip title={canEdit ? editAriaLabel : "Открыть конфиг для просмотра"}>
+              <IconButton aria-label={editAriaLabel} onClick={() => onOpen(config)} sx={{ width: 42, height: 42, flexShrink: 0, borderRadius: 1.75, bgcolor: "rgba(79, 70, 229, 0.1)", color: "primary.main", "&:hover": { bgcolor: "rgba(79, 70, 229, 0.16)" } }}>
+                {canEdit ? <EditRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Stack>
+
+        <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
+          {config.isSystem ? <Chip size="small" label="Системный" color="secondary" /> : <Chip size="small" label={canEdit ? "Мой конфиг" : "Чужой конфиг"} color={canEdit ? "primary" : "default"} />}
         </Stack>
 
         <AppResponsiveGrid columns={{ xs: 1, sm: 2 }} gap={1} sx={{ mt: 0.75 }}>

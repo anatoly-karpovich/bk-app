@@ -83,6 +83,9 @@ interface BaseGameConfig<TGameType extends GameType, TRules, TSummary> {
   summary: TSummary;
   createdAt: string;
   updatedAt: string;
+  isSystem: boolean;
+  createdByUserId: string;
+  updatedByUserId: string;
 }
 
 export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyGameConfigSummary> & {
@@ -94,11 +97,10 @@ export type LottoGameConfig = BaseGameConfig<"lotto", LottoRules, LottoGameConfi
 
 export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig;
 
-export interface CreateGameConfigInput {
-  gameType: GameType;
+export interface CloneGameConfigInput {
+  sourceConfigId: string;
   name: string;
-  description: string;
-  rules: JourneyRules | BattleshipsRules | LottoRules;
+  description?: string;
 }
 
 export interface UpdateGameConfigInput {

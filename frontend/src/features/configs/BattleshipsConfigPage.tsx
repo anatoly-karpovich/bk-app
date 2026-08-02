@@ -8,6 +8,7 @@ import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRou
 import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
 import { useParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
+import { useAuth } from "../auth/useAuth";
 import { battleshipsConfigTexts } from "../../texts/battleshipsConfigTexts";
 import type { BattleshipsRules } from "../battleships/types";
 import type { Project } from "../projects/types";
@@ -63,6 +64,7 @@ interface BattleshipsConfigPageProps {
 
 export default function BattleshipsConfigPage({ selectedProject }: BattleshipsConfigPageProps) {
   const { configId } = useParams<{ configId: string }>();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<BattleshipsConfigSectionId>("general");
   const { source, draft, error, isLoading, isSaving, actions } = useGameConfigEditor(
     selectedProject,
@@ -78,6 +80,8 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
   if (!source || !draft) return <Alert severity="warning">{battleshipsConfigTexts.alerts.notFound}</Alert>;
 
   const activeSectionDetails = battleshipsConfigTexts.sections.details[activeSection];
+  const canEdit = user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
+  const editorDisabled = isSaving || !canEdit;
   const board = getBattleshipsConfigBoard(draft.rules);
   const shipCount = board?.ships.reduce((count, ship) => count + ship.amount, 0) ?? 0;
   const summaryItems = board
@@ -105,14 +109,15 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
             { label: battleshipsConfigTexts.page.projectChip(selectedProject.name), color: "secondary" },
             { label: battleshipsConfigTexts.page.changesChip(changedSections.length), color: changedSections.length ? "warning" : "default" },
           ]}
-          actions={[
+          actions={canEdit ? [
             { key: "save", label: battleshipsConfigTexts.page.save, icon: <SaveRoundedIcon />, onClick: () => void actions.save(), disabled: isSaving || !changedSections.length, loading: isSaving, variant: "contained" },
             { key: "reset", label: battleshipsConfigTexts.page.reset, icon: <RefreshRoundedIcon />, onClick: actions.reset, disabled: isSaving || !changedSections.length, variant: "text", color: "inherit" },
-          ]}
+          ] : []}
         />
       </Grid>
 
       {error ? <Grid item xs={12}><Alert severity="error">{error}</Alert></Grid> : null}
+      {!canEdit ? <Grid item xs={12}><Alert severity="info">Этот конфиг доступен только для просмотра. Создайте свою копию системного конфига, чтобы изменить правила.</Alert></Grid> : null}
 
       <Grid item xs={12} lg={4} xl={3}>
         <ConfigSectionNav<BattleshipsConfigSectionId>
@@ -139,16 +144,16 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
                 descriptionLabel={battleshipsConfigTexts.general.configDescription}
                 source={source}
                 draft={draft}
-                disabled={isSaving}
+                disabled={editorDisabled}
                 onChange={actions.updateDraft}
               />
               <ConfigSummaryCard title={battleshipsConfigTexts.general.summaryTitle} description={battleshipsConfigTexts.general.summaryDescription} items={summaryItems} />
             </Stack>
           ) : null}
           {activeSection === "boards" ? <BattleshipsBoardSelectionSection rules={draft.rules} /> : null}
-          {activeSection === "board" ? <BattleshipsBoardRulesSection rules={draft.rules} sourceRules={source.rules} disabled={isSaving} onChange={(rules) => actions.updateDraft({ rules })} /> : null}
+          {activeSection === "board" ? <BattleshipsBoardRulesSection rules={draft.rules} sourceRules={source.rules} disabled={editorDisabled} onChange={(rules) => actions.updateDraft({ rules })} /> : null}
           {activeSection === "fleet" ? <BattleshipsFleetSection rules={draft.rules} /> : null}
-          {activeSection === "rewards" ? <BattleshipsRewardsSection rules={draft.rules} sourceRules={source.rules} resources={selectedProject.resources} disabled={isSaving} onChange={(rules) => actions.updateDraft({ rules })} /> : null}
+          {activeSection === "rewards" ? <BattleshipsRewardsSection rules={draft.rules} sourceRules={source.rules} resources={selectedProject.resources} disabled={editorDisabled} onChange={(rules) => actions.updateDraft({ rules })} /> : null}
         </Stack>
       </Grid>
     </Grid>

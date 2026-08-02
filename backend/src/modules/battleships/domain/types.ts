@@ -41,6 +41,7 @@ export interface BattleshipsShot {
 export interface BattleshipsGame {
   createdAt: string; updatedAt: string; status: BattleshipsGameStatus; playerName: string; djName: string;
   projectId: string; configId: string; configName: string; resources: ResourceSnapshot[]; rules: BattleshipsRules;
+  hostUserId?: string; hostSnapshot?: import("../../auth/domain/types").HostSnapshot;
   board: number[][]; ships: BattleshipsShip[]; shots: BattleshipsShot[];
 }
 export interface BattleshipsBoardCellReadModel { row: number; column: number; coordinateLabel: string; shipSize: number; hasShot: boolean; isHit: boolean; }
@@ -54,5 +55,6 @@ export interface BattleshipsGameListItemReadModel {
   id: string; createdAt: string; updatedAt: string; status: BattleshipsGameStatus; playerName: string; djName: string;
   projectId: string; configId: string; configName: string; boardSize: number; maxShots: number; attemptsLeft: number;
   currentPrize: ResourceAmount[]; resources: ResourceSnapshot[]; shotsCount: number;
+  hostUserId?: string;
 }
 export interface BattleshipsShotInput { row: number; column: number; }

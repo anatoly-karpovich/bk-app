@@ -12,5 +12,6 @@ export const appHeaderTexts = {
     battleship: "Морской бой",
     project: "Настройки проекта",
     configs: "Игровые конфиги",
+    users: "Пользователи",
   },
 };

@@ -7,6 +7,10 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
   InputAdornment,
   Stack,
@@ -15,6 +19,8 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppTextInput from "../../components/ui/AppTextInput";
+import AppPillButton from "../../components/ui/AppPillButton";
+import { useAuth } from "../auth/useAuth";
 import { gameConfigsTexts } from "../../texts/gameConfigsTexts";
 import type { AnyGameConfig, GameType, Project } from "../projects/types";
 import GameConfigCard from "./components/GameConfigCard";
@@ -31,8 +37,12 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const [cloneSource, setCloneSource] = useState<AnyGameConfig | null>(null);
+  const [cloneName, setCloneName] = useState("");
+  const [cloneDescription, setCloneDescription] = useState("");
   const gameType = gameTypes.find((candidate) => candidate === searchParams.get("gameType")) ?? "journey";
-  const { gameConfigs, error, isLoading, actions } = useGameConfigs(selectedProject?.id);
+  const { gameConfigs, error, isLoading, isSaving, actions } = useGameConfigs(selectedProject?.id);
+  const { user } = useAuth();
   const configCounts = useMemo(
     () =>
       gameTypes.reduce<Record<GameType, number>>(
@@ -61,6 +71,21 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
 
   function openEditor(config: AnyGameConfig) {
     navigate(`/configs/${config.gameType}/${encodeURIComponent(config.id)}`);
+  }
+
+  function openClone(config: AnyGameConfig) {
+    setCloneSource(config);
+    setCloneName(`${config.name} — копия`);
+    setCloneDescription(config.description);
+  }
+
+  async function cloneConfig() {
+    if (!cloneSource || !cloneName.trim()) return;
+    const created = await actions.cloneGameConfig({ sourceConfigId: cloneSource.id, name: cloneName.trim(), description: cloneDescription.trim() });
+    if (created) {
+      setCloneSource(null);
+      openEditor(created);
+    }
   }
 
   if (!selectedProject) {
@@ -161,7 +186,12 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
               >
                 {visibleConfigs.map((config) => (
                   <Box key={config.id}>
-                    <GameConfigCard config={config} onOpen={(nextConfig) => void openEditor(nextConfig)} />
+                    <GameConfigCard
+                      config={config}
+                      canEdit={user?.role === "admin" || (!config.isSystem && config.createdByUserId === user?.id)}
+                      onOpen={(nextConfig) => void openEditor(nextConfig)}
+                      onClone={openClone}
+                    />
                   </Box>
                 ))}
               </Box>
@@ -184,6 +214,20 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
           </Stack>
         </Grid>
       </Grid>
+      <Dialog open={Boolean(cloneSource)} onClose={isSaving ? undefined : () => setCloneSource(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Создать конфиг из системного</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography color="text.secondary">Правила «{cloneSource?.name}» будут скопированы в новый редактируемый конфиг.</Typography>
+            <AppTextInput label="Название" value={cloneName} disabled={isSaving} onChange={(event) => setCloneName(event.target.value)} required autoFocus />
+            <AppTextInput label="Описание" value={cloneDescription} disabled={isSaving} onChange={(event) => setCloneDescription(event.target.value)} multiline minRows={2} />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <AppPillButton color="inherit" disabled={isSaving} onClick={() => setCloneSource(null)}>Отмена</AppPillButton>
+          <AppPillButton variant="contained" loading={isSaving} disabled={!cloneName.trim()} onClick={() => void cloneConfig()}>Создать копию</AppPillButton>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

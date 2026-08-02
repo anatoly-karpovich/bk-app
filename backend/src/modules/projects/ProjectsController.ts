@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { RequestValidationError } from "../../common/errors";
+import { AppError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { projectIdParamsSchema, projectMutationSchema } from "./projects.schemas";
 import { ProjectsService } from "./ProjectsService";
@@ -18,15 +18,16 @@ function getErrorMessage(error: unknown): string {
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
-  listProjects = async (_req: Request, res: Response) => {
+  listProjects = async (req: Request, res: Response) => {
     try {
-      const projects = await this.projectsService.listProjects();
+      const projects = await this.projectsService.listProjects(req.authUser!);
 
       return res.status(200).json({
         success: true,
         data: projects,
       });
     } catch (error) {
+      if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
       return res.status(500).json({
         success: false,
         message: "Failed to load projects",
@@ -42,13 +43,14 @@ export class ProjectsController {
         req.params,
         "Route parameter 'projectId' must be a valid project id",
       );
-      const project = await this.projectsService.getProjectByIdOrThrow(projectId);
+      const project = await this.projectsService.getProjectByIdOrThrow(req.authUser!, projectId);
 
       return res.status(200).json({
         success: true,
         data: project,
       });
     } catch (error) {
+      if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
       if (error instanceof RequestValidationError) {
         return res.status(400).json({
           success: false,
@@ -74,7 +76,7 @@ export class ProjectsController {
   createProject = async (req: Request, res: Response) => {
     try {
       const input = parseRequest(projectMutationSchema, req.body, "Invalid project input");
-      const project = await this.projectsService.createProject(input);
+      const project = await this.projectsService.createProject(req.authUser!, input);
       return res.status(201).json({ success: true, data: project });
     } catch (error) {
       return this.handleMutationError(error, res, "Failed to create project");
@@ -85,7 +87,7 @@ export class ProjectsController {
     try {
       const { projectId } = parseRequest(projectIdParamsSchema, req.params, "Invalid project id");
       const input = parseRequest(projectMutationSchema, req.body, "Invalid project input");
-      const project = await this.projectsService.updateProject(projectId, input);
+      const project = await this.projectsService.updateProject(req.authUser!, projectId, input);
       return res.status(200).json({ success: true, data: project });
     } catch (error) {
       return this.handleMutationError(error, res, "Failed to update project");
@@ -103,6 +105,7 @@ export class ProjectsController {
   };
 
   private handleMutationError(error: unknown, res: Response, message: string) {
+    if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
     if (error instanceof RequestValidationError) {
       return res.status(400).json({ success: false, message: error.message });
     }

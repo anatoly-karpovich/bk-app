@@ -16,6 +16,7 @@ export const navigationGroups = [
     items: [
       { key: "project", label: appHeaderTexts.nav.project, to: "/project" },
       { key: "configs", label: appHeaderTexts.nav.configs, to: "/configs" },
+      { key: "users", label: appHeaderTexts.nav.users, to: "/users" },
     ],
   },
 ] as const;

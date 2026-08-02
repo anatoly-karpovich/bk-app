@@ -36,6 +36,9 @@ interface BaseGameConfig<TRules, TGameType extends GameType> {
   name: string;
   description: string;
   rules: TRules;
+  isSystem: boolean;
+  createdByUserId: string;
+  updatedByUserId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +55,9 @@ export interface GameConfigDocument {
   name: string;
   description: string;
   rules: JourneyRules | BattleshipsRules | LottoRules;
+  isSystem: boolean;
+  createdByUserId: string;
+  updatedByUserId: string;
   createdAt: string;
   updatedAt: string;
 }

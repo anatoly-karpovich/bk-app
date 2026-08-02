@@ -27,16 +27,19 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import SportsEsportsRoundedIcon from "@mui/icons-material/SportsEsportsRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
+import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
 import { NavLink, useLocation } from "react-router-dom";
 import type { Project } from "../features/projects/types";
 import { navigationGroups, type NavigationGroupId, type NavigationItemKey } from "../navigation";
 import { appHeaderTexts } from "../texts/appHeaderTexts";
 import AppPillButton from "./ui/AppPillButton";
-import AppTextInput from "./ui/AppTextInput";
+import type { CurrentUser } from "../features/auth/types";
+import AccountDialog from "../features/auth/AccountDialog";
 
 interface AppHeaderProps {
-  djName: string;
-  onDjNameChange: (nextValue: string) => void;
+  user: CurrentUser;
+  onLogout: () => Promise<void>;
   projects: Project[];
   selectedProjectId: string;
   onSelectedProjectChange: (nextProjectId: string) => void;
@@ -48,6 +51,7 @@ const navigationItemIcons: Record<NavigationItemKey, JSX.Element> = {
   battleship: <DirectionsBoatRoundedIcon />,
   project: <FolderRoundedIcon />,
   configs: <TuneRoundedIcon />,
+  users: <PeopleAltRoundedIcon />,
 };
 
 const navigationGroupIcons: Record<NavigationGroupId, JSX.Element> = {
@@ -60,8 +64,8 @@ function isGroupActive(groupId: NavigationGroupId, pathname: string): boolean {
 }
 
 export default function AppHeader({
-  djName,
-  onDjNameChange,
+  user,
+  onLogout,
   projects,
   selectedProjectId,
   onSelectedProjectChange,
@@ -70,7 +74,11 @@ export default function AppHeader({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [openGroupId, setOpenGroupId] = useState<NavigationGroupId | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
   const openGroup = navigationGroups.find((group) => group.id === openGroupId) ?? null;
+  const visibleNavigationGroups = navigationGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => item.key !== "users" || user.role === "admin") }))
+    .filter((group) => group.items.length > 0);
 
   function openNavigationMenu(groupId: NavigationGroupId, anchor: HTMLElement) {
     setOpenGroupId(groupId);
@@ -138,7 +146,7 @@ export default function AppHeader({
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center" sx={{ display: { xs: "none", md: "flex" }, flexWrap: "wrap" }}>
-                {navigationGroups.map((group) => {
+                {visibleNavigationGroups.map((group) => {
                   const active = isGroupActive(group.id, location.pathname);
 
                   return (
@@ -173,19 +181,6 @@ export default function AppHeader({
               alignItems={{ lg: "center" }}
               sx={{ width: { xs: "100%", xl: "auto" }, maxWidth: { xl: "none" } }}
             >
-              <Stack spacing={0.5} sx={{ minWidth: { lg: 280 } }}>
-                <Typography variant="caption" color="text.secondary" sx={{ pl: 1.5 }}>
-                  {appHeaderTexts.djNameLabel}
-                </Typography>
-                <AppTextInput
-                  size="small"
-                  value={djName}
-                  onChange={(event) => onDjNameChange(event.target.value)}
-                  placeholder={appHeaderTexts.djNamePlaceholder}
-                  fullWidth
-                />
-              </Stack>
-
               <Stack direction="row" spacing={1} alignItems="flex-end" sx={{ width: { xs: "100%", lg: "auto" } }}>
                 <Stack spacing={0.5} sx={{ minWidth: { xs: 0, sm: 220 }, flex: 1 }}>
                   <Typography variant="caption" color="text.secondary" sx={{ pl: 1.5 }}>
@@ -217,6 +212,12 @@ export default function AppHeader({
                     </Select>
                   </FormControl>
                 </Stack>
+                <Stack spacing={0.25} sx={{ minWidth: 140, pb: 0.5 }}>
+                  <Typography fontWeight={700} noWrap>{user.displayName}</Typography>
+                  <Typography variant="caption" color="text.secondary">{user.role === "admin" ? "Администратор" : "Ведущий"}</Typography>
+                  <MenuItem component="button" onClick={() => setAccountOpen(true)} sx={{ minHeight: 28, px: 0, color: "text.secondary" }}><ManageAccountsRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />Учётная запись</MenuItem>
+                  <MenuItem component="button" onClick={onLogout} sx={{ minHeight: 28, px: 0, color: "text.secondary" }}>Выйти</MenuItem>
+                </Stack>
               </Stack>
             </Stack>
           </Toolbar>
@@ -231,7 +232,7 @@ export default function AppHeader({
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         PaperProps={{ sx: { mt: 0.75, minWidth: 240, borderRadius: (theme) => theme.customRadii.md } }}
       >
-        {openGroup?.items.map((item) => (
+        {openGroup?.items.filter((item) => item.key !== "users" || user.role === "admin").map((item) => (
           <MenuItem
             key={item.to}
             component={NavLink}
@@ -248,7 +249,7 @@ export default function AppHeader({
 
       <Drawer anchor="left" open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}>
         <Box sx={{ width: 280, p: 1.5 }}>
-          {navigationGroups.map((group) => (
+          {visibleNavigationGroups.map((group) => (
             <Box key={group.id} sx={{ mb: 2 }}>
               <Typography variant="subtitle1" sx={{ px: 1.5, py: 1, fontWeight: 700 }}>
                 {group.label}
@@ -280,6 +281,7 @@ export default function AppHeader({
           ))}
         </Box>
       </Drawer>
+      <AccountDialog open={accountOpen} selectedProject={projects.find((project) => project.id === selectedProjectId) ?? null} onClose={() => setAccountOpen(false)} onPasswordChanged={onLogout} />
     </>
   );
 }

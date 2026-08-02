@@ -9,7 +9,6 @@ export async function createBattleshipsGameRequest(payload: {
   projectId: string;
   playerName: string;
   gameConfigId: string;
-  djName?: string;
 }): Promise<BattleshipsPersistedGame> {
   const { projectId, ...body } = payload;
   return await apiClient.post<BattleshipsPersistedGame>(

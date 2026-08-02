@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
@@ -11,16 +10,20 @@ import JourneyPage from "./features/journey/JourneyPage";
 import LottoPage from "./features/lotto/LottoPage";
 import ProjectPage from "./features/projects/ProjectPage";
 import { useProjects } from "./features/projects/hooks/useProjects";
-
-const DJ_NAME_STORAGE_KEY = "combats-dj:dj-name";
+import LoginPage from "./features/auth/LoginPage";
+import { ProtectedRoute } from "./features/auth/ProtectedRoute";
+import { useAuth } from "./features/auth/useAuth";
+import { AdminRoute } from "./features/auth/AdminRoute";
+import UsersPage from "./features/users/UsersPage";
 
 export default function App() {
-  const [djName, setDjName] = useState(() => localStorage.getItem(DJ_NAME_STORAGE_KEY) ?? "");
-  const { projects, selectedProject, error, isSaving, actions } = useProjects();
+  return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
+}
 
-  useEffect(() => {
-    localStorage.setItem(DJ_NAME_STORAGE_KEY, djName);
-  }, [djName]);
+function AuthenticatedApp() {
+  const { user, logout } = useAuth();
+  const { projects, selectedProject, error, isSaving, actions } = useProjects();
+  const djName = selectedProject ? user?.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? "" : "";
 
   return (
     <Box
@@ -31,8 +34,8 @@ export default function App() {
       }}
     >
       <AppHeader
-        djName={djName}
-        onDjNameChange={setDjName}
+        user={user!}
+        onLogout={() => logout()}
         projects={projects}
         selectedProjectId={selectedProject?.id ?? ""}
         onSelectedProjectChange={actions.selectProject}
@@ -54,6 +57,7 @@ export default function App() {
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />
+          <Route path="/users" element={<AdminRoute><UsersPage projects={projects} /></AdminRoute>} />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
         </Routes>
       </Container>
