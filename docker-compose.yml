@@ -17,6 +17,14 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB_NAME: bk-app-local
+      PORT: "3004"
+      BK_APP_SEED_EMPTY_DB: "true"
+      BOOTSTRAP_ADMIN_LOGIN: ${BOOTSTRAP_ADMIN_LOGIN:-admin}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-local-admin-change-me}
+      BOOTSTRAP_ADMIN_DISPLAY_NAME: ${BOOTSTRAP_ADMIN_DISPLAY_NAME:-Local Administrator}
     ports:
       - "${BACKEND_PORT:-3004}:3004"
     depends_on:
