@@ -3,6 +3,7 @@ import type { ButtonProps } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import AppChip from "./ui/AppChip";
+import type { AppBreadcrumbItem } from "./ui/AppBreadcrumbs";
 import AppPillButton from "./ui/AppPillButton";
 import PageBreadcrumbs from "./PageBreadcrumbs";
 
@@ -24,7 +25,7 @@ export interface GamePageHeaderAction {
 
 interface GamePageHeaderProps {
   breadcrumbPath: string;
-  breadcrumbItems?: string[];
+  breadcrumbItems?: AppBreadcrumbItem[];
   title: string;
   description: string;
   chips: GamePageHeaderChip[];

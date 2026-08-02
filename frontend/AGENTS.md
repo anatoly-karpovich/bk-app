@@ -113,6 +113,8 @@ When two or more features share the same page shell, dialog structure, or presen
 
 If multiple game pages need breadcrumbs or other framing/navigation UI, do not keep separate hardcoded breadcrumb strings in feature texts. Prefer one shared component with consistent logic and shared source labels.
 
+Breadcrumbs are defined through `PageBreadcrumbs` and `components/ui/AppBreadcrumbs`. Pass semantic items with a `label` and optional `to` route, rather than rendering page-local links. Link only ancestors that have a real React Router destination; the current page and non-page navigation groups remain text. For a nested config editor, link the config-list parent and, where useful, the corresponding game page, while leaving the current config name unlinked.
+
 When multiple setup flows need the same visual treatment for player nickname fields, prefer one shared component for that visual primitive. At the moment `components/players/GamePlayerNameInput.tsx` is the shared source for the player-name input look.
 
 ## Shared component workflow

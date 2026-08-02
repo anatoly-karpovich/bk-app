@@ -35,13 +35,9 @@ export default function ProjectResourceList({
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
             <Box>
               <Typography variant="h5">{projectTexts.resource.listTitle}</Typography>
-              <Typography variant="body2" color="text.secondary">{projectTexts.resource.listSubtitle}</Typography>
-            </Box>
-            <Box
-              aria-label={projectTexts.resource.countAriaLabel(resources.length)}
-              sx={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", bgcolor: "primary.main", color: "primary.contrastText", fontSize: 12, fontWeight: 700 }}
-            >
-              {resources.length}
+              <Typography variant="body2" color="text.secondary">
+                {projectTexts.resource.listSubtitle}
+              </Typography>
             </Box>
           </Stack>
 
@@ -64,9 +60,31 @@ export default function ProjectResourceList({
             })}
           </Stack>
 
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-            <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} disabled={disabled} onClick={onAddCurrency}>{projectTexts.resource.addCurrency}</AppPillButton>
-            <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} disabled={disabled} onClick={onAddItem}>{projectTexts.resource.addItem}</AppPillButton>
+          <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+            sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}
+          >
+            <AppPillButton
+              size="small"
+              variant="outlined"
+              startIcon={<AddRoundedIcon />}
+              disabled={disabled}
+              onClick={onAddCurrency}
+            >
+              {projectTexts.resource.addCurrency}
+            </AppPillButton>
+            <AppPillButton
+              size="small"
+              variant="outlined"
+              startIcon={<AddRoundedIcon />}
+              disabled={disabled}
+              onClick={onAddItem}
+            >
+              {projectTexts.resource.addItem}
+            </AppPillButton>
           </Stack>
         </Stack>
       </CardContent>

@@ -94,7 +94,10 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
       <Grid item xs={12}>
         <GamePageHeader
           breadcrumbPath="/configs"
-          breadcrumbItems={[battleshipsConfigTexts.page.gameChip, draft.name]}
+          breadcrumbItems={[
+            { label: battleshipsConfigTexts.page.gameChip, to: "/battleship" },
+            { label: draft.name },
+          ]}
           title={draft.name}
           description={battleshipsConfigTexts.page.description}
           chips={[

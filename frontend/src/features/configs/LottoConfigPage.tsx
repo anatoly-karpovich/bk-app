@@ -111,7 +111,10 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
       <Grid item xs={12}>
         <GamePageHeader
           breadcrumbPath="/configs"
-          breadcrumbItems={[lottoConfigTexts.page.gameChip, draft.name]}
+          breadcrumbItems={[
+            { label: lottoConfigTexts.page.gameChip, to: "/lotto" },
+            { label: draft.name },
+          ]}
           title={draft.name}
           description={lottoConfigTexts.page.description}
           chips={[

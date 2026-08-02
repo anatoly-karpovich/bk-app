@@ -98,7 +98,10 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
       <Grid item xs={12}>
         <GamePageHeader
           breadcrumbPath="/configs"
-          breadcrumbItems={[journeyConfigTexts.page.gameChip, draft.name]}
+          breadcrumbItems={[
+            { label: journeyConfigTexts.page.gameChip, to: "/journey" },
+            { label: draft.name },
+          ]}
           title={draft.name}
           description={journeyConfigTexts.page.description}
           chips={[
