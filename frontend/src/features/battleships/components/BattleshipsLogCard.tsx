@@ -1,6 +1,6 @@
-import HistoryEduRoundedIcon from "@mui/icons-material/HistoryEduRounded";
-import { Alert, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import { Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { formatResourceAmounts } from "../../rewards/resourceAmounts";
 import type { ResourceDefinition } from "../../rewards/types";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
@@ -55,9 +55,9 @@ export default function BattleshipsLogCard({ shots, resources }: BattleshipsLogC
             ))}
           </Stack>
         ) : (
-          <Alert severity="info" icon={<HistoryEduRoundedIcon fontSize="inherit" />}>
+          <AppInfoAlert>
             {battleshipsTexts.alerts.logEmpty}
-          </Alert>
+          </AppInfoAlert>
         )}
       </CardContent>
     </Card>

@@ -1,5 +1,5 @@
-import GridOnRoundedIcon from "@mui/icons-material/GridOnRounded";
-import { Alert, Box, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardCell, BattleshipsPersistedGame } from "../types";
 
@@ -66,9 +66,9 @@ export default function BattleshipsBoardCard({ game, actionsDisabled, onShoot }:
       <Card>
         <CardHeader title={battleshipsTexts.cards.boardTitle} subheader={battleshipsTexts.cards.boardSubtitle} />
         <CardContent>
-          <Alert severity="info" icon={<GridOnRoundedIcon fontSize="inherit" />}>
+          <AppInfoAlert>
             {battleshipsTexts.alerts.boardEmpty}
-          </Alert>
+          </AppInfoAlert>
         </CardContent>
       </Card>
     );

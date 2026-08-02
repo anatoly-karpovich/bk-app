@@ -2,6 +2,8 @@ export const journeyTexts = {
   pageTitle: "Карта Мародёров",
   pageDescription: "Рабочий экран ведущего: запуск партии, ввод ходов, карта, состояние игроков и готовый лог для форума.",
   actions: {
+    fromForum: "Из топика",
+    import: "Импорт",
     importPlayersFromForum: "Игроки из топика",
     importMovesFromForum: "Считать из топика",
     applyForumMoves: "Заполнить ходы",

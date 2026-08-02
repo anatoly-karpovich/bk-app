@@ -1,5 +1,5 @@
-import { Alert, Box, Card, CardContent, CardHeader } from "@mui/material";
-import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
+import { Box, Card, CardContent, CardHeader } from "@mui/material";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import { journeyTexts } from "../../../texts/journeyTexts";
 
 interface JourneyLogCardProps {
@@ -40,9 +40,9 @@ export default function JourneyLogCard({ comments = [] }: JourneyLogCardProps) {
             {logText}
           </Box>
         ) : (
-          <Alert severity="info" icon={<TravelExploreRoundedIcon fontSize="inherit" />}>
+          <AppInfoAlert>
             {journeyTexts.alerts.logEmpty}
-          </Alert>
+          </AppInfoAlert>
         )}
       </CardContent>
     </Card>

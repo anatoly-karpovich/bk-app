@@ -5,10 +5,11 @@ import type { SxProps, Theme } from "@mui/material/styles";
 type AppTextInputProps = TextFieldProps & {
   sx?: SxProps<Theme>;
   inputSx?: Record<string, any>;
+  changed?: boolean;
   [key: string]: any;
 };
 
-export default function AppTextInput({ sx, inputSx, ...props }: AppTextInputProps) {
+export default function AppTextInput({ sx, inputSx, changed = false, ...props }: AppTextInputProps) {
   return (
     <TextField
       {...props}
@@ -18,6 +19,10 @@ export default function AppTextInput({ sx, inputSx, ...props }: AppTextInputProp
           backgroundColor: "#fff",
           ...inputSx,
         },
+        ...(changed ? {
+          "& .MuiOutlinedInput-notchedOutline": { borderColor: "warning.main", borderWidth: 2 },
+          "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": { borderColor: "warning.main" },
+        } : {}),
         ...sx,
       }}
     />

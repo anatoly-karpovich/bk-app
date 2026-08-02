@@ -29,7 +29,7 @@ export const appTheme = createTheme({
       main: "#15803d",
     },
     warning: {
-      main: "#b45309",
+      main: "#eab308",
     },
     error: {
       main: "#b91c1c",

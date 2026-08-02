@@ -1,6 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Card,
   CardContent,
@@ -20,6 +19,7 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import { getCollectorTargetLabel, getHistoryEntrySummary, getJourneyPlayerBalanceLabel } from "../journey-page.helpers";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
+import AppInfoAlert from "../../../components/ui/AppInfoAlert";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import type {
   JourneyAchievementsMap,
@@ -340,7 +340,7 @@ export default function JourneyStateCard({
             </TableBody>
           </Table>
         ) : (
-          <Alert severity="info">{journeyTexts.alerts.createOrRestoreGame}</Alert>
+          <AppInfoAlert>{journeyTexts.alerts.createOrRestoreGame}</AppInfoAlert>
         )}
       </CardContent>
     </Card>

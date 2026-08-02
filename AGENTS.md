@@ -134,7 +134,9 @@ Project-level resources and preset rules must be read from project-scoped backen
 - Persist every resolved grant or payout in game state. Restored games and undo/read paths must display the saved outcome, never re-resolve a pool.
 - Presets may reference project resources, but games retain their resource snapshot so historical results remain interpretable after a project catalog changes.
 
-Current host-facing pages such as Journey, Battleships, and Lotto should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
+Current host-facing pages such as Journey, Battleships, Lotto, and Project Settings should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
+
+Project Settings is the host-facing source for a project's resource catalog. It edits a local draft before one explicit project update; selecting a resource changes only the editor context and must not change persisted state until the host saves.
 
 Journey forum messages are backend-generated from compact comment events. Keep player-action wording gender-neutral with forms such as `нашёл(-ла)` and `угодил(-а)`.
 

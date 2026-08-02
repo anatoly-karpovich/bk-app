@@ -22,7 +22,15 @@ Current feature structure includes:
 features/
   projects/
     api/
+    components/
     hooks/
+    projectPage.helpers.ts
+    ProjectPage.tsx
+  configs/
+    components/
+    hooks/
+    GameConfigsPage.tsx
+    JourneyConfigPage.tsx
   journey/
     api/
     components/
@@ -105,7 +113,38 @@ When two or more features share the same page shell, dialog structure, or presen
 
 If multiple game pages need breadcrumbs or other framing/navigation UI, do not keep separate hardcoded breadcrumb strings in feature texts. Prefer one shared component with consistent logic and shared source labels.
 
+Breadcrumbs are defined through `PageBreadcrumbs` and `components/ui/AppBreadcrumbs`. Pass semantic items with a `label` and optional `to` route, rather than rendering page-local links. Link only ancestors that have a real React Router destination; the current page and non-page navigation groups remain text. For a nested config editor, link the config-list parent and the corresponding game-type filter (`/configs?gameType=...`), while leaving the current config name unlinked. `GameConfigsPage` reads that query parameter so breadcrumb navigation restores the selected game type.
+
 When multiple setup flows need the same visual treatment for player nickname fields, prefer one shared component for that visual primitive. At the moment `components/players/GamePlayerNameInput.tsx` is the shared source for the player-name input look.
+
+## Shared component workflow
+
+When adding or changing a game page, always look for an existing shared component before writing local UI.
+
+Use this order:
+
+1. Check `src/components/` and `src/components/ui/` for a component with the same semantic role.
+2. If there is no shared component, inspect the equivalent UI in Journey, Battleships, and Lotto.
+3. If the same UI or interaction exists in another game, extract or move it into `src/components/` or `src/components/ui/` as part of the same change, then use that shared source in every applicable game.
+4. Create a feature-local component only when the structure or behavior is genuinely game-specific.
+
+Do not fork a component merely because its text, icon, disabled state, or callback differs. Pass those details as props when the visual role is the same.
+
+Current shared sources include:
+
+* `components/GamePageHeader.tsx` for the game-page frame and host actions.
+* `components/players/GamePlayerNameInput.tsx` for player-name inputs.
+* `components/GameStartButton.tsx` for starting a new game.
+* `components/GameActionButton.tsx` for compact icon-and-label game actions.
+* `components/AddPlayerButton.tsx` for the standard `+ Добавить` player action.
+* `components/ui/AppInfoAlert.tsx` for neutral blue informational messages with the standard `i` icon. Do not use it for errors, warnings, or success messages.
+* `components/ui/AppPillButton.tsx`, `AppTextInput.tsx`, `AppChip.tsx`, `AppConfirmDialog.tsx`, `AppBreadcrumbs.tsx`, and `AppResponsiveGrid.tsx` for their corresponding UI primitives.
+
+Keep shared components presentational and configurable. Feature components retain game-specific copy and callbacks; shared components own repeated markup and visual rules.
+
+For nested host pages, use `GamePageHeader` and its breadcrumb extension rather than creating page-local breadcrumb implementations.
+
+Use `AppTextInput` change-state styling only for a meaningful comparison between a local draft and its saved source. Reuse `AppSelectableListItem` trailing content for status markers rather than forking the list-item layout.
 
 ---
 
@@ -287,7 +326,7 @@ The backend is the source of truth for game data.
 
 ## Projects and presets
 
-The frontend consumes project-scoped APIs; the old `features/configs` layer and `/api/configs` do not exist.
+The frontend consumes project-scoped APIs. `features/configs` is the host-facing UI for project-owned `GameConfig` presets; it must use project-scoped routes and must not introduce a global `/api/configs` source of truth.
 
 - Load the active project through `features/projects` and load presets by project + game type.
 - Create, restore, mutate, and delete games only through `/api/projects/:projectId/...` routes.
@@ -295,6 +334,26 @@ The frontend consumes project-scoped APIs; the old `features/configs` layer and 
 - Display resources from the project or a game snapshot returned by backend. Do not recreate resource defaults per feature.
 - Reuse shared `features/rewards` reward-pool types and amount-formatting helpers, plus `features/configs/components/RewardPoolEditor`, when a game needs them. Game-specific components may choose their labels and layout, but must not duplicate pool mechanics or local prize calculation.
 - If project/preset management UI is added, it must use Project/GameConfig CRUD and permanent-delete semantics. Archive, restore, duplicate, versioning, and optimistic locking are out of MVP.
+
+### Game configuration editors
+
+- `GameConfigsPage.tsx` owns preset listing, filtering, and navigation. A complex game-specific preset may use its own page under `/configs/:gameType/:configId`; keep the list page focused on browsing and selection.
+- A config editor keeps a saved source snapshot and one local draft. Field edits update only the draft; saving is one explicit API request.
+- Reset restores the draft from the saved snapshot. After a successful save, replace both the source snapshot and the draft with the returned backend config.
+- Track unsaved changes by comparing the draft with the saved snapshot. Section-level indicators must reflect semantic changes, including additions and removals, and disappear after reset or successful save.
+- Backend remains authoritative for validation and rule semantics. The editor may expose only supported fields and must display API validation failures instead of inventing local fallback rules.
+- Game-owned invariant fields, such as achievement conditions or protected core cell identities, are display-only or disabled unless backend support explicitly makes them configurable.
+- Read reward resources from the selected project and reuse `features/rewards` types, formatters, and `RewardPoolEditor`; never recreate resource defaults or pool mechanics locally.
+
+### Project Settings page
+
+`features/projects/ProjectPage.tsx` is the host-facing editor for project identity and its resource catalog.
+
+- Keep one local `ProjectDraft` for unsaved edits and one selected resource id for the editor context. Adding, selecting, or removing a draft resource must not persist data until the explicit save action succeeds.
+- Present one selected-resource editor, not a grid of editors for every resource. Keep project-specific presentation in `features/projects/components/` (`ProjectResourceList`, `ProjectResourceEditor`, and `ProjectResourceUsage`). Do not generalize these components until another feature needs the same semantic UI.
+- Load config usage through existing project/config APIs and show it as display-only context. Do not duplicate or mutate game rules in this page.
+- Use the same top-level `Grid container spacing={3}` composition as Journey, Battleships, and Lotto. Do not wrap the page in an extra layout that changes the shared 24px column gap or its alignment with `GamePageHeader`.
+- Use `GamePageHeader`, default themed `Card`/`CardContent`, `h5` card headings, and the shared UI primitives. Do not introduce project-only variants for standard cards, buttons, chips, inputs, or alerts.
 
 ---
 
@@ -363,6 +422,8 @@ Avoid using `any`.
 
 Avoid creating frontend types that silently diverge from backend response shape.
 
+Feature-level identifiers shared by pages, hooks, and texts belong in a feature type or constants module, not in a React component. Text modules may import pure types, but must not depend on component modules.
+
 Do not restore Journey's removed legacy DTOs (`JourneyGame`, `JourneyRound`, `movesHistory`, `derived`) or infer storage format in the frontend. Consume the public view contract and its page-local structural mapper instead.
 
 If backend DTOs become stable, consider a shared contract package later.
@@ -385,9 +446,10 @@ Good:
 texts/journeyTexts.ts
 texts/appHeaderTexts.ts
 texts/lottoTexts.ts
+texts/projectTexts.ts
 ```
 
-Keep Battleships and Lotto copy in their dedicated text files rather than scattering strings through cards or dialogs.
+Keep Battleships, Lotto, and Project Settings copy in their dedicated text files rather than scattering strings through pages, cards, or helpers. Project Settings uses `texts/projectTexts.ts` for labels, statuses, accessibility text, and config-usage copy.
 
 ---
 
@@ -415,12 +477,16 @@ Avoid one-off styling unless the component is truly unique.
 
 Keep the current visual style consistent.
 
+Use `AppResponsiveGrid` for responsive layouts nested inside cards, config sections, or other padded surfaces. Do not use MUI legacy `Grid container spacing` in those contexts: its compensating margins and width can create double left padding and right overflow. Reserve MUI `Grid` for top-level page layout where the shared page gutter is intentional.
+
 Current shared UI patterns that should stay consistent across Battleships and Lotto unless a task explicitly changes them:
 
 * shared page header structure via `GamePageHeader`
 * shared player-name input styling via `GamePlayerNameInput`
 * shared confirm dialog and saved-game action vocabulary
 * saved-games presentation that surfaces project/config context and host metadata clearly
+
+Project Settings follows the same visual system: its header uses `GamePageHeader`; the root grid uses `spacing={3}`; standard cards use the themed MUI defaults; and `h5` is the shared card-title scale already used by game `CardHeader`s. Extend `theme.ts` only for a rule used by more than one feature; do not move project-specific selectable-resource or preview styles into the global theme.
 
 ---
 

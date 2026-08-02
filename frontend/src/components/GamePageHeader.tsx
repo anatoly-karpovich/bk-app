@@ -3,6 +3,7 @@ import type { ButtonProps } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import AppChip from "./ui/AppChip";
+import type { AppBreadcrumbItem } from "./ui/AppBreadcrumbs";
 import AppPillButton from "./ui/AppPillButton";
 import PageBreadcrumbs from "./PageBreadcrumbs";
 
@@ -24,6 +25,7 @@ export interface GamePageHeaderAction {
 
 interface GamePageHeaderProps {
   breadcrumbPath: string;
+  breadcrumbItems?: AppBreadcrumbItem[];
   title: string;
   description: string;
   chips: GamePageHeaderChip[];
@@ -34,6 +36,7 @@ interface GamePageHeaderProps {
 
 export default function GamePageHeader({
   breadcrumbPath,
+  breadcrumbItems,
   title,
   description,
   chips,
@@ -63,7 +66,7 @@ export default function GamePageHeader({
           }}
         >
           <Stack spacing={1.25} sx={{ minWidth: 0, maxWidth: { xl: "62%" } }}>
-            <PageBreadcrumbs pagePath={breadcrumbPath} />
+            <PageBreadcrumbs pagePath={breadcrumbPath} additionalItems={breadcrumbItems} />
             <Typography
               variant="h3"
               sx={{
