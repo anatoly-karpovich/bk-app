@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
 import BattleshipsPage from "./features/battleships/BattleshipsPage";
+import BattleshipsConfigPage from "./features/configs/BattleshipsConfigPage";
 import GameConfigsPage from "./features/configs/GameConfigsPage";
 import JourneyConfigPage from "./features/configs/JourneyConfigPage";
 import LottoConfigPage from "./features/configs/LottoConfigPage";
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
+          <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
         </Routes>
       </Container>

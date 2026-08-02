@@ -7,6 +7,7 @@ import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyConfigTexts } from "../../../texts/journeyConfigTexts";
 import { formatRewardPool } from "../../rewards/resourceAmounts";
+import RewardPoolSummaryChip from "../../rewards/components/RewardPoolSummaryChip";
 import type { JourneyJackpotCountMode, JourneyRules, JourneyRulesCell } from "../../journey/types";
 import type { ProjectResource } from "../../projects/types";
 import RewardPoolEditor from "./RewardPoolEditor";
@@ -40,9 +41,12 @@ export function JourneyJackpotSection({ rules, sourceRules, resources, disabled,
     <Card>
       <CardContent>
         <Stack spacing={2.25}>
-          <Stack spacing={0.5}>
-            <Typography variant="h5">Джекпот</Typography>
-            <Typography variant="body2" color="text.secondary">Настройка количества сокровищ и пула наград.</Typography>
+          <Stack direction="row" justifyContent="space-between" spacing={1.5} alignItems="flex-start">
+            <Stack spacing={0.5}>
+              <Typography variant="h5">Джекпот</Typography>
+              <Typography variant="body2" color="text.secondary">Настройка количества сокровищ и пула наград.</Typography>
+            </Stack>
+            <RewardPoolSummaryChip pool={jackpot.rewardPool} resources={resources} color="primary" />
           </Stack>
 
           <FormControl disabled={disabled} sx={sourceJackpot && sourceJackpot.countMode !== jackpot.countMode ? { px: 1, py: 0.5, border: "2px solid", borderColor: "primary.main", borderRadius: 2, alignSelf: "flex-start" } : undefined}>
@@ -175,7 +179,7 @@ export function JourneyCellsSection({ rules, sourceRules, resources, disabled, o
         <Card>
           <CardContent>
             <Stack spacing={2}>
-              <Stack direction="row" justifyContent="space-between">
+              <Stack direction="row" justifyContent="space-between" spacing={1}>
                 <Stack spacing={0.75}>
                   <ConfigContextChip
                     label={journeyConfigTexts.cells.selectedBadge}
@@ -183,9 +187,12 @@ export function JourneyCellsSection({ rules, sourceRules, resources, disabled, o
                   />
                   <Typography variant="h5">{journeyConfigTexts.cells.name(selected.kind, selected.id)}</Typography>
                 </Stack>
-                <IconButton color="error" disabled={disabled || isCoreCell} onClick={() => onChange({ ...rules, cells: rules.cells.filter((_cell, index) => index !== selectedIndex) })}>
-                  <DeleteOutlineRoundedIcon />
-                </IconButton>
+                <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                  <RewardPoolSummaryChip pool={selected.rewardPool} resources={resources} color="primary" />
+                  <IconButton color="error" disabled={disabled || isCoreCell} onClick={() => onChange({ ...rules, cells: rules.cells.filter((_cell, index) => index !== selectedIndex) })}>
+                    <DeleteOutlineRoundedIcon />
+                  </IconButton>
+                </Stack>
               </Stack>
 
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.5fr 1fr .7fr 1fr" }, gap: 1.5 }}>

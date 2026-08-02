@@ -5,6 +5,8 @@ export type JourneyConfigPageSectionId = "general" | JourneyConfigSectionId;
 
 export type LottoConfigSectionId = "general" | "card" | "prizes" | "distribution";
 
+export type BattleshipsConfigSectionId = "general" | "boards" | "board" | "fleet" | "rewards";
+
 export interface ConfigSection<TSectionId extends string> {
   id: TSectionId;
   label: string;

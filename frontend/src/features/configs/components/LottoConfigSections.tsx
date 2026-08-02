@@ -12,7 +12,7 @@ import { lottoConfigTexts } from "../../../texts/lottoConfigTexts";
 import { generateLottoCardNumbers } from "../../lotto/mappers/lotto.mapper";
 import type { LottoRules } from "../../lotto/types";
 import type { ProjectResource } from "../../projects/types";
-import { formatRewardPool } from "../../rewards/resourceAmounts";
+import RewardPoolSummaryChip from "../../rewards/components/RewardPoolSummaryChip";
 import type { RewardPool } from "../../rewards/types";
 import RewardPoolEditor from "./RewardPoolEditor";
 import ConfigContextChip from "./ConfigContextChip";
@@ -129,7 +129,6 @@ function LottoPrizeEditorCard({
   emphasized = false,
   onChange,
 }: LottoPrizeEditorCardProps) {
-  const summary = formatRewardPool(pool, resources);
   return (
     <Card
       variant="outlined"
@@ -162,7 +161,7 @@ function LottoPrizeEditorCard({
                 <Typography variant="body2" color="text.secondary">{description}</Typography>
               </Stack>
             </Stack>
-            <AppChip size="small" label={summary === "0" ? lottoConfigTexts.prizes.emptyPrize : summary} color={emphasized ? "primary" : "default"} />
+            <RewardPoolSummaryChip pool={pool} resources={resources} color="primary" />
           </Stack>
           <RewardPoolEditor
             pool={pool}

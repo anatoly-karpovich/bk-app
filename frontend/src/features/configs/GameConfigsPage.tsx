@@ -16,18 +16,12 @@ import { useNavigate } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppTextInput from "../../components/ui/AppTextInput";
 import { gameConfigsTexts } from "../../texts/gameConfigsTexts";
-import { getGameConfigRequest } from "../projects/api/projects.client";
-import type { AnyGameConfig, GameType, Project, UpdateGameConfigInput } from "../projects/types";
+import type { AnyGameConfig, GameType, Project } from "../projects/types";
 import GameConfigCard from "./components/GameConfigCard";
-import GameConfigEditorDialog from "./components/GameConfigEditorDialog";
 import GameTypeFilterCard from "./components/GameTypeFilterCard";
 import { useGameConfigs } from "./hooks/useGameConfigs";
 
 const gameTypes: GameType[] = ["journey", "lotto", "battleships"];
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : gameConfigsTexts.alerts.loadFailed;
-}
 
 interface GameConfigsPageProps {
   selectedProject: Project | null;
@@ -37,11 +31,7 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
   const navigate = useNavigate();
   const [gameType, setGameType] = useState<GameType>("journey");
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingConfig, setEditingConfig] = useState<AnyGameConfig | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isLoadingEditor, setIsLoadingEditor] = useState(false);
-  const [editorError, setEditorError] = useState<string | null>(null);
-  const { gameConfigs, error, isLoading, isSaving, actions } = useGameConfigs(selectedProject?.id);
+  const { gameConfigs, error, isLoading, actions } = useGameConfigs(selectedProject?.id);
   const configCounts = useMemo(
     () =>
       gameTypes.reduce<Record<GameType, number>>(
@@ -68,50 +58,8 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
     );
   }, [searchQuery, selectedGameConfigs]);
 
-  async function openEditor(config: AnyGameConfig) {
-    if (!selectedProject) {
-      return;
-    }
-
-    if (config.gameType === "journey" || config.gameType === "lotto") {
-      navigate(`/configs/${config.gameType}/${encodeURIComponent(config.id)}`);
-      return;
-    }
-
-    setEditingConfig(null);
-    setEditorError(null);
-    setIsEditorOpen(true);
-    setIsLoadingEditor(true);
-
-    try {
-      setEditingConfig(await getGameConfigRequest(selectedProject.id, config.id));
-    } catch (nextError) {
-      setEditorError(getErrorMessage(nextError));
-    } finally {
-      setIsLoadingEditor(false);
-    }
-  }
-
-  function closeEditor() {
-    if (!isSaving) {
-      setIsEditorOpen(false);
-      setEditingConfig(null);
-      setEditorError(null);
-    }
-  }
-
-  async function saveConfig(input: UpdateGameConfigInput) {
-    if (!editingConfig) {
-      return;
-    }
-
-    const updated = await actions.updateGameConfig(editingConfig.id, input);
-    if (updated) {
-      closeEditor();
-      return;
-    }
-
-    setEditorError(gameConfigsTexts.alerts.saveFailed);
+  function openEditor(config: AnyGameConfig) {
+    navigate(`/configs/${config.gameType}/${encodeURIComponent(config.id)}`);
   }
 
   if (!selectedProject) {
@@ -235,17 +183,6 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
           </Stack>
         </Grid>
       </Grid>
-
-      <GameConfigEditorDialog
-        project={selectedProject}
-        gameConfig={editingConfig}
-        open={isEditorOpen}
-        isLoading={isLoadingEditor}
-        isSaving={isSaving}
-        error={editorError}
-        onClose={closeEditor}
-        onSave={saveConfig}
-      />
     </>
   );
 }

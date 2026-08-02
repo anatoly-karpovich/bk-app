@@ -8,6 +8,7 @@ interface AppSelectableListItemProps {
   icon: ReactNode;
   selected: boolean;
   onClick: () => void;
+  disabled?: boolean;
   ariaLabel?: string;
   trailing?: ReactNode;
 }
@@ -18,6 +19,7 @@ export default function AppSelectableListItem({
   icon,
   selected,
   onClick,
+  disabled = false,
   ariaLabel,
   trailing,
 }: AppSelectableListItemProps) {
@@ -27,6 +29,7 @@ export default function AppSelectableListItem({
       type="button"
       aria-label={ariaLabel}
       aria-pressed={selected}
+      disabled={disabled}
       onClick={onClick}
       sx={{
         width: "100%",
@@ -44,9 +47,9 @@ export default function AppSelectableListItem({
         alignItems: "center",
         gap: 1.5,
         textAlign: "left",
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
         transition: "border-color 160ms ease, background-color 160ms ease",
-        "&:hover": { borderColor: "primary.light" },
+        "&:hover": disabled ? undefined : { borderColor: "primary.light" },
         "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 },
       }}
     >

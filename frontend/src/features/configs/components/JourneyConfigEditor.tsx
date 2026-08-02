@@ -6,6 +6,7 @@ import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyConfigTexts } from "../../../texts/journeyConfigTexts";
 import type { JourneyRules, ResourceLimit } from "../../journey/types";
 import type { ProjectResource } from "../../projects/types";
+import RewardPoolSummaryChip from "../../rewards/components/RewardPoolSummaryChip";
 import type { JourneyConfigSectionId } from "../types";
 import RewardPoolEditor from "./RewardPoolEditor";
 import RuleSection from "./RuleSection";
@@ -234,7 +235,11 @@ export default function JourneyConfigEditor({
       ) : null}
 
       {!activeSection || activeSection === "rewards" ? (
-        <RuleSection title="Стартовые награды" description="Ресурсы, которые получает каждый игрок при старте.">
+        <RuleSection
+          title="Стартовые награды"
+          description="Ресурсы, которые получает каждый игрок при старте."
+          headerAction={<RewardPoolSummaryChip pool={rules.initialRewardPool} resources={resources} color="primary" />}
+        >
           <RewardPoolEditor
             pool={rules.initialRewardPool}
             sourcePool={sourceRules?.initialRewardPool}
@@ -259,13 +264,16 @@ export default function JourneyConfigEditor({
               return (
                 <Grid key={achievement} item xs={12} md={6}>
                   <Stack spacing={1.25} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                    <Stack spacing={0.25}>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        {copy.label}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {copy.condition}
-                      </Typography>
+                    <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start">
+                      <Stack spacing={0.25}>
+                        <Typography variant="subtitle1" fontWeight={700}>
+                          {copy.label}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {copy.condition}
+                        </Typography>
+                      </Stack>
+                      <RewardPoolSummaryChip pool={achievements[achievement].rewardPool} resources={resources} color="primary" />
                     </Stack>
                     <RewardPoolEditor
                       pool={achievements[achievement].rewardPool}
