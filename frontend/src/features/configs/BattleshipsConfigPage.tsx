@@ -95,7 +95,7 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
         <GamePageHeader
           breadcrumbPath="/configs"
           breadcrumbItems={[
-            { label: battleshipsConfigTexts.page.gameChip, to: "/battleship" },
+            { label: battleshipsConfigTexts.page.gameChip, to: "/configs?gameType=battleships" },
             { label: draft.name },
           ]}
           title={draft.name}

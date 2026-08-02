@@ -99,7 +99,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
         <GamePageHeader
           breadcrumbPath="/configs"
           breadcrumbItems={[
-            { label: journeyConfigTexts.page.gameChip, to: "/journey" },
+            { label: journeyConfigTexts.page.gameChip, to: "/configs?gameType=journey" },
             { label: draft.name },
           ]}
           title={draft.name}

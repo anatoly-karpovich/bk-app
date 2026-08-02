@@ -112,7 +112,7 @@ export default function LottoConfigPage({ selectedProject }: LottoConfigPageProp
         <GamePageHeader
           breadcrumbPath="/configs"
           breadcrumbItems={[
-            { label: lottoConfigTexts.page.gameChip, to: "/lotto" },
+            { label: lottoConfigTexts.page.gameChip, to: "/configs?gameType=lotto" },
             { label: draft.name },
           ]}
           title={draft.name}

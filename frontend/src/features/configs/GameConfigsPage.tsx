@@ -12,7 +12,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppTextInput from "../../components/ui/AppTextInput";
 import { gameConfigsTexts } from "../../texts/gameConfigsTexts";
@@ -29,8 +29,9 @@ interface GameConfigsPageProps {
 
 export default function GameConfigsPage({ selectedProject }: GameConfigsPageProps) {
   const navigate = useNavigate();
-  const [gameType, setGameType] = useState<GameType>("journey");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const gameType = gameTypes.find((candidate) => candidate === searchParams.get("gameType")) ?? "journey";
   const { gameConfigs, error, isLoading, actions } = useGameConfigs(selectedProject?.id);
   const configCounts = useMemo(
     () =>
@@ -105,7 +106,7 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
             selectedGameType={gameType}
             configCounts={configCounts}
             onSelect={(nextGameType) => {
-              setGameType(nextGameType);
+              setSearchParams({ gameType: nextGameType });
               setSearchQuery("");
             }}
           />
