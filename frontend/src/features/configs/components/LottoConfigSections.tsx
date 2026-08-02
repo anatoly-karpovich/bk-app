@@ -157,8 +157,12 @@ function LottoPrizeEditorCard({
                 {icon}
               </Box>
               <Stack spacing={0.25}>
-                <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
-                <Typography variant="body2" color="text.secondary">{description}</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {description}
+                </Typography>
               </Stack>
             </Stack>
             <RewardPoolSummaryChip pool={pool} resources={resources} color="primary" />
@@ -189,7 +193,6 @@ export function LottoPrizesSection({ rules, sourceRules, resources, disabled, on
             sourcePool={sourceRules.firstPlacePrize}
             resources={resources}
             disabled={disabled}
-            emphasized
             onChange={(firstPlacePrize) => patchRules(rules, onChange, { firstPlacePrize })}
           />
         </Grid>
@@ -222,7 +225,11 @@ export function LottoPrizesSection({ rules, sourceRules, resources, disabled, on
 
 export function LottoDistributionSection({ rules, sourceRules, disabled, onChange }: LottoRulesSectionProps) {
   const options = [
-    { value: "full_per_winner", icon: <EmojiEventsRoundedIcon fontSize="small" />, ...lottoConfigTexts.distribution.full },
+    {
+      value: "full_per_winner",
+      icon: <EmojiEventsRoundedIcon fontSize="small" />,
+      ...lottoConfigTexts.distribution.full,
+    },
     { value: "split_pool", icon: <GroupsRoundedIcon fontSize="small" />, ...lottoConfigTexts.distribution.split },
   ] as const;
 
@@ -231,7 +238,11 @@ export function LottoDistributionSection({ rules, sourceRules, disabled, onChang
       <FormControl component="fieldset" fullWidth disabled={disabled}>
         <RadioGroup
           value={rules.rewardDistributionMode}
-          onChange={(event) => patchRules(rules, onChange, { rewardDistributionMode: event.target.value as LottoRules["rewardDistributionMode"] })}
+          onChange={(event) =>
+            patchRules(rules, onChange, {
+              rewardDistributionMode: event.target.value as LottoRules["rewardDistributionMode"],
+            })
+          }
         >
           <Stack spacing={1.25}>
             {options.map((option) => {
@@ -269,7 +280,9 @@ export function LottoDistributionSection({ rules, sourceRules, disabled, onChang
                   </Box>
                   <Stack spacing={0.25}>
                     <Typography variant="subtitle2">{option.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">{option.description}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {option.description}
+                    </Typography>
                   </Stack>
                 </Box>
               );
