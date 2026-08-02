@@ -144,7 +144,19 @@ export default function AppHeader({
                 <MenuRoundedIcon />
               </IconButton>
 
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+              <Box
+                component={NavLink}
+                to="/"
+                aria-label="На главную"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  minWidth: 0,
+                  color: "text.primary",
+                  textDecoration: "none",
+                }}
+              >
                 <Box
                   sx={{
                     width: 44,
@@ -156,6 +168,7 @@ export default function AppHeader({
                     color: "white",
                     boxShadow: "0 10px 22px rgba(79, 70, 229, 0.24)",
                     flexShrink: 0,
+                    textDecoration: "none",
                   }}
                 >
                   <SportsEsportsRoundedIcon />
@@ -169,7 +182,7 @@ export default function AppHeader({
                     {appHeaderTexts.brandSubtitle}
                   </Typography>
                 </Box>
-              </Stack>
+              </Box>
 
               <Stack
                 direction="row"

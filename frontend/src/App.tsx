@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Alert, Box, Container } from "@mui/material";
 import AppHeader from "./components/AppHeader";
 import BattleshipsPage from "./features/battleships/BattleshipsPage";
@@ -15,6 +16,7 @@ import { ProtectedRoute } from "./features/auth/ProtectedRoute";
 import { useAuth } from "./features/auth/useAuth";
 import { AdminRoute } from "./features/auth/AdminRoute";
 import UsersPage from "./features/users/UsersPage";
+import DashboardPage from "./features/dashboard/DashboardPage";
 
 export default function App() {
   return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
@@ -22,8 +24,15 @@ export default function App() {
 
 function AuthenticatedApp() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { projects, selectedProject, error, isSaving, actions } = useProjects();
   const djName = selectedProject ? user?.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? "" : "";
+
+  useEffect(() => {
+    const redirectToDashboard = () => navigate("/", { replace: true });
+    window.addEventListener("bk:access-forbidden", redirectToDashboard);
+    return () => window.removeEventListener("bk:access-forbidden", redirectToDashboard);
+  }, [navigate]);
 
   return (
     <Box
@@ -48,7 +57,7 @@ function AuthenticatedApp() {
         ) : null}
 
         <Routes>
-          <Route path="/" element={<Navigate to="/journey" replace />} />
+          <Route path="/" element={<DashboardPage user={user!} />} />
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
@@ -59,6 +68,7 @@ function AuthenticatedApp() {
           <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />
           <Route path="/users" element={<AdminRoute><UsersPage projects={projects} /></AdminRoute>} />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Container>
     </Box>

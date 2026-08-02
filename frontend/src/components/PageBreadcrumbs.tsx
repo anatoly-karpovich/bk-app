@@ -11,7 +11,7 @@ interface PageBreadcrumbsProps {
 export default function PageBreadcrumbs({ pagePath, additionalItems = [] }: PageBreadcrumbsProps) {
   const navigation = findNavigationItem(pagePath);
   const items: AppBreadcrumbItem[] = [
-    { label: appHeaderTexts.brandTitle, to: "/journey" },
+    { label: appHeaderTexts.brandTitle, to: "/" },
     ...(navigation
       ? [
           { label: navigation.group.label },

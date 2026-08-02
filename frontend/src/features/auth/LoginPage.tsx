@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AppTextInput from "../../components/ui/AppTextInput";
 import { useAuth } from "./useAuth";
 
 export default function LoginPage() {
-  const { login } = useAuth(); const navigate = useNavigate(); const location = useLocation();
+  const { login } = useAuth(); const navigate = useNavigate();
   const [loginValue, setLoginValue] = useState(""); const [password, setPassword] = useState(""); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(false);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setLoading(true); setError(null);
-    try { await login({ login: loginValue, password }); navigate((location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/", { replace: true }); }
+    try { await login({ login: loginValue, password }); navigate("/", { replace: true }); }
     catch (nextError) { setError(nextError instanceof Error ? nextError.message : "Не удалось войти"); setPassword(""); }
     finally { setLoading(false); }
   };

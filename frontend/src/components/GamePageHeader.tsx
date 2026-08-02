@@ -27,9 +27,9 @@ interface GamePageHeaderProps {
   breadcrumbPath: string;
   breadcrumbItems?: AppBreadcrumbItem[];
   title: string;
-  description: string;
-  chips: GamePageHeaderChip[];
-  actions: GamePageHeaderAction[];
+  description?: string;
+  chips?: GamePageHeaderChip[];
+  actions?: GamePageHeaderAction[];
   controls?: ReactNode;
   cardSx?: SxProps<Theme>;
 }
@@ -39,11 +39,13 @@ export default function GamePageHeader({
   breadcrumbItems,
   title,
   description,
-  chips,
-  actions,
+  chips = [],
+  actions = [],
   controls,
   cardSx,
 }: GamePageHeaderProps) {
+  const hasTrailingContent = Boolean(controls || actions.length);
+
   return (
     <Card
       sx={{
@@ -59,13 +61,13 @@ export default function GamePageHeader({
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              xl: "minmax(0, 58%) minmax(0, 42%)",
+              xl: hasTrailingContent ? "minmax(0, 58%) minmax(0, 42%)" : "minmax(0, 1fr)",
             },
             gap: 3,
             alignItems: { xl: "center" },
           }}
         >
-          <Stack spacing={1.25} sx={{ minWidth: 0, maxWidth: { xl: "62%" } }}>
+          <Stack spacing={1.25} sx={{ minWidth: 0, maxWidth: { xl: hasTrailingContent ? "62%" : "100%" } }}>
             <PageBreadcrumbs pagePath={breadcrumbPath} additionalItems={breadcrumbItems} />
             <Typography
               variant="h3"
@@ -77,54 +79,56 @@ export default function GamePageHeader({
             >
               {title}
             </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {chips.map((chip) => (
-                <AppChip key={chip.label} label={chip.label} color={chip.color} />
+            {chips.length ? (
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {chips.map((chip) => (
+                  <AppChip key={chip.label} label={chip.label} color={chip.color} />
+                ))}
+              </Stack>
+            ) : null}
+            {description ? <Typography variant="body1" color="text.secondary">{description}</Typography> : null}
+          </Stack>
+
+          {hasTrailingContent ? (
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.25}
+              useFlexGap
+              sx={{
+                width: "100%",
+                justifyContent: { xl: "flex-end" },
+                justifySelf: { xl: "stretch" },
+                flexWrap: { xs: "wrap", xl: "nowrap" },
+                alignItems: { sm: "center" },
+              }}
+            >
+              {controls ? (
+                <Box
+                  sx={{
+                    width: { xs: "100%", sm: 220, xl: 210 },
+                    maxWidth: "100%",
+                    flexShrink: 0,
+                  }}
+                >
+                  {controls}
+                </Box>
+              ) : null}
+
+              {actions.map((action) => (
+                <AppPillButton
+                  key={action.key}
+                  variant={action.variant}
+                  color={action.color}
+                  startIcon={action.icon}
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  loading={action.loading}
+                >
+                  {action.label}
+                </AppPillButton>
               ))}
             </Stack>
-            <Typography variant="body1" color="text.secondary">
-              {description}
-            </Typography>
-          </Stack>
-
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.25}
-            useFlexGap
-            sx={{
-              width: "100%",
-              justifyContent: { xl: "flex-end" },
-              justifySelf: { xl: "stretch" },
-              flexWrap: { xs: "wrap", xl: "nowrap" },
-              alignItems: { sm: "center" },
-            }}
-          >
-            {controls ? (
-              <Box
-                sx={{
-                  width: { xs: "100%", sm: 220, xl: 210 },
-                  maxWidth: "100%",
-                  flexShrink: 0,
-                }}
-              >
-                {controls}
-              </Box>
-            ) : null}
-
-            {actions.map((action) => (
-              <AppPillButton
-                key={action.key}
-                variant={action.variant}
-                color={action.color}
-                startIcon={action.icon}
-                onClick={action.onClick}
-                disabled={action.disabled}
-                loading={action.loading}
-              >
-                {action.label}
-              </AppPillButton>
-            ))}
-          </Stack>
+          ) : null}
         </Box>
       </CardContent>
     </Card>

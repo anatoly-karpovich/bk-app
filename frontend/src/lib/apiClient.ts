@@ -77,6 +77,7 @@ class ApiClient {
     if (!response.ok || !responseBody || responseBody.success !== true) {
       const error = new ApiError(response.status, responseBody?.code, this.getErrorMessage(response.status, responseBody));
       if (response.status === 401 && path !== "/api/auth/me") window.dispatchEvent(new CustomEvent("bk:auth-required"));
+      if (response.status === 403) window.dispatchEvent(new CustomEvent("bk:access-forbidden"));
       throw error;
     }
 
