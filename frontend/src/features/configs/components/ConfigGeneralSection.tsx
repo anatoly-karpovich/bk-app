@@ -1,4 +1,5 @@
-import { Card, CardContent, Grid, Stack, Typography } from "@mui/material";
+import { Card, CardContent, Stack, Typography } from "@mui/material";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppTextInput from "../../../components/ui/AppTextInput";
 
 interface ConfigGeneralSectionProps {
@@ -32,8 +33,7 @@ export default function ConfigGeneralSection({
               {description}
             </Typography>
           </Stack>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+          <AppResponsiveGrid columns={{ xs: 1, md: 2 }}>
               <AppTextInput
                 fullWidth
                 label={nameLabel}
@@ -43,8 +43,6 @@ export default function ConfigGeneralSection({
                 required
                 onChange={(event) => onChange({ name: event.target.value })}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
               <AppTextInput
                 fullWidth
                 label={descriptionLabel}
@@ -53,8 +51,7 @@ export default function ConfigGeneralSection({
                 disabled={disabled}
                 onChange={(event) => onChange({ description: event.target.value })}
               />
-            </Grid>
-          </Grid>
+          </AppResponsiveGrid>
         </Stack>
       </CardContent>
     </Card>

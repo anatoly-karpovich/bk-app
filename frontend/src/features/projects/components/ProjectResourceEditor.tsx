@@ -1,7 +1,8 @@
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { Box, Card, CardContent, Divider, Grid, IconButton, MenuItem, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Divider, IconButton, MenuItem, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppInfoAlert from "../../../components/ui/AppInfoAlert";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { projectTexts } from "../../../texts/projectTexts";
 import type { ProjectCurrencyDraft, ProjectResourceDraft } from "../projectPage.helpers";
@@ -52,8 +53,8 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
             </AppInfoAlert>
           ) : null}
 
-          <Grid container spacing={1.5} alignItems="flex-start">
-            <Grid item xs={12} md={resource.type === "currency" ? 6 : 8}>
+          <AppResponsiveGrid columns={{ xs: 1, sm: 2, md: 12 }} gap={1.5} sx={{ alignItems: "flex-start" }}>
+            <Box sx={{ gridColumn: { sm: "span 2", md: `span ${resource.type === "currency" ? 6 : 8}` } }}>
               <AppTextInput
                 fullWidth
                 size="small"
@@ -62,11 +63,11 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
                 disabled={disabled}
                 onChange={(event) => onChange({ ...resource, label: event.target.value })}
               />
-            </Grid>
+            </Box>
 
             {resource.type === "currency" ? (
               <>
-                <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ gridColumn: { md: "span 3" } }}>
                   <AppTextInput
                     select
                     fullWidth
@@ -82,8 +83,8 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
                     <MenuItem value="integer">{projectTexts.resource.integerValueType}</MenuItem>
                     <MenuItem value="decimal">{projectTexts.resource.decimalValueType}</MenuItem>
                   </AppTextInput>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                </Box>
+                <Box sx={{ gridColumn: { md: "span 3" } }}>
                   <AppTextInput
                     fullWidth
                     size="small"
@@ -94,10 +95,10 @@ export default function ProjectResourceEditor({ resource, disabled, canRemove, o
                     inputProps={{ min: 0, max: 1, step: 1 }}
                     onChange={(event) => onChange({ ...resource, precision: Number(event.target.value) })}
                   />
-                </Grid>
+                </Box>
               </>
             ) : null}
-          </Grid>
+          </AppResponsiveGrid>
 
           <Divider />
 

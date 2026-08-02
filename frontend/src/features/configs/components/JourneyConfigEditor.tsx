@@ -1,7 +1,8 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { Alert, FormControlLabel, Grid, IconButton, MenuItem, Stack, Switch, Typography } from "@mui/material";
+import { Alert, Box, FormControlLabel, IconButton, MenuItem, Stack, Switch, Typography } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyConfigTexts } from "../../../texts/journeyConfigTexts";
 import type { JourneyRules, ResourceLimit } from "../../journey/types";
@@ -82,8 +83,7 @@ export default function JourneyConfigEditor({
       {!activeSection || activeSection === "map" ? (
         <>
           <RuleSection title="Карта и ход" description="Размер поля и допустимый диапазон броска.">
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
+            <AppResponsiveGrid columns={{ xs: 1, sm: 3 }}>
                 <AppTextInput
                   fullWidth
                   type="number"
@@ -94,8 +94,6 @@ export default function JourneyConfigEditor({
                   inputProps={{ min: 1, step: 1 }}
                   onChange={(event) => patchRules({ mapSize: Number(event.target.value) })}
                 />
-              </Grid>
-              <Grid item xs={12} sm={4}>
                 <AppTextInput
                   fullWidth
                   type="number"
@@ -106,8 +104,6 @@ export default function JourneyConfigEditor({
                   inputProps={{ min: 1, step: 1 }}
                   onChange={(event) => patchRules({ minDice: Number(event.target.value) })}
                 />
-              </Grid>
-              <Grid item xs={12} sm={4}>
                 <AppTextInput
                   fullWidth
                   type="number"
@@ -118,8 +114,7 @@ export default function JourneyConfigEditor({
                   inputProps={{ min: 1, step: 1 }}
                   onChange={(event) => patchRules({ maxDice: Number(event.target.value) })}
                 />
-              </Grid>
-            </Grid>
+            </AppResponsiveGrid>
           </RuleSection>
 
           <RuleSection title="Лимиты ресурсов" description="Ограничения баланса игрока во время партии.">
@@ -258,37 +253,35 @@ export default function JourneyConfigEditor({
           title={journeyConfigTexts.achievements.title}
           description={journeyConfigTexts.achievements.description}
         >
-          <Grid container spacing={2}>
+          <AppResponsiveGrid columns={{ xs: 1, md: 2 }}>
             {achievementIds.map((achievement) => {
               const copy = journeyConfigTexts.achievements.entries[achievement];
               return (
-                <Grid key={achievement} item xs={12} md={6}>
-                  <Stack spacing={1.25} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                    <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start">
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle1" fontWeight={700}>
-                          {copy.label}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {copy.condition}
-                        </Typography>
-                      </Stack>
-                      <RewardPoolSummaryChip pool={achievements[achievement].rewardPool} resources={resources} color="primary" />
+                <Stack key={achievement} spacing={1.25} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                  <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start">
+                    <Stack spacing={0.25}>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        {copy.label}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {copy.condition}
+                      </Typography>
                     </Stack>
-                    <RewardPoolEditor
-                      pool={achievements[achievement].rewardPool}
-                      sourcePool={sourceRules?.achievements[achievement]?.rewardPool}
-                      resources={resources}
-                      disabled={disabled}
-                      onChange={(rewardPool) =>
-                        patchRules({ achievements: { ...achievements, [achievement]: { rewardPool } } })
-                      }
-                    />
+                    <RewardPoolSummaryChip pool={achievements[achievement].rewardPool} resources={resources} color="primary" />
                   </Stack>
-                </Grid>
+                  <RewardPoolEditor
+                    pool={achievements[achievement].rewardPool}
+                    sourcePool={sourceRules?.achievements[achievement]?.rewardPool}
+                    resources={resources}
+                    disabled={disabled}
+                    onChange={(rewardPool) =>
+                      patchRules({ achievements: { ...achievements, [achievement]: { rewardPool } } })
+                    }
+                  />
+                </Stack>
               );
             })}
-          </Grid>
+          </AppResponsiveGrid>
         </RuleSection>
       ) : null}
     </Stack>

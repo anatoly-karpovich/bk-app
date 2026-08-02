@@ -1,4 +1,5 @@
-import { Card, CardContent, Grid, Stack, Typography } from "@mui/material";
+import { Card, CardContent, Stack, Typography } from "@mui/material";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 
 interface ConfigSummaryItem {
   label: string;
@@ -22,22 +23,20 @@ export default function ConfigSummaryCard({ title, description, items }: ConfigS
               {description}
             </Typography>
           </Stack>
-          <Grid container spacing={1.25} sx={{ flex: 1, maxWidth: { lg: 720 } }}>
+          <AppResponsiveGrid columns={{ xs: 1, sm: 2 }} gap={1.25} sx={{ flex: 1, maxWidth: { lg: 720 } }}>
             {items.map((item) => (
-              <Grid key={item.label} item xs={12} sm={6}>
-                <Card variant="outlined" sx={{ boxShadow: "none", bgcolor: "rgba(248, 250, 252, 0.8)" }}>
-                  <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {item.label}
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700}>
-                      {item.value}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+              <Card key={item.label} variant="outlined" sx={{ boxShadow: "none", bgcolor: "rgba(248, 250, 252, 0.8)" }}>
+                <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.label}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>
+                    {item.value}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
+          </AppResponsiveGrid>
         </Stack>
       </CardContent>
     </Card>

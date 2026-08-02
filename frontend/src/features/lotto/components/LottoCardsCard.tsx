@@ -5,13 +5,13 @@ import {
   CardContent,
   CardHeader,
   Chip,
-  Grid,
   IconButton,
   Stack,
   Tooltip,
   Typography,
 } from "@mui/material";
 import AppInfoAlert from "../../../components/ui/AppInfoAlert";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import { lottoTexts } from "../../../texts/lottoTexts";
 import type { LottoPersistedGame, LottoPlayer } from "../types";
 
@@ -75,10 +75,10 @@ export default function LottoCardsCard({
         {!game ? (
           <AppInfoAlert>{lottoTexts.alerts.stateEmpty}</AppInfoAlert>
         ) : (
-          <Grid container spacing={2}>
+          <AppResponsiveGrid columns={{ xs: 1, md: 2 }}>
             {game.players.map((player) => (
-              <Grid key={player.id} item xs={12} md={6}>
-                <Card
+              <Card
+                key={player.id}
                   variant="outlined"
                   sx={{
                     height: "100%",
@@ -132,10 +132,9 @@ export default function LottoCardsCard({
                       ))}
                     </Stack>
                   </CardContent>
-                </Card>
-              </Grid>
+              </Card>
             ))}
-          </Grid>
+          </AppResponsiveGrid>
         )}
       </CardContent>
     </Card>

@@ -1,7 +1,8 @@
 import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
-import { Box, Card, CardContent, Grid, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppInfoAlert from "../../../components/ui/AppInfoAlert";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppSelectableListItem from "../../../components/ui/AppSelectableListItem";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import BattleshipsShipPreview from "../../battleships/components/BattleshipsShipPreview";
@@ -69,8 +70,8 @@ export function BattleshipsBoardRulesSection({
 
   return (
     <RuleSection title={battleshipsConfigTexts.board.title} description={battleshipsConfigTexts.board.description}>
-      <Grid container spacing={3} alignItems="center">
-        <Grid item xs={12} md={5}>
+      <AppResponsiveGrid columns={{ xs: 1, md: 12 }} gap={3} sx={{ alignItems: "center" }}>
+        <Box sx={{ gridColumn: { md: "span 5" } }}>
           <Stack spacing={2}>
             <AppTextInput fullWidth label={battleshipsConfigTexts.board.size} value="6 × 6" disabled />
             <AppTextInput
@@ -89,11 +90,11 @@ export function BattleshipsBoardRulesSection({
               }
             />
           </Stack>
-        </Grid>
-        <Grid item xs={12} md={7}>
+        </Box>
+        <Box sx={{ gridColumn: { md: "span 7" } }}>
           <BattleshipsBoardPreview />
-        </Grid>
-      </Grid>
+        </Box>
+      </AppResponsiveGrid>
     </RuleSection>
   );
 }
@@ -140,11 +141,11 @@ export function BattleshipsFleetSection({ rules }: { rules: BattleshipsRules }) 
             {battleshipsConfigTexts.fleet.occupied}: <strong>{occupiedDecks}</strong> · {battleshipsConfigTexts.fleet.density}: <strong>{density}%</strong>
           </Typography>
         </Stack>
-        <Grid container spacing={2}>
+        <AppResponsiveGrid columns={{ xs: 1, sm: 2, xl: 4 }}>
           {FIXED_SHIP_SIZES.map((size) => {
             const amount = getShipAmount(board, size);
             return (
-              <Grid key={size} item xs={12} sm={6} xl={3}>
+              <Box key={size}>
                 <Card variant="outlined" sx={{ height: "100%", boxShadow: "none", bgcolor: amount ? "background.paper" : "rgba(248, 250, 252, 0.8)" }}>
                   <CardContent>
                     <Stack spacing={1.5}>
@@ -157,10 +158,10 @@ export function BattleshipsFleetSection({ rules }: { rules: BattleshipsRules }) 
                     </Stack>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
             );
           })}
-        </Grid>
+        </AppResponsiveGrid>
         <AppInfoAlert>{battleshipsConfigTexts.fleet.fixedNotice}</AppInfoAlert>
       </Stack>
     </RuleSection>

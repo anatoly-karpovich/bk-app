@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import { Box, Card, CardContent, FormControl, FormControlLabel, FormLabel, Grid, IconButton, MenuItem, Radio, RadioGroup, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, FormControl, FormControlLabel, FormLabel, IconButton, MenuItem, Radio, RadioGroup, Stack, Typography } from "@mui/material";
 import AppPillButton from "../../../components/ui/AppPillButton";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyConfigTexts } from "../../../texts/journeyConfigTexts";
 import { formatRewardPool } from "../../rewards/resourceAmounts";
@@ -57,22 +58,16 @@ export function JourneyJackpotSection({ rules, sourceRules, resources, disabled,
             </RadioGroup>
           </FormControl>
 
-          <Grid container spacing={2}>
+          <AppResponsiveGrid columns={{ xs: 1, md: 2 }}>
             {jackpot.countMode === "by_players" ? (
               <>
-                <Grid item xs={12} md={6}>
-                  <AppTextInput fullWidth type="number" label="Игроков на сокровище" value={jackpot.playersPerJackpot} changed={Boolean(sourceJackpot && sourceJackpot.playersPerJackpot !== jackpot.playersPerJackpot)} disabled={disabled} inputProps={{ min: 1 }} onChange={(event) => updateJackpot({ playersPerJackpot: Number(event.target.value) })} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <AppTextInput fullWidth type="number" label="Максимум сокровищ" value={jackpot.count} changed={Boolean(sourceJackpot && sourceJackpot.count !== jackpot.count)} disabled={disabled} inputProps={{ min: 0, max: 7 }} onChange={(event) => updateJackpot({ count: Number(event.target.value) })} />
-                </Grid>
+                <AppTextInput fullWidth type="number" label="Игроков на сокровище" value={jackpot.playersPerJackpot} changed={Boolean(sourceJackpot && sourceJackpot.playersPerJackpot !== jackpot.playersPerJackpot)} disabled={disabled} inputProps={{ min: 1 }} onChange={(event) => updateJackpot({ playersPerJackpot: Number(event.target.value) })} />
+                <AppTextInput fullWidth type="number" label="Максимум сокровищ" value={jackpot.count} changed={Boolean(sourceJackpot && sourceJackpot.count !== jackpot.count)} disabled={disabled} inputProps={{ min: 0, max: 7 }} onChange={(event) => updateJackpot({ count: Number(event.target.value) })} />
               </>
             ) : (
-              <Grid item xs={12} md={6}>
-                <AppTextInput fullWidth type="number" label="Количество сокровищ" value={jackpot.count} changed={Boolean(sourceJackpot && sourceJackpot.count !== jackpot.count)} disabled={disabled} inputProps={{ min: 0, max: 7 }} onChange={(event) => updateJackpot({ count: Number(event.target.value) })} />
-              </Grid>
+              <AppTextInput fullWidth type="number" label="Количество сокровищ" value={jackpot.count} changed={Boolean(sourceJackpot && sourceJackpot.count !== jackpot.count)} disabled={disabled} inputProps={{ min: 0, max: 7 }} onChange={(event) => updateJackpot({ count: Number(event.target.value) })} />
             )}
-          </Grid>
+          </AppResponsiveGrid>
 
           <Box sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
             {primaryReward ? (
@@ -139,11 +134,11 @@ export function JourneyCellsSection({ rules, sourceRules, resources, disabled, o
               </AppPillButton>
             </Stack>
 
-            <Grid container spacing={2}>
+            <AppResponsiveGrid columns={{ xs: 1, md: 2 }}>
               {groups.map((kind) => {
                 const group = journeyConfigTexts.cells.groups[kind];
                 return (
-                  <Grid key={kind} item xs={12} md={6}>
+                  <Box key={kind}>
                     <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
                       <Stack spacing={1}>
                         <Stack direction="row" justifyContent="space-between">
@@ -167,10 +162,10 @@ export function JourneyCellsSection({ rules, sourceRules, resources, disabled, o
                         })}
                       </Stack>
                     </Box>
-                  </Grid>
+                  </Box>
                 );
               })}
-            </Grid>
+            </AppResponsiveGrid>
           </Stack>
         </CardContent>
       </Card>

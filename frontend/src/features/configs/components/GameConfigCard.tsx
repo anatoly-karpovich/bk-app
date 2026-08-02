@@ -1,5 +1,6 @@
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import { Box, Card, CardContent, Grid, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Card, CardContent, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import { gameConfigsTexts } from "../../../texts/gameConfigsTexts";
 import type { AnyGameConfig } from "../../projects/types";
 
@@ -84,30 +85,29 @@ export default function GameConfigCard({ config, onOpen }: GameConfigCardProps) 
           </Tooltip>
         </Stack>
 
-        <Grid container spacing={1} sx={{ mt: 0.75 }}>
+        <AppResponsiveGrid columns={{ xs: 1, sm: 2 }} gap={1} sx={{ mt: 0.75 }}>
           {summaryItems.map((item) => (
-            <Grid key={item.label} item xs={12} sm={6}>
-              <Box
-                sx={{
-                  minHeight: 54,
-                  px: 1.25,
-                  py: 0.875,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1.75,
-                  bgcolor: "rgba(248, 250, 252, 0.8)",
-                }}
-              >
-                <Typography variant="caption" color="text.secondary">
-                  {item.label}
-                </Typography>
-                <Typography variant="body2" fontWeight={700} sx={{ mt: 0.25, overflowWrap: "anywhere" }}>
-                  {item.value}
-                </Typography>
-              </Box>
-            </Grid>
+            <Box
+              key={item.label}
+              sx={{
+                minHeight: 54,
+                px: 1.25,
+                py: 0.875,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1.75,
+                bgcolor: "rgba(248, 250, 252, 0.8)",
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {item.label}
+              </Typography>
+              <Typography variant="body2" fontWeight={700} sx={{ mt: 0.25, overflowWrap: "anywhere" }}>
+                {item.value}
+              </Typography>
+            </Box>
           ))}
-        </Grid>
+        </AppResponsiveGrid>
 
         <Box sx={{ mt: "auto", pt: 1.5 }}>
           <Typography variant="caption" color="text.secondary">

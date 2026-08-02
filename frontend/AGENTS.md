@@ -138,7 +138,7 @@ Current shared sources include:
 * `components/GameActionButton.tsx` for compact icon-and-label game actions.
 * `components/AddPlayerButton.tsx` for the standard `+ Добавить` player action.
 * `components/ui/AppInfoAlert.tsx` for neutral blue informational messages with the standard `i` icon. Do not use it for errors, warnings, or success messages.
-* `components/ui/AppPillButton.tsx`, `AppTextInput.tsx`, `AppChip.tsx`, `AppConfirmDialog.tsx`, and `AppBreadcrumbs.tsx` for their corresponding UI primitives.
+* `components/ui/AppPillButton.tsx`, `AppTextInput.tsx`, `AppChip.tsx`, `AppConfirmDialog.tsx`, `AppBreadcrumbs.tsx`, and `AppResponsiveGrid.tsx` for their corresponding UI primitives.
 
 Keep shared components presentational and configurable. Feature components retain game-specific copy and callbacks; shared components own repeated markup and visual rules.
 
@@ -476,6 +476,8 @@ Feature wrappers may still adapt shared components with feature-specific texts a
 Avoid one-off styling unless the component is truly unique.
 
 Keep the current visual style consistent.
+
+Use `AppResponsiveGrid` for responsive layouts nested inside cards, config sections, or other padded surfaces. Do not use MUI legacy `Grid container spacing` in those contexts: its compensating margins and width can create double left padding and right overflow. Reserve MUI `Grid` for top-level page layout where the shared page gutter is intentional.
 
 Current shared UI patterns that should stay consistent across Battleships and Lotto unless a task explicitly changes them:
 

@@ -4,9 +4,10 @@ import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import LooksOneRoundedIcon from "@mui/icons-material/LooksOneRounded";
 import LooksTwoRoundedIcon from "@mui/icons-material/LooksTwoRounded";
 import PreviewRoundedIcon from "@mui/icons-material/PreviewRounded";
-import { Box, Card, CardContent, FormControl, Grid, Radio, RadioGroup, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, FormControl, Radio, RadioGroup, Stack, Typography } from "@mui/material";
 import AppChip from "../../../components/ui/AppChip";
 import AppInfoAlert from "../../../components/ui/AppInfoAlert";
+import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { lottoConfigTexts } from "../../../texts/lottoConfigTexts";
 import { generateLottoCardNumbers } from "../../lotto/mappers/lotto.mapper";
@@ -39,8 +40,7 @@ export function LottoCardRulesSection({ rules, sourceRules, disabled, onChange }
   return (
     <RuleSection title={lottoConfigTexts.card.title} description={lottoConfigTexts.card.description}>
       <Stack spacing={2.25}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+        <AppResponsiveGrid columns={{ xs: 1, md: 3 }}>
             <AppTextInput
               fullWidth
               type="number"
@@ -51,8 +51,6 @@ export function LottoCardRulesSection({ rules, sourceRules, disabled, onChange }
               inputProps={{ min: 1, step: 1 }}
               onChange={(event) => patchRules(rules, onChange, { min: Number(event.target.value) })}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
             <AppTextInput
               fullWidth
               type="number"
@@ -63,8 +61,6 @@ export function LottoCardRulesSection({ rules, sourceRules, disabled, onChange }
               inputProps={{ min: 1, step: 1 }}
               onChange={(event) => patchRules(rules, onChange, { max: Number(event.target.value) })}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
             <AppTextInput
               fullWidth
               type="number"
@@ -75,8 +71,7 @@ export function LottoCardRulesSection({ rules, sourceRules, disabled, onChange }
               inputProps={{ min: 1, step: 1 }}
               onChange={(event) => patchRules(rules, onChange, { cardNumbersAmount: Number(event.target.value) })}
             />
-          </Grid>
-        </Grid>
+        </AppResponsiveGrid>
 
         <Card variant="outlined" sx={{ boxShadow: "none", bgcolor: "rgba(248, 250, 252, 0.8)" }}>
           <CardContent>
@@ -184,8 +179,7 @@ function LottoPrizeEditorCard({
 export function LottoPrizesSection({ rules, sourceRules, resources, disabled, onChange }: LottoRulesSectionProps) {
   return (
     <RuleSection title={lottoConfigTexts.prizes.title} description={lottoConfigTexts.prizes.description}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+      <AppResponsiveGrid columns={{ xs: 1, md: 2 }}>
           <LottoPrizeEditorCard
             {...lottoConfigTexts.prizes.firstPlace}
             icon={<LooksOneRoundedIcon fontSize="small" />}
@@ -195,8 +189,6 @@ export function LottoPrizesSection({ rules, sourceRules, resources, disabled, on
             disabled={disabled}
             onChange={(firstPlacePrize) => patchRules(rules, onChange, { firstPlacePrize })}
           />
-        </Grid>
-        <Grid item xs={12} md={6}>
           <LottoPrizeEditorCard
             {...lottoConfigTexts.prizes.secondPlace}
             icon={<LooksTwoRoundedIcon fontSize="small" />}
@@ -206,8 +198,7 @@ export function LottoPrizesSection({ rules, sourceRules, resources, disabled, on
             disabled={disabled}
             onChange={(secondPlacePrize) => patchRules(rules, onChange, { secondPlacePrize })}
           />
-        </Grid>
-        <Grid item xs={12}>
+        <Box sx={{ gridColumn: { md: "span 2" } }}>
           <LottoPrizeEditorCard
             {...lottoConfigTexts.prizes.otherPlayers}
             icon={<GroupsRoundedIcon fontSize="small" />}
@@ -217,8 +208,8 @@ export function LottoPrizesSection({ rules, sourceRules, resources, disabled, on
             disabled={disabled}
             onChange={(otherActivePlayersPrize) => patchRules(rules, onChange, { otherActivePlayersPrize })}
           />
-        </Grid>
-      </Grid>
+        </Box>
+      </AppResponsiveGrid>
     </RuleSection>
   );
 }
