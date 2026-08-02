@@ -3,10 +3,9 @@ import {
   getBattleshipsGameConfigsRequest,
   getJourneyGameConfigsRequest,
   getLottoGameConfigsRequest,
-  createGameConfigRequest,
   updateGameConfigRequest,
 } from "../../projects/api/projects.client";
-import type { AnyGameConfig, CloneGameConfigInput, GameType, UpdateGameConfigInput } from "../../projects/types";
+import type { AnyGameConfig, GameType, UpdateGameConfigInput } from "../../projects/types";
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Не удалось выполнить запрос к конфигам.";
@@ -80,21 +79,6 @@ export function useGameConfigs(projectId: string | undefined) {
     actions: {
       loadGameConfigs,
       updateGameConfig,
-      cloneGameConfig: async (input: CloneGameConfigInput): Promise<AnyGameConfig | null> => {
-        if (!projectId) return null;
-        setIsSaving(true);
-        setError(null);
-        try {
-          const created = await createGameConfigRequest(projectId, input);
-          setGameConfigs((current) => [...current, created]);
-          return created;
-        } catch (nextError) {
-          setError(getErrorMessage(nextError));
-          return null;
-        } finally {
-          setIsSaving(false);
-        }
-      },
       setError,
     },
   };

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import { useAuth } from "../auth/useAuth";
 import { journeyConfigTexts } from "../../texts/journeyConfigTexts";
@@ -66,9 +66,14 @@ interface JourneyConfigPageProps {
 export default function JourneyConfigPage({ selectedProject }: JourneyConfigPageProps) {
   const { configId } = useParams<{ configId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<JourneyConfigPageSectionId>("general");
   const { user } = useAuth();
-  const { source, draft, error, isLoading, isSaving, actions } = useJourneyConfigEditor(selectedProject, configId);
+  const { source, draft, error, isLoading, isSaving, isCreating, actions } = useJourneyConfigEditor(
+    selectedProject,
+    configId,
+    searchParams.get("sourceConfigId"),
+  );
   const changedSections = useMemo(() => getChangedSections(source, draft), [draft, source]);
 
   if (!selectedProject) {
@@ -92,10 +97,17 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
   }
 
   const activeSectionDetails = journeyConfigTexts.sections.details[activeSection];
-  const canEdit = user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
+  const canEdit = isCreating || user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
   const editorDisabled = isSaving || !canEdit;
   const bonusCount = draft.rules.cells.filter((cell) => cell.kind === "bonus").length;
   const trapCount = draft.rules.cells.filter((cell) => cell.kind === "trap").length;
+
+  async function saveConfig() {
+    const saved = await actions.save();
+    if (saved && isCreating) {
+      navigate(`/configs/journey/${encodeURIComponent(saved.id)}`, { replace: true });
+    }
+  }
 
   return (
     <Grid container spacing={3} alignItems="flex-start">
@@ -121,7 +133,7 @@ export default function JourneyConfigPage({ selectedProject }: JourneyConfigPage
               key: "save",
               label: journeyConfigTexts.page.save,
               icon: <SaveRoundedIcon />,
-              onClick: () => void actions.save(),
+              onClick: () => void saveConfig(),
               disabled: isSaving || !changedSections.length,
               loading: isSaving,
               variant: "contained",

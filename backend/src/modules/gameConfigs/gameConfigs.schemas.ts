@@ -19,10 +19,8 @@ const gameConfigFieldsSchema = z.object({
   rules: z.unknown().refine((value) => value !== undefined, "Rules are required"),
 });
 
-export const cloneGameConfigSchema = z.object({
-  sourceConfigId: objectIdSchema,
-  name: z.string().trim().min(1).max(160),
-  description: z.string().trim().max(2_000).optional(),
+export const createGameConfigSchema = gameConfigFieldsSchema.extend({
+  gameType: z.enum(["journey", "battleships", "lotto"]),
 });
 
 export const updateGameConfigSchema = gameConfigFieldsSchema;

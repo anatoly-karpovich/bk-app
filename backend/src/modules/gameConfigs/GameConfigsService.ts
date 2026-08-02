@@ -64,10 +64,10 @@ export class GameConfigsService {
     return this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
   }
 
-  async cloneProjectGameConfig(
+  async createProjectGameConfig(
     actor: CurrentUser,
     projectId: string,
-    input: { sourceConfigId: string; name: string; description?: string },
+    input: { gameType: GameType; name: string; description: string; rules: unknown },
   ): Promise<AnyGameConfigReadModel> {
     assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
@@ -75,17 +75,20 @@ export class GameConfigsService {
       throw new ProjectNotFoundError(projectId);
     }
 
-    const source = await this.repository.findByIdAndProjectId(input.sourceConfigId, projectId);
-    if (!source || !source.isSystem) throw new ForbiddenError("Only a system config can be cloned", { code: "FORBIDDEN" });
     const name = input.name.trim();
-    await this.assertNameAvailable(projectId, source.gameType, name);
+    await this.assertNameAvailable(projectId, input.gameType, name);
+    const rules = this.normalizeRules(input.gameType, input.rules);
+    this.assertRulesUseProjectResources(rules, project.resources);
+    if (input.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
+    if (input.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
+    if (input.gameType === "lotto") validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
     const now = new Date().toISOString();
     const created = await this.repository.create({
       projectId,
-      gameType: source.gameType,
+      gameType: input.gameType,
       name,
-      description: input.description?.trim() ?? source.description,
-      rules: structuredClone(source.rules),
+      description: input.description.trim(),
+      rules,
       isSystem: false,
       createdByUserId: actor.id,
       updatedByUserId: actor.id,

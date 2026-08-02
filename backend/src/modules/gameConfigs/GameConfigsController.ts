@@ -5,7 +5,7 @@ import { ProjectNotFoundError } from "../projects/errors";
 import { GameConfigsService } from "./GameConfigsService";
 import { GameConfigCurrencyValidationError, GameConfigNameConflictError, GameConfigNotFoundError } from "./errors";
 import {
-  cloneGameConfigSchema,
+  createGameConfigSchema,
   gameConfigIdParamsSchema,
   gameConfigsListQuerySchema,
   projectGameConfigsParamsSchema,
@@ -75,8 +75,8 @@ export class GameConfigsController {
   createProjectGameConfig = async (req: Request, res: Response) => {
     try {
       const { projectId } = parseRequest(projectGameConfigsParamsSchema, req.params, "Invalid project id");
-      const input = parseRequest(cloneGameConfigSchema, req.body, "Invalid game config input");
-      const config = await this.gameConfigsService.cloneProjectGameConfig(req.authUser!, projectId, input);
+      const input = parseRequest(createGameConfigSchema, req.body, "Invalid game config input");
+      const config = await this.gameConfigsService.createProjectGameConfig(req.authUser!, projectId, input);
       return res.status(201).json({ success: true, data: config });
     } catch (error) {
       return this.handleMutationError(error, res, "Failed to create game config");

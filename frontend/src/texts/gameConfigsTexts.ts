@@ -86,3 +86,7 @@ export const gameConfigsTexts = {
     saveFailed: "Не удалось сохранить конфиг. Проверьте введённые значения и повторите попытку.",
   },
 } as const;
+
+export const gameConfigCloneTexts = {
+  ariaLabel: (configName: string) => `Создать копию конфига «${configName}»`,
+};

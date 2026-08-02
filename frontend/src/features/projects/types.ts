@@ -97,10 +97,11 @@ export type LottoGameConfig = BaseGameConfig<"lotto", LottoRules, LottoGameConfi
 
 export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig;
 
-export interface CloneGameConfigInput {
-  sourceConfigId: string;
+export interface CreateGameConfigInput {
+  gameType: GameType;
   name: string;
-  description?: string;
+  description: string;
+  rules: JourneyRules | BattleshipsRules | LottoRules;
 }
 
 export interface UpdateGameConfigInput {

@@ -2,7 +2,7 @@ import { apiClient } from "../../../lib/apiClient";
 import type {
   AnyGameConfig,
   BattleshipsGameConfig,
-  CloneGameConfigInput,
+  CreateGameConfigInput,
   GameType,
   JourneyGameConfig,
   LottoGameConfig,
@@ -38,7 +38,7 @@ export async function deleteProjectRequest(projectId: string): Promise<unknown> 
   return await apiClient.delete<unknown>(`${PROJECTS_API_BASE_URL}/${encodeURIComponent(projectId)}`);
 }
 
-export async function createGameConfigRequest(projectId: string, input: CloneGameConfigInput): Promise<AnyGameConfig> {
+export async function createGameConfigRequest(projectId: string, input: CreateGameConfigInput): Promise<AnyGameConfig> {
   return await apiClient.post<AnyGameConfig>(`${PROJECTS_API_BASE_URL}/${encodeURIComponent(projectId)}/game-configs`, input);
 }
 

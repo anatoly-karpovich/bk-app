@@ -6,7 +6,7 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import { Alert, CircularProgress, Grid, Stack } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import { useAuth } from "../auth/useAuth";
 import { battleshipsConfigTexts } from "../../texts/battleshipsConfigTexts";
@@ -64,13 +64,16 @@ interface BattleshipsConfigPageProps {
 
 export default function BattleshipsConfigPage({ selectedProject }: BattleshipsConfigPageProps) {
   const { configId } = useParams<{ configId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<BattleshipsConfigSectionId>("general");
-  const { source, draft, error, isLoading, isSaving, actions } = useGameConfigEditor(
+  const { source, draft, error, isLoading, isSaving, isCreating, actions } = useGameConfigEditor(
     selectedProject,
     configId,
     "battleships",
     battleshipsConfigTexts.alerts,
+    searchParams.get("sourceConfigId"),
   );
   const changedSections = useMemo(() => getChangedSections(source, draft), [draft, source]);
 
@@ -80,7 +83,7 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
   if (!source || !draft) return <Alert severity="warning">{battleshipsConfigTexts.alerts.notFound}</Alert>;
 
   const activeSectionDetails = battleshipsConfigTexts.sections.details[activeSection];
-  const canEdit = user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
+  const canEdit = isCreating || user?.role === "admin" || (!source.isSystem && source.createdByUserId === user?.id);
   const editorDisabled = isSaving || !canEdit;
   const board = getBattleshipsConfigBoard(draft.rules);
   const shipCount = board?.ships.reduce((count, ship) => count + ship.amount, 0) ?? 0;
@@ -92,6 +95,13 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
         { label: battleshipsConfigTexts.general.hitReward, value: formatRewardPool(board.rewards.hit, selectedProject.resources) },
       ]
     : [];
+
+  async function saveConfig() {
+    const saved = await actions.save();
+    if (saved && isCreating) {
+      navigate(`/configs/battleships/${encodeURIComponent(saved.id)}`, { replace: true });
+    }
+  }
 
   return (
     <Grid container spacing={3} alignItems="flex-start">
@@ -110,7 +120,7 @@ export default function BattleshipsConfigPage({ selectedProject }: BattleshipsCo
             { label: battleshipsConfigTexts.page.changesChip(changedSections.length), color: changedSections.length ? "warning" : "default" },
           ]}
           actions={canEdit ? [
-            { key: "save", label: battleshipsConfigTexts.page.save, icon: <SaveRoundedIcon />, onClick: () => void actions.save(), disabled: isSaving || !changedSections.length, loading: isSaving, variant: "contained" },
+            { key: "save", label: battleshipsConfigTexts.page.save, icon: <SaveRoundedIcon />, onClick: () => void saveConfig(), disabled: isSaving || !changedSections.length, loading: isSaving, variant: "contained" },
             { key: "reset", label: battleshipsConfigTexts.page.reset, icon: <RefreshRoundedIcon />, onClick: actions.reset, disabled: isSaving || !changedSections.length, variant: "text", color: "inherit" },
           ] : []}
         />
