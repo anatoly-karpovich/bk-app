@@ -33,9 +33,10 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
   const [selectedResourceId, setSelectedResourceId] = useState(selectedProject?.resources[0]?.id ?? "");
   const { gameConfigs, error: configsError, isLoading: isLoadingConfigs } = useGameConfigs(selectedProject?.id);
   const canSave = useMemo(() => draft !== null && isProjectDraftValid(draft), [draft]);
-  const selectedResource = draft?.resources.find((resource) => resource.id === selectedResourceId) ?? draft?.resources[0] ?? null;
+  const selectedResource =
+    draft?.resources.find((resource) => resource.id === selectedResourceId) ?? draft?.resources[0] ?? null;
   const resourceUsages = useMemo(
-    () => selectedResource ? getResourceConfigUsages(selectedResource.id, gameConfigs) : [],
+    () => (selectedResource ? getResourceConfigUsages(selectedResource.id, gameConfigs) : []),
     [gameConfigs, selectedResource],
   );
 
@@ -50,14 +51,18 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
   }
 
   function updateResource(nextResource: ProjectResourceDraft) {
-    setDraft((current) => current ? {
-      ...current,
-      resources: current.resources.map((resource) => resource.id === nextResource.id ? nextResource : resource),
-    } : current);
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            resources: current.resources.map((resource) => (resource.id === nextResource.id ? nextResource : resource)),
+          }
+        : current,
+    );
   }
 
   function addResource(resource: ProjectResourceDraft) {
-    setDraft((current) => current ? { ...current, resources: [...current.resources, resource] } : current);
+    setDraft((current) => (current ? { ...current, resources: [...current.resources, resource] } : current));
     setSelectedResourceId(resource.id);
   }
 
@@ -70,7 +75,11 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
   function resetDraft() {
     const nextDraft = toProjectDraft(selectedProject);
     setDraft(nextDraft);
-    setSelectedResourceId(nextDraft.resources.find((resource) => resource.id === selectedResourceId)?.id ?? nextDraft.resources[0]?.id ?? "");
+    setSelectedResourceId(
+      nextDraft.resources.find((resource) => resource.id === selectedResourceId)?.id ??
+        nextDraft.resources[0]?.id ??
+        "",
+    );
   }
 
   async function saveProject() {
@@ -93,13 +102,33 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
             { label: projectTexts.page.resourcesChip(draft.resources.length), color: "secondary" },
           ]}
           actions={[
-            { key: "reset", label: projectTexts.page.reset, icon: <RefreshRoundedIcon />, onClick: resetDraft, disabled: isSaving, variant: "text", color: "inherit" },
-            { key: "save", label: projectTexts.page.save, icon: <SaveRoundedIcon />, onClick: () => void saveProject(), disabled: !canSave, loading: isSaving, variant: "contained" },
+            {
+              key: "save",
+              label: projectTexts.page.save,
+              icon: <SaveRoundedIcon />,
+              onClick: () => void saveProject(),
+              disabled: !canSave,
+              loading: isSaving,
+              variant: "contained",
+            },
+            {
+              key: "reset",
+              label: projectTexts.page.reset,
+              icon: <RefreshRoundedIcon />,
+              onClick: resetDraft,
+              disabled: isSaving,
+              variant: "text",
+              color: "inherit",
+            },
           ]}
         />
       </Grid>
 
-      {error ? <Grid item xs={12}><Alert severity="error">{error}</Alert></Grid> : null}
+      {error ? (
+        <Grid item xs={12}>
+          <Alert severity="error">{error}</Alert>
+        </Grid>
+      ) : null}
 
       <Grid item xs={12} lg={4}>
         <Stack spacing={3}>
@@ -108,11 +137,40 @@ export default function ProjectPage({ selectedProject, error, isSaving, onUpdate
               <Stack spacing={1.5}>
                 <Stack spacing={0.25}>
                   <Typography variant="h5">{projectTexts.projectDetails.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">{projectTexts.projectDetails.subtitle}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {projectTexts.projectDetails.subtitle}
+                  </Typography>
                 </Stack>
-                <AppTextInput fullWidth size="small" label={projectTexts.projectDetails.nameLabel} value={draft.name} disabled={isSaving} onChange={(event) => setDraft((current) => current ? { ...current, name: event.target.value } : current)} />
-                <AppTextInput fullWidth size="small" label={projectTexts.projectDetails.codeLabel} value={selectedProject.code} disabled helperText={projectTexts.projectDetails.codeHelper} />
-                <AppTextInput fullWidth size="small" multiline minRows={3} label={projectTexts.projectDetails.descriptionLabel} value={draft.description} disabled={isSaving} onChange={(event) => setDraft((current) => current ? { ...current, description: event.target.value } : current)} />
+                <AppTextInput
+                  fullWidth
+                  size="small"
+                  label={projectTexts.projectDetails.nameLabel}
+                  value={draft.name}
+                  disabled={isSaving}
+                  onChange={(event) =>
+                    setDraft((current) => (current ? { ...current, name: event.target.value } : current))
+                  }
+                />
+                <AppTextInput
+                  fullWidth
+                  size="small"
+                  label={projectTexts.projectDetails.codeLabel}
+                  value={selectedProject.code}
+                  disabled
+                  helperText={projectTexts.projectDetails.codeHelper}
+                />
+                <AppTextInput
+                  fullWidth
+                  size="small"
+                  multiline
+                  minRows={3}
+                  label={projectTexts.projectDetails.descriptionLabel}
+                  value={draft.description}
+                  disabled={isSaving}
+                  onChange={(event) =>
+                    setDraft((current) => (current ? { ...current, description: event.target.value } : current))
+                  }
+                />
               </Stack>
             </CardContent>
           </Card>

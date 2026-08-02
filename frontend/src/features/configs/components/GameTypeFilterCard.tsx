@@ -20,7 +20,12 @@ interface GameTypeFilterCardProps {
   onSelect: (gameType: GameType) => void;
 }
 
-export default function GameTypeFilterCard({ gameTypes, selectedGameType, configCounts, onSelect }: GameTypeFilterCardProps) {
+export default function GameTypeFilterCard({
+  gameTypes,
+  selectedGameType,
+  configCounts,
+  onSelect,
+}: GameTypeFilterCardProps) {
   return (
     <Card>
       <CardContent>
@@ -28,13 +33,9 @@ export default function GameTypeFilterCard({ gameTypes, selectedGameType, config
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
             <Box>
               <Typography variant="h5">{gameConfigsTexts.filter.title}</Typography>
-              <Typography variant="body2" color="text.secondary">{gameConfigsTexts.filter.description}</Typography>
-            </Box>
-            <Box
-              aria-label={gameConfigsTexts.filter.countAriaLabel(gameTypes.length)}
-              sx={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", bgcolor: "primary.main", color: "primary.contrastText", fontSize: 12, fontWeight: 700 }}
-            >
-              {gameTypes.length}
+              <Typography variant="body2" color="text.secondary">
+                {gameConfigsTexts.filter.description}
+              </Typography>
             </Box>
           </Stack>
 

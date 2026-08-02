@@ -26,6 +26,11 @@ features/
     hooks/
     projectPage.helpers.ts
     ProjectPage.tsx
+  configs/
+    components/
+    hooks/
+    GameConfigsPage.tsx
+    JourneyConfigPage.tsx
   journey/
     api/
     components/
@@ -134,6 +139,10 @@ Current shared sources include:
 * `components/ui/AppPillButton.tsx`, `AppTextInput.tsx`, `AppChip.tsx`, `AppConfirmDialog.tsx`, and `AppBreadcrumbs.tsx` for their corresponding UI primitives.
 
 Keep shared components presentational and configurable. Feature components retain game-specific copy and callbacks; shared components own repeated markup and visual rules.
+
+For nested host pages, use `GamePageHeader` and its breadcrumb extension rather than creating page-local breadcrumb implementations.
+
+Use `AppTextInput` change-state styling only for a meaningful comparison between a local draft and its saved source. Reuse `AppSelectableListItem` trailing content for status markers rather than forking the list-item layout.
 
 ---
 
@@ -315,7 +324,7 @@ The backend is the source of truth for game data.
 
 ## Projects and presets
 
-The frontend consumes project-scoped APIs; the old `features/configs` layer and `/api/configs` do not exist.
+The frontend consumes project-scoped APIs. `features/configs` is the host-facing UI for project-owned `GameConfig` presets; it must use project-scoped routes and must not introduce a global `/api/configs` source of truth.
 
 - Load the active project through `features/projects` and load presets by project + game type.
 - Create, restore, mutate, and delete games only through `/api/projects/:projectId/...` routes.
@@ -323,6 +332,16 @@ The frontend consumes project-scoped APIs; the old `features/configs` layer and 
 - Display resources from the project or a game snapshot returned by backend. Do not recreate resource defaults per feature.
 - Reuse shared `features/rewards` reward-pool types and amount-formatting helpers, plus `features/configs/components/RewardPoolEditor`, when a game needs them. Game-specific components may choose their labels and layout, but must not duplicate pool mechanics or local prize calculation.
 - If project/preset management UI is added, it must use Project/GameConfig CRUD and permanent-delete semantics. Archive, restore, duplicate, versioning, and optimistic locking are out of MVP.
+
+### Game configuration editors
+
+- `GameConfigsPage.tsx` owns preset listing, filtering, and navigation. A complex game-specific preset may use its own page under `/configs/:gameType/:configId`; keep the list page focused on browsing and selection.
+- A config editor keeps a saved source snapshot and one local draft. Field edits update only the draft; saving is one explicit API request.
+- Reset restores the draft from the saved snapshot. After a successful save, replace both the source snapshot and the draft with the returned backend config.
+- Track unsaved changes by comparing the draft with the saved snapshot. Section-level indicators must reflect semantic changes, including additions and removals, and disappear after reset or successful save.
+- Backend remains authoritative for validation and rule semantics. The editor may expose only supported fields and must display API validation failures instead of inventing local fallback rules.
+- Game-owned invariant fields, such as achievement conditions or protected core cell identities, are display-only or disabled unless backend support explicitly makes them configurable.
+- Read reward resources from the selected project and reuse `features/rewards` types, formatters, and `RewardPoolEditor`; never recreate resource defaults or pool mechanics locally.
 
 ### Project Settings page
 
@@ -400,6 +419,8 @@ types.ts
 Avoid using `any`.
 
 Avoid creating frontend types that silently diverge from backend response shape.
+
+Feature-level identifiers shared by pages, hooks, and texts belong in a feature type or constants module, not in a React component. Text modules may import pure types, but must not depend on component modules.
 
 Do not restore Journey's removed legacy DTOs (`JourneyGame`, `JourneyRound`, `movesHistory`, `derived`) or infer storage format in the frontend. Consume the public view contract and its page-local structural mapper instead.
 

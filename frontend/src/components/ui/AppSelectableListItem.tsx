@@ -9,6 +9,7 @@ interface AppSelectableListItemProps {
   selected: boolean;
   onClick: () => void;
   ariaLabel?: string;
+  trailing?: ReactNode;
 }
 
 export default function AppSelectableListItem({
@@ -18,6 +19,7 @@ export default function AppSelectableListItem({
   selected,
   onClick,
   ariaLabel,
+  trailing,
 }: AppSelectableListItemProps) {
   return (
     <Box
@@ -65,7 +67,7 @@ export default function AppSelectableListItem({
         <Typography variant="subtitle2" noWrap>{primaryText}</Typography>
         <Typography variant="caption" color="text.secondary" noWrap>{secondaryText}</Typography>
       </Box>
-      <ChevronRightRoundedIcon color="disabled" fontSize="small" />
+      {trailing ?? <ChevronRightRoundedIcon color="disabled" fontSize="small" />}
     </Box>
   );
 }

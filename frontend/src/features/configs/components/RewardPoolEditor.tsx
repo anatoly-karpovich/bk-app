@@ -13,6 +13,9 @@ interface RewardPoolEditorProps {
   onChange: (pool: RewardPool) => void;
   emptyLabel?: string;
   showModeSelector?: boolean;
+  modeDisabled?: boolean;
+  modeHelperText?: string;
+  sourcePool?: RewardPool;
 }
 
 function createAmount(resources: ProjectResource[], excludedResourceIds: readonly string[] = []): ResourceAmount {
@@ -36,11 +39,15 @@ function ResourceAmountFields({
   resources,
   disabled,
   onChange,
+  sourceAmount,
+  trackChanges = false,
 }: {
   amount: ResourceAmount;
   resources: ProjectResource[];
   disabled: boolean;
   onChange: (amount: ResourceAmount) => void;
+  sourceAmount?: ResourceAmount;
+  trackChanges?: boolean;
 }) {
   return (
     <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} sx={{ flex: 1 }}>
@@ -49,6 +56,7 @@ function ResourceAmountFields({
         size="small"
         label="Ресурс"
         value={amount.resourceId}
+        changed={trackChanges && (!sourceAmount || sourceAmount.resourceId !== amount.resourceId)}
         disabled={disabled || !resources.length}
         onChange={(event) => onChange({ ...amount, resourceId: event.target.value })}
         sx={{ minWidth: { sm: 220 }, flex: 1 }}
@@ -64,6 +72,7 @@ function ResourceAmountFields({
         type="number"
         label="Количество"
         value={amount.amount}
+        changed={trackChanges && (!sourceAmount || sourceAmount.amount !== amount.amount)}
         disabled={disabled}
         inputProps={{ step: getStep(amount.resourceId, resources) }}
         onChange={(event) => onChange({ ...amount, amount: Number(event.target.value) })}
@@ -73,12 +82,14 @@ function ResourceAmountFields({
   );
 }
 
-function AllRewardsEditor({ rewards, resources, disabled, onChange, emptyLabel }: {
+function AllRewardsEditor({ rewards, resources, disabled, onChange, emptyLabel, sourceRewards, trackChanges }: {
   rewards: ResourceAmount[];
   resources: ProjectResource[];
   disabled: boolean;
   onChange: (rewards: ResourceAmount[]) => void;
   emptyLabel: string;
+  sourceRewards?: ResourceAmount[];
+  trackChanges: boolean;
 }) {
   const addedResourceIds = rewards.map((reward) => reward.resourceId);
   const canAddResource = hasAvailableResource(resources, addedResourceIds);
@@ -87,7 +98,7 @@ function AllRewardsEditor({ rewards, resources, disabled, onChange, emptyLabel }
     <Stack spacing={1.25}>
       {rewards.map((reward, index) => (
         <Stack key={`${reward.resourceId}-${index}`} direction="row" spacing={1} alignItems="center">
-          <ResourceAmountFields amount={reward} resources={resources} disabled={disabled} onChange={(next) => onChange(rewards.map((current, currentIndex) => currentIndex === index ? next : current))} />
+          <ResourceAmountFields amount={reward} sourceAmount={sourceRewards?.[index]} trackChanges={trackChanges} resources={resources} disabled={disabled} onChange={(next) => onChange(rewards.map((current, currentIndex) => currentIndex === index ? next : current))} />
           <IconButton aria-label="Удалить награду" onClick={() => onChange(rewards.filter((_reward, currentIndex) => currentIndex !== index))} disabled={disabled} color="error">
             <DeleteOutlineRoundedIcon />
           </IconButton>
@@ -117,8 +128,16 @@ export default function RewardPoolEditor({
   onChange,
   emptyLabel = "Награды не заданы.",
   showModeSelector = true,
+  modeDisabled = false,
+  modeHelperText,
+  sourcePool,
 }: RewardPoolEditorProps) {
   const pool = providedPool ?? emptyRewardPool;
+  const trackChanges = sourcePool !== undefined;
+  const modeChanged = Boolean(sourcePool && sourcePool.mode !== pool.mode);
+  const sourceAllRewards = sourcePool?.mode === "all" ? sourcePool.rewards : undefined;
+  const sourceWeightedOptions = sourcePool?.mode === "weighted_one" ? sourcePool.options : undefined;
+  const sourceIndependentOptions = sourcePool?.mode === "independent" ? sourcePool.options : undefined;
 
   return (
     <Stack spacing={1.5}>
@@ -127,8 +146,10 @@ export default function RewardPoolEditor({
           select
           size="small"
           label="Тип выдачи наград"
+          helperText={modeHelperText}
           value={pool.mode}
-          disabled={disabled}
+          changed={trackChanges && modeChanged}
+          disabled={disabled || modeDisabled}
           onChange={(event) => onChange(createRewardPool(event.target.value as RewardPool["mode"], resources))}
           sx={{ maxWidth: 340 }}
         >
@@ -138,11 +159,13 @@ export default function RewardPoolEditor({
         </AppTextInput>
       ) : null}
 
-      {pool.mode === "all" ? <AllRewardsEditor rewards={pool.rewards} resources={resources} disabled={disabled} onChange={(rewards) => onChange({ mode: "all", rewards })} emptyLabel={emptyLabel} /> : null}
+      {pool.mode === "all" ? <AllRewardsEditor rewards={pool.rewards} sourceRewards={sourceAllRewards} trackChanges={trackChanges} resources={resources} disabled={disabled} onChange={(rewards) => onChange({ mode: "all", rewards })} emptyLabel={emptyLabel} /> : null}
 
       {pool.mode === "weighted_one" ? (
         <Stack spacing={1.25}>
-          {pool.options.map((option, index) => (
+          {pool.options.map((option, index) => {
+            const sourceOption = sourceWeightedOptions?.[index];
+            return (
             <Stack key={index} spacing={1} sx={{ p: 1.25, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                 <FormControlLabel
@@ -151,10 +174,11 @@ export default function RewardPoolEditor({
                 />
                 <IconButton aria-label="Удалить вариант" onClick={() => onChange({ mode: "weighted_one", options: pool.options.filter((_option, currentIndex) => currentIndex !== index) })} disabled={disabled} color="error"><DeleteOutlineRoundedIcon /></IconButton>
               </Stack>
-              {option.reward ? <ResourceAmountFields amount={option.reward} resources={resources} disabled={disabled} onChange={(reward) => onChange({ mode: "weighted_one", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, reward } : current) })} /> : null}
-              <AppTextInput size="small" type="number" label="Вес" value={option.weight} disabled={disabled} inputProps={{ min: 1, step: 1 }} onChange={(event) => onChange({ mode: "weighted_one", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, weight: Number(event.target.value) } : current) })} sx={{ maxWidth: 180 }} />
+              {option.reward ? <ResourceAmountFields amount={option.reward} sourceAmount={sourceOption?.reward ?? undefined} trackChanges={trackChanges} resources={resources} disabled={disabled} onChange={(reward) => onChange({ mode: "weighted_one", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, reward } : current) })} /> : null}
+              <AppTextInput size="small" type="number" label="Вес" value={option.weight} changed={trackChanges && (!sourceOption || sourceOption.weight !== option.weight)} disabled={disabled} inputProps={{ min: 1, step: 1 }} onChange={(event) => onChange({ mode: "weighted_one", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, weight: Number(event.target.value) } : current) })} sx={{ maxWidth: 180 }} />
             </Stack>
-          ))}
+            );
+          })}
           <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={() => {
             const addedResourceIds = pool.options.flatMap((option) => option.reward ? [option.reward.resourceId] : []);
             onChange({ mode: "weighted_one", options: [...pool.options, { reward: createAmount(resources, addedResourceIds), weight: 1 }] });
@@ -164,13 +188,16 @@ export default function RewardPoolEditor({
 
       {pool.mode === "independent" ? (
         <Stack spacing={1.25}>
-          {pool.options.map((option, index) => (
+          {pool.options.map((option, index) => {
+            const sourceOption = sourceIndependentOptions?.[index];
+            return (
             <Stack key={`${option.reward.resourceId}-${index}`} direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-              <ResourceAmountFields amount={option.reward} resources={resources} disabled={disabled} onChange={(reward) => onChange({ mode: "independent", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, reward } : current) })} />
-              <AppTextInput size="small" type="number" label="Шанс, %" value={option.chanceBps / 100} disabled={disabled} inputProps={{ min: 0, max: 100, step: 0.01 }} onChange={(event) => onChange({ mode: "independent", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, chanceBps: Math.round(Number(event.target.value) * 100) } : current) })} sx={{ minWidth: { sm: 150 } }} />
+              <ResourceAmountFields amount={option.reward} sourceAmount={sourceOption?.reward} trackChanges={trackChanges} resources={resources} disabled={disabled} onChange={(reward) => onChange({ mode: "independent", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, reward } : current) })} />
+              <AppTextInput size="small" type="number" label="Шанс, %" value={option.chanceBps / 100} changed={trackChanges && (!sourceOption || sourceOption.chanceBps !== option.chanceBps)} disabled={disabled} inputProps={{ min: 0, max: 100, step: 0.01 }} onChange={(event) => onChange({ mode: "independent", options: pool.options.map((current, currentIndex) => currentIndex === index ? { ...current, chanceBps: Math.round(Number(event.target.value) * 100) } : current) })} sx={{ minWidth: { sm: 150 } }} />
               <IconButton aria-label="Удалить вариант" onClick={() => onChange({ mode: "independent", options: pool.options.filter((_option, currentIndex) => currentIndex !== index) })} disabled={disabled} color="error"><DeleteOutlineRoundedIcon /></IconButton>
             </Stack>
-          ))}
+            );
+          })}
           <AppPillButton size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={() => {
             const addedResourceIds = pool.options.map((option) => option.reward.resourceId);
             onChange({ mode: "independent", options: [...pool.options, { reward: createAmount(resources, addedResourceIds), chanceBps: 10_000 }] });

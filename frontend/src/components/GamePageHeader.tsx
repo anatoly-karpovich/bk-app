@@ -24,6 +24,7 @@ export interface GamePageHeaderAction {
 
 interface GamePageHeaderProps {
   breadcrumbPath: string;
+  breadcrumbItems?: string[];
   title: string;
   description: string;
   chips: GamePageHeaderChip[];
@@ -34,6 +35,7 @@ interface GamePageHeaderProps {
 
 export default function GamePageHeader({
   breadcrumbPath,
+  breadcrumbItems,
   title,
   description,
   chips,
@@ -63,7 +65,7 @@ export default function GamePageHeader({
           }}
         >
           <Stack spacing={1.25} sx={{ minWidth: 0, maxWidth: { xl: "62%" } }}>
-            <PageBreadcrumbs pagePath={breadcrumbPath} />
+            <PageBreadcrumbs pagePath={breadcrumbPath} additionalItems={breadcrumbItems} />
             <Typography
               variant="h3"
               sx={{

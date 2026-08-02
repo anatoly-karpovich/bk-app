@@ -12,6 +12,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppTextInput from "../../components/ui/AppTextInput";
 import { gameConfigsTexts } from "../../texts/gameConfigsTexts";
@@ -33,6 +34,7 @@ interface GameConfigsPageProps {
 }
 
 export default function GameConfigsPage({ selectedProject }: GameConfigsPageProps) {
+  const navigate = useNavigate();
   const [gameType, setGameType] = useState<GameType>("journey");
   const [searchQuery, setSearchQuery] = useState("");
   const [editingConfig, setEditingConfig] = useState<AnyGameConfig | null>(null);
@@ -68,6 +70,11 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
 
   async function openEditor(config: AnyGameConfig) {
     if (!selectedProject) {
+      return;
+    }
+
+    if (config.gameType === "journey") {
+      navigate(`/configs/journey/${encodeURIComponent(config.id)}`);
       return;
     }
 
