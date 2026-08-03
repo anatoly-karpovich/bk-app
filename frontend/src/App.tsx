@@ -20,6 +20,9 @@ import { AdminRoute } from "./features/auth/AdminRoute";
 import UsersPage from "./features/users/UsersPage";
 import DashboardPage from "./features/dashboard/DashboardPage";
 import QuizzesPage from "./features/utilities/quizzes/QuizzesPage";
+import QuizCreatePage from "./features/utilities/quizzes/QuizCreatePage";
+import QuizEditorPage from "./features/utilities/quizzes/QuizEditorPage";
+import QuizEventsPage from "./features/utilities/quizzes/QuizEventsPage";
 
 export default function App() {
   return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
@@ -65,6 +68,9 @@ function AuthenticatedApp() {
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/quizzes" element={<QuizzesPage selectedProject={selectedProject} />} />
+          <Route path="/quizzes/create" element={<QuizCreatePage selectedProject={selectedProject} />} />
+          <Route path="/quizzes/events" element={<QuizEventsPage selectedProject={selectedProject} />} />
+          <Route path="/quizzes/:quizId/edit" element={<QuizEditorPage selectedProject={selectedProject} />} />
           <Route path="/project" element={<ProjectPage selectedProject={selectedProject} canEdit={user?.role === "admin"} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/quizzes" element={<QuizConfigsPage selectedProject={selectedProject} />} />
