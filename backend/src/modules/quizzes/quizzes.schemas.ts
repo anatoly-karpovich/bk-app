@@ -13,6 +13,12 @@ const questionSchema = z.object({
   id: z.string().uuid(), questionIndex: z.number().int().positive(), title: z.string().max(500).nullable(), text: z.string().max(20_000),
   correctAnswer: z.string().max(20_000).nullable(), attachmentUrl: z.string().max(2_000).nullable(), notes: z.string().max(20_000).nullable(),
 });
+const createQuestionSchema = z.object({
+  questionIndex: z.number().int().positive(),
+  text: z.string().max(20_000),
+  correctAnswer: z.string().max(20_000).nullable(),
+  notes: z.string().max(20_000).nullable(),
+});
 
 export const projectIdParamsSchema = z.object({ projectId: objectIdSchema });
 export const quizConfigParamsSchema = projectIdParamsSchema.extend({ configId: objectIdSchema });
@@ -28,7 +34,12 @@ export const saveQuizConfigSchema = z.object({
   messageTemplates: templatesSchema.nullable().default(null), answerMessageTemplates: templatesSchema.nullable().default(null), isSystem: z.boolean().optional(),
 });
 
-export const createQuizSchema = z.object({ configId: objectIdSchema, name: z.string().max(160).default(""), description: z.string().max(2_000).optional() });
+export const createQuizSchema = z.object({
+  configId: objectIdSchema,
+  name: z.string().max(160).default(""),
+  description: z.string().max(2_000).default(""),
+  questions: z.array(createQuestionSchema),
+});
 export const updateQuizSchema = z.object({
   name: z.string().max(160), description: z.string().max(2_000), questions: z.array(questionSchema),
   effectiveMessageTemplates: templatesSchema, effectiveAnswerMessageTemplates: templatesSchema,

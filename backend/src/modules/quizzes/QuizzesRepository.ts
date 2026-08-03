@@ -31,7 +31,8 @@ export class QuizzesRepository {
   }
 
   async update(id: string, projectId: string, quiz: QuizDocument): Promise<WithId<QuizDocument> | null> {
-    return (await this.collection()).findOneAndUpdate({ _id: this.objectId(id), projectId }, { $set: quiz }, { returnDocument: "after" });
+    const { _id: _ignoredId, ...document } = quiz as WithId<QuizDocument>;
+    return (await this.collection()).findOneAndUpdate({ _id: this.objectId(id), projectId }, { $set: document }, { returnDocument: "after" });
   }
 
   async delete(id: string, projectId: string): Promise<boolean> {

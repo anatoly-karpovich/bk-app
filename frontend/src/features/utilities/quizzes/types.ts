@@ -16,6 +16,19 @@ export interface QuizRegularRewardOverride { questionIndex: number; rule: QuizRe
 export interface QuizBonusRule { id: string; questionIndex: number; position: number; rewardPool: QuizRewardPool; }
 export interface QuizConfig { id: string; name: string; description: string; status: QuizStatus; questionCount: number | null; defaultRegularRule: QuizRegularRule | null; regularRewardOverrides: QuizRegularRewardOverride[]; bonusRules: QuizBonusRule[]; messageTemplates: QuizMessageTemplates | null; answerMessageTemplates: QuizMessageTemplates | null; isSystem: boolean; createdByUserId: string; validationIssues: QuizValidationIssue[]; }
 export interface QuizQuestion { id: string; questionIndex: number; title: string | null; text: string; correctAnswer: string | null; attachmentUrl: string | null; notes: string | null; }
+export interface QuizQuestionDraft {
+  id: string;
+  questionIndex: number;
+  text: string;
+  correctAnswer: string | null;
+  notes: string | null;
+}
+export interface CreateQuizInput {
+  configId: string;
+  name: string;
+  description: string;
+  questions: QuizQuestionDraft[];
+}
 export interface Quiz { id: string; configId: string; name: string; description: string; status: QuizStatus; questions: QuizQuestion[]; effectiveMessageTemplates: QuizMessageTemplates; effectiveAnswerMessageTemplates: QuizMessageTemplates; resources: ProjectResource[]; configRulesSnapshot: { configName: string; defaultRegularRule: QuizRegularRule }; createdByUserId: string; validationIssues: QuizValidationIssue[]; }
 export interface QuizAward { playerName: string; resolvedRewards: ResourceAmount[]; source: { kind: string }; }
 export interface QuizEventQuestion { id: string; questionIndex: number; questionTitle: string | null; questionText: string; status: "pending" | "active" | "completed" | "skipped"; generatedMessage: string; generatedAnswerMessage: string; message: { messageTextOverride: string | null; answerTextOverride: string | null }; chatFragments: Array<{ id: string; mode: "append" | "replace"; isActive: boolean; insertedAt: string }>; answers: Array<{ id: string; playerName: string; rawMessage: string; status: QuizAnswerStatus; position: number | null; awards: QuizAward[] }>; awards: QuizAward[]; }

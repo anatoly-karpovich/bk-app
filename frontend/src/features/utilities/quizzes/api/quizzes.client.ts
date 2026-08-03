@@ -1,10 +1,11 @@
 import { apiClient } from "../../../../lib/apiClient";
-import type { Quiz, QuizAnswerStatus, QuizEvent, QuizMessageKind } from "../types";
+import type { CreateQuizInput, Quiz, QuizAnswerStatus, QuizEvent, QuizMessageKind } from "../types";
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}`;
 export const quizzesApi = {
   list: (projectId: string) => apiClient.get<Quiz[]>(`${base(projectId)}/quizzes`),
-  create: (projectId: string, configId: string, name: string) => apiClient.post<Quiz>(`${base(projectId)}/quizzes`, { configId, name }),
+  get: (projectId: string, quizId: string) => apiClient.get<Quiz>(`${base(projectId)}/quizzes/${encodeURIComponent(quizId)}`),
+  create: (projectId: string, input: CreateQuizInput) => apiClient.post<Quiz>(`${base(projectId)}/quizzes`, input),
   update: (projectId: string, quiz: Quiz) => apiClient.put<Quiz>(`${base(projectId)}/quizzes/${quiz.id}`, { name: quiz.name, description: quiz.description, questions: quiz.questions, effectiveMessageTemplates: quiz.effectiveMessageTemplates, effectiveAnswerMessageTemplates: quiz.effectiveAnswerMessageTemplates }),
   deleteQuiz: (projectId: string, id: string) => apiClient.delete<void>(`${base(projectId)}/quizzes/${id}`),
   listEvents: (projectId: string) => apiClient.get<QuizEvent[]>(`${base(projectId)}/quiz-events`),

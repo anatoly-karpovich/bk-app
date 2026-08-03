@@ -9,7 +9,12 @@ import { QuizzesRepository } from "./QuizzesRepository";
 import { collectResourceIds, validateQuiz, validateQuizConfig } from "./domain/validation";
 import type { QuizConfigDocument, QuizConfigRulesSnapshot, QuizDocument, QuizMessageTemplates, QuizQuestion, QuizView } from "./domain/types";
 
-export interface CreateQuizInput { configId: string; name: string; description?: string; }
+export interface CreateQuizInput {
+  configId: string;
+  name: string;
+  description: string;
+  questions: Array<Pick<QuizQuestion, "questionIndex" | "text" | "correctAnswer" | "notes">>;
+}
 export interface UpdateQuizInput {
   name: string;
   description: string;
@@ -51,11 +56,21 @@ export class QuizzesService {
     const resources = project.resources.filter((resource) => resourceIds.has(resource.id)).map((resource) => structuredClone(resource));
     const quiz: QuizDocument = {
       projectId, configId: input.configId, configRulesSnapshot: snapshot, resources,
-      name: input.name.trim(), description: input.description?.trim() ?? "", status: "draft",
-      questions: Array.from({ length: snapshot.questionCount }, (_, offset) => ({ id: randomUUID(), questionIndex: offset + 1, title: null, text: "", correctAnswer: null, attachmentUrl: null, notes: null })),
-      effectiveMessageTemplates: structuredClone(snapshot.messageTemplates), effectiveAnswerMessageTemplates: structuredClone(snapshot.answerMessageTemplates),
+      name: input.name.trim(), description: input.description.trim(), status: "draft",
+      questions: input.questions.map((question) => ({
+        id: randomUUID(),
+        questionIndex: question.questionIndex,
+        title: null,
+        text: question.text,
+        correctAnswer: question.correctAnswer,
+        attachmentUrl: null,
+        notes: question.notes,
+      })),
+      effectiveMessageTemplates: { ...structuredClone(snapshot.messageTemplates), questionOverrides: [] },
+      effectiveAnswerMessageTemplates: { ...structuredClone(snapshot.answerMessageTemplates), questionOverrides: [] },
       createdByUserId: actor.id, updatedByUserId: actor.id, createdAt: now, updatedAt: now, schemaVersion: 1,
     };
+    quiz.status = validateQuiz(quiz).length ? "draft" : "ready";
     const created = await this.repository.create(quiz);
     if (!created) throw new Error("Failed to load created quiz");
     return this.toView(created._id.toHexString(), created);
