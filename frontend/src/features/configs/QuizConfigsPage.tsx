@@ -1,58 +1,141 @@
-import { useEffect, useState } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import { Alert, Button, Card, CardContent, Chip, CircularProgress, Grid, Stack, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
+import { Alert, Box, Card, CardContent, CircularProgress, InputAdornment, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
+import AppTextInput from "../../components/ui/AppTextInput";
+import { quizConfigsTexts } from "../../texts/quizConfigsTexts";
 import type { Project } from "../projects/types";
 import { quizConfigsApi } from "./api/quizConfigs.client";
+import QuizConfigSelectionCard from "./components/QuizConfigSelectionCard";
 import type { QuizConfig } from "../utilities/quizzes/types";
-import QuizConfigEditor from "./components/QuizConfigEditor";
 
-interface Props { selectedProject: Project | null; }
+interface QuizConfigsPageProps {
+  selectedProject: Project | null;
+}
 
-export default function QuizConfigsPage({ selectedProject }: Props) {
+export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProps) {
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<QuizConfig[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [draft, setDraft] = useState<QuizConfig | null>(null);
-  const [savedConfig, setSavedConfig] = useState<QuizConfig | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const projectId = selectedProject?.id ?? "";
+  const projectId = selectedProject?.id;
 
-  const load = async (preferredId?: string) => {
-    if (!projectId) return;
-    setIsBusy(true); setError(null);
+  const loadConfigs = async () => {
+    if (!projectId) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const nextConfigs = await quizConfigsApi.list(projectId);
-      const nextSelectedId = preferredId && nextConfigs.some((config) => config.id === preferredId) ? preferredId : nextConfigs.some((config) => config.id === selectedId) ? selectedId : nextConfigs[0]?.id ?? "";
-      const nextSelected = nextConfigs.find((config) => config.id === nextSelectedId) ?? null;
-      setConfigs(nextConfigs); setSelectedId(nextSelectedId); setSavedConfig(nextSelected); setDraft(nextSelected ? structuredClone(nextSelected) : null);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось загрузить конфиги викторин"); }
-    finally { setIsBusy(false); }
+      setConfigs(await quizConfigsApi.list(projectId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : quizConfigsTexts.alerts.loadFailed);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  useEffect(() => { void load(); }, [projectId]);
-  const isDirty = Boolean(draft && savedConfig && JSON.stringify(draft) !== JSON.stringify(savedConfig));
   useEffect(() => {
-    if (!isDirty) return;
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [isDirty]);
-  const run = async (action: () => Promise<QuizConfig | void>, preferredId?: string) => {
-    setIsBusy(true); setError(null);
-    try { const result = await action(); await load(preferredId ?? (result && "id" in result ? result.id : undefined)); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось сохранить конфиг викторины"); }
-    finally { setIsBusy(false); }
-  };
-  const create = () => void run(() => quizConfigsApi.create(projectId, { name: "", description: "", questionCount: null, defaultRegularRule: null, regularRewardOverrides: [], bonusRules: [], messageTemplates: null, answerMessageTemplates: null }));
+    void loadConfigs();
+  }, [projectId]);
 
-  if (!selectedProject) return <Alert severity="info">Выберите проект, чтобы работать с конфигами викторин.</Alert>;
-  return <Grid container spacing={3} alignItems="flex-start">
-    <Grid item xs={12}><GamePageHeader breadcrumbPath="/configs" title="Конфиги викторин" description="Шаблоны правил, наград и сообщений для подготовленных викторин." actions={[{ key: "refresh", label: "Обновить", onClick: () => void load(), disabled: isBusy }]} /></Grid>
-    {error ? <Grid item xs={12}><Alert severity="error">{error}</Alert></Grid> : null}
-    <Grid item xs={12} lg={4}><Stack spacing={1}><Button variant="contained" startIcon={<AddRoundedIcon />} disabled={isBusy} onClick={() => { if (!isDirty || window.confirm("Несохранённые изменения будут потеряны. Создать новый конфиг?")) create(); }}>Создать конфиг</Button>{isBusy && !configs.length ? <Stack alignItems="center" sx={{ py: 4 }}><CircularProgress /></Stack> : null}{configs.map((config) => <Button key={config.id} variant={config.id === selectedId ? "contained" : "outlined"} onClick={() => { if (config.id !== selectedId && isDirty && !window.confirm("Несохранённые изменения будут потеряны. Открыть другой конфиг?")) return; setSelectedId(config.id); setSavedConfig(config); setDraft(structuredClone(config)); }} sx={{ justifyContent: "space-between" }}>{config.name || "Без названия"}<Chip size="small" label={config.status} color={config.status === "ready" ? "success" : "warning"} /></Button>)}</Stack></Grid>
-    <Grid item xs={12} lg={8}>{draft ? <QuizConfigEditor config={draft} resources={selectedProject.resources} isBusy={isBusy} isDirty={isDirty} onChange={setDraft} onSave={() => void run(() => quizConfigsApi.update(projectId, draft.id, draft), draft.id)} onReset={() => setDraft(savedConfig ? structuredClone(savedConfig) : null)} onClone={() => void run(() => quizConfigsApi.clone(projectId, draft.id))} onDelete={() => void run(async () => { await quizConfigsApi.delete(projectId, draft.id); }, "")} onCreateQuiz={() => navigate(`/quizzes?configId=${encodeURIComponent(draft.id)}`)} /> : <Card><CardContent><Typography color="text.secondary">Создайте конфиг или выберите существующий.</Typography></CardContent></Card>}</Grid>
-  </Grid>;
+  const visibleConfigs = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+
+    if (!normalizedQuery) {
+      return configs;
+    }
+
+    return configs.filter((config) =>
+      `${config.name} ${config.description}`.toLocaleLowerCase().includes(normalizedQuery),
+    );
+  }, [configs, searchQuery]);
+
+  if (!selectedProject) {
+    return <Alert severity="warning">{quizConfigsTexts.alerts.projectRequired}</Alert>;
+  }
+
+  return (
+    <Stack spacing={3}>
+      <GamePageHeader
+        breadcrumbPath="/configs"
+        breadcrumbItems={[{ label: quizConfigsTexts.page.breadcrumb }]}
+        title={quizConfigsTexts.page.title}
+        description={quizConfigsTexts.page.description}
+        chips={[
+          { label: quizConfigsTexts.page.projectChip(selectedProject.name) },
+          { label: quizConfigsTexts.page.configsChip(configs.length), color: "secondary" },
+        ]}
+        actions={[
+          {
+            key: "refresh",
+            label: quizConfigsTexts.page.refresh,
+            icon: <RefreshRoundedIcon />,
+            onClick: () => void loadConfigs(),
+            loading: isLoading,
+            variant: "text",
+            color: "inherit",
+          },
+        ]}
+      />
+
+      {error ? <Alert severity="error">{error}</Alert> : null}
+
+      <Card>
+        <CardContent>
+          <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
+            <Stack spacing={0.5}>
+              <Typography variant="h5">{quizConfigsTexts.section.title}</Typography>
+              <Typography variant="body2" color="text.secondary">{quizConfigsTexts.section.description}</Typography>
+            </Stack>
+            <AppTextInput
+              size="small"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={quizConfigsTexts.section.searchPlaceholder}
+              inputProps={{ "aria-label": quizConfigsTexts.section.searchPlaceholder }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start"><SearchRoundedIcon fontSize="small" color="disabled" /></InputAdornment>
+                ),
+              }}
+              sx={{ width: { xs: "100%", md: 280 }, flexShrink: 0 }}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress /></Stack>
+      ) : visibleConfigs.length ? (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" }, gap: 2.25 }}>
+          {visibleConfigs.map((config) => (
+            <QuizConfigSelectionCard
+              key={config.id}
+              config={config}
+              onSelect={() => navigate(`/quizzes?configId=${encodeURIComponent(config.id)}`)}
+            />
+          ))}
+        </Box>
+      ) : (
+        <Card>
+          <CardContent sx={{ py: 4, textAlign: "center" }}>
+            <QuizRoundedIcon color="disabled" sx={{ fontSize: 36, mb: 1 }} />
+            <Typography variant="h6">
+              {configs.length ? quizConfigsTexts.empty.searchTitle : quizConfigsTexts.empty.noConfigsTitle}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+              {configs.length ? quizConfigsTexts.empty.searchDescription : quizConfigsTexts.empty.noConfigsDescription}
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+    </Stack>
+  );
 }
