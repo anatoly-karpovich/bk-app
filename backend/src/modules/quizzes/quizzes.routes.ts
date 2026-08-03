@@ -1,0 +1,40 @@
+import { Router } from "express";
+import { asyncHandler } from "../../common/http/asyncHandler";
+import { QuizConfigsController } from "./QuizConfigsController";
+import { QuizzesController } from "./QuizzesController";
+import { QuizEventsController } from "./QuizEventsController";
+
+export function createQuizzesRouter(configs: QuizConfigsController, quizzes: QuizzesController, events: QuizEventsController): Router {
+  const router = Router({ mergeParams: true });
+  router.get("/quiz-configs", asyncHandler(configs.list));
+  router.post("/quiz-configs", asyncHandler(configs.create));
+  router.get("/quiz-configs/:configId", asyncHandler(configs.get));
+  router.put("/quiz-configs/:configId", asyncHandler(configs.update));
+  router.delete("/quiz-configs/:configId", asyncHandler(configs.delete));
+  router.post("/quiz-configs/:configId/clone", asyncHandler(configs.clone));
+  router.get("/quizzes", asyncHandler(quizzes.list));
+  router.post("/quizzes", asyncHandler(quizzes.create));
+  router.get("/quizzes/:quizId", asyncHandler(quizzes.get));
+  router.put("/quizzes/:quizId", asyncHandler(quizzes.update));
+  router.delete("/quizzes/:quizId", asyncHandler(quizzes.delete));
+  router.get("/quiz-events", asyncHandler(events.list));
+  router.get("/quiz-events/:eventId", asyncHandler(events.get));
+  router.delete("/quiz-events/:eventId", asyncHandler(events.delete));
+  router.post("/quizzes/:quizId/events", asyncHandler(events.create));
+  router.post("/quiz-events/:eventId/start", asyncHandler(events.start));
+  router.post("/quiz-events/:eventId/pause", asyncHandler(events.pause));
+  router.post("/quiz-events/:eventId/resume", asyncHandler(events.resume));
+  router.post("/quiz-events/:eventId/complete", asyncHandler(events.complete));
+  router.post("/quiz-events/:eventId/cancel", asyncHandler(events.cancel));
+  router.post("/quiz-events/:eventId/questions/reorder", asyncHandler(events.reorder));
+  router.post("/quiz-events/:eventId/questions/:questionId/start", asyncHandler(events.startQuestion));
+  router.post("/quiz-events/:eventId/questions/:questionId/complete", asyncHandler(events.completeQuestion));
+  router.post("/quiz-events/:eventId/questions/:questionId/skip", asyncHandler(events.skipQuestion));
+  router.post("/quiz-events/:eventId/questions/:questionId/restore", asyncHandler(events.restoreQuestion));
+  router.put("/quiz-events/:eventId/questions/:questionId/message", asyncHandler(events.setMessage));
+  router.delete("/quiz-events/:eventId/questions/:questionId/message-override", asyncHandler(events.clearMessage));
+  router.post("/quiz-events/:eventId/questions/:questionId/chat-fragments", asyncHandler(events.addFragment));
+  router.post("/quiz-events/:eventId/questions/:questionId/answers/status", asyncHandler(events.setAnswerStatus));
+  router.post("/quiz-events/:eventId/questions/:questionId/answers/bulk-status", asyncHandler(events.setBulkAnswerStatus));
+  return router;
+}

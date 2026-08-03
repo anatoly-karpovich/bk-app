@@ -9,6 +9,9 @@ import { SessionsRepository } from "../modules/auth/SessionsRepository";
 import { UsersRepository } from "../modules/auth/UsersRepository";
 import { ProjectsRepository } from "../modules/projects/ProjectsRepository";
 import { GameConfigsRepository } from "../modules/gameConfigs/GameConfigsRepository";
+import { QuizConfigsRepository } from "../modules/quizzes/QuizConfigsRepository";
+import { QuizzesRepository } from "../modules/quizzes/QuizzesRepository";
+import { QuizEventsRepository } from "../modules/quizzes/QuizEventsRepository";
 
 export interface InitializedApplication {
   mongoConnection: ReturnType<typeof getDefaultMongoConnection>;
@@ -24,6 +27,16 @@ export async function initApplication(): Promise<InitializedApplication> {
   const mongoDatabase = getDefaultMongoDatabase();
   const usersRepository = new UsersRepository(mongoDatabase);
   const sessionsRepository = new SessionsRepository(mongoDatabase);
+  const quizConfigsRepository = new QuizConfigsRepository(mongoDatabase);
+  const quizzesRepository = new QuizzesRepository(mongoDatabase);
+  const quizEventsRepository = new QuizEventsRepository(mongoDatabase);
+  await Promise.all([
+    usersRepository.ensureIndexes(),
+    sessionsRepository.ensureIndexes(),
+    quizConfigsRepository.ensureIndexes(),
+    quizzesRepository.ensureIndexes(),
+    quizEventsRepository.ensureIndexes(),
+  ]);
   const passwordHasher = new PasswordHasher();
   await seedBootstrapAdminIfNeeded(
     new AuthService(usersRepository, sessionsRepository, passwordHasher),

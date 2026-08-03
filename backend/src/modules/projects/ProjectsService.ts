@@ -16,6 +16,10 @@ import { ProjectsRepository } from "./ProjectsRepository";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertProjectAccess } from "../auth/authorization";
 import { UsersRepository } from "../auth/UsersRepository";
+import { QuizConfigsRepository } from "../quizzes/QuizConfigsRepository";
+import { QuizzesRepository } from "../quizzes/QuizzesRepository";
+import { QuizEventsRepository } from "../quizzes/QuizEventsRepository";
+import { collectResourceIds as collectQuizResourceIds } from "../quizzes/domain/validation";
 
 const DEFAULT_ADMIN_PROJECT_NICKNAME = "Геральт из Ривии";
 
@@ -27,6 +31,9 @@ export class ProjectsService {
     private readonly battleshipsRepository: BattleshipsRepository,
     private readonly lottoRepository: LottoRepository,
     private readonly usersRepository: UsersRepository,
+    private readonly quizConfigsRepository: QuizConfigsRepository,
+    private readonly quizzesRepository: QuizzesRepository,
+    private readonly quizEventsRepository: QuizEventsRepository,
   ) {}
 
   async listProjects(actor: CurrentUser): Promise<ProjectReadModel[]> {
@@ -148,6 +155,9 @@ export class ProjectsService {
       this.journeyRepository.deleteByProjectId(projectId),
       this.battleshipsRepository.deleteByProjectId(projectId),
       this.lottoRepository.deleteByProjectId(projectId),
+      this.quizConfigsRepository.deleteByProjectId(projectId),
+      this.quizzesRepository.deleteByProjectId(projectId),
+      this.quizEventsRepository.deleteByProjectId(projectId),
       this.usersRepository.removeProjectProfiles(projectId),
     ]);
 
@@ -165,7 +175,11 @@ export class ProjectsService {
     const nextResourceIds = new Set(nextResources.map((resource) => resource.id.trim()));
     const removedResourceIds = currentResources.map((resource) => resource.id).filter((resourceId) => !nextResourceIds.has(resourceId));
     const configs = await this.gameConfigsRepository.findByProjectId(projectId);
-    const usedResourceIds = new Set(configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]));
+    const quizConfigs = await this.quizConfigsRepository.findByProjectId(projectId);
+    const usedResourceIds = new Set([
+      ...configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]),
+      ...quizConfigs.flatMap((config) => [...collectQuizResourceIds(config)]),
+    ]);
 
     if (!removedResourceIds.length) {
       return usedResourceIds;
@@ -216,7 +230,11 @@ export class ProjectsService {
 
   private async toReadModel(project: { _id: { toHexString(): string } } & Project): Promise<ProjectReadModel> {
     const configs = await this.gameConfigsRepository.findByProjectId(project._id.toHexString());
-    const usedResourceIds = new Set(configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]));
+    const quizConfigs = await this.quizConfigsRepository.findByProjectId(project._id.toHexString());
+    const usedResourceIds = new Set([
+      ...configs.flatMap((config) => [...collectResourceIdsFromRules(config.rules)]),
+      ...quizConfigs.flatMap((config) => [...collectQuizResourceIds(config)]),
+    ]);
 
     return {
       id: project._id.toHexString(),

@@ -11,11 +11,19 @@ export const navigationGroups = [
     ],
   },
   {
+    id: "utilities",
+    label: "Утилиты",
+    items: [
+      { key: "quizzes", label: "Викторины", to: "/quizzes" },
+    ],
+  },
+  {
     id: "settings",
     label: appHeaderTexts.nav.settings,
     items: [
       { key: "project", label: appHeaderTexts.nav.project, to: "/project" },
       { key: "configs", label: appHeaderTexts.nav.configs, to: "/configs" },
+      { key: "quizConfigs", label: appHeaderTexts.nav.quizConfigs, to: "/configs/quizzes" },
       { key: "users", label: appHeaderTexts.nav.users, to: "/users" },
     ],
   },

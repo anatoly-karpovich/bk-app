@@ -5,6 +5,7 @@ import AppHeader from "./components/AppHeader";
 import BattleshipsPage from "./features/battleships/BattleshipsPage";
 import BattleshipsConfigPage from "./features/configs/BattleshipsConfigPage";
 import GameConfigsPage from "./features/configs/GameConfigsPage";
+import QuizConfigsPage from "./features/configs/QuizConfigsPage";
 import JourneyConfigPage from "./features/configs/JourneyConfigPage";
 import LottoConfigPage from "./features/configs/LottoConfigPage";
 import JourneyPage from "./features/journey/JourneyPage";
@@ -17,6 +18,7 @@ import { useAuth } from "./features/auth/useAuth";
 import { AdminRoute } from "./features/auth/AdminRoute";
 import UsersPage from "./features/users/UsersPage";
 import DashboardPage from "./features/dashboard/DashboardPage";
+import QuizzesPage from "./features/utilities/quizzes/QuizzesPage";
 
 export default function App() {
   return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
@@ -61,8 +63,10 @@ function AuthenticatedApp() {
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/quizzes" element={<QuizzesPage selectedProject={selectedProject} />} />
           <Route path="/project" element={<ProjectPage selectedProject={selectedProject} canEdit={user?.role === "admin"} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
+          <Route path="/configs/quizzes" element={<QuizConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />

@@ -32,6 +32,7 @@ import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import { NavLink, useLocation } from "react-router-dom";
 import type { Project } from "../features/projects/types";
 import { navigationGroups, type NavigationGroupId, type NavigationItemKey } from "../navigation";
@@ -54,12 +55,15 @@ const navigationItemIcons: Record<NavigationItemKey, JSX.Element> = {
   battleship: <DirectionsBoatRoundedIcon />,
   project: <FolderRoundedIcon />,
   configs: <TuneRoundedIcon />,
+  quizConfigs: <QuizRoundedIcon />,
   users: <PeopleAltRoundedIcon />,
+  quizzes: <QuizRoundedIcon />,
 };
 
 const navigationGroupIcons: Record<NavigationGroupId, JSX.Element> = {
   games: <SportsEsportsRoundedIcon />,
   settings: <TuneRoundedIcon />,
+  utilities: <QuizRoundedIcon />,
 };
 
 function isGroupActive(groupId: NavigationGroupId, pathname: string): boolean {

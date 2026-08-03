@@ -39,6 +39,18 @@ import { SessionsRepository } from "../modules/auth/SessionsRepository";
 import { UsersRepository } from "../modules/auth/UsersRepository";
 import { UsersController } from "../modules/users/UsersController";
 import { UsersService } from "../modules/users/UsersService";
+import { QuizConfigsRepository } from "../modules/quizzes/QuizConfigsRepository";
+import { QuizConfigsService } from "../modules/quizzes/QuizConfigsService";
+import { QuizConfigsController } from "../modules/quizzes/QuizConfigsController";
+import { QuizzesRepository } from "../modules/quizzes/QuizzesRepository";
+import { QuizzesService } from "../modules/quizzes/QuizzesService";
+import { QuizzesController } from "../modules/quizzes/QuizzesController";
+import { QuizEventsRepository } from "../modules/quizzes/QuizEventsRepository";
+import { QuizEventEngine } from "../modules/quizzes/QuizEventEngine";
+import { QuizChatParser } from "../modules/quizzes/QuizChatParser";
+import { QuizReadModelFactory } from "../modules/quizzes/QuizReadModelFactory";
+import { QuizEventsService } from "../modules/quizzes/QuizEventsService";
+import { QuizEventsController } from "../modules/quizzes/QuizEventsController";
 
 export interface ApplicationDependencies {
   authController: AuthController;
@@ -49,6 +61,9 @@ export interface ApplicationDependencies {
   journeyController: JourneyController;
   lottoController: LottoController;
   projectsController: ProjectsController;
+  quizConfigsController: QuizConfigsController;
+  quizzesController: QuizzesController;
+  quizEventsController: QuizEventsController;
   usersController: UsersController;
 }
 
@@ -62,6 +77,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const authController = new AuthController(authService);
 
   const projectsRepository = new ProjectsRepository(mongoDatabase);
+  const quizConfigsRepository = new QuizConfigsRepository(mongoDatabase);
+  const quizzesRepository = new QuizzesRepository(mongoDatabase);
+  const quizEventsRepository = new QuizEventsRepository(mongoDatabase);
   const gameConfigsRepository = new GameConfigsRepository(mongoDatabase);
   const battleshipsRepository = new BattleshipsRepository();
   const journeyRepository = new JourneyRepository();
@@ -73,6 +91,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
     battleshipsRepository,
     lottoRepository,
     usersRepository,
+    quizConfigsRepository,
+    quizzesRepository,
+    quizEventsRepository,
   );
   const projectsController = new ProjectsController(projectsService);
   const usersController = new UsersController(new UsersService(usersRepository, sessionsRepository, passwordHasher, projectsRepository));
@@ -84,10 +105,18 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigReadModelFactory,
   );
   const gameConfigsController = new GameConfigsController(gameConfigsService);
+  const quizConfigsService = new QuizConfigsService(quizConfigsRepository, projectsRepository);
+  const quizConfigsController = new QuizConfigsController(quizConfigsService);
+  const quizzesService = new QuizzesService(quizzesRepository, quizConfigsRepository, projectsRepository);
+  const quizzesController = new QuizzesController(quizzesService);
 
   const cryptoRandomizer = new CryptoRandomizer();
   const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
   const rewardGrantService = new RewardGrantService(randomizer);
+  const quizEventEngine = new QuizEventEngine(rewardGrantService);
+  const quizReadModelFactory = new QuizReadModelFactory(quizEventEngine);
+  const quizEventsService = new QuizEventsService(quizEventsRepository, quizzesRepository, projectsRepository, quizEventEngine, new QuizChatParser(), quizReadModelFactory);
+  const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
   const battleshipsReadModelFactory = new BattleshipsReadModelFactory(battleshipsEngine);
   const battleshipsService = new BattleshipsService(
@@ -145,6 +174,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyController,
     lottoController,
     projectsController,
+    quizConfigsController,
+    quizzesController,
+    quizEventsController,
     usersController,
   };
 }

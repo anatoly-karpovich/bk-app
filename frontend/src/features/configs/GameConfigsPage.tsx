@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import { Alert, Box, Card, CardContent, CircularProgress, Grid, InputAdornment, Stack, Typography } from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
@@ -82,6 +83,13 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
               loading: isLoading,
               variant: "text",
               color: "inherit",
+            },
+            {
+              key: "quiz-configs",
+              label: "Викторины",
+              icon: <QuizRoundedIcon />,
+              onClick: () => navigate("/configs/quizzes"),
+              variant: "outlined",
             },
           ]}
         />
