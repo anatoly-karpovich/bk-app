@@ -89,10 +89,17 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
 
       <Card>
         <CardContent>
-          <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            justifyContent="space-between"
+            alignItems={{ md: "center" }}
+            spacing={2}
+          >
             <Stack spacing={0.5}>
               <Typography variant="h5">{quizConfigsTexts.section.title}</Typography>
-              <Typography variant="body2" color="text.secondary">{quizConfigsTexts.section.description}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {quizConfigsTexts.section.description}
+              </Typography>
             </Stack>
             <AppTextInput
               size="small"
@@ -102,7 +109,9 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
               inputProps={{ "aria-label": quizConfigsTexts.section.searchPlaceholder }}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start"><SearchRoundedIcon fontSize="small" color="disabled" /></InputAdornment>
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" color="disabled" />
+                  </InputAdornment>
                 ),
               }}
               sx={{ width: { xs: "100%", md: 280 }, flexShrink: 0 }}
@@ -112,14 +121,22 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
       </Card>
 
       {isLoading ? (
-        <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress /></Stack>
+        <Stack alignItems="center" sx={{ py: 6 }}>
+          <CircularProgress />
+        </Stack>
       ) : visibleConfigs.length ? (
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" }, gap: 2.25 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" },
+            gap: 2.25,
+          }}
+        >
           {visibleConfigs.map((config) => (
             <QuizConfigSelectionCard
               key={config.id}
               config={config}
-              onSelect={() => navigate(`/quizzes?configId=${encodeURIComponent(config.id)}`)}
+              onSelect={() => navigate(`/configs/quizzes/${encodeURIComponent(config.id)}`)}
             />
           ))}
         </Box>

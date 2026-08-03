@@ -25,17 +25,22 @@ export default function QuizConfigSelectionCard({ config, onSelect }: QuizConfig
   const summaryItems = [
     {
       label: quizConfigsTexts.card.questionCount,
-      value: config.questionCount === null
-        ? quizConfigsTexts.card.notConfigured
-        : quizConfigsTexts.card.questionsValue(config.questionCount),
+      value:
+        config.questionCount === null
+          ? quizConfigsTexts.card.notConfigured
+          : quizConfigsTexts.card.questionsValue(config.questionCount),
     },
     { label: quizConfigsTexts.card.regularRewards, value: getRegularRewardSummary(config.defaultRegularRule) },
-    { label: quizConfigsTexts.card.bonusRewards, value: quizConfigsTexts.card.bonusRulesValue(config.bonusRules.length) },
+    {
+      label: quizConfigsTexts.card.bonusRewards,
+      value: quizConfigsTexts.card.bonusRulesValue(config.bonusRules.length),
+    },
     {
       label: quizConfigsTexts.card.messages,
-      value: config.messageTemplates && config.answerMessageTemplates
-        ? quizConfigsTexts.card.messagesConfigured
-        : quizConfigsTexts.card.notConfigured,
+      value:
+        config.messageTemplates && config.answerMessageTemplates
+          ? quizConfigsTexts.card.messagesConfigured
+          : quizConfigsTexts.card.notConfigured,
     },
   ];
   const isReady = config.status === "ready";
@@ -67,12 +72,6 @@ export default function QuizConfigSelectionCard({ config, onSelect }: QuizConfig
         </Stack>
 
         <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
-          <Chip
-            size="small"
-            icon={isReady ? <CheckCircleRoundedIcon /> : undefined}
-            label={isReady ? quizConfigsTexts.card.ready : quizConfigsTexts.card.draft}
-            color={isReady ? "success" : "warning"}
-          />
           {config.isSystem ? <Chip size="small" label={quizConfigsTexts.card.system} color="secondary" /> : null}
         </Stack>
 
@@ -90,16 +89,28 @@ export default function QuizConfigSelectionCard({ config, onSelect }: QuizConfig
                 bgcolor: "rgba(248, 250, 252, 0.8)",
               }}
             >
-              <Typography variant="caption" color="text.secondary">{item.label}</Typography>
-              <Typography variant="body2" fontWeight={700} sx={{ mt: 0.25, overflowWrap: "anywhere" }}>{item.value}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {item.label}
+              </Typography>
+              <Typography variant="body2" fontWeight={700} sx={{ mt: 0.25, overflowWrap: "anywhere" }}>
+                {item.value}
+              </Typography>
             </Box>
           ))}
         </AppResponsiveGrid>
 
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1.25} sx={{ mt: "auto", pt: 1.5 }}>
-          <Typography variant="caption" color="text.secondary">{quizConfigsTexts.card.appliesToNewQuizzes}</Typography>
-          <Button variant="outlined" size="small" endIcon={<ArrowForwardRoundedIcon />} onClick={onSelect} disabled={!isReady}>
-            {quizConfigsTexts.card.select}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          justifyContent="space-between"
+          alignItems={{ sm: "center" }}
+          spacing={1.25}
+          sx={{ mt: "auto", pt: 1.5 }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {quizConfigsTexts.card.appliesToNewQuizzes}
+          </Typography>
+          <Button variant="outlined" size="small" endIcon={<ArrowForwardRoundedIcon />} onClick={onSelect}>
+            {quizConfigsTexts.card.open}
           </Button>
         </Stack>
       </CardContent>

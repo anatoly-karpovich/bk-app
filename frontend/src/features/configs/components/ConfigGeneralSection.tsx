@@ -1,4 +1,5 @@
 import { Card, CardContent, Stack, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import AppTextInput from "../../../components/ui/AppTextInput";
 
@@ -11,6 +12,7 @@ interface ConfigGeneralSectionProps {
   draft: { name: string; description: string };
   disabled: boolean;
   onChange: (patch: { name?: string; description?: string }) => void;
+  children?: ReactNode;
 }
 
 export default function ConfigGeneralSection({
@@ -22,6 +24,7 @@ export default function ConfigGeneralSection({
   draft,
   disabled,
   onChange,
+  children,
 }: ConfigGeneralSectionProps) {
   return (
     <Card>
@@ -51,6 +54,7 @@ export default function ConfigGeneralSection({
                 disabled={disabled}
                 onChange={(event) => onChange({ description: event.target.value })}
               />
+              {children}
           </AppResponsiveGrid>
         </Stack>
       </CardContent>
