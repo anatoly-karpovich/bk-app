@@ -128,15 +128,15 @@ export default function AppHeader({
           <Toolbar
             disableGutters
             sx={{
-              minHeight: { xs: 72, md: 92 },
-              py: { xs: 1.25, md: 1.5 },
-              gap: 2,
+              minHeight: { xs: 64, md: 92 },
+              py: { xs: 1, md: 1.5 },
+              gap: { xs: 1, md: 2 },
               alignItems: "center",
               justifyContent: "space-between",
-              flexWrap: "wrap",
+              flexWrap: { xs: "nowrap", md: "wrap" },
             }}
           >
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0 }}>
+            <Stack direction="row" spacing={{ xs: 1, md: 2 }} alignItems="center" sx={{ minWidth: 0, flexShrink: 0 }}>
               <IconButton
                 sx={{ display: { xs: "inline-flex", md: "none" }, mt: 0.25 }}
                 onClick={() => setMobileNavOpen(true)}
@@ -174,7 +174,7 @@ export default function AppHeader({
                   <SportsEsportsRoundedIcon />
                 </Box>
 
-                <Box sx={{ minWidth: 0 }}>
+                <Box sx={{ minWidth: 0, display: { xs: "none", md: "block" } }}>
                   <Typography variant="h6" sx={{ lineHeight: 1.1 }}>
                     {appHeaderTexts.brandTitle}
                   </Typography>
@@ -222,10 +222,12 @@ export default function AppHeader({
             <Box
               sx={{
                 display: "flex",
-                alignItems: "flex-end",
+                alignItems: { xs: "center", md: "flex-end" },
                 justifyContent: { xs: "flex-end", xl: "initial" },
-                gap: 1.5,
-                width: { xs: "100%", xl: "auto" },
+                gap: { xs: 1, md: 1.5 },
+                width: { xs: "auto", md: "100%", xl: "auto" },
+                flex: { xs: 1, md: "initial" },
+                minWidth: 0,
                 ml: { xl: "auto" },
               }}
             >
@@ -234,21 +236,21 @@ export default function AppHeader({
                 sx={{
                   minWidth: { xs: 0, sm: 220 },
                   flex: { xs: 1, xl: "initial" },
-                  "@media (max-width:840px)": { display: "none" },
                 }}
               >
-                <Typography variant="caption" color="text.secondary" sx={{ pl: 1.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "none", md: "block" }, pl: 1.5 }}>
                   {appHeaderTexts.projectLabel}
                 </Typography>
                 <FormControl fullWidth size="small">
                   <Select
                     value={selectedProjectId}
                     onChange={(event: SelectChangeEvent<string>) => onSelectedProjectChange(event.target.value)}
+                    inputProps={{ "aria-label": appHeaderTexts.projectLabel }}
                     sx={{
                       borderRadius: (theme) => theme.customRadii.pill,
                       backgroundColor: "#fff",
                       fontWeight: 700,
-                      "& .MuiSelect-select": { py: 1.1 },
+                      "& .MuiSelect-select": { py: 1.1, overflow: "hidden", textOverflow: "ellipsis" },
                     }}
                   >
                     {!projects.length ? (
