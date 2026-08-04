@@ -46,6 +46,7 @@ export const updateQuizSchema = z.object({
 });
 
 export const createQuizEventSchema = z.object({ name: z.string().max(160).optional() });
-export const quizMessageSchema = z.object({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
-export const quizMessageKindSchema = z.object({ messageKind: z.enum(["question", "answer"]) });
-export const chatFragmentSchema = z.object({ rawText: z.string().min(1).max(100_000) });
+export const quizEventRevisionSchema = z.object({ revision: z.number().int().nonnegative() });
+export const quizMessageSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
+export const quizMessageKindSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]) });
+export const chatFragmentSchema = quizEventRevisionSchema.extend({ rawText: z.string().min(1).max(100_000) });

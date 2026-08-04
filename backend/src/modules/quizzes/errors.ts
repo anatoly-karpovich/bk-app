@@ -16,6 +16,16 @@ export class QuizConflictError extends AppError {
   constructor(message: string) { super(message, { code: "quiz_conflict", statusCode: 409 }); }
 }
 
+export class QuizEventRevisionConflictError extends AppError {
+  constructor(eventId: string, expectedRevision: number) {
+    super("Проведение уже изменилось в другой вкладке. Обновите данные и повторите действие.", {
+      code: "quiz_event_revision_conflict",
+      statusCode: 409,
+      details: { eventId, expectedRevision },
+    });
+  }
+}
+
 export class QuizEventNotFoundError extends AppError {
   constructor(id: string) { super(`Quiz event ${id} was not found`, { code: "quiz_event_not_found", statusCode: 404 }); }
 }

@@ -6,7 +6,7 @@ import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
-import { QuizEventNotFoundError, QuizNotFoundError } from "../errors";
+import { QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError } from "../errors";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
@@ -75,15 +75,18 @@ export class QuizEventsService {
     return this.readModels.create(created._id.toHexString(), created);
   }
 
-  async delete(actor: CurrentUser, projectId: string, eventId: string): Promise<void> {
-    await this.editableEvent(actor, projectId, eventId);
-    if (!(await this.repository.delete(eventId, projectId))) throw new Error("Quiz event was not deleted");
+  async delete(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number): Promise<void> {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    if (!(await this.repository.delete(eventId, projectId, expectedRevision))) {
+      throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+    }
   }
-  async complete(actor: CurrentUser, projectId: string, eventId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.completeEvent(event));
+  async complete(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.completeEvent(event));
   }
-  async reopen(actor: CurrentUser, projectId: string, eventId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.reopenEvent(event));
+  async reopen(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.reopenEvent(event));
   }
   async setMessage(
     actor: CurrentUser,
@@ -92,8 +95,9 @@ export class QuizEventsService {
     questionId: string,
     kind: QuizMessageKind,
     text: string | null,
+    expectedRevision: number,
   ) {
-    return this.mutate(actor, projectId, eventId, (event) =>
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) =>
       this.engine.setMessage(event, questionId, kind, text, actor.id),
     );
   }
@@ -104,8 +108,10 @@ export class QuizEventsService {
     eventId: string,
     questionId: string,
     rawText: string,
+    expectedRevision: number,
   ): Promise<AddQuizChatFragmentResult> {
     const event = await this.editableEvent(actor, projectId, eventId);
+    this.assertExpectedRevision(event, eventId, expectedRevision);
     const question = this.engine.getQuestion(event, questionId);
     const parsed = this.chatParser.parse(rawText);
     const candidates = this.candidateFilter.filter(parsed, {
@@ -121,8 +127,8 @@ export class QuizEventsService {
       messages: deduplicated.unique,
       insertedByUserId: actor.id,
     });
-    const saved = await this.repository.update(eventId, projectId, updated);
-    if (!saved) throw new Error("Quiz event was not saved");
+    const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
+    if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     const savedQuestion = this.engine.getQuestion(saved, questionId);
     const fragment = savedQuestion.chatFragments.at(-1)!;
     return {
@@ -141,11 +147,13 @@ export class QuizEventsService {
     actor: CurrentUser,
     projectId: string,
     eventId: string,
+    expectedRevision: number,
     mutation: (event: QuizEventDocument) => QuizEventDocument,
   ): Promise<QuizEventView> {
     const event = await this.editableEvent(actor, projectId, eventId);
-    const updated = await this.repository.update(eventId, projectId, mutation(structuredClone(event)));
-    if (!updated) throw new Error("Quiz event was not saved");
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    const updated = await this.repository.update(eventId, projectId, expectedRevision, mutation(structuredClone(event)));
+    if (!updated) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     return this.readModels.create(eventId, updated);
   }
 
@@ -160,6 +168,9 @@ export class QuizEventsService {
     const event = await this.repository.findByIdAndProjectId(eventId, projectId);
     if (!event) throw new QuizEventNotFoundError(eventId);
     return this.readModels.create(eventId, event);
+  }
+  private assertExpectedRevision(event: QuizEventDocument, eventId: string, expectedRevision: number): void {
+    if (event.revision !== expectedRevision) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
   }
   private snapshot(quizId: string, quiz: import("../domain/types").QuizDocument): QuizSnapshot {
     return {

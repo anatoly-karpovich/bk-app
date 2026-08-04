@@ -70,8 +70,9 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
   const documentId = new ObjectId();
   const repository = {
     findByIdAndProjectId: async () => ({ ...event, _id: documentId }),
-    update: async (_id: string, _projectId: string, next: QuizEventDocument) => {
-      event = next;
+    update: async (_id: string, _projectId: string, expectedRevision: number, next: QuizEventDocument) => {
+      if (event.revision !== expectedRevision) return null;
+      event = { ...next, revision: expectedRevision + 1 };
       return { ...event, _id: documentId };
     },
   };
@@ -92,7 +93,7 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
 test("imports, persists diagnostics, filters public chat, and makes repeated imports idempotent", async () => {
   const { service, questionId } = setup();
   const rawText = "21:00 [Alice] private [Dark] Минск\n21:01 [**StormBetter**] Объявление";
-  const first = await service.addChatFragment(actor, "project", "event", questionId, rawText);
+  const first = await service.addChatFragment(actor, "project", "event", questionId, rawText, 0);
   assert.deepEqual(first.importResult, {
     fragmentId: first.importResult.fragmentId,
     parsedMessagesCount: 2,
@@ -105,9 +106,21 @@ test("imports, persists diagnostics, filters public chat, and makes repeated imp
     ["Alice"],
   );
 
-  const repeated = await service.addChatFragment(actor, "project", "event", questionId, rawText);
+  const repeated = await service.addChatFragment(actor, "project", "event", questionId, rawText, first.event.revision);
   assert.equal(repeated.importResult.addedMessagesCount, 0);
   assert.equal(repeated.importResult.duplicateMessagesCount, 1);
   assert.equal(repeated.event.questions[0].chatFragments.length, 2);
   assert.equal(repeated.event.questions[0].playerGroups[0].messages.length, 1);
+});
+
+test("rejects a stale revision without overwriting the current event", async () => {
+  const { service } = setup();
+  const completed = await service.complete(actor, "project", "event", 0);
+
+  await assert.rejects(
+    () => service.reopen(actor, "project", "event", 0),
+    (error: { code?: string }) => error.code === "quiz_event_revision_conflict",
+  );
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.revision, 1);
 });
