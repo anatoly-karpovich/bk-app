@@ -5,14 +5,12 @@ import { QuizEventsService } from "./QuizEventsService/QuizEventsService";
 import {
   chatFragmentSchema,
   createQuizEventSchema,
-  playerAnswerSchema,
   projectIdParamsSchema,
   quizEventParamsSchema,
   quizEventQuestionParamsSchema,
   quizMessageKindSchema,
   quizMessageSchema,
   quizParamsSchema,
-  reorderQuizQuestionsSchema,
 } from "./quizzes.schemas";
 
 export class QuizEventsController {
@@ -49,41 +47,10 @@ export class QuizEventsController {
       await this.service.delete(req.authUser!, p.projectId, p.eventId);
       return null;
     });
-  start = async (req: Request, res: Response) =>
-    this.action(req, res, (p) => this.service.start(req.authUser!, p.projectId, p.eventId));
-  pause = async (req: Request, res: Response) =>
-    this.action(req, res, (p) => this.service.pause(req.authUser!, p.projectId, p.eventId));
-  resume = async (req: Request, res: Response) =>
-    this.action(req, res, (p) => this.service.resume(req.authUser!, p.projectId, p.eventId));
   complete = async (req: Request, res: Response) =>
     this.action(req, res, (p) => this.service.complete(req.authUser!, p.projectId, p.eventId));
-  cancel = async (req: Request, res: Response) =>
-    this.action(req, res, (p) => this.service.cancel(req.authUser!, p.projectId, p.eventId));
-  reorder = async (req: Request, res: Response) =>
-    this.action(req, res, (p) =>
-      this.service.reorder(
-        req.authUser!,
-        p.projectId,
-        p.eventId,
-        parseRequest(reorderQuizQuestionsSchema, req.body, "Некорректный порядок").questionIds,
-      ),
-    );
-  startQuestion = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) =>
-      this.service.startQuestion(req.authUser!, p.projectId, p.eventId, p.questionId),
-    );
-  completeQuestion = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) =>
-      this.service.completeQuestion(req.authUser!, p.projectId, p.eventId, p.questionId),
-    );
-  skipQuestion = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) =>
-      this.service.skipQuestion(req.authUser!, p.projectId, p.eventId, p.questionId),
-    );
-  restoreQuestion = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) =>
-      this.service.restoreQuestion(req.authUser!, p.projectId, p.eventId, p.questionId),
-    );
+  reopen = async (req: Request, res: Response) =>
+    this.action(req, res, (p) => this.service.reopen(req.authUser!, p.projectId, p.eventId));
   setMessage = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
       const body = parseRequest(quizMessageSchema, req.body, "Некорректный текст сообщения");
@@ -102,16 +69,6 @@ export class QuizEventsController {
         p.eventId,
         p.questionId,
         parseRequest(chatFragmentSchema, req.body, "Некорректный chat fragment").rawText,
-      ),
-    );
-  setPlayerAnswer = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) =>
-      this.service.setPlayerAnswer(
-        req.authUser!,
-        p.projectId,
-        p.eventId,
-        p.questionId,
-        parseRequest(playerAnswerSchema, req.body, "Некорректное решение по ответу"),
       ),
     );
   private action(

@@ -4,9 +4,7 @@ import type { ChatTransport } from "../../chat/domain/types";
 
 export type QuizConfigStatus = "draft" | "ready";
 export type QuizStatus = "draft" | "ready";
-export type QuizEventStatus = "draft" | "active" | "paused" | "completed" | "cancelled";
-export type QuizEventQuestionStatus = "pending" | "active" | "completed" | "skipped";
-export type QuizPlayerAnswerStatus = "pending" | "accepted" | "rejected";
+export type QuizEventStatus = "open" | "completed";
 export type QuizMessageKind = "question" | "answer";
 
 export type QuizRewardPool = AllRewardPool;
@@ -171,12 +169,9 @@ export interface QuizChatMessage extends QuizChatMessageCandidate {
   firstSeenOrder: number;
 }
 
-export interface QuizPlayerAnswerDecision {
+export interface QuizSelectedAnswer {
   playerName: string;
-  status: QuizPlayerAnswerStatus;
-  selectedMessageId: string | null;
-  decidedAt: string | null;
-  decidedByUserId: string | null;
+  selectedMessageId: string;
 }
 
 export interface QuizQuestionMessageState {
@@ -202,7 +197,7 @@ export interface QuizAward {
   playerName: string;
   questionIndex: number;
   source: QuizAwardSource;
-  resolvedRewards: ResourceAmount[];
+  rewards: ResourceAmount[];
   awardedAt: string;
 }
 
@@ -210,14 +205,16 @@ export interface QuizEventQuestion {
   id: string;
   quizQuestionId: string;
   questionIndex: number;
-  status: QuizEventQuestionStatus;
+  /** Assigned on first review; independent from the source question index. */
+  conductedOrder: number | null;
+  /** Set only when the host has confirmed the current result. */
+  reviewedAt: string | null;
+  reviewedByUserId: string | null;
   message: QuizQuestionMessageState;
   chatFragments: QuizChatFragment[];
   chatMessages: QuizChatMessage[];
-  playerAnswers: QuizPlayerAnswerDecision[];
+  selectedAnswers: QuizSelectedAnswer[];
   awards: QuizAward[];
-  startedAt: string | null;
-  completedAt: string | null;
   updatedAt: string;
 }
 
@@ -231,10 +228,11 @@ export interface QuizPlayerSummary {
 
 export interface QuizEventSummary {
   players: QuizPlayerSummary[];
-  totalQuestions: number;
-  completedQuestions: number;
-  totalAcceptedAnswers: number;
-  totalUniqueCorrectAnswers: number;
+  totalPreparedQuestions: number;
+  totalConductedQuestions: number;
+  totalReviewedQuestions: number;
+  totalSelectedAnswers: number;
+  totalUniquePlayers: number;
   totalRewards: ResourceAmount[];
   generatedAt: string;
 }
@@ -247,14 +245,14 @@ export interface QuizEventDocument {
   hostUserId: string;
   hostSnapshot: HostSnapshot;
   status: QuizEventStatus;
-  currentQuestionId: string | null;
+  /** Optimistic-concurrency revision for every event mutation. */
+  revision: number;
   questions: QuizEventQuestion[];
   summary: QuizEventSummary | null;
-  startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
 }
 
 export interface QuizChatMessageView {
@@ -267,7 +265,6 @@ export interface QuizChatMessageView {
 
 export interface QuizPlayerMessageGroupView {
   playerName: string;
-  status: QuizPlayerAnswerStatus;
   selectedMessageId: string | null;
   messages: QuizChatMessageView[];
 }
@@ -280,7 +277,7 @@ export interface QuizRankedAnswerView {
   position: number;
 }
 
-export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "chatMessages" | "playerAnswers"> {
+export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "chatMessages" | "selectedAnswers"> {
   questionTitle: string | null;
   questionText: string;
   generatedMessage: string;
@@ -291,5 +288,9 @@ export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "chatMess
 
 export interface QuizEventView extends Omit<QuizEventDocument, "questions"> {
   id: string;
+  conductedQuestionsCount: number;
+  reviewedQuestionsCount: number;
+  preparedQuestionsCount: number;
+  firstUnconductedQuestionId: string | null;
   questions: QuizEventQuestionView[];
 }

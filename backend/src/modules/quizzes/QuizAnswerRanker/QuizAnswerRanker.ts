@@ -1,4 +1,4 @@
-import type { QuizChatMessage, QuizPlayerAnswerDecision } from "../domain/types";
+import type { QuizChatMessage, QuizSelectedAnswer } from "../domain/types";
 
 export interface RankedQuizAnswer {
   playerName: string;
@@ -11,44 +11,37 @@ export interface RankedQuizAnswer {
 export class QuizAnswerRanker {
   rank(
     messages: QuizChatMessage[],
-    decisions: QuizPlayerAnswerDecision[],
-    questionStartedAt: string | null,
+    selections: QuizSelectedAnswer[],
   ): RankedQuizAnswer[] {
     const messagesById = new Map(messages.map((message) => [message.id, message]));
-    return decisions
-      .filter((decision) => decision.status === "accepted" && decision.selectedMessageId)
-      .map((decision) => {
-        const message = messagesById.get(decision.selectedMessageId!);
-        if (!message || message.from !== decision.playerName) throw new Error("Недопустимое решение по ответу игрока");
+    return selections
+      .map((selection) => {
+        const message = messagesById.get(selection.selectedMessageId);
+        if (!message || message.from !== selection.playerName) throw new Error("Недопустимый выбранный ответ игрока");
         return {
-          playerName: decision.playerName,
+          playerName: selection.playerName,
           selectedMessageId: message.id,
           timestamp: message.timestamp,
           firstSeenOrder: message.firstSeenOrder,
         };
       })
-      .sort((left, right) => this.compare(left, right, questionStartedAt))
+      .sort((left, right) => this.compare(left, right))
       .map((answer, index) => ({ ...answer, position: index + 1 }));
   }
 
   compare(
     left: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">,
     right: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">,
-    questionStartedAt: string | null,
   ): number {
-    const leftOrder = this.relativeMinutes(left.timestamp, questionStartedAt);
-    const rightOrder = this.relativeMinutes(right.timestamp, questionStartedAt);
+    const leftOrder = this.minutes(left.timestamp);
+    const rightOrder = this.minutes(right.timestamp);
     if (leftOrder !== rightOrder) return leftOrder - rightOrder;
     return left.firstSeenOrder - right.firstSeenOrder;
   }
 
-  private relativeMinutes(timestamp: string | null, questionStartedAt: string | null): number {
+  private minutes(timestamp: string | null): number {
     if (!timestamp) return Number.MAX_SAFE_INTEGER;
     const [hour, minute] = timestamp.split(":").map(Number);
-    const messageMinutes = hour * 60 + minute;
-    if (!questionStartedAt) return messageMinutes;
-    const started = new Date(questionStartedAt);
-    const startMinutes = started.getHours() * 60 + started.getMinutes();
-    return (messageMinutes - startMinutes + 24 * 60) % (24 * 60);
+    return hour * 60 + minute;
   }
 }

@@ -16,7 +16,6 @@ import type {
   QuizEventDocument,
   QuizEventView,
   QuizMessageKind,
-  QuizPlayerAnswerStatus,
   QuizSnapshot,
 } from "../domain/types";
 
@@ -70,12 +69,8 @@ export class QuizEventsService {
       getHostSnapshot(actor, projectId),
       input.name?.trim() || quiz.name,
     );
-    const firstQuestionId = createdEvent.questions[0]?.id;
-    const event = firstQuestionId
-      ? this.engine.startQuestion(this.engine.start(createdEvent), firstQuestionId)
-      : this.engine.start(createdEvent);
-    event.projectId = projectId;
-    const created = await this.repository.create(event);
+    createdEvent.projectId = projectId;
+    const created = await this.repository.create(createdEvent);
     if (!created) throw new Error("Failed to load created quiz event");
     return this.readModels.create(created._id.toHexString(), created);
   }
@@ -84,35 +79,11 @@ export class QuizEventsService {
     await this.editableEvent(actor, projectId, eventId);
     if (!(await this.repository.delete(eventId, projectId))) throw new Error("Quiz event was not deleted");
   }
-  async start(actor: CurrentUser, projectId: string, eventId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.start(event));
-  }
-  async pause(actor: CurrentUser, projectId: string, eventId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.pause(event));
-  }
-  async resume(actor: CurrentUser, projectId: string, eventId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.resume(event));
-  }
   async complete(actor: CurrentUser, projectId: string, eventId: string) {
     return this.mutate(actor, projectId, eventId, (event) => this.engine.completeEvent(event));
   }
-  async cancel(actor: CurrentUser, projectId: string, eventId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.cancel(event));
-  }
-  async startQuestion(actor: CurrentUser, projectId: string, eventId: string, questionId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.startQuestion(event, questionId));
-  }
-  async completeQuestion(actor: CurrentUser, projectId: string, eventId: string, questionId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.completeQuestion(event, questionId));
-  }
-  async skipQuestion(actor: CurrentUser, projectId: string, eventId: string, questionId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.skipQuestion(event, questionId));
-  }
-  async restoreQuestion(actor: CurrentUser, projectId: string, eventId: string, questionId: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.restoreQuestion(event, questionId));
-  }
-  async reorder(actor: CurrentUser, projectId: string, eventId: string, questionIds: string[]) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.reorder(event, questionIds));
+  async reopen(actor: CurrentUser, projectId: string, eventId: string) {
+    return this.mutate(actor, projectId, eventId, (event) => this.engine.reopenEvent(event));
   }
   async setMessage(
     actor: CurrentUser,
@@ -164,18 +135,6 @@ export class QuizEventsService {
         duplicateMessagesCount: fragment.duplicateMessagesCount,
       },
     };
-  }
-
-  async setPlayerAnswer(
-    actor: CurrentUser,
-    projectId: string,
-    eventId: string,
-    questionId: string,
-    input: { playerName: string; status: QuizPlayerAnswerStatus; selectedMessageId: string | null },
-  ) {
-    return this.mutate(actor, projectId, eventId, (event) =>
-      this.engine.setPlayerAnswer(event, questionId, { ...input, decidedByUserId: actor.id }),
-    );
   }
 
   private async mutate(

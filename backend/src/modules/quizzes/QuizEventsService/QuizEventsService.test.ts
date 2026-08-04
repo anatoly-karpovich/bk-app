@@ -66,9 +66,7 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
   const engine = new QuizEventEngine(new RewardGrantService(randomizer), new QuizAnswerRanker());
   let event = engine.create(snapshot, { userId: actor.id, displayName: actor.displayName, nickname: "Dark" }, "Event");
   event.projectId = "project";
-  event = engine.start(event);
   const questionId = event.questions[0].id;
-  event = engine.startQuestion(event, questionId);
   const documentId = new ObjectId();
   const repository = {
     findByIdAndProjectId: async () => ({ ...event, _id: documentId }),
@@ -112,25 +110,4 @@ test("imports, persists diagnostics, filters public chat, and makes repeated imp
   assert.equal(repeated.importResult.duplicateMessagesCount, 1);
   assert.equal(repeated.event.questions[0].chatFragments.length, 2);
   assert.equal(repeated.event.questions[0].playerGroups[0].messages.length, 1);
-});
-
-test("persists a player decision through the service and returns the server ranking", async () => {
-  const { service, questionId } = setup();
-  const imported = await service.addChatFragment(
-    actor,
-    "project",
-    "event",
-    questionId,
-    "21:00 [Alice] private [Dark] Минск",
-  );
-  const messageId = imported.event.questions[0].playerGroups[0].messages[0].id;
-  const updated = await service.setPlayerAnswer(actor, "project", "event", questionId, {
-    playerName: "Alice",
-    status: "accepted",
-    selectedMessageId: messageId,
-  });
-  assert.deepEqual(
-    updated.questions[0].ranking.map((answer) => [answer.playerName, answer.selectedMessageId]),
-    [["Alice", messageId]],
-  );
 });

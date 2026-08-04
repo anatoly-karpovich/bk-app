@@ -9,6 +9,11 @@ export class QuizReadModelFactory {
     const questionsById = new Map(event.quizSnapshot.questions.map((question) => [question.id, question]));
     return {
       id, ...structuredClone(event),
+      conductedQuestionsCount: event.questions.filter((question) => question.conductedOrder !== null).length,
+      reviewedQuestionsCount: event.questions.filter((question) => question.reviewedAt !== null).length,
+      preparedQuestionsCount: event.questions.length,
+      firstUnconductedQuestionId:
+        event.questions.find((question) => question.conductedOrder === null)?.id ?? null,
       questions: event.questions.map((question) => {
         const source = questionsById.get(question.quizQuestionId)!;
         const generatedMessage = buildQuizMessage({ quizName: event.quizSnapshot.quizName, hostName: event.hostSnapshot.nickname, question: source, questionIndex: question.questionIndex, templates: event.quizSnapshot.effectiveMessageTemplates });
@@ -27,33 +32,29 @@ export class QuizReadModelFactory {
   }
 
   private playerGroups(question: QuizEventQuestion): QuizPlayerMessageGroupView[] {
-    const decisions = new Map(question.playerAnswers.map((decision) => [decision.playerName, decision]));
+    const selections = new Map(question.selectedAnswers.map((selection) => [selection.playerName, selection]));
     const groups = new Map<string, QuizPlayerMessageGroupView>();
     for (const message of question.chatMessages) {
       const group = groups.get(message.from) ?? {
         playerName: message.from,
-        status: decisions.get(message.from)?.status ?? "pending",
-        selectedMessageId: decisions.get(message.from)?.selectedMessageId ?? null,
+        selectedMessageId: selections.get(message.from)?.selectedMessageId ?? null,
         messages: [],
       };
       group.messages.push({ id: message.id, text: message.text, timestamp: message.timestamp, firstSeenOrder: message.firstSeenOrder, transport: message.transport });
       groups.set(message.from, group);
     }
     return [...groups.values()]
-      .map((group) => ({ ...group, messages: [...group.messages].sort((left, right) => this.compareMessages(left, right, question)) }))
-      .sort((left, right) => this.compareMessages(left.messages[0]!, right.messages[0]!, question));
+      .map((group) => ({ ...group, messages: [...group.messages].sort((left, right) => this.compareMessages(left, right)) }))
+      .sort((left, right) => this.compareMessages(left.messages[0]!, right.messages[0]!));
   }
 
-  private compareMessages(left: { timestamp: string | null; firstSeenOrder: number }, right: { timestamp: string | null; firstSeenOrder: number }, question: QuizEventQuestion): number {
-    const start = question.startedAt ? new Date(question.startedAt) : null;
-    const relativeMinutes = (timestamp: string | null) => {
+  private compareMessages(left: { timestamp: string | null; firstSeenOrder: number }, right: { timestamp: string | null; firstSeenOrder: number }): number {
+    const minutes = (timestamp: string | null) => {
       if (!timestamp) return Number.MAX_SAFE_INTEGER;
       const [hour, minute] = timestamp.split(":").map(Number);
-      const value = hour * 60 + minute;
-      if (!start) return value;
-      return (value - (start.getHours() * 60 + start.getMinutes()) + 24 * 60) % (24 * 60);
+      return hour * 60 + minute;
     };
-    const difference = relativeMinutes(left.timestamp) - relativeMinutes(right.timestamp);
+    const difference = minutes(left.timestamp) - minutes(right.timestamp);
     return difference || left.firstSeenOrder - right.firstSeenOrder;
   }
 }
