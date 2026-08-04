@@ -7,7 +7,7 @@ import { useAuth } from "../../auth/useAuth";
 import type { Project } from "../../projects/types";
 import { quizzesApi } from "./api/quizzes.client";
 import QuizEventWorkspace from "./components/QuizEventWorkspace";
-import type { QuizAnswerStatus, QuizChatPreviewCandidate, QuizEvent } from "./types";
+import type { AddQuizChatFragmentResponse, QuizEvent, QuizPlayerAnswerStatus } from "./types";
 
 interface QuizEventPageProps {
   selectedProject: Project | null;
@@ -56,14 +56,16 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
       setIsLoading(false);
     }
   };
-  const previewChatFragment = async (questionId: string, rawText: string): Promise<QuizChatPreviewCandidate[] | null> => {
+  const importChatFragment = async (questionId: string, rawText: string): Promise<AddQuizChatFragmentResponse | null> => {
     if (!projectId || !event) return null;
     setIsLoading(true);
     setError(null);
     try {
-      return await quizzesApi.previewFragment(projectId, event.id, questionId, rawText);
+      const result = await quizzesApi.addFragment(projectId, event.id, questionId, rawText);
+      setEvent(result.event);
+      return result;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Не удалось разобрать фрагмент чата.");
+      setError(cause instanceof Error ? cause.message : "Не удалось импортировать фрагмент чата.");
       return null;
     } finally {
       setIsLoading(false);
@@ -111,10 +113,8 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
         onSelectQuestion={setSelectedQuestionId}
         onEventAction={(action) => void run(() => quizzesApi.eventAction(selectedProject.id, event.id, action))}
         onQuestionAction={(questionId, action) => void run(() => quizzesApi.questionAction(selectedProject.id, event.id, questionId, action))}
-        onPreview={previewChatFragment}
-        onImport={(questionId, mode, text, acceptedCanonicalKeys) => void run(() => quizzesApi.addFragment(selectedProject.id, event.id, questionId, mode, text, acceptedCanonicalKeys))}
-        onStatus={(questionId, answerId, status: QuizAnswerStatus) => void run(() => quizzesApi.setAnswerStatus(selectedProject.id, event.id, questionId, answerId, status))}
-        onBulkStatus={(questionId, answerIds, status) => void run(() => quizzesApi.setBulkAnswerStatus(selectedProject.id, event.id, questionId, answerIds, status))}
+        onImport={importChatFragment}
+        onPlayerAnswer={(questionId, input: { playerName: string; status: QuizPlayerAnswerStatus; selectedMessageId: string | null }) => void run(() => quizzesApi.setPlayerAnswer(selectedProject.id, event.id, questionId, input))}
         onRequestComplete={() => setPendingConfirmation("complete")}
         onRequestDelete={() => setPendingConfirmation("delete")}
       />

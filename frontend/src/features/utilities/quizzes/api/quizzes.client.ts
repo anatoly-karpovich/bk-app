@@ -1,5 +1,5 @@
 import { apiClient } from "../../../../lib/apiClient";
-import type { CreateQuizInput, Quiz, QuizAnswerStatus, QuizChatPreviewCandidate, QuizEvent, QuizMessageKind } from "../types";
+import type { AddQuizChatFragmentResponse, CreateQuizInput, Quiz, QuizEvent, QuizMessageKind, QuizPlayerAnswerStatus } from "../types";
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}`;
 export const quizzesApi = {
@@ -17,8 +17,6 @@ export const quizzesApi = {
   questionAction: (projectId: string, eventId: string, questionId: string, action: string, body: object = {}) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/${action}`, body),
   setMessage: (projectId: string, eventId: string, questionId: string, messageKind: QuizMessageKind, text: string | null) => apiClient.put<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/message`, { messageKind, text }),
   clearMessage: (projectId: string, eventId: string, questionId: string, messageKind: QuizMessageKind) => apiClient.deleteWithBody<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/message-override`, { messageKind }),
-  setAnswerStatus: (projectId: string, eventId: string, questionId: string, answerId: string, status: string) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/answers/status`, { answerId, status }),
-  setBulkAnswerStatus: (projectId: string, eventId: string, questionId: string, answerIds: string[], status: QuizAnswerStatus) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/answers/bulk-status`, { answerIds, status }),
-  previewFragment: (projectId: string, eventId: string, questionId: string, rawText: string) => apiClient.post<QuizChatPreviewCandidate[]>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/chat-fragments/preview`, { rawText }),
-  addFragment: (projectId: string, eventId: string, questionId: string, mode: "append" | "replace", rawText: string, acceptedCanonicalKeys: string[] = []) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/chat-fragments`, { mode, rawText, acceptedCanonicalKeys }),
+  addFragment: (projectId: string, eventId: string, questionId: string, rawText: string) => apiClient.post<AddQuizChatFragmentResponse>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/chat-fragments`, { rawText }),
+  setPlayerAnswer: (projectId: string, eventId: string, questionId: string, input: { playerName: string; status: QuizPlayerAnswerStatus; selectedMessageId: string | null }) => apiClient.put<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/player-answer`, input),
 };

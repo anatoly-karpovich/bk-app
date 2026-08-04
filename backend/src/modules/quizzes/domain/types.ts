@@ -1,11 +1,12 @@
 import type { AllRewardPool, ResourceAmount, ResourceSnapshot } from "../../rewards";
 import type { HostSnapshot } from "../../auth/domain/types";
+import type { ChatTransport } from "../../chat/domain/types";
 
 export type QuizConfigStatus = "draft" | "ready";
 export type QuizStatus = "draft" | "ready";
 export type QuizEventStatus = "draft" | "active" | "paused" | "completed" | "cancelled";
 export type QuizEventQuestionStatus = "pending" | "active" | "completed" | "skipped";
-export type QuizAnswerStatus = "pending" | "accepted" | "rejected";
+export type QuizPlayerAnswerStatus = "pending" | "accepted" | "rejected";
 export type QuizMessageKind = "question" | "answer";
 
 export type QuizRewardPool = AllRewardPool;
@@ -146,23 +147,34 @@ export interface QuizSnapshot {
 export interface QuizChatFragment {
   id: string;
   rawText: string;
-  mode: "replace" | "append";
-  isActive: boolean;
   insertedAt: string;
   insertedByUserId: string;
+  parsedMessagesCount: number;
+  candidateMessagesCount: number;
+  addedMessagesCount: number;
+  duplicateMessagesCount: number;
 }
 
-export interface QuizAnswer {
-  id: string;
-  fragmentId: string;
+export interface QuizChatMessageCandidate {
+  from: string;
+  to: string[];
+  text: string;
+  timestamp: string | null;
   sourceLineNumber: number;
+  transport: ChatTransport;
   canonicalKey: string;
+}
+
+export interface QuizChatMessage extends QuizChatMessageCandidate {
+  id: string;
+  firstSeenFragmentId: string;
+  firstSeenOrder: number;
+}
+
+export interface QuizPlayerAnswerDecision {
   playerName: string;
-  rawMessage: string;
-  transport: "direct" | "clan";
-  order: number;
-  isActive: boolean;
-  status: QuizAnswerStatus;
+  status: QuizPlayerAnswerStatus;
+  selectedMessageId: string | null;
   decidedAt: string | null;
   decidedByUserId: string | null;
 }
@@ -186,7 +198,7 @@ export interface QuizAwardSource {
 
 export interface QuizAward {
   id: string;
-  answerId: string;
+  selectedMessageId: string;
   playerName: string;
   questionIndex: number;
   source: QuizAwardSource;
@@ -201,7 +213,8 @@ export interface QuizEventQuestion {
   status: QuizEventQuestionStatus;
   message: QuizQuestionMessageState;
   chatFragments: QuizChatFragment[];
-  answers: QuizAnswer[];
+  chatMessages: QuizChatMessage[];
+  playerAnswers: QuizPlayerAnswerDecision[];
   awards: QuizAward[];
   startedAt: string | null;
   completedAt: string | null;
@@ -244,12 +257,36 @@ export interface QuizEventDocument {
   schemaVersion: 1;
 }
 
-export interface QuizEventQuestionView extends QuizEventQuestion {
+export interface QuizChatMessageView {
+  id: string;
+  text: string;
+  timestamp: string | null;
+  firstSeenOrder: number;
+  transport: ChatTransport;
+}
+
+export interface QuizPlayerMessageGroupView {
+  playerName: string;
+  status: QuizPlayerAnswerStatus;
+  selectedMessageId: string | null;
+  messages: QuizChatMessageView[];
+}
+
+export interface QuizRankedAnswerView {
+  playerName: string;
+  selectedMessageId: string;
+  timestamp: string | null;
+  firstSeenOrder: number;
+  position: number;
+}
+
+export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "chatMessages" | "playerAnswers"> {
   questionTitle: string | null;
   questionText: string;
   generatedMessage: string;
   generatedAnswerMessage: string;
-  answers: Array<QuizAnswer & { position: number | null; awards: QuizAward[] }>;
+  playerGroups: QuizPlayerMessageGroupView[];
+  ranking: QuizRankedAnswerView[];
 }
 
 export interface QuizEventView extends Omit<QuizEventDocument, "questions"> {

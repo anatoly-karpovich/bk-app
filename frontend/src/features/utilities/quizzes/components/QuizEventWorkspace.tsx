@@ -1,21 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import { Alert, Card, CardContent, Checkbox, Chip, Divider, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Card, CardContent, Chip, Divider, Radio, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import AppPillButton from "../../../../components/ui/AppPillButton";
 import AppSelectableListItem from "../../../../components/ui/AppSelectableListItem";
 import AppTextInput from "../../../../components/ui/AppTextInput";
 import { formatResourceAmounts } from "../../../rewards/resourceAmounts";
-import type { QuizAnswerStatus, QuizChatPreviewCandidate, QuizEvent } from "../types";
-
-interface ChatPreview {
-  questionId: string;
-  candidates: QuizChatPreviewCandidate[];
-  selectedKeys: string[];
-}
+import type { AddQuizChatFragmentResponse, QuizEvent, QuizPlayerAnswerStatus, QuizPlayerMessageGroup } from "../types";
 
 interface Props {
   event: QuizEvent;
@@ -25,10 +19,8 @@ interface Props {
   onSelectQuestion: (id: string) => void;
   onEventAction: (action: "start" | "pause" | "resume") => void;
   onQuestionAction: (id: string, action: "complete") => void;
-  onPreview: (questionId: string, text: string) => Promise<QuizChatPreviewCandidate[] | null>;
-  onImport: (questionId: string, mode: "append" | "replace", text: string, acceptedCanonicalKeys?: string[]) => void;
-  onStatus: (questionId: string, answerId: string, status: QuizAnswerStatus) => void;
-  onBulkStatus: (questionId: string, answerIds: string[], status: QuizAnswerStatus) => void;
+  onImport: (questionId: string, text: string) => Promise<AddQuizChatFragmentResponse | null>;
+  onPlayerAnswer: (questionId: string, input: { playerName: string; status: QuizPlayerAnswerStatus; selectedMessageId: string | null }) => void;
   onRequestComplete: () => void;
   onRequestDelete: () => void;
 }
@@ -43,82 +35,39 @@ function MessagePreview({ label, text }: { label: string; text: string }) {
   return <Card variant="outlined"><CardContent><Stack direction="row" justifyContent="space-between" spacing={1} alignItems="flex-start"><Stack spacing={0.5} sx={{ minWidth: 0 }}><Typography variant="overline" color="text.secondary">{label}</Typography><Typography component="pre" sx={{ m: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", overflowWrap: "anywhere" }}>{text}</Typography></Stack><AppPillButton size="small" variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => copy(text)}>Копировать</AppPillButton></Stack></CardContent></Card>;
 }
 
-export default function QuizEventWorkspace({ event, selectedQuestionId, busy, editable, onSelectQuestion, onEventAction, onQuestionAction, onPreview, onImport, onStatus, onBulkStatus, onRequestComplete, onRequestDelete }: Props) {
+function PlayerAnswerGroup({ group, editable, busy, onChange }: { group: QuizPlayerMessageGroup; editable: boolean; busy: boolean; onChange: (input: { playerName: string; status: QuizPlayerAnswerStatus; selectedMessageId: string | null }) => void }) {
+  const [selectedMessageId, setSelectedMessageId] = useState(group.selectedMessageId);
+  useEffect(() => setSelectedMessageId(group.selectedMessageId), [group.selectedMessageId]);
+  const selected = group.messages.find((message) => message.id === selectedMessageId) ?? null;
+  const accept = () => {
+    if (!selected) return;
+    onChange({ playerName: group.playerName, status: "accepted", selectedMessageId: selected.id });
+  };
+  return <Card variant="outlined"><CardContent><Stack spacing={1}><Stack direction="row" justifyContent="space-between" alignItems="center"><Typography fontWeight={700}>{group.playerName}</Typography><Chip size="small" label={group.status === "accepted" ? "Принят" : group.status === "rejected" ? "Отклонён" : "Ожидает"} color={group.status === "accepted" ? "success" : group.status === "rejected" ? "default" : "warning"} /></Stack>{group.messages.map((message) => <Stack key={message.id} direction="row" spacing={0.5} alignItems="flex-start"><Radio size="small" disabled={!editable || busy} checked={selectedMessageId === message.id} onChange={() => setSelectedMessageId(message.id)} /><Stack sx={{ pt: 0.75, minWidth: 0 }}><Typography variant="caption" color="text.secondary">{message.timestamp ?? "без времени"} · {message.transport}</Typography><Typography sx={{ overflowWrap: "anywhere" }}>{message.text}</Typography></Stack></Stack>)}{editable ? <Stack direction={{ xs: "column", sm: "row" }} spacing={1}><AppPillButton size="small" disabled={busy || !selected} variant={group.status === "accepted" ? "contained" : "outlined"} onClick={accept}>Принять</AppPillButton><AppPillButton size="small" disabled={busy} variant={group.status === "rejected" ? "contained" : "outlined"} onClick={() => onChange({ playerName: group.playerName, status: "rejected", selectedMessageId: null })}>Отклонить</AppPillButton><AppPillButton size="small" disabled={busy} variant="outlined" onClick={() => onChange({ playerName: group.playerName, status: "pending", selectedMessageId: null })}>В ожидание</AppPillButton></Stack> : null}</Stack></CardContent></Card>;
+}
+
+export default function QuizEventWorkspace({ event, selectedQuestionId, busy, editable, onSelectQuestion, onEventAction, onQuestionAction, onImport, onPlayerAnswer, onRequestComplete, onRequestDelete }: Props) {
   const question = event.questions.find((item) => item.id === selectedQuestionId) ?? event.questions.find((item) => item.id === event.currentQuestionId) ?? event.questions[0] ?? null;
   const [chatText, setChatText] = useState("");
-  const [chatPreview, setChatPreview] = useState<ChatPreview | null>(null);
+  const [importResult, setImportResult] = useState<AddQuizChatFragmentResponse["importResult"] | null>(null);
   const summaryText = event.summary?.players.map((player) => `${player.playerName} — ${formatResourceAmounts(player.totalRewards, event.quizSnapshot.resources) || "без награды"}`).join("\n") ?? "";
   const canMutate = editable && !terminal(event.status);
-  const canModerate = editable && event.status === "active";
-  const visibleAnswers = question?.answers.filter((answer) => answer.isActive !== false) ?? [];
-  const pendingAnswerIds = visibleAnswers.filter((answer) => answer.status === "pending").map((answer) => answer.id);
-  const previewForQuestion = chatPreview?.questionId === question?.id ? chatPreview : null;
-
+  const canReview = editable && ["active", "paused"].includes(event.status) && ["active", "completed"].includes(question?.status ?? "pending");
   if (!question) return <Alert severity="info">В проведении нет вопросов.</Alert>;
 
-  const toggleCandidate = (key: string) => {
-    if (!previewForQuestion) return;
-    setChatPreview({ ...previewForQuestion, selectedKeys: previewForQuestion.selectedKeys.includes(key) ? previewForQuestion.selectedKeys.filter((candidateKey) => candidateKey !== key) : [...previewForQuestion.selectedKeys, key] });
+  const importChat = async () => {
+    const result = await onImport(question.id, chatText);
+    if (result) { setImportResult(result.importResult); setChatText(""); }
   };
 
-  const requestPreview = async () => {
-    const candidates = await onPreview(question.id, chatText);
-    if (!candidates) return;
-    setChatPreview({ questionId: question.id, candidates, selectedKeys: candidates.map((candidate) => candidate.canonicalKey) });
-  };
-
-  return (
-    <Stack spacing={2.25}>
-      <Card><CardContent><Stack spacing={1.5}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1}><Stack><Typography variant="h5">{event.name}</Typography><Typography variant="body2" color="text.secondary">Ведущий: {event.hostSnapshot.nickname} · создано {new Date(event.createdAt).toLocaleString("ru-RU")}</Typography></Stack><Chip label={eventStatusLabel[event.status]} color={event.status === "completed" ? "success" : event.status === "active" ? "info" : "warning"} /></Stack>
-        {editable ? <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-          {event.status === "draft" ? <AppPillButton disabled={busy} startIcon={<PlayArrowRoundedIcon />} onClick={() => onEventAction("start")}>Начать проведение</AppPillButton> : null}
-          {event.status === "active" ? <AppPillButton disabled={busy} startIcon={<PauseRoundedIcon />} onClick={() => onEventAction("pause")}>Пауза</AppPillButton> : null}
-          {event.status === "paused" ? <AppPillButton disabled={busy} startIcon={<PlayArrowRoundedIcon />} onClick={() => onEventAction("resume")}>Продолжить</AppPillButton> : null}
-          {["active", "paused"].includes(event.status) && !event.currentQuestionId && event.questions.every((item) => item.status === "completed" || item.status === "skipped") ? <AppPillButton disabled={busy} variant="outlined" onClick={onRequestComplete}>Завершить проведение</AppPillButton> : null}
-          {canMutate ? <AppPillButton disabled={busy} variant="outlined" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={onRequestDelete}>Удалить</AppPillButton> : null}
-        </Stack> : null}
-      </Stack></CardContent></Card>
-
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2.25} alignItems="flex-start">
-        <Card sx={{ width: { xs: "100%", lg: 340 }, flexShrink: 0 }}><CardContent><Stack spacing={1}>
-          <Stack spacing={0.25}><Typography variant="h5">Вопросы</Typography><Typography variant="body2" color="text.secondary">Галочка означает, что вопрос завершён.</Typography></Stack>
-          {event.questions.map((item) => {
-            const acceptedPlayers = new Set(item.answers.filter((answer) => answer.isActive !== false && answer.status === "accepted").map((answer) => answer.playerName)).size;
-            return <AppSelectableListItem key={item.id} primaryText={`Вопрос ${item.questionIndex}`} secondaryText={`${questionStatusLabel[item.status]} · ${shortText(item.questionText)}`} icon={<CheckCircleRoundedIcon fontSize="small" />} selected={item.id === question.id} onClick={() => onSelectQuestion(item.id)} trailing={<Chip size="small" label={acceptedPlayers} />} />;
-          })}
-        </Stack></CardContent></Card>
-
-        <Stack spacing={2.25} sx={{ flex: 1, minWidth: 0 }}>
-          <Card><CardContent><Stack spacing={1.5}>
-            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }}><Typography variant="h5">Вопрос {question.questionIndex}</Typography><Chip label={questionStatusLabel[question.status]} /></Stack>
-            {canModerate && question.status === "active" ? <AppPillButton disabled={busy} onClick={() => onQuestionAction(question.id, "complete")}>Завершить вопрос</AppPillButton> : null}
-            <Divider />
-            <MessagePreview label="Сообщение с вопросом" text={question.generatedMessage} />
-            <MessagePreview label="Сообщение с правильным ответом" text={question.generatedAnswerMessage} />
-          </Stack></CardContent></Card>
-
-          {canModerate ? <Card><CardContent><Stack spacing={1.25}>
-            <Typography variant="h5">Фрагменты чата</Typography>
-            <Typography variant="body2" color="text.secondary">Вставьте сообщения из игрового чата. «Заменить» покажет кандидатов, которых можно исключить до сохранения.</Typography>
-            <AppTextInput multiline minRows={5} label="Фрагмент чата" value={chatText} disabled={busy} onChange={(inputEvent) => setChatText(inputEvent.target.value)} />
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-              <AppPillButton disabled={busy || !chatText.trim()} onClick={() => onImport(question.id, "append", chatText)}>Дополнить</AppPillButton>
-              <AppPillButton variant="outlined" disabled={busy || !chatText.trim()} onClick={() => void requestPreview()}>Заменить…</AppPillButton>
-            </Stack>
-            {previewForQuestion ? <Card variant="outlined"><CardContent><Stack spacing={1}>
-              <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1}><Stack><Typography variant="subtitle1">Кандидаты для замены</Typography><Typography variant="body2" color="text.secondary">Все уже выбраны. Снимите галочки с неверных ответов.</Typography></Stack><Chip size="small" label={`${previewForQuestion.selectedKeys.length} из ${previewForQuestion.candidates.length}`} /></Stack>
-              {previewForQuestion.candidates.length ? previewForQuestion.candidates.map((candidate) => <Stack key={candidate.canonicalKey} direction="row" spacing={1} alignItems="flex-start" sx={{ p: 1, borderRadius: 1, bgcolor: "action.hover" }}><Checkbox size="small" checked={previewForQuestion.selectedKeys.includes(candidate.canonicalKey)} onChange={() => toggleCandidate(candidate.canonicalKey)} /><Stack spacing={0.25} sx={{ pt: 0.5, minWidth: 0 }}><Typography fontWeight={700}>{candidate.playerName}</Typography><Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{candidate.rawMessage}</Typography></Stack></Stack>) : <Alert severity="info">В этом фрагменте не нашлось сообщений ведущему или клану.</Alert>}
-              {previewForQuestion.candidates.length ? <Stack direction={{ xs: "column", sm: "row" }} spacing={1}><AppPillButton size="small" variant="outlined" disabled={busy} onClick={() => setChatPreview({ ...previewForQuestion, selectedKeys: previewForQuestion.candidates.map((candidate) => candidate.canonicalKey) })}>Выбрать все</AppPillButton><AppPillButton size="small" variant="outlined" disabled={busy} onClick={() => setChatPreview({ ...previewForQuestion, selectedKeys: [] })}>Снять все</AppPillButton><AppPillButton size="small" disabled={busy} onClick={() => { onImport(question.id, "replace", chatText, previewForQuestion.selectedKeys); setChatPreview(null); }}>Сохранить {previewForQuestion.selectedKeys.length} ответов</AppPillButton></Stack> : null}
-            </Stack></CardContent></Card> : null}
-            {question.chatFragments.map((fragment) => <Card variant="outlined" key={fragment.id}><CardContent><Stack spacing={0.75}><Stack direction="row" justifyContent="space-between" spacing={1}><Typography variant="subtitle2">{fragment.mode === "replace" ? "Заменены фрагменты" : "Добавлен фрагмент"}</Typography><Chip size="small" label={`${question.answers.filter((answer) => answer.fragmentId === fragment.id).length} кандидатов`} color={fragment.isActive ? "info" : "default"} /></Stack><Typography variant="caption" color="text.secondary">{new Date(fragment.insertedAt).toLocaleString("ru-RU")}</Typography><Typography component="pre" sx={{ m: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", overflowWrap: "anywhere" }}>{fragment.rawText}</Typography></Stack></CardContent></Card>)}
-          </Stack></CardContent></Card> : null}
-
-          <Card><CardContent><Stack spacing={1.25}><Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1}><Typography variant="h5">Кандидаты на ответ</Typography>{canModerate && pendingAnswerIds.length ? <Stack direction="row" spacing={1}><AppPillButton size="small" disabled={busy} onClick={() => onBulkStatus(question.id, pendingAnswerIds, "accepted")}>Принять все ({pendingAnswerIds.length})</AppPillButton><AppPillButton size="small" disabled={busy} variant="outlined" onClick={() => onBulkStatus(question.id, pendingAnswerIds, "rejected")}>Отклонить все</AppPillButton></Stack> : null}</Stack>{visibleAnswers.length ? visibleAnswers.map((answer) => <Card variant="outlined" key={answer.id}><CardContent><Stack spacing={0.75}><Typography>{answer.playerName}: {answer.rawMessage}</Typography><Typography variant="caption">{answer.status}{answer.position ? ` · место ${answer.position}` : ""}{answer.awards.length ? ` · ${formatResourceAmounts(answer.awards.flatMap((award) => award.resolvedRewards), event.quizSnapshot.resources)}` : ""}</Typography>{canModerate ? <Stack direction={{ xs: "column", sm: "row" }} spacing={1}><AppPillButton size="small" disabled={busy} variant={answer.status === "accepted" ? "contained" : "outlined"} onClick={() => onStatus(question.id, answer.id, "accepted")}>Принять</AppPillButton><AppPillButton size="small" disabled={busy} variant={answer.status === "rejected" ? "contained" : "outlined"} onClick={() => onStatus(question.id, answer.id, "rejected")}>Отклонить</AppPillButton><AppPillButton size="small" disabled={busy} variant="outlined" onClick={() => onStatus(question.id, answer.id, "pending")}>В ожидание</AppPillButton></Stack> : null}</Stack></CardContent></Card>) : <Alert severity="info">Пока нет распознанных кандидатов.</Alert>}</Stack></CardContent></Card>
-
-          {event.summary ? <Card><CardContent><Stack spacing={1.25}><Typography variant="h5">Промежуточные результаты</Typography><Typography variant="body2" color="text.secondary">Завершено вопросов: {event.summary.completedQuestions} из {event.summary.totalQuestions}. Уникальных верных ответов: {event.summary.totalUniqueCorrectAnswers}.</Typography><Table size="small"><TableHead><TableRow><TableCell>Игрок</TableCell><TableCell align="right">Верных</TableCell><TableCell>Обычные</TableCell><TableCell>Бонусы</TableCell><TableCell>Итого</TableCell></TableRow></TableHead><TableBody>{event.summary.players.map((player) => <TableRow key={player.playerName}><TableCell>{player.playerName}</TableCell><TableCell align="right">{player.correctAnswers}</TableCell><TableCell>{formatResourceAmounts(player.regularRewards, event.quizSnapshot.resources) || "—"}</TableCell><TableCell>{formatResourceAmounts(player.bonusRewards, event.quizSnapshot.resources) || "—"}</TableCell><TableCell>{formatResourceAmounts(player.totalRewards, event.quizSnapshot.resources) || "—"}</TableCell></TableRow>)}</TableBody></Table><AppTextInput multiline minRows={5} label="Для администрации" value={summaryText} InputProps={{ readOnly: true }} /><AppPillButton size="small" variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => copy(summaryText)} sx={{ alignSelf: "flex-start" }}>Копировать ведомость</AppPillButton></Stack></CardContent></Card> : null}
-        </Stack>
-      </Stack>
-    </Stack>
-  );
+  return <Stack spacing={2.25}>
+    <Card><CardContent><Stack spacing={1.5}><Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1}><Stack><Typography variant="h5">{event.name}</Typography><Typography variant="body2" color="text.secondary">Ведущий: {event.hostSnapshot.nickname} · создано {new Date(event.createdAt).toLocaleString("ru-RU")}</Typography></Stack><Chip label={eventStatusLabel[event.status]} color={event.status === "completed" ? "success" : event.status === "active" ? "info" : "warning"} /></Stack>{editable ? <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>{event.status === "draft" ? <AppPillButton disabled={busy} startIcon={<PlayArrowRoundedIcon />} onClick={() => onEventAction("start")}>Начать проведение</AppPillButton> : null}{event.status === "active" ? <AppPillButton disabled={busy} startIcon={<PauseRoundedIcon />} onClick={() => onEventAction("pause")}>Пауза</AppPillButton> : null}{event.status === "paused" ? <AppPillButton disabled={busy} startIcon={<PlayArrowRoundedIcon />} onClick={() => onEventAction("resume")}>Продолжить</AppPillButton> : null}{["active", "paused"].includes(event.status) && !event.currentQuestionId && event.questions.every((item) => item.status === "completed" || item.status === "skipped") ? <AppPillButton disabled={busy} variant="outlined" onClick={onRequestComplete}>Завершить проведение</AppPillButton> : null}{canMutate ? <AppPillButton disabled={busy} variant="outlined" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={onRequestDelete}>Удалить</AppPillButton> : null}</Stack> : null}</Stack></CardContent></Card>
+    <Stack direction={{ xs: "column", lg: "row" }} spacing={2.25} alignItems="flex-start"><Card sx={{ width: { xs: "100%", lg: 340 }, flexShrink: 0 }}><CardContent><Stack spacing={1}><Typography variant="h5">Вопросы</Typography>{event.questions.map((item) => <AppSelectableListItem key={item.id} primaryText={`Вопрос ${item.questionIndex}`} secondaryText={`${questionStatusLabel[item.status]} · ${shortText(item.questionText)}`} icon={<CheckCircleRoundedIcon fontSize="small" />} selected={item.id === question.id} onClick={() => onSelectQuestion(item.id)} trailing={<Chip size="small" label={item.ranking.length} />} />)}</Stack></CardContent></Card>
+      <Stack spacing={2.25} sx={{ flex: 1, minWidth: 0 }}><Card><CardContent><Stack spacing={1.5}><Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }}><Typography variant="h5">Вопрос {question.questionIndex}</Typography><Chip label={questionStatusLabel[question.status]} /></Stack>{editable && event.status === "active" && question.status === "active" ? <AppPillButton disabled={busy} onClick={() => onQuestionAction(question.id, "complete")}>Завершить вопрос</AppPillButton> : null}<Divider /><MessagePreview label="Сообщение с вопросом" text={question.generatedMessage} /><MessagePreview label="Сообщение с правильным ответом" text={question.generatedAnswerMessage} /></Stack></CardContent></Card>
+        {canReview ? <Card><CardContent><Stack spacing={1.25}><Typography variant="h5">Импорт чата</Typography><Typography variant="body2" color="text.secondary">Фрагменты добавляются в историю. Совпадающие нормализованные сообщения не создают дубликаты.</Typography><AppTextInput multiline minRows={5} label="Фрагмент чата" value={chatText} disabled={busy} onChange={(inputEvent) => setChatText(inputEvent.target.value)} /><AppPillButton disabled={busy || !chatText.trim()} onClick={() => void importChat()} sx={{ alignSelf: "flex-start" }}>Импортировать</AppPillButton>{importResult ? <Alert severity="success">Распознано: {importResult.parsedMessagesCount}; кандидатов: {importResult.candidateMessagesCount}; добавлено: {importResult.addedMessagesCount}; дубликатов: {importResult.duplicateMessagesCount}.</Alert> : null}</Stack></CardContent></Card> : null}
+        <Card><CardContent><Stack spacing={1.25}><Typography variant="h5">Ответы игроков</Typography>{question.playerGroups.length ? question.playerGroups.map((group) => <PlayerAnswerGroup key={group.playerName} group={group} editable={canReview} busy={busy} onChange={(input) => onPlayerAnswer(question.id, input)} />) : <Alert severity="info">Пока нет распознанных кандидатов.</Alert>}</Stack></CardContent></Card>
+        {question.ranking.length ? <Card><CardContent><Stack spacing={1}><Typography variant="h5">Порядок принятых ответов</Typography>{question.ranking.map((answer) => <Typography key={answer.selectedMessageId}>{answer.position}. {answer.playerName} · {answer.timestamp ?? "без времени"}</Typography>)}</Stack></CardContent></Card> : null}
+        {event.summary ? <Card><CardContent><Stack spacing={1.25}><Typography variant="h5">Промежуточные результаты</Typography><Typography variant="body2" color="text.secondary">Завершено вопросов: {event.summary.completedQuestions} из {event.summary.totalQuestions}. Уникальных верных ответов: {event.summary.totalUniqueCorrectAnswers}.</Typography><Table size="small"><TableHead><TableRow><TableCell>Игрок</TableCell><TableCell align="right">Верных</TableCell><TableCell>Обычные</TableCell><TableCell>Бонусы</TableCell><TableCell>Итого</TableCell></TableRow></TableHead><TableBody>{event.summary.players.map((player) => <TableRow key={player.playerName}><TableCell>{player.playerName}</TableCell><TableCell align="right">{player.correctAnswers}</TableCell><TableCell>{formatResourceAmounts(player.regularRewards, event.quizSnapshot.resources) || "—"}</TableCell><TableCell>{formatResourceAmounts(player.bonusRewards, event.quizSnapshot.resources) || "—"}</TableCell><TableCell>{formatResourceAmounts(player.totalRewards, event.quizSnapshot.resources) || "—"}</TableCell></TableRow>)}</TableBody></Table><AppTextInput multiline minRows={5} label="Для администрации" value={summaryText} InputProps={{ readOnly: true }} /><AppPillButton size="small" variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => copy(summaryText)} sx={{ alignSelf: "flex-start" }}>Копировать ведомость</AppPillButton></Stack></CardContent></Card> : null}
+      </Stack></Stack>
+  </Stack>;
 }
