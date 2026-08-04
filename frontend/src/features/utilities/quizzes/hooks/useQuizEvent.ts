@@ -14,7 +14,7 @@ function createSelectionDraft(question: QuizEventQuestion): QuizAnswerSelectionD
   return Object.fromEntries(question.playerGroups.map((group) => [
     group.playerName,
     {
-      isSelected: group.selectedMessageId !== null,
+      isSelected: true,
       selectedMessageId: group.selectedMessageId ?? group.messages[0]?.id ?? null,
     },
   ]));
@@ -30,7 +30,7 @@ function reconcileSelectionDraft(
     const current = previous[group.playerName];
     if (!current) {
       return [group.playerName, {
-        isSelected: group.selectedMessageId !== null,
+        isSelected: true,
         selectedMessageId: group.selectedMessageId ?? group.messages[0]?.id ?? null,
       }];
     }
