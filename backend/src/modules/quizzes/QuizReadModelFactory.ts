@@ -15,19 +15,52 @@ export class QuizReadModelFactory {
       firstUnconductedQuestionId:
         event.questions.find((question) => question.conductedOrder === null)?.id ?? null,
       questions: event.questions.map((question) => {
+        const normalizedQuestion = this.normalizeQuestion(question);
         const source = questionsById.get(question.quizQuestionId)!;
         const generatedMessage = buildQuizMessage({ quizName: event.quizSnapshot.quizName, hostName: event.hostSnapshot.nickname, question: source, questionIndex: question.questionIndex, templates: event.quizSnapshot.effectiveMessageTemplates });
         const generatedAnswerMessage = buildQuizMessage({ quizName: event.quizSnapshot.quizName, hostName: event.hostSnapshot.nickname, question: source, questionIndex: question.questionIndex, templates: event.quizSnapshot.effectiveAnswerMessageTemplates });
         return {
-          ...structuredClone(question),
+          ...structuredClone(normalizedQuestion),
           questionTitle: source.title,
           questionText: source.text,
           generatedMessage,
           generatedAnswerMessage,
-          playerGroups: this.playerGroups(question),
-          ranking: this.answerRanker.rank(question.chat.messages, question.selectedAnswers),
+          playerGroups: this.playerGroups(normalizedQuestion),
+          ranking: this.answerRanker.rank(normalizedQuestion.chat.messages, normalizedQuestion.selectedAnswers),
         };
       }),
+    };
+  }
+
+  /**
+   * Quiz events created before the chat-workspace schema may lack these nested
+   * fields. Reading them must remain safe; this projection does not mutate the
+   * saved event and uses empty values for unavailable historical details.
+   */
+  private normalizeQuestion(question: QuizEventQuestion): QuizEventQuestion {
+    const legacyQuestion = question as Partial<QuizEventQuestion>;
+    const chat = {
+      rawText: legacyQuestion.chat?.rawText ?? "",
+      messages: legacyQuestion.chat?.messages ?? [],
+      updatedAt: legacyQuestion.chat?.updatedAt ?? null,
+      updatedByUserId: legacyQuestion.chat?.updatedByUserId ?? null,
+    };
+    const messagesById = new Map(chat.messages.map((message) => [message.id, message]));
+    return {
+      ...question,
+      message: legacyQuestion.message ?? {
+        messageTextOverride: null,
+        messageTextUpdatedAt: null,
+        messageTextUpdatedByUserId: null,
+        answerTextOverride: null,
+        answerTextUpdatedAt: null,
+        answerTextUpdatedByUserId: null,
+      },
+      chat,
+      selectedAnswers: (legacyQuestion.selectedAnswers ?? []).filter((selection) =>
+        messagesById.get(selection.selectedMessageId)?.from === selection.playerName,
+      ),
+      awards: legacyQuestion.awards ?? [],
     };
   }
 

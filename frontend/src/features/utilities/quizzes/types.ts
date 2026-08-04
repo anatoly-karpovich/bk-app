@@ -28,7 +28,7 @@ export interface CreateQuizInput {
   description: string;
   questions: QuizQuestionDraft[];
 }
-export interface Quiz { id: string; configId: string; name: string; description: string; status: QuizStatus; questions: QuizQuestion[]; effectiveMessageTemplates: QuizMessageTemplates; effectiveAnswerMessageTemplates: QuizMessageTemplates; resources: ProjectResource[]; configRulesSnapshot: { configName: string; defaultRegularRule: QuizRegularRule }; createdByUserId: string; validationIssues: QuizValidationIssue[]; }
+export interface Quiz { id: string; configId: string; eventId: string | null; name: string; description: string; status: QuizStatus; questions: QuizQuestion[]; effectiveMessageTemplates: QuizMessageTemplates; effectiveAnswerMessageTemplates: QuizMessageTemplates; resources: ProjectResource[]; configRulesSnapshot: { configName: string; defaultRegularRule: QuizRegularRule }; createdByUserId: string; createdAt: string; updatedAt: string; validationIssues: QuizValidationIssue[]; }
 export interface QuizAwardSource {
   kind: "regular_all" | "regular_position" | "bonus_position";
   questionIndex: number;

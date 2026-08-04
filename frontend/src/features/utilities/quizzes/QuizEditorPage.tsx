@@ -54,7 +54,7 @@ export default function QuizEditorPage({ selectedProject }: QuizEditorPageProps)
     return () => window.removeEventListener("beforeunload", warn);
   }, [isDirty]);
 
-  const canEdit = Boolean(source && (user?.role === "admin" || source.createdByUserId === user?.id));
+  const canEdit = Boolean(source && !source.eventId && (user?.role === "admin" || source.createdByUserId === user?.id));
   const save = async () => {
     if (!projectId || !source || !draft || !canEdit) return;
     setIsLoading(true);

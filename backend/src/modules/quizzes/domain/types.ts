@@ -108,6 +108,7 @@ export interface QuizQuestion {
 export interface QuizDocument {
   projectId: string;
   configId: string;
+  eventId: string | null;
   configRulesSnapshot: QuizConfigRulesSnapshot;
   resources: ResourceSnapshot[];
   name: string;

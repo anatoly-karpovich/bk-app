@@ -63,7 +63,7 @@ const navigationItemIcons: Record<NavigationItemKey, JSX.Element> = {
 const navigationGroupIcons: Record<NavigationGroupId, JSX.Element> = {
   games: <SportsEsportsRoundedIcon />,
   settings: <TuneRoundedIcon />,
-  utilities: <QuizRoundedIcon />,
+  quizzes: <QuizRoundedIcon />,
 };
 
 function isGroupActive(groupId: NavigationGroupId, pathname: string): boolean {
@@ -196,6 +196,30 @@ export default function AppHeader({
               >
                 {visibleNavigationGroups.map((group) => {
                   const active = isGroupActive(group.id, location.pathname);
+                  const directItem = group.items.length === 1 ? group.items[0] : null;
+
+                  if (directItem?.label === group.label) {
+                    return (
+                      <AppPillButton
+                        key={group.id}
+                        component={NavLink}
+                        to={directItem.to}
+                        color="inherit"
+                        startIcon={navigationGroupIcons[group.id]}
+                        sx={{
+                          px: 2,
+                          minHeight: 40,
+                          borderRadius: (theme) => theme.customRadii.pill,
+                          fontWeight: 700,
+                          color: active ? "primary.main" : "text.primary",
+                          backgroundColor: active ? "rgba(79, 70, 229, 0.10)" : "transparent",
+                          "&:hover": { backgroundColor: active ? "rgba(79, 70, 229, 0.14)" : "rgba(15, 23, 42, 0.04)" },
+                        }}
+                      >
+                        {group.label}
+                      </AppPillButton>
+                    );
+                  }
 
                   return (
                     <AppPillButton

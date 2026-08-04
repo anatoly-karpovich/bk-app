@@ -6,7 +6,7 @@ import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
-import { QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizValidationError } from "../errors";
+import { QuizConflictError, QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizValidationError } from "../errors";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
@@ -68,6 +68,7 @@ export class QuizEventsService {
     assertProjectAccess(actor, projectId);
     const quiz = await this.quizzesRepository.findByIdAndProjectId(quizId, projectId);
     if (!quiz) throw new QuizNotFoundError(quizId);
+    if (quiz.eventId) throw new QuizConflictError("Для этой викторины уже создано проведение");
     if (validateQuiz(quiz).length) throw new Error("Из неготовой викторины нельзя создать проведение");
     const createdEvent = this.engine.create(
       this.snapshot(quizId, quiz),
@@ -77,7 +78,12 @@ export class QuizEventsService {
     createdEvent.projectId = projectId;
     const created = await this.repository.create(createdEvent);
     if (!created) throw new Error("Failed to load created quiz event");
-    return this.readModels.create(created._id.toHexString(), created);
+    const eventId = created._id.toHexString();
+    if (!(await this.quizzesRepository.attachEvent(quizId, projectId, eventId))) {
+      await this.repository.delete(eventId, projectId, created.revision);
+      throw new QuizConflictError("Для этой викторины уже создано проведение");
+    }
+    return this.readModels.create(eventId, created);
   }
 
   async delete(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number): Promise<void> {
@@ -86,6 +92,7 @@ export class QuizEventsService {
     if (!(await this.repository.delete(eventId, projectId, expectedRevision))) {
       throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     }
+    await this.quizzesRepository.clearEvent(event.quizId, projectId, eventId);
   }
   async complete(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number) {
     return this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.completeEvent(event));

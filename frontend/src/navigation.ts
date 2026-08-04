@@ -11,8 +11,8 @@ export const navigationGroups = [
     ],
   },
   {
-    id: "utilities",
-    label: "Утилиты",
+    id: "quizzes",
+    label: "Викторины",
     items: [
       { key: "quizzes", label: "Викторины", to: "/quizzes" },
     ],
@@ -37,9 +37,7 @@ export type NavigationItemKey = NavigationItem["key"];
 export function findNavigationItem(pathname: string): { group: NavigationGroup; item: NavigationItem } | null {
   for (const group of navigationGroups) {
     const item = group.items.find((candidate) => candidate.to === pathname);
-    if (item) {
-      return { group, item };
-    }
+    if (item) return { group, item };
   }
 
   return null;

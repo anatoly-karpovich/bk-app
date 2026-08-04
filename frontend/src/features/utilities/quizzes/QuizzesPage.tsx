@@ -1,85 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import { Alert, Box, Card, CardContent, Chip, CircularProgress, FormControl, IconButton, InputAdornment, InputLabel, MenuItem, Select, Stack, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, CircularProgress, FormControl, InputAdornment, MenuItem, Select, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import AppConfirmDialog from "../../../components/ui/AppConfirmDialog";
-import AppPillButton from "../../../components/ui/AppPillButton";
-import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
-import AppTextInput from "../../../components/ui/AppTextInput";
 import GamePageHeader from "../../../components/GamePageHeader";
+import AppConfirmDialog from "../../../components/ui/AppConfirmDialog";
+import AppTextInput from "../../../components/ui/AppTextInput";
 import { useAuth } from "../../auth/useAuth";
 import type { Project } from "../../projects/types";
 import { quizzesApi } from "./api/quizzes.client";
-import { isQuestionComplete } from "./quizEditor.helpers";
-import type { Quiz, QuizStatus } from "./types";
+import QuizLibraryCard from "./components/QuizLibraryCard";
+import { getQuizAuthorLabel, getQuizEvent, getQuizLibraryStatus, type QuizLibraryStatus } from "./quizLibrary.helpers";
+import type { Quiz, QuizEvent } from "./types";
 
 interface Props {
   selectedProject: Project | null;
-}
-
-function QuizCard({ quiz, canEdit, busy, onOpen, onDelete, onRun }: { quiz: Quiz; canEdit: boolean; busy: boolean; onOpen: () => void; onDelete: () => void; onRun: () => void }) {
-  const completedCount = quiz.questions.filter(isQuestionComplete).length;
-  const statusLabel = quiz.status === "ready" ? "Готова" : "Черновик";
-
-  return (
-    <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
-        <Stack direction="row" justifyContent="space-between" spacing={1.25}>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h5" noWrap>{quiz.name || "Без названия"}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, minHeight: 40 }}>
-              {quiz.description || "Описание не добавлено."}
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={0.25} flexShrink={0}>
-            <Tooltip title={canEdit ? "Редактировать" : "Просмотреть"}>
-              <IconButton aria-label={canEdit ? "Редактировать викторину" : "Просмотреть викторину"} onClick={onOpen} color="primary">
-                {canEdit ? <EditRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-            {canEdit ? (
-              <Tooltip title="Удалить">
-                <IconButton aria-label="Удалить викторину" onClick={onDelete} color="error"><DeleteOutlineRoundedIcon fontSize="small" /></IconButton>
-              </Tooltip>
-            ) : null}
-          </Stack>
-        </Stack>
-
-        <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
-          <Chip size="small" label={statusLabel} color={quiz.status === "ready" ? "success" : "warning"} />
-          <Chip size="small" label={`${completedCount}/${quiz.questions.length} вопросов`} />
-        </Stack>
-
-        <AppResponsiveGrid columns={{ xs: 1, sm: 2 }} gap={1} sx={{ mt: 1.25 }}>
-          <Box sx={{ minHeight: 54, px: 1.25, py: 0.875, border: "1px solid", borderColor: "divider", borderRadius: 1.75, bgcolor: "rgba(248, 250, 252, 0.8)" }}>
-            <Typography variant="caption" color="text.secondary">Конфиг</Typography>
-            <Typography variant="body2" fontWeight={700} noWrap>{quiz.configRulesSnapshot.configName}</Typography>
-          </Box>
-          <Box sx={{ minHeight: 54, px: 1.25, py: 0.875, border: "1px solid", borderColor: "divider", borderRadius: 1.75, bgcolor: "rgba(248, 250, 252, 0.8)" }}>
-            <Typography variant="caption" color="text.secondary">Автор</Typography>
-            <Typography variant="body2" fontWeight={700} noWrap>{quiz.createdByUserId}</Typography>
-          </Box>
-        </AppResponsiveGrid>
-
-        <Box sx={{ mt: "auto", pt: 1.5, display: "flex", justifyContent: "flex-end" }}>
-          <AppPillButton variant="outlined" startIcon={<PlayArrowRoundedIcon />} disabled={busy || quiz.status !== "ready"} onClick={onRun}>Провести</AppPillButton>
-        </Box>
-      </CardContent>
-    </Card>
-  );
 }
 
 export default function QuizzesPage({ selectedProject }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [events, setEvents] = useState<QuizEvent[]>([]);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | QuizStatus>("all");
+  const [status, setStatus] = useState<"all" | QuizLibraryStatus>("all");
+  const [authorId, setAuthorId] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Quiz | null>(null);
@@ -91,7 +37,9 @@ export default function QuizzesPage({ selectedProject }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      setQuizzes(await quizzesApi.list(projectId));
+      const [nextQuizzes, nextEvents] = await Promise.all([quizzesApi.list(projectId), quizzesApi.listEvents(projectId)]);
+      setQuizzes(nextQuizzes);
+      setEvents(nextEvents);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось загрузить викторины.");
     } finally {
@@ -100,13 +48,28 @@ export default function QuizzesPage({ selectedProject }: Props) {
   };
 
   useEffect(() => { void load(); }, [projectId]);
-  const visibleQuizzes = useMemo(() => {
+
+  const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
+  const authors = useMemo(() => quizzes.reduce<Map<string, string>>((result, quiz) => {
+    if (!result.has(quiz.createdByUserId)) result.set(quiz.createdByUserId, getQuizAuthorLabel(quiz, getQuizEvent(quiz, eventsById), user, projectId ?? ""));
+    return result;
+  }, new Map()), [eventsById, projectId, quizzes, user]);
+  const libraryItems = useMemo(() => quizzes.map((quiz) => {
+    const event = getQuizEvent(quiz, eventsById);
+    return { quiz, event, status: getQuizLibraryStatus(quiz, event), authorLabel: getQuizAuthorLabel(quiz, event, user, projectId ?? "") };
+  }), [eventsById, projectId, quizzes, user]);
+  const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    return quizzes.filter((quiz) => {
-      const matchesQuery = !normalizedQuery || `${quiz.name} ${quiz.description} ${quiz.configRulesSnapshot.configName}`.toLocaleLowerCase().includes(normalizedQuery);
-      return matchesQuery && (status === "all" || quiz.status === status);
+    return libraryItems.filter((item) => {
+      const matchesQuery = !normalizedQuery || `${item.quiz.name} ${item.quiz.description} ${item.quiz.configRulesSnapshot.configName} ${item.authorLabel}`.toLocaleLowerCase().includes(normalizedQuery);
+      return matchesQuery && (status === "all" || item.status === status) && (authorId === "all" || item.quiz.createdByUserId === authorId);
     });
-  }, [query, quizzes, status]);
+  }, [authorId, libraryItems, query, status]);
+  const stats = useMemo(() => ({
+    ready: libraryItems.filter((item) => item.status === "ready").length,
+    draft: libraryItems.filter((item) => item.status === "draft").length,
+    completed: libraryItems.filter((item) => item.status === "completed").length,
+  }), [libraryItems]);
 
   const deleteQuiz = async () => {
     if (!projectId || !pendingDelete) return;
@@ -119,7 +82,7 @@ export default function QuizzesPage({ selectedProject }: Props) {
     }
   };
   const startEvent = async (quiz: Quiz) => {
-    if (!projectId || quiz.status !== "ready") return;
+    if (!projectId || quiz.status !== "ready" || quiz.eventId) return;
     setStartingQuizId(quiz.id);
     setError(null);
     try {
@@ -135,51 +98,54 @@ export default function QuizzesPage({ selectedProject }: Props) {
   if (!selectedProject) return <Alert severity="warning">Выберите проект, чтобы просматривать его викторины.</Alert>;
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2.75}>
       <GamePageHeader
         breadcrumbPath="/quizzes"
         title="Викторины"
-        description="Подготовленные вопросы, правила из конфигов и запуск будущих проведений."
-        chips={[{ label: `Проект: ${selectedProject.name}` }, { label: `Викторин: ${quizzes.length}`, color: "secondary" }]}
+        description="Создавайте викторины из готовых конфигов, редактируйте вопросы и запускайте проведение."
+        chips={[
+          { label: `Проект: ${selectedProject.name}` },
+          { label: `Всего: ${quizzes.length}`, color: "secondary" },
+          { label: `Готово: ${stats.ready}`, color: "success" },
+          { label: `Черновики: ${stats.draft}`, color: "warning" },
+          { label: `Проведено: ${stats.completed}` },
+        ]}
         actions={[
-          { key: "refresh", label: "Обновить", onClick: () => void load(), loading: isLoading, variant: "text", color: "inherit" },
+          { key: "refresh", label: "Обновить", icon: <RefreshRoundedIcon />, onClick: () => void load(), loading: isLoading, variant: "text", color: "inherit" },
           { key: "create", label: "Создать", icon: <AddRoundedIcon />, onClick: () => navigate("/quizzes/create"), variant: "outlined" },
         ]}
+        cardSx={{ position: "relative", overflow: "hidden", minHeight: { md: 224 }, "&::after": { content: '\"\"', position: "absolute", width: 420, height: 420, right: -120, bottom: -180, borderRadius: "50%", bgcolor: "rgba(104, 124, 255, 0.08)" }, "& > *": { position: "relative", zIndex: 1 } }}
       />
+
       {error ? <Alert severity="error">{error}</Alert> : null}
 
       <Card>
-        <CardContent>
-          <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
+        <CardContent sx={{ p: { xs: 2.25, md: 2.5 } }}>
+          <Stack direction={{ xs: "column", lg: "row" }} justifyContent="space-between" spacing={2.25} alignItems={{ lg: "center" }}>
             <Stack spacing={0.5}>
-              <Typography variant="h5">Подготовленные викторины</Typography>
-              <Typography variant="body2" color="text.secondary">Откройте существующую викторину или начните новую из готового конфига.</Typography>
+              <Typography variant="h5">Библиотека викторин</Typography>
+              <Typography variant="body2" color="text.secondary">Готовые можно провести, черновики — продолжить редактировать, а проведённые — открыть.</Typography>
             </Stack>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: "100%", md: "auto" } }}>
-              <AppTextInput size="small" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти викторину" InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" color="disabled" /></InputAdornment> }} sx={{ width: { xs: "100%", sm: 260 } }} />
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel id="quiz-status-label">Статус</InputLabel>
-                <Select labelId="quiz-status-label" label="Статус" value={status} onChange={(event) => setStatus(event.target.value as "all" | QuizStatus)}>
-                  <MenuItem value="all">Все</MenuItem>
-                  <MenuItem value="draft">Черновики</MenuItem>
-                  <MenuItem value="ready">Готовые</MenuItem>
-                </Select>
-              </FormControl>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: "100%", lg: "auto" } }}>
+              <AppTextInput size="small" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти викторину" InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" color="disabled" /></InputAdornment> }} sx={{ width: { xs: "100%", sm: 240 } }} />
+              <FormControl size="small" sx={{ minWidth: { sm: 190 } }}><Select value={status} onChange={(event) => setStatus(event.target.value as "all" | QuizLibraryStatus)} inputProps={{ "aria-label": "Статус викторины" }}><MenuItem value="all">Все статусы</MenuItem><MenuItem value="ready">Готовые</MenuItem><MenuItem value="draft">Черновики</MenuItem><MenuItem value="open">Идёт проведение</MenuItem><MenuItem value="completed">Проведённые</MenuItem></Select></FormControl>
+              <FormControl size="small" sx={{ minWidth: { sm: 190 } }}><Select value={authorId} onChange={(event) => setAuthorId(event.target.value)} inputProps={{ "aria-label": "Автор викторины" }}><MenuItem value="all">Все авторы</MenuItem>{[...authors.entries()].map(([id, label]) => <MenuItem key={id} value={id}>{label}</MenuItem>)}</Select></FormControl>
             </Stack>
           </Stack>
         </CardContent>
       </Card>
 
-      {isLoading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress /></Stack> : visibleQuizzes.length ? (
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" }, gap: 2.25 }}>
-          {visibleQuizzes.map((quiz) => {
-            const canEdit = user?.role === "admin" || quiz.createdByUserId === user?.id;
-            return <QuizCard key={quiz.id} quiz={quiz} canEdit={canEdit} busy={startingQuizId === quiz.id} onOpen={() => navigate(`/quizzes/${encodeURIComponent(quiz.id)}/edit`)} onDelete={() => setPendingDelete(quiz)} onRun={() => void startEvent(quiz)} />;
+      {isLoading ? <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress /></Stack> : visibleItems.length ? (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 2.25 }}>
+          {visibleItems.map(({ quiz, event, status: itemStatus, authorLabel }) => {
+            const canEdit = !event && (user?.role === "admin" || quiz.createdByUserId === user?.id);
+            return <QuizLibraryCard key={quiz.id} quiz={quiz} event={event} status={itemStatus} authorLabel={authorLabel} canEdit={canEdit} canDelete={canEdit} busy={startingQuizId === quiz.id} onOpenQuiz={() => navigate(`/quizzes/${encodeURIComponent(quiz.id)}/edit`)} onOpenEvent={() => { if (event) navigate(`/quizzes/events/${encodeURIComponent(event.id)}`); }} onDelete={() => setPendingDelete(quiz)} onRun={() => void startEvent(quiz)} />;
           })}
         </Box>
       ) : (
-        <Card><CardContent sx={{ py: 4, textAlign: "center" }}><Typography variant="h6">{quizzes.length ? "Ничего не найдено" : "Викторин пока нет"}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>{quizzes.length ? "Измените запрос или статус-фильтр." : "Выберите готовый конфиг и подготовьте первую викторину."}</Typography></CardContent></Card>
+        <Card><CardContent sx={{ py: 6, textAlign: "center" }}><Typography variant="h6">{quizzes.length ? "Ничего не найдено" : "Викторин пока нет"}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>{quizzes.length ? "Измените запрос или фильтры." : "Выберите готовый конфиг и подготовьте первую викторину."}</Typography></CardContent></Card>
       )}
+
       {pendingDelete ? <AppConfirmDialog open title="Удалить викторину?" description={`Викторина «${pendingDelete.name || "Без названия"}» будет удалена без возможности восстановления.`} confirmLabel="Удалить" cancelLabel="Отмена" confirmColor="error" loading={isLoading} onClose={() => setPendingDelete(null)} onConfirm={() => void deleteQuiz()} /> : null}
     </Stack>
   );

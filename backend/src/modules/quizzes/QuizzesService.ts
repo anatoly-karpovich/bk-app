@@ -3,7 +3,7 @@ import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess } from "../auth/authorization";
 import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
-import { QuizConfigNotFoundError, QuizNotFoundError, QuizValidationError } from "./errors";
+import { QuizConfigNotFoundError, QuizConflictError, QuizNotFoundError, QuizValidationError } from "./errors";
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { QuizzesRepository } from "./QuizzesRepository";
 import { collectResourceIds, validateQuiz, validateQuizConfig } from "./domain/validation";
@@ -55,7 +55,7 @@ export class QuizzesService {
     const resourceIds = collectResourceIds(config);
     const resources = project.resources.filter((resource) => resourceIds.has(resource.id)).map((resource) => structuredClone(resource));
     const quiz: QuizDocument = {
-      projectId, configId: input.configId, configRulesSnapshot: snapshot, resources,
+      projectId, configId: input.configId, eventId: null, configRulesSnapshot: snapshot, resources,
       name: input.name.trim(), description: input.description.trim(), status: "draft",
       questions: input.questions.map((question) => ({
         id: randomUUID(),
@@ -81,6 +81,7 @@ export class QuizzesService {
     const current = await this.repository.findByIdAndProjectId(quizId, projectId);
     if (!current) throw new QuizNotFoundError(quizId);
     assertOwnedByUser(actor, current.createdByUserId);
+    if (current.eventId) throw new QuizConflictError("Нельзя изменить викторину, для которой уже создано проведение");
     const next: QuizDocument = {
       ...structuredClone(current), name: input.name.trim(), description: input.description.trim(), questions: structuredClone(input.questions),
       effectiveMessageTemplates: structuredClone(input.effectiveMessageTemplates), effectiveAnswerMessageTemplates: structuredClone(input.effectiveAnswerMessageTemplates),
@@ -97,6 +98,7 @@ export class QuizzesService {
     const current = await this.repository.findByIdAndProjectId(quizId, projectId);
     if (!current) throw new QuizNotFoundError(quizId);
     assertOwnedByUser(actor, current.createdByUserId);
+    if (current.eventId) throw new QuizConflictError("Нельзя удалить викторину, для которой уже создано проведение");
     if (!await this.repository.delete(quizId, projectId)) throw new QuizNotFoundError(quizId);
   }
 

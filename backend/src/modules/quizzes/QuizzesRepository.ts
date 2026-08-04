@@ -35,6 +35,21 @@ export class QuizzesRepository {
     return (await this.collection()).findOneAndUpdate({ _id: this.objectId(id), projectId }, { $set: document }, { returnDocument: "after" });
   }
 
+  async attachEvent(id: string, projectId: string, eventId: string): Promise<WithId<QuizDocument> | null> {
+    return (await this.collection()).findOneAndUpdate(
+      { _id: this.objectId(id), projectId, $or: [{ eventId: null }, { eventId: { $exists: false } }] },
+      { $set: { eventId, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after" },
+    );
+  }
+
+  async clearEvent(id: string, projectId: string, eventId: string): Promise<void> {
+    await (await this.collection()).updateOne(
+      { _id: this.objectId(id), projectId, eventId },
+      { $set: { eventId: null, updatedAt: new Date().toISOString() } },
+    );
+  }
+
   async delete(id: string, projectId: string): Promise<boolean> {
     return (await this.collection()).deleteOne({ _id: this.objectId(id), projectId }).then((result) => result.deletedCount === 1);
   }
