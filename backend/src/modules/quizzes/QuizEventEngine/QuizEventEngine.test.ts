@@ -1,264 +1,60 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { ResourceSnapshot } from "../../rewards";
-import { RewardGrantService, type Randomizer } from "../../rewards";
 import { ChatTransport } from "../../chat/domain/types";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
-import { QuizEventEngine } from "./QuizEventEngine";
-import { QuizReadModelFactory } from "../QuizReadModelFactory";
+import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
+import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
+import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
 import type { QuizChatMessageCandidate, QuizSnapshot } from "../domain/types";
+import { QuizEventEngine } from "./QuizEventEngine";
 
-const resources: ResourceSnapshot[] = [
-  { id: "coins", code: "coins", name: "Coins", label: "монет", type: "currency", valueType: "integer", precision: 0 },
-];
-const allPool = (amount: number) => ({ mode: "all" as const, rewards: [{ resourceId: "coins", amount }] });
-const templates = {
-  defaultTemplate: { template: "Вопрос {questionNumber}: {questionText}", variables: {} },
-  questionOverrides: [],
-};
+const templates = { defaultTemplate: { template: "{questionText}", variables: {} }, questionOverrides: [] };
+const pool = { mode: "all" as const, rewards: [{ resourceId: "coins", amount: 10 }] };
+const resources = [{ id: "coins", code: "coins", name: "Coins", label: "монет", type: "currency" as const, valueType: "integer" as const, precision: 0 }];
+const candidate = (from: string, text: string, timestamp = "21:00"): QuizChatMessageCandidate => ({ from, to: ["Host"], text, timestamp, sourceLineNumber: 1, transport: ChatTransport.DIRECT, canonicalKey: `${from}:${text}:${timestamp}` });
 
-function snapshot(questionCount = 1): QuizSnapshot {
-  return {
-    quizId: "quiz",
-    configId: "config",
-    quizName: "Quiz",
-    quizDescription: "",
-    resources,
-    capturedAt: "2026-08-03T00:00:00.000Z",
-    schemaVersion: 1,
-    configRulesSnapshot: {
-      configId: "config",
-      configName: "Config",
-      questionCount,
-      capturedAt: "2026-08-03T00:00:00.000Z",
-      schemaVersion: 1,
-      defaultRegularRule: {
-        mode: "by_position",
-        positionRewards: [
-          { position: 1, rewardPool: allPool(10) },
-          { position: 2, rewardPool: allPool(5) },
-        ],
-      },
-      regularRewardOverrides: [],
-      bonusRules: [{ id: "bonus", questionIndex: 1, position: 1, rewardPool: allPool(1) }],
-      messageTemplates: templates,
-      answerMessageTemplates: templates,
-    },
-    questions: Array.from({ length: questionCount }, (_, index) => ({
-      id: `question-${index + 1}`,
-      questionIndex: index + 1,
-      title: null,
-      text: `Question ${index + 1}`,
-      correctAnswer: "Answer",
-      attachmentUrl: null,
-      notes: null,
-    })),
-    effectiveMessageTemplates: templates,
-    effectiveAnswerMessageTemplates: templates,
-  };
+function snapshot(count = 1): QuizSnapshot {
+  return { quizId: "quiz", configId: "config", quizName: "Quiz", quizDescription: "", resources, capturedAt: "now", schemaVersion: 1,
+    configRulesSnapshot: { configId: "config", configName: "Config", questionCount: count, capturedAt: "now", schemaVersion: 1, defaultRegularRule: { mode: "all_accepted", rewardPool: pool }, regularRewardOverrides: [], bonusRules: [], messageTemplates: templates, answerMessageTemplates: templates },
+    questions: Array.from({ length: count }, (_, index) => ({ id: `source-${index}`, questionIndex: index + 1, title: null, text: `Question ${index + 1}`, correctAnswer: null, attachmentUrl: null, notes: null })), effectiveMessageTemplates: templates, effectiveAnswerMessageTemplates: templates };
 }
+function engine() { return new QuizEventEngine(new QuizAnswerRanker(), new QuizAwardCalculator(), new QuizEventSummaryCalculator(), new QuizSelectedAnswerPruner()); }
+function saveChat(quizEngine: QuizEventEngine, event: ReturnType<QuizEventEngine["create"]>, questionId: string, messages: QuizChatMessageCandidate[]) { return quizEngine.saveQuestionChat(event, questionId, { rawText: "chat", messages, actorId: "host" }); }
 
-function candidate(from: string, text: string, timestamp = "21:00"): QuizChatMessageCandidate {
-  return {
-    from,
-    to: ["Dark"],
-    text,
-    timestamp,
-    sourceLineNumber: 1,
-    transport: ChatTransport.DIRECT,
-    canonicalKey: `${from}:${text}:${timestamp}`,
-  };
-}
-function engine() {
-  const randomizer: Randomizer = { succeeds: () => true, pickWeightedIndex: () => 0 };
-  return new QuizEventEngine(new RewardGrantService(randomizer), new QuizAnswerRanker());
-}
-function activeEvent() {
-  const quizEngine = engine();
-  let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
-  event = quizEngine.start(event);
-  const questionId = event.questions[0].id;
-  return { quizEngine, event: quizEngine.startQuestion(event, questionId), questionId };
-}
-
-test("persists append-only fragments and ranks only selected accepted messages", () => {
-  const { quizEngine, event: started, questionId } = activeEvent();
-  const midnightStart = new Date();
-  midnightStart.setHours(23, 55, 0, 0);
-  started.questions[0].startedAt = midnightStart.toISOString();
-  let event = quizEngine.appendChatFragment(started, questionId, {
-    rawText: "chat",
-    parsedMessagesCount: 3,
-    candidateMessagesCount: 3,
-    duplicateMessagesCount: 0,
-    insertedByUserId: "host",
-    messages: [
-      candidate("Alice", "first", "23:59"),
-      candidate("Alice", "later", "00:02"),
-      candidate("Bob", "answer", "00:01"),
-    ],
-  });
-  const question = event.questions[0];
-  event = quizEngine.setPlayerAnswer(event, questionId, {
-    playerName: "Alice",
-    status: "accepted",
-    selectedMessageId: question.chatMessages[1].id,
-    decidedByUserId: "host",
-  });
-  event = quizEngine.setPlayerAnswer(event, questionId, {
-    playerName: "Bob",
-    status: "accepted",
-    selectedMessageId: question.chatMessages[2].id,
-    decidedByUserId: "host",
-  });
-  event = quizEngine.completeQuestion(event, questionId);
-
-  assert.deepEqual(
-    event.questions[0].awards.map((award) => [award.playerName, award.resolvedRewards[0].amount]),
-    [
-      ["Bob", 10],
-      ["Bob", 1],
-      ["Alice", 5],
-    ],
-  );
-  assert.equal(event.questions[0].chatFragments[0].addedMessagesCount, 3);
-  assert.equal(event.questions[0].chatMessages[0].firstSeenOrder, 1);
-  assert.deepEqual(
-    new QuizReadModelFactory(quizEngine).create("event", event).questions[0].ranking.map((answer) => answer.playerName),
-    ["Bob", "Alice"],
-  );
+test("saving non-empty chat conducts a question and saving its result finalizes awards", () => {
+  const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event"); const questionId = event.questions[0].id;
+  event = saveChat(quizEngine, event, questionId, [candidate("Alice", "answer")]); const messageId = event.questions[0].chat.messages[0].id;
+  assert.equal(event.questions[0].conductedOrder, 1); event = quizEngine.saveQuestionResult(event, questionId, [{ playerName: "Alice", selectedMessageId: messageId }], "host");
+  assert.ok(event.questions[0].reviewedAt); assert.equal(event.questions[0].awards.length, 1);
 });
 
-test("recalculates a completed question after a late decision and clears selected messages for rejected players", () => {
-  const { quizEngine, event: started, questionId } = activeEvent();
-  let event = quizEngine.appendChatFragment(started, questionId, {
-    rawText: "chat",
-    parsedMessagesCount: 1,
-    candidateMessagesCount: 1,
-    duplicateMessagesCount: 0,
-    insertedByUserId: "host",
-    messages: [candidate("Alice", "answer")],
-  });
-  const messageId = event.questions[0].chatMessages[0].id;
-  event = quizEngine.setPlayerAnswer(event, questionId, {
-    playerName: "Alice",
-    status: "accepted",
-    selectedMessageId: messageId,
-    decidedByUserId: "host",
-  });
-  event = quizEngine.completeQuestion(event, questionId);
-  event = quizEngine.setPlayerAnswer(event, questionId, {
-    playerName: "Alice",
-    status: "rejected",
-    selectedMessageId: null,
-    decidedByUserId: "host",
-  });
-
-  assert.equal(event.questions[0].awards.length, 0);
-  assert.deepEqual(event.questions[0].playerAnswers[0], {
-    playerName: "Alice",
-    status: "rejected",
-    selectedMessageId: null,
-    decidedAt: event.questions[0].playerAnswers[0].decidedAt,
-    decidedByUserId: "host",
-  });
+test("chat reordering clears a saved result while retaining conducted order", () => {
+  const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event"); const questionId = event.questions[0].id;
+  event = saveChat(quizEngine, event, questionId, [candidate("Alice", "one"), candidate("Bob", "two")]); event = quizEngine.saveQuestionResult(event, questionId, [{ playerName: "Alice", selectedMessageId: event.questions[0].chat.messages[0].id }], "host");
+  event = saveChat(quizEngine, event, questionId, [candidate("Bob", "two"), candidate("Alice", "one")]);
+  assert.equal(event.questions[0].conductedOrder, 1); assert.equal(event.questions[0].reviewedAt, null); assert.deepEqual(event.questions[0].awards, []);
 });
 
-test("keeps completed awards stable when a late fragment does not change a decision", () => {
-  const { quizEngine, event: started, questionId } = activeEvent();
-  let event = quizEngine.appendChatFragment(started, questionId, {
-    rawText: "first",
-    parsedMessagesCount: 1,
-    candidateMessagesCount: 1,
-    duplicateMessagesCount: 0,
-    insertedByUserId: "host",
-    messages: [candidate("Alice", "answer")],
-  });
-  event = quizEngine.setPlayerAnswer(event, questionId, {
-    playerName: "Alice",
-    status: "accepted",
-    selectedMessageId: event.questions[0].chatMessages[0].id,
-    decidedByUserId: "host",
-  });
-  event = quizEngine.completeQuestion(event, questionId);
-  const awards = structuredClone(event.questions[0].awards);
-  event = quizEngine.appendChatFragment(event, questionId, {
-    rawText: "late",
-    parsedMessagesCount: 1,
-    candidateMessagesCount: 1,
-    duplicateMessagesCount: 0,
-    insertedByUserId: "host",
-    messages: [candidate("Bob", "late")],
-  });
-  assert.deepEqual(event.questions[0].awards, awards);
-  assert.equal(event.questions[0].chatMessages.length, 2);
+test("marking a reviewed question unreviewed retains its chat and conducted order", () => {
+  const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event"); const questionId = event.questions[0].id;
+  event = saveChat(quizEngine, event, questionId, [candidate("Alice", "answer")]); const messageId = event.questions[0].chat.messages[0].id;
+  event = quizEngine.saveQuestionResult(event, questionId, [{ playerName: "Alice", selectedMessageId: messageId }], "host");
+  event = quizEngine.markAsUnreviewed(event, questionId);
+  assert.equal(event.questions[0].conductedOrder, 1);
+  assert.equal(event.questions[0].reviewedAt, null);
+  assert.equal(event.questions[0].chat.messages.length, 1);
+  assert.equal(event.questions[0].selectedAnswers[0]?.selectedMessageId, messageId);
+  assert.deepEqual(event.questions[0].awards, []);
 });
 
-test("enforces selected-message decision invariants", () => {
-  const { quizEngine, event, questionId } = activeEvent();
-  const imported = quizEngine.appendChatFragment(event, questionId, {
-    rawText: "chat",
-    parsedMessagesCount: 1,
-    candidateMessagesCount: 1,
-    duplicateMessagesCount: 0,
-    insertedByUserId: "host",
-    messages: [candidate("Alice", "answer")],
-  });
-  assert.throws(() =>
-    quizEngine.setPlayerAnswer(imported, questionId, {
-      playerName: "Alice",
-      status: "accepted",
-      selectedMessageId: null,
-      decidedByUserId: "host",
-    }),
-  );
-  assert.throws(() =>
-    quizEngine.setPlayerAnswer(imported, questionId, {
-      playerName: "Alice",
-      status: "rejected",
-      selectedMessageId: imported.questions[0].chatMessages[0].id,
-      decidedByUserId: "host",
-    }),
-  );
-  assert.throws(() =>
-    quizEngine.setPlayerAnswer(imported, questionId, {
-      playerName: "Bob",
-      status: "accepted",
-      selectedMessageId: imported.questions[0].chatMessages[0].id,
-      decidedByUserId: "host",
-    }),
-  );
-  assert.throws(() =>
-    quizEngine.setPlayerAnswer(imported, questionId, {
-      playerName: "Alice",
-      status: "accepted",
-      selectedMessageId: "missing",
-      decidedByUserId: "host",
-    }),
-  );
+test("marking a question not conducted allows the same saved chat to conduct it again", () => {
+  const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event"); const questionId = event.questions[0].id;
+  event = saveChat(quizEngine, event, questionId, [candidate("Alice", "answer")]); event = quizEngine.markAsNotConducted(event, questionId); assert.equal(event.questions[0].conductedOrder, null);
+  event = saveChat(quizEngine, event, questionId, [candidate("Alice", "answer")]); assert.equal(event.questions[0].conductedOrder, 1);
 });
 
-test("keeps an identical player decision idempotent", () => {
-  const { quizEngine, event, questionId } = activeEvent();
-  const imported = quizEngine.appendChatFragment(event, questionId, {
-    rawText: "chat",
-    parsedMessagesCount: 1,
-    candidateMessagesCount: 1,
-    duplicateMessagesCount: 0,
-    insertedByUserId: "host",
-    messages: [candidate("Alice", "answer")],
-  });
-  const first = quizEngine.setPlayerAnswer(imported, questionId, {
-    playerName: "Alice",
-    status: "accepted",
-    selectedMessageId: imported.questions[0].chatMessages[0].id,
-    decidedByUserId: "host",
-  });
-  const repeated = quizEngine.setPlayerAnswer(first, questionId, {
-    playerName: "Alice",
-    status: "accepted",
-    selectedMessageId: first.questions[0].chatMessages[0].id,
-    decidedByUserId: "host",
-  });
-  assert.strictEqual(repeated, first);
+test("completion requires at least one conducted question and a saved result for each", () => {
+  const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event");
+  assert.throws(() => quizEngine.completeEvent(event)); event = saveChat(quizEngine, event, event.questions[0].id, [candidate("Alice", "answer")]); assert.throws(() => quizEngine.completeEvent(event));
+  event = quizEngine.saveQuestionResult(event, event.questions[0].id, [], "host"); assert.equal(quizEngine.completeEvent(event).status, "completed");
 });

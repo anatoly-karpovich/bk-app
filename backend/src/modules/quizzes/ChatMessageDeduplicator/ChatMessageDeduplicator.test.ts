@@ -13,11 +13,11 @@ const candidate = (text: string): QuizChatMessageCandidate => ({
   timestamp: "21:00",
   sourceLineNumber: 1,
   transport: ChatTransport.DIRECT,
-  canonicalKey: identity.createKey({ from: "Alice", to: ["Dark"], text, timestamp: "21:00" }),
+  canonicalKey: identity.createKey({ from: "Alice", to: ["Dark"], text, timestamp: "21:00", transport: ChatTransport.DIRECT }),
 });
 
 test("deduplicates against existing messages and within one incoming fragment", () => {
-  const existing = [{ ...candidate("old"), id: "old", firstSeenFragmentId: "fragment", firstSeenOrder: 1 }];
+  const existing = [{ ...candidate("old"), id: "old", sourceFragmentId: "fragment", effectiveOrder: 1 }];
   const result = new ChatMessageDeduplicator(identity).deduplicate(existing, [
     candidate("old"),
     candidate("new"),
@@ -35,12 +35,12 @@ test("preserves source order and treats changed timestamps or recipients as uniq
   const changedTime = {
     ...candidate("answer"),
     timestamp: "21:01",
-    canonicalKey: identity.createKey({ from: "Alice", to: ["Dark"], text: "answer", timestamp: "21:01" }),
+    canonicalKey: identity.createKey({ from: "Alice", to: ["Dark"], text: "answer", timestamp: "21:01", transport: ChatTransport.DIRECT }),
   };
   const changedRecipient = {
     ...candidate("answer"),
     to: ["Helper"],
-    canonicalKey: identity.createKey({ from: "Alice", to: ["Helper"], text: "answer", timestamp: "21:00" }),
+    canonicalKey: identity.createKey({ from: "Alice", to: ["Helper"], text: "answer", timestamp: "21:00", transport: ChatTransport.DIRECT }),
   };
   const result = deduplicator.deduplicate([], [candidate("first"), candidate("first"), changedTime, changedRecipient]);
   assert.deepEqual(

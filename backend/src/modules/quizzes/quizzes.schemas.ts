@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
 
+/** Infrastructure guardrail for raw chat payloads; no product limit is imposed on message counts. */
+export const QUIZ_CHAT_RAW_TEXT_MAX_LENGTH = 100_000;
+
 const resourceAmountSchema = z.object({ resourceId: z.string().trim().min(1).max(120), amount: z.number().finite().positive() });
 const poolSchema = z.object({ mode: z.literal("all"), rewards: z.array(resourceAmountSchema).min(1) });
 const regularRuleSchema = z.discriminatedUnion("mode", [
@@ -46,8 +49,13 @@ export const updateQuizSchema = z.object({
 });
 
 export const createQuizEventSchema = z.object({ name: z.string().max(160).optional() });
-export const reorderQuizQuestionsSchema = z.object({ questionIds: z.array(z.string().uuid()) });
-export const quizMessageSchema = z.object({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
-export const quizMessageKindSchema = z.object({ messageKind: z.enum(["question", "answer"]) });
-export const chatFragmentSchema = z.object({ rawText: z.string().min(1).max(100_000) });
-export const playerAnswerSchema = z.object({ playerName: z.string().min(1).max(500), status: z.enum(["pending", "accepted", "rejected"]), selectedMessageId: z.string().uuid().nullable() });
+export const quizEventRevisionSchema = z.object({ revision: z.number().int().nonnegative() });
+export const quizMessageSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
+export const quizMessageKindSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]) });
+export const saveQuizQuestionChatSchema = quizEventRevisionSchema.extend({ rawText: z.string().max(QUIZ_CHAT_RAW_TEXT_MAX_LENGTH) });
+export const saveQuizQuestionResultSchema = quizEventRevisionSchema.extend({
+  selections: z.array(z.object({
+    playerName: z.string().trim().min(1).max(500),
+    selectedMessageId: z.string().uuid(),
+  })),
+});

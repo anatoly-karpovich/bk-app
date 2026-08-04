@@ -1,5 +1,12 @@
 import { apiClient } from "../../../../lib/apiClient";
-import type { AddQuizChatFragmentResponse, CreateQuizInput, Quiz, QuizEvent, QuizMessageKind, QuizPlayerAnswerStatus } from "../types";
+import type {
+  CreateQuizInput,
+  Quiz,
+  QuizChatMutationResult,
+  QuizEvent,
+  QuizMessageKind,
+  SaveQuizQuestionResult,
+} from "../types";
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}`;
 export const quizzesApi = {
@@ -11,12 +18,13 @@ export const quizzesApi = {
   listEvents: (projectId: string) => apiClient.get<QuizEvent[]>(`${base(projectId)}/quiz-events`),
   getEvent: (projectId: string, eventId: string) => apiClient.get<QuizEvent>(`${base(projectId)}/quiz-events/${encodeURIComponent(eventId)}`),
   createEvent: (projectId: string, quizId: string) => apiClient.post<QuizEvent>(`${base(projectId)}/quizzes/${quizId}/events`, {}),
-  eventAction: (projectId: string, eventId: string, action: string) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/${action}`, {}),
-  deleteEvent: (projectId: string, id: string) => apiClient.delete<void>(`${base(projectId)}/quiz-events/${id}`),
-  reorderQuestions: (projectId: string, eventId: string, questionIds: string[]) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/reorder`, { questionIds }),
-  questionAction: (projectId: string, eventId: string, questionId: string, action: string, body: object = {}) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/${action}`, body),
-  setMessage: (projectId: string, eventId: string, questionId: string, messageKind: QuizMessageKind, text: string | null) => apiClient.put<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/message`, { messageKind, text }),
-  clearMessage: (projectId: string, eventId: string, questionId: string, messageKind: QuizMessageKind) => apiClient.deleteWithBody<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/message-override`, { messageKind }),
-  addFragment: (projectId: string, eventId: string, questionId: string, rawText: string) => apiClient.post<AddQuizChatFragmentResponse>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/chat-fragments`, { rawText }),
-  setPlayerAnswer: (projectId: string, eventId: string, questionId: string, input: { playerName: string; status: QuizPlayerAnswerStatus; selectedMessageId: string | null }) => apiClient.put<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/player-answer`, input),
+  completeEvent: (projectId: string, eventId: string, revision: number) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/complete`, { revision }),
+  reopenEvent: (projectId: string, eventId: string, revision: number) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/reopen`, { revision }),
+  deleteEvent: (projectId: string, eventId: string, revision: number) => apiClient.deleteWithBody<void>(`${base(projectId)}/quiz-events/${eventId}`, { revision }),
+  markQuestionAsNotConducted: (projectId: string, eventId: string, questionId: string, revision: number) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/mark-not-conducted`, { revision }),
+  markQuestionAsUnreviewed: (projectId: string, eventId: string, questionId: string, revision: number) => apiClient.post<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/mark-unreviewed`, { revision }),
+  saveQuestionChat: (projectId: string, eventId: string, questionId: string, rawText: string, revision: number) => apiClient.put<QuizChatMutationResult>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/chat`, { rawText, revision }),
+  saveQuestionResult: (projectId: string, eventId: string, questionId: string, selections: Array<{ playerName: string; selectedMessageId: string }>, revision: number) => apiClient.put<SaveQuizQuestionResult>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/result`, { selections, revision }),
+  setMessage: (projectId: string, eventId: string, questionId: string, messageKind: QuizMessageKind, text: string | null, revision: number) => apiClient.put<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/message`, { messageKind, text, revision }),
+  clearMessage: (projectId: string, eventId: string, questionId: string, messageKind: QuizMessageKind, revision: number) => apiClient.deleteWithBody<QuizEvent>(`${base(projectId)}/quiz-events/${eventId}/questions/${questionId}/message-override`, { messageKind, revision }),
 };

@@ -51,6 +51,9 @@ import { ChatParser } from "../modules/chat/ChatParser";
 import { ChatMessageIdentity } from "../modules/chat/ChatMessageIdentity";
 import { ChatMessageDeduplicator } from "../modules/quizzes/ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizAnswerRanker } from "../modules/quizzes/QuizAnswerRanker/QuizAnswerRanker";
+import { QuizAwardCalculator } from "../modules/quizzes/QuizAwardCalculator/QuizAwardCalculator";
+import { QuizEventSummaryCalculator } from "../modules/quizzes/QuizEventSummaryCalculator/QuizEventSummaryCalculator";
+import { QuizSelectedAnswerPruner } from "../modules/quizzes/QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
 import { QuizMessageCandidateFilter } from "../modules/quizzes/QuizMessageCandidateFilter/QuizMessageCandidateFilter";
 import { QuizReadModelFactory } from "../modules/quizzes/QuizReadModelFactory";
 import { QuizEventsService } from "../modules/quizzes/QuizEventsService/QuizEventsService";
@@ -121,8 +124,14 @@ export function createApplicationDependencies(): ApplicationDependencies {
     process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
   const rewardGrantService = new RewardGrantService(randomizer);
   const chatMessageIdentity = new ChatMessageIdentity();
-  const quizEventEngine = new QuizEventEngine(rewardGrantService, new QuizAnswerRanker());
-  const quizReadModelFactory = new QuizReadModelFactory(quizEventEngine);
+  const quizAnswerRanker = new QuizAnswerRanker();
+  const quizEventEngine = new QuizEventEngine(
+    quizAnswerRanker,
+    new QuizAwardCalculator(),
+    new QuizEventSummaryCalculator(),
+    new QuizSelectedAnswerPruner(),
+  );
+  const quizReadModelFactory = new QuizReadModelFactory(quizAnswerRanker);
   const quizEventsService = new QuizEventsService(
     quizEventsRepository,
     quizzesRepository,

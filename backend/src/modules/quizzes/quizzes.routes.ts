@@ -21,19 +21,13 @@ export function createQuizzesRouter(configs: QuizConfigsController, quizzes: Qui
   router.get("/quiz-events/:eventId", asyncHandler(events.get));
   router.delete("/quiz-events/:eventId", asyncHandler(events.delete));
   router.post("/quizzes/:quizId/events", asyncHandler(events.create));
-  router.post("/quiz-events/:eventId/start", asyncHandler(events.start));
-  router.post("/quiz-events/:eventId/pause", asyncHandler(events.pause));
-  router.post("/quiz-events/:eventId/resume", asyncHandler(events.resume));
   router.post("/quiz-events/:eventId/complete", asyncHandler(events.complete));
-  router.post("/quiz-events/:eventId/cancel", asyncHandler(events.cancel));
-  router.post("/quiz-events/:eventId/questions/reorder", asyncHandler(events.reorder));
-  router.post("/quiz-events/:eventId/questions/:questionId/start", asyncHandler(events.startQuestion));
-  router.post("/quiz-events/:eventId/questions/:questionId/complete", asyncHandler(events.completeQuestion));
-  router.post("/quiz-events/:eventId/questions/:questionId/skip", asyncHandler(events.skipQuestion));
-  router.post("/quiz-events/:eventId/questions/:questionId/restore", asyncHandler(events.restoreQuestion));
+  router.post("/quiz-events/:eventId/reopen", asyncHandler(events.reopen));
+  router.post("/quiz-events/:eventId/questions/:questionId/mark-not-conducted", asyncHandler(events.markAsNotConducted));
+  router.post("/quiz-events/:eventId/questions/:questionId/mark-unreviewed", asyncHandler(events.markAsUnreviewed));
+  router.put("/quiz-events/:eventId/questions/:questionId/chat", asyncHandler(events.saveQuestionChat));
+  router.put("/quiz-events/:eventId/questions/:questionId/result", asyncHandler(events.saveQuestionResult));
   router.put("/quiz-events/:eventId/questions/:questionId/message", asyncHandler(events.setMessage));
   router.delete("/quiz-events/:eventId/questions/:questionId/message-override", asyncHandler(events.clearMessage));
-  router.post("/quiz-events/:eventId/questions/:questionId/chat-fragments", asyncHandler(events.addFragment));
-  router.put("/quiz-events/:eventId/questions/:questionId/player-answer", asyncHandler(events.setPlayerAnswer));
   return router;
 }
