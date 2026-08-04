@@ -21,11 +21,8 @@ import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelect
 
 export interface QuizChatMutationInput {
   rawText: string;
-  parsedMessagesCount: number;
-  candidateMessagesCount: number;
-  duplicateMessagesCount: number;
   messages: QuizChatMessageCandidate[];
-  insertedByUserId: string;
+  actorId: string;
 }
 
 export class QuizEventEngine {
@@ -52,12 +49,17 @@ export class QuizEventEngine {
       completedAt: null,
       createdAt: now,
       updatedAt: now,
-      schemaVersion: 2,
+      schemaVersion: 3,
     };
   }
 
   completeEvent(event: QuizEventDocument): QuizEventDocument {
     this.assertOpen(event);
+    const conducted = event.questions.filter((question) => question.conductedOrder !== null);
+    if (!conducted.length) throw new QuizConflictError("Нельзя завершить проведение без проведённых вопросов");
+    if (conducted.some((question) => question.reviewedAt === null)) {
+      throw new QuizConflictError("Нельзя завершить проведение: проведённые вопросы требуют сохранения результата");
+    }
     const now = new Date().toISOString();
     const next = { ...event, status: "completed" as const, completedAt: now, updatedAt: now };
     return { ...next, summary: this.summaryCalculator.calculate(next.questions, now) };
@@ -68,36 +70,31 @@ export class QuizEventEngine {
     return { ...event, status: "open", completedAt: null, updatedAt: new Date().toISOString() };
   }
 
-  reviewQuestion(event: QuizEventDocument, questionId: string, actorId: string): QuizEventDocument {
+  saveQuestionResult(
+    event: QuizEventDocument,
+    questionId: string,
+    selections: QuizSelectedAnswer[],
+    actorId: string,
+  ): QuizEventDocument {
     this.assertOpen(event);
     const current = this.getQuestion(event, questionId);
+    if (current.conductedOrder === null) {
+      throw new QuizConflictError("Сначала сохраните непустой чат вопроса");
+    }
+    this.assertSelections(current, selections);
     const now = new Date().toISOString();
     const reviewed = {
       ...current,
-      conductedOrder: current.conductedOrder ?? this.nextConductedOrder(event),
+      selectedAnswers: structuredClone(selections),
       reviewedAt: now,
       reviewedByUserId: actorId,
       updatedAt: now,
     };
-    const ranking = this.answerRanker.rank(reviewed.chatMessages, reviewed.selectedAnswers);
+    const ranking = this.answerRanker.rank(reviewed.chat.messages, reviewed.selectedAnswers);
     reviewed.awards = this.awardCalculator.calculate(event.quizSnapshot, reviewed, ranking, now);
     return this.rebuildSummary({
       ...event,
       questions: event.questions.map((question) => question.id === questionId ? reviewed : question),
-      updatedAt: now,
-    }, now);
-  }
-
-  unreviewQuestion(event: QuizEventDocument, questionId: string): QuizEventDocument {
-    this.assertOpen(event);
-    const question = this.getQuestion(event, questionId);
-    if (!this.hasReviewedResult(question)) return event;
-    const now = new Date().toISOString();
-    return this.rebuildSummary({
-      ...event,
-      questions: event.questions.map((item) =>
-        item.id === questionId ? this.clearReviewedResult(item, now) : item,
-      ),
       updatedAt: now,
     }, now);
   }
@@ -124,7 +121,7 @@ export class QuizEventEngine {
 
       const reordered = { ...item, conductedOrder: item.conductedOrder - 1, updatedAt: now };
       if (reordered.reviewedAt !== null) {
-        const ranking = this.answerRanker.rank(reordered.chatMessages, reordered.selectedAnswers);
+        const ranking = this.answerRanker.rank(reordered.chat.messages, reordered.selectedAnswers);
         reordered.awards = this.awardCalculator.calculate(event.quizSnapshot, reordered, ranking, now);
       }
       return reordered;
@@ -171,110 +168,29 @@ export class QuizEventEngine {
     };
   }
 
-  appendChat(
-    event: QuizEventDocument,
-    questionId: string,
-    input: QuizChatMutationInput,
-  ): QuizEventDocument {
-    this.assertOpen(event);
-    this.getQuestion(event, questionId);
-    const now = new Date().toISOString();
-    const fragmentId = randomUUID();
-    let reviewWasCleared = false;
-    const next = {
-      ...event,
-      questions: event.questions.map((question) => {
-        if (question.id !== questionId) return question;
-        const previousMessagesCount = question.chatMessages.length;
-        let nextOrder = Math.max(0, ...question.chatMessages.map((message) => message.effectiveOrder));
-        const effectiveChange = input.messages.length > 0;
-        reviewWasCleared = effectiveChange && this.hasReviewedResult(question);
-        return {
-          ...(effectiveChange ? this.clearReviewedResult(question, now) : question),
-          chatMessages: [
-            ...question.chatMessages,
-            ...input.messages.map((message) => ({
-              ...message,
-              id: randomUUID(),
-              sourceFragmentId: fragmentId,
-              effectiveOrder: ++nextOrder,
-            })),
-          ],
-          chatFragments: [
-            ...question.chatFragments,
-            {
-              id: fragmentId,
-              mode: "append" as const,
-              rawText: input.rawText,
-              insertedAt: now,
-              insertedByUserId: input.insertedByUserId,
-              parsedMessagesCount: input.parsedMessagesCount,
-              candidateMessagesCount: input.candidateMessagesCount,
-              duplicateMessagesCount: input.duplicateMessagesCount,
-              previousMessagesCount,
-              nextMessagesCount: previousMessagesCount + input.messages.length,
-              addedMessagesCount: input.messages.length,
-              removedMessagesCount: 0,
-              retainedMessagesCount: previousMessagesCount,
-              removedPersistedSelectionsCount: 0,
-              effectiveChange,
-            },
-          ],
-          updatedAt: now,
-        };
-      }),
-      updatedAt: now,
-    };
-    return reviewWasCleared ? this.rebuildSummary(next, now) : next;
-  }
-
-  replaceChat(
+  saveQuestionChat(
     event: QuizEventDocument,
     questionId: string,
     input: QuizChatMutationInput,
   ): QuizEventDocument {
     this.assertOpen(event);
     const current = this.getQuestion(event, questionId);
-    if (!input.messages.length) throw new QuizConflictError("Не найдено сообщений для замены");
-
     const now = new Date().toISOString();
-    const fragmentId = randomUUID();
-    const existingByCanonicalKey = new Map(current.chatMessages.map((message) => [message.canonicalKey, message]));
+    const existingByCanonicalKey = new Map(current.chat.messages.map((message) => [message.canonicalKey, message]));
     const nextMessages = input.messages.map((message, index) => ({
       ...message,
       id: existingByCanonicalKey.get(message.canonicalKey)?.id ?? randomUUID(),
-      sourceFragmentId: fragmentId,
       effectiveOrder: index + 1,
     }));
-    const effectiveChange = !this.sameEffectiveChat(current.chatMessages, nextMessages);
+    const effectiveChange = !this.sameEffectiveChat(current.chat.messages, nextMessages);
     const pruned = this.selectedAnswerPruner.prune(current.selectedAnswers, nextMessages);
     const selectionsChanged = pruned.removedCount > 0;
     const resultChanged = effectiveChange || selectionsChanged;
-    const retainedMessagesCount = nextMessages.filter((message) => existingByCanonicalKey.has(message.canonicalKey)).length;
     const nextQuestion = {
       ...(resultChanged ? this.clearReviewedResult(current, now) : current),
-      ...(effectiveChange ? { chatMessages: nextMessages } : {}),
       ...(selectionsChanged ? { selectedAnswers: pruned.selections } : {}),
-      chatFragments: [
-        ...current.chatFragments,
-        {
-          id: fragmentId,
-          mode: "replace" as const,
-          rawText: input.rawText,
-          insertedAt: now,
-          insertedByUserId: input.insertedByUserId,
-          parsedMessagesCount: input.parsedMessagesCount,
-          candidateMessagesCount: input.candidateMessagesCount,
-          duplicateMessagesCount: input.duplicateMessagesCount,
-          previousMessagesCount: current.chatMessages.length,
-          nextMessagesCount: nextMessages.length,
-          addedMessagesCount: nextMessages.length - retainedMessagesCount,
-          removedMessagesCount: current.chatMessages.length - retainedMessagesCount,
-          retainedMessagesCount,
-          removedPersistedSelectionsCount: pruned.removedCount,
-          effectiveChange: resultChanged,
-        },
-      ],
+      chat: { rawText: input.rawText, messages: nextMessages, updatedAt: now, updatedByUserId: input.actorId },
+      conductedOrder: current.conductedOrder ?? (nextMessages.length ? this.nextConductedOrder(event) : null),
       updatedAt: now,
     };
     const next = {
@@ -285,55 +201,8 @@ export class QuizEventEngine {
     return resultChanged && this.hasReviewedResult(current) ? this.rebuildSummary(next, now) : next;
   }
 
-  clearChat(event: QuizEventDocument, questionId: string): QuizEventDocument {
-    this.assertOpen(event);
-    const current = this.getQuestion(event, questionId);
-    const effectiveChange = current.chatMessages.length > 0 || current.selectedAnswers.length > 0;
-    if (!effectiveChange) return event;
-
-    const now = new Date().toISOString();
-    const next = {
-      ...event,
-      questions: event.questions.map((question) => question.id === questionId ? {
-        ...this.clearReviewedResult(question, now),
-        chatMessages: [],
-        selectedAnswers: [],
-        updatedAt: now,
-      } : question),
-      updatedAt: now,
-    };
-    return this.hasReviewedResult(current) ? this.rebuildSummary(next, now) : next;
-  }
-
-  setSelectedAnswers(
-    event: QuizEventDocument,
-    questionId: string,
-    selectedAnswers: QuizSelectedAnswer[],
-  ): QuizEventDocument {
-    this.assertOpen(event);
-    const question = this.getQuestion(event, questionId);
-    this.assertSelections(question, selectedAnswers);
-    if (this.sameSelections(question.selectedAnswers, selectedAnswers)) return event;
-    const now = new Date().toISOString();
-    const changedReviewedResult = this.hasReviewedResult(question);
-    const next = {
-      ...event,
-      questions: event.questions.map((item) =>
-        item.id === questionId
-          ? {
-              ...(changedReviewedResult ? this.clearReviewedResult(item, now) : item),
-              selectedAnswers: structuredClone(selectedAnswers),
-              updatedAt: now,
-            }
-          : item,
-      ),
-      updatedAt: now,
-    };
-    return changedReviewedResult ? this.rebuildSummary(next, now) : next;
-  }
-
   rankedAnswers(question: QuizEventQuestion): RankedQuizAnswer[] {
-    return this.answerRanker.rank(question.chatMessages, question.selectedAnswers);
+    return this.answerRanker.rank(question.chat.messages, question.selectedAnswers);
   }
 
   getQuestion(event: QuizEventDocument, id: string): QuizEventQuestion {
@@ -358,8 +227,7 @@ export class QuizEventEngine {
         answerTextUpdatedAt: null,
         answerTextUpdatedByUserId: null,
       },
-      chatFragments: [],
-      chatMessages: [],
+      chat: { rawText: "", messages: [], updatedAt: null, updatedByUserId: null },
       selectedAnswers: [],
       awards: [],
       updatedAt: now,
@@ -389,8 +257,8 @@ export class QuizEventEngine {
   }
 
   private sameEffectiveChat(
-    current: QuizEventQuestion["chatMessages"],
-    replacement: QuizEventQuestion["chatMessages"],
+    current: QuizEventQuestion["chat"]["messages"],
+    replacement: QuizEventQuestion["chat"]["messages"],
   ): boolean {
     return current.length === replacement.length && current.every(
       (message, index) => message.canonicalKey === replacement[index]?.canonicalKey,
@@ -405,16 +273,10 @@ export class QuizEventEngine {
       players.add(selection.playerName);
       if (messages.has(selection.selectedMessageId)) throw new QuizPlayerAnswerSelectionError("duplicate_message_selection");
       messages.add(selection.selectedMessageId);
-      const message = question.chatMessages.find((candidate) => candidate.id === selection.selectedMessageId);
+      const message = question.chat.messages.find((candidate) => candidate.id === selection.selectedMessageId);
       if (!message) throw new QuizChatMessageNotFoundError(selection.selectedMessageId);
       if (message.from !== selection.playerName) throw new QuizPlayerAnswerSelectionError("selected_message_wrong_player");
     }
-  }
-
-  private sameSelections(left: QuizSelectedAnswer[], right: QuizSelectedAnswer[]): boolean {
-    if (left.length !== right.length) return false;
-    const rightByPlayer = new Map(right.map((selection) => [selection.playerName, selection.selectedMessageId]));
-    return left.every((selection) => rightByPlayer.get(selection.playerName) === selection.selectedMessageId);
   }
 
   private assertOpen(event: QuizEventDocument): void {

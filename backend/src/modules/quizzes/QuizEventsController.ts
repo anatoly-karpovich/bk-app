@@ -3,7 +3,6 @@ import { AppError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { QuizEventsService } from "./QuizEventsService/QuizEventsService";
 import {
-  chatFragmentSchema,
   createQuizEventSchema,
   projectIdParamsSchema,
   quizEventParamsSchema,
@@ -12,7 +11,8 @@ import {
   quizMessageKindSchema,
   quizMessageSchema,
   quizParamsSchema,
-  saveQuizAnswerSelectionsSchema,
+  saveQuizQuestionChatSchema,
+  saveQuizQuestionResultSchema,
 } from "./quizzes.schemas";
 
 export class QuizEventsController {
@@ -58,16 +58,6 @@ export class QuizEventsController {
     this.action(req, res, (p, revision) => this.service.complete(req.authUser!, p.projectId, p.eventId, revision));
   reopen = async (req: Request, res: Response) =>
     this.action(req, res, (p, revision) => this.service.reopen(req.authUser!, p.projectId, p.eventId, revision));
-  review = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) => {
-      const body = parseRequest(quizEventRevisionSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ð°Ñ revision");
-      return this.service.review(req.authUser!, p.projectId, p.eventId, p.questionId, body.revision);
-    });
-  unreview = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) => {
-      const body = parseRequest(quizEventRevisionSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ð°Ñ revision");
-      return this.service.unreview(req.authUser!, p.projectId, p.eventId, p.questionId, body.revision);
-    });
   markAsNotConducted = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
       const body = parseRequest(quizEventRevisionSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ð°Ñ revision");
@@ -83,25 +73,15 @@ export class QuizEventsController {
       const body = parseRequest(quizMessageKindSchema, req.body, "Некорректный тип сообщения");
       return this.service.setMessage(req.authUser!, p.projectId, p.eventId, p.questionId, body.messageKind, null, body.revision);
     });
-  appendChat = async (req: Request, res: Response) =>
+  saveQuestionChat = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
-      const body = parseRequest(chatFragmentSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ chat append");
-      return this.service.appendChat(req.authUser!, p.projectId, p.eventId, p.questionId, body.rawText, body.revision);
+      const body = parseRequest(saveQuizQuestionChatSchema, req.body, "Некорректный чат вопроса");
+      return this.service.saveQuestionChat(req.authUser!, p.projectId, p.eventId, p.questionId, body.rawText, body.revision);
     });
-  replaceChat = async (req: Request, res: Response) =>
+  saveQuestionResult = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
-      const body = parseRequest(chatFragmentSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ chat replacement");
-      return this.service.replaceChat(req.authUser!, p.projectId, p.eventId, p.questionId, body.rawText, body.revision);
-    });
-  clearChat = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) => {
-      const body = parseRequest(quizEventRevisionSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ð°Ñ revision");
-      return this.service.clearChat(req.authUser!, p.projectId, p.eventId, p.questionId, body.revision);
-    });
-  saveAnswerSelections = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) => {
-      const body = parseRequest(saveQuizAnswerSelectionsSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ Ð²Ñ‹Ð±Ð¾Ñ€ Ð¾Ñ‚Ð²ÐµÑ‚Ð¾Ð²");
-      return this.service.saveAnswerSelections(
+      const body = parseRequest(saveQuizQuestionResultSchema, req.body, "Некорректный результат вопроса");
+      return this.service.saveQuestionResult(
         req.authUser!,
         p.projectId,
         p.eventId,

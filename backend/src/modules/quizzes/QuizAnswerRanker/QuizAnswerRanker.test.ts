@@ -11,7 +11,6 @@ const message = (id: string, from: string, timestamp: string | null, effectiveOr
   text: id,
   timestamp,
   effectiveOrder,
-  sourceFragmentId: "fragment",
   sourceLineNumber: effectiveOrder,
   transport: ChatTransport.DIRECT,
   canonicalKey: id,

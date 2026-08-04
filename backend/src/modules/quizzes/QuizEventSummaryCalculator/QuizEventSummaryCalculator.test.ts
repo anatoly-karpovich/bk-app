@@ -13,7 +13,7 @@ function question(input: Pick<QuizEventQuestion, "id" | "conductedOrder" | "revi
       messageTextOverride: null, messageTextUpdatedAt: null, messageTextUpdatedByUserId: null,
       answerTextOverride: null, answerTextUpdatedAt: null, answerTextUpdatedByUserId: null,
     },
-    chatFragments: [], chatMessages: [], updatedAt: "now",
+    chat: { rawText: "", messages: [], updatedAt: null, updatedByUserId: null }, updatedAt: "now",
   };
 }
 

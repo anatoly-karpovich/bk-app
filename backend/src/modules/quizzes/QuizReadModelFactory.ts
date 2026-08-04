@@ -25,7 +25,7 @@ export class QuizReadModelFactory {
           generatedMessage,
           generatedAnswerMessage,
           playerGroups: this.playerGroups(question),
-          ranking: this.answerRanker.rank(question.chatMessages, question.selectedAnswers),
+          ranking: this.answerRanker.rank(question.chat.messages, question.selectedAnswers),
         };
       }),
     };
@@ -34,7 +34,7 @@ export class QuizReadModelFactory {
   private playerGroups(question: QuizEventQuestion): QuizPlayerMessageGroupView[] {
     const selections = new Map(question.selectedAnswers.map((selection) => [selection.playerName, selection]));
     const groups = new Map<string, QuizPlayerMessageGroupView>();
-    for (const message of question.chatMessages) {
+    for (const message of question.chat.messages) {
       const group = groups.get(message.from) ?? {
         playerName: message.from,
         selectedMessageId: selections.get(message.from)?.selectedMessageId ?? null,

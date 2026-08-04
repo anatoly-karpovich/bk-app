@@ -41,23 +41,7 @@ export interface QuizAward { id: string; selectedMessageId: string; playerName: 
 export interface QuizChatMessageView { id: string; text: string; timestamp: string | null; effectiveOrder: number; transport: "direct" | "clan"; }
 export interface QuizPlayerMessageGroup { playerName: string; selectedMessageId: string | null; messages: QuizChatMessageView[]; }
 export interface QuizRanking { playerName: string; selectedMessageId: string; timestamp: string | null; effectiveOrder: number; position: number; }
-export interface QuizChatFragment {
-  id: string;
-  mode: "append" | "replace";
-  rawText: string;
-  insertedAt: string;
-  insertedByUserId: string;
-  parsedMessagesCount: number;
-  candidateMessagesCount: number;
-  duplicateMessagesCount: number;
-  previousMessagesCount: number;
-  nextMessagesCount: number;
-  addedMessagesCount: number;
-  removedMessagesCount: number;
-  retainedMessagesCount: number;
-  removedPersistedSelectionsCount: number;
-  effectiveChange: boolean;
-}
+export interface QuizQuestionChat { rawText: string; updatedAt: string | null; updatedByUserId: string | null; }
 export interface QuizEventQuestion {
   id: string;
   questionIndex: number;
@@ -76,7 +60,7 @@ export interface QuizEventQuestion {
     answerTextUpdatedAt: string | null;
     answerTextUpdatedByUserId: string | null;
   };
-  chatFragments: QuizChatFragment[];
+  chat: QuizQuestionChat;
   playerGroups: QuizPlayerMessageGroup[];
   ranking: QuizRanking[];
   awards: QuizAward[];
@@ -113,28 +97,18 @@ export interface QuizEvent {
 export interface QuizChatMutationResult {
   event: QuizEvent;
   mutation: {
-    fragmentId: string | null;
-    mode: "append" | "replace" | "clear";
     parsedMessagesCount: number;
     candidateMessagesCount: number;
     duplicateMessagesCount: number;
     previousMessagesCount: number;
     nextMessagesCount: number;
-    addedMessagesCount: number;
-    removedMessagesCount: number;
-    retainedMessagesCount: number;
     removedPersistedSelectionsCount: number;
     effectiveChange: boolean;
   };
 }
-export interface ReviewQuizQuestionResult {
+export interface SaveQuizQuestionResult {
   event: QuizEvent;
-  result: { conductedOrder: number; awardsCount: number; reviewedAt: string; nextUnconductedQuestionId: string | null };
-}
-export interface SaveQuizAnswerSelectionsResult {
-  event: QuizEvent;
-  ranking: QuizRanking[];
-  result: { previousSelectionsCount: number; nextSelectionsCount: number; effectiveChange: boolean };
+  result: { conductedOrder: number; awardsCount: number; reviewedAt: string };
 }
 export interface QuizAnswerSelectionDraftItem { isSelected: boolean; selectedMessageId: string | null; }
 export type QuizAnswerSelectionDraft = Record<string, QuizAnswerSelectionDraftItem>;

@@ -159,35 +159,15 @@ export function useQuizEvent(projectId: string | undefined, eventId: string | un
       (current) => quizzesApi.reopenEvent(projectId!, current.id, current.revision),
       (result) => result,
     ),
-    review: async (questionId: string) => {
-      const result = await runMutation(
-        (current) => quizzesApi.reviewQuestion(projectId!, current.id, questionId, current.revision),
-        (response) => response.event,
-      );
-      if (result?.result.nextUnconductedQuestionId) setSelectedQuestionId(result.result.nextUnconductedQuestionId);
-      return result;
-    },
-    unreview: (questionId: string) => runMutation(
-      (current) => quizzesApi.unreviewQuestion(projectId!, current.id, questionId, current.revision),
-      (result) => result,
-    ),
     markAsNotConducted: (questionId: string) => runMutation(
       (current) => quizzesApi.markQuestionAsNotConducted(projectId!, current.id, questionId, current.revision),
       (result) => result,
     ),
-    appendChat: (questionId: string, rawText: string) => runMutation(
-      (current) => quizzesApi.appendChat(projectId!, current.id, questionId, rawText, current.revision),
+    saveQuestionChat: (questionId: string, rawText: string) => runMutation(
+      (current) => quizzesApi.saveQuestionChat(projectId!, current.id, questionId, rawText, current.revision),
       (result) => result.event,
     ),
-    replaceChat: (questionId: string, rawText: string) => runMutation(
-      (current) => quizzesApi.replaceChat(projectId!, current.id, questionId, rawText, current.revision),
-      (result) => result.event,
-    ),
-    clearChat: (questionId: string) => runMutation(
-      (current) => quizzesApi.clearChat(projectId!, current.id, questionId, current.revision),
-      (result) => result.event,
-    ),
-    saveSelections: (questionId: string) => {
+    saveQuestionResult: (questionId: string) => {
       const question = event?.questions.find((candidate) => candidate.id === questionId);
       if (!question) return Promise.resolve(null);
       const draft = selectionDrafts[questionId] ?? createSelectionDraft(question);
@@ -195,7 +175,7 @@ export function useQuizEvent(projectId: string | undefined, eventId: string | un
         .filter(([, choice]) => choice.isSelected && choice.selectedMessageId !== null)
         .map(([playerName, choice]) => ({ playerName, selectedMessageId: choice.selectedMessageId! }));
       return runMutation(
-        (current) => quizzesApi.saveAnswerSelections(projectId!, current.id, questionId, selections, current.revision),
+        (current) => quizzesApi.saveQuestionResult(projectId!, current.id, questionId, selections, current.revision),
         (result) => result.event,
         questionId,
       );

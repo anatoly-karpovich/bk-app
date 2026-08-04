@@ -59,18 +59,14 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
         onSelectQuestion={quizEvent.selectQuestion}
         onPlayerSelected={quizEvent.setPlayerSelected}
         onPlayerSelectedMessage={quizEvent.setPlayerSelectedMessage}
-        onSaveSelections={(questionId) => void quizEvent.actions.saveSelections(questionId)}
-        onAppendChat={(questionId, rawText) => quizEvent.actions.appendChat(questionId, rawText)}
-        onReplaceChat={(questionId, rawText) => quizEvent.actions.replaceChat(questionId, rawText)}
-        onClearChat={(questionId) => quizEvent.actions.clearChat(questionId)}
-        onReview={(questionId) => void quizEvent.actions.review(questionId)}
-        onUnreview={(questionId) => void quizEvent.actions.unreview(questionId)}
+        onSaveResult={(questionId) => void quizEvent.actions.saveQuestionResult(questionId)}
+        onSaveChat={(questionId, rawText) => quizEvent.actions.saveQuestionChat(questionId, rawText)}
         onMarkAsNotConducted={(questionId) => void quizEvent.actions.markAsNotConducted(questionId)}
         onRequestComplete={() => setPendingConfirmation("complete")}
         onReopen={() => void quizEvent.actions.reopen()}
         onRequestDelete={() => setPendingConfirmation("delete")}
       />
-      {pendingConfirmation === "complete" ? <AppConfirmDialog open title="Завершить проведение?" description="Непроверенные и неиспользованные вопросы останутся в проведении, но редактирование будет заблокировано до повторного открытия." confirmLabel="Завершить" cancelLabel="Отмена" loading={busy} onClose={() => setPendingConfirmation(null)} onConfirm={() => { setPendingConfirmation(null); void quizEvent.actions.complete(); }} /> : null}
+      {pendingConfirmation === "complete" ? <AppConfirmDialog open title="Завершить проведение?" description="Завершить можно только после сохранения результата каждого проведённого вопроса." confirmLabel="Завершить" cancelLabel="Отмена" loading={busy} onClose={() => setPendingConfirmation(null)} onConfirm={() => { setPendingConfirmation(null); void quizEvent.actions.complete(); }} /> : null}
       {pendingConfirmation === "delete" ? <AppConfirmDialog open title="Удалить проведение?" description="Промежуточные результаты и история ответов будут удалены без возможности восстановления." confirmLabel="Удалить" cancelLabel="Отмена" confirmColor="error" loading={busy} onClose={() => setPendingConfirmation(null)} onConfirm={() => void remove()} /> : null}
     </Stack>
   );

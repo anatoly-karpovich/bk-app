@@ -142,24 +142,6 @@ export interface QuizSnapshot {
   schemaVersion: 1;
 }
 
-export interface QuizChatFragment {
-  id: string;
-  mode: "append" | "replace";
-  rawText: string;
-  insertedAt: string;
-  insertedByUserId: string;
-  parsedMessagesCount: number;
-  candidateMessagesCount: number;
-  duplicateMessagesCount: number;
-  previousMessagesCount: number;
-  nextMessagesCount: number;
-  addedMessagesCount: number;
-  removedMessagesCount: number;
-  retainedMessagesCount: number;
-  removedPersistedSelectionsCount: number;
-  effectiveChange: boolean;
-}
-
 export interface QuizChatMessageCandidate {
   from: string;
   to: string[];
@@ -172,8 +154,15 @@ export interface QuizChatMessageCandidate {
 
 export interface QuizChatMessage extends QuizChatMessageCandidate {
   id: string;
-  sourceFragmentId: string;
   effectiveOrder: number;
+}
+
+/** The one editable chat source and its materialized effective messages. */
+export interface QuizQuestionChat {
+  rawText: string;
+  messages: QuizChatMessage[];
+  updatedAt: string | null;
+  updatedByUserId: string | null;
 }
 
 export interface QuizSelectedAnswer {
@@ -214,14 +203,13 @@ export interface QuizEventQuestion {
   id: string;
   quizQuestionId: string;
   questionIndex: number;
-  /** Assigned on first review; independent from the source question index. */
+  /** Assigned when a non-empty chat is saved while the question is unconducted. */
   conductedOrder: number | null;
   /** Set only when the host has confirmed the current result. */
   reviewedAt: string | null;
   reviewedByUserId: string | null;
   message: QuizQuestionMessageState;
-  chatFragments: QuizChatFragment[];
-  chatMessages: QuizChatMessage[];
+  chat: QuizQuestionChat;
   selectedAnswers: QuizSelectedAnswer[];
   awards: QuizAward[];
   updatedAt: string;
@@ -261,7 +249,7 @@ export interface QuizEventDocument {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  schemaVersion: 2;
+  schemaVersion: 3;
 }
 
 export interface QuizChatMessageView {
@@ -286,7 +274,7 @@ export interface QuizRankedAnswerView {
   position: number;
 }
 
-export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "chatMessages" | "selectedAnswers"> {
+export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "selectedAnswers"> {
   questionTitle: string | null;
   questionText: string;
   generatedMessage: string;
