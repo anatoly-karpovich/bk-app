@@ -163,6 +163,11 @@ export function useQuizEvent(projectId: string | undefined, eventId: string | un
       (current) => quizzesApi.markQuestionAsNotConducted(projectId!, current.id, questionId, current.revision),
       (result) => result,
     ),
+    markAsUnreviewed: (questionId: string) => runMutation(
+      (current) => quizzesApi.markQuestionAsUnreviewed(projectId!, current.id, questionId, current.revision),
+      (result) => result,
+      questionId,
+    ),
     saveQuestionChat: (questionId: string, rawText: string) => runMutation(
       (current) => quizzesApi.saveQuestionChat(projectId!, current.id, questionId, rawText, current.revision),
       (result) => result.event,

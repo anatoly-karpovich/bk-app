@@ -35,6 +35,18 @@ test("chat reordering clears a saved result while retaining conducted order", ()
   assert.equal(event.questions[0].conductedOrder, 1); assert.equal(event.questions[0].reviewedAt, null); assert.deepEqual(event.questions[0].awards, []);
 });
 
+test("marking a reviewed question unreviewed retains its chat and conducted order", () => {
+  const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event"); const questionId = event.questions[0].id;
+  event = saveChat(quizEngine, event, questionId, [candidate("Alice", "answer")]); const messageId = event.questions[0].chat.messages[0].id;
+  event = quizEngine.saveQuestionResult(event, questionId, [{ playerName: "Alice", selectedMessageId: messageId }], "host");
+  event = quizEngine.markAsUnreviewed(event, questionId);
+  assert.equal(event.questions[0].conductedOrder, 1);
+  assert.equal(event.questions[0].reviewedAt, null);
+  assert.equal(event.questions[0].chat.messages.length, 1);
+  assert.equal(event.questions[0].selectedAnswers[0]?.selectedMessageId, messageId);
+  assert.deepEqual(event.questions[0].awards, []);
+});
+
 test("marking a question not conducted allows the same saved chat to conduct it again", () => {
   const quizEngine = engine(); let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Host" }, "Event"); const questionId = event.questions[0].id;
   event = saveChat(quizEngine, event, questionId, [candidate("Alice", "answer")]); event = quizEngine.markAsNotConducted(event, questionId); assert.equal(event.questions[0].conductedOrder, null);

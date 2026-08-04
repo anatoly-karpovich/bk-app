@@ -130,6 +130,29 @@ export class QuizEventEngine {
     return this.rebuildSummary({ ...event, questions, updatedAt: now }, now);
   }
 
+  markAsUnreviewed(event: QuizEventDocument, questionId: string): QuizEventDocument {
+    this.assertOpen(event);
+    const question = this.getQuestion(event, questionId);
+    if (question.conductedOrder === null) {
+      throw new QuizConflictError("Сначала сохраните непустой чат вопроса");
+    }
+    if (question.reviewedAt === null && question.awards.length === 0) return event;
+
+    const now = new Date().toISOString();
+    const unreviewed = {
+      ...question,
+      reviewedAt: null,
+      reviewedByUserId: null,
+      awards: [],
+      updatedAt: now,
+    };
+    return this.rebuildSummary({
+      ...event,
+      questions: event.questions.map((item) => item.id === questionId ? unreviewed : item),
+      updatedAt: now,
+    }, now);
+  }
+
   setMessage(
     event: QuizEventDocument,
     questionId: string,

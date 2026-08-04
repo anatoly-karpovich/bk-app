@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Alert, CircularProgress, Stack } from "@mui/material";
+import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
+import { Alert, CircularProgress, IconButton, Menu, MenuItem, Stack } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import AppConfirmDialog from "../../../components/ui/AppConfirmDialog";
 import GamePageHeader from "../../../components/GamePageHeader";
+import AppPillButton from "../../../components/ui/AppPillButton";
 import { useAuth } from "../../auth/useAuth";
 import type { Project } from "../../projects/types";
 import QuizEventWorkspace from "./components/QuizEventWorkspace";
@@ -19,6 +21,7 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation>(null);
+  const [eventActionsAnchor, setEventActionsAnchor] = useState<HTMLElement | null>(null);
   const quizEvent = useQuizEvent(selectedProject?.id, eventId);
   const { event } = quizEvent;
 
@@ -40,12 +43,57 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
         breadcrumbPath="/quizzes"
         breadcrumbItems={[{ label: "Проведение" }, { label: event.name }]}
         title={event.name}
-        description="Публикуйте сообщения, импортируйте чат и фиксируйте решения по ответам."
+        description="Публикуйте сообщения, импортируйте чат и фиксируйте верные ответы игроков."
         chips={[
-          { label: `Проект: ${selectedProject.name}` },
-          { label: `Вопросов: ${event.conductedQuestionsCount}/${event.preparedQuestionsCount}`, color: "secondary" },
-          { label: `Ведущий: ${event.hostSnapshot.nickname}`, color: "secondary" },
+          { label: event.status === "completed" ? "Завершено" : "Открыто", color: event.status === "completed" ? "default" : "success" },
+          { label: `Проведено: ${event.conductedQuestionsCount}/${event.preparedQuestionsCount}`, color: "secondary" },
+          { label: `Проверено: ${event.reviewedQuestionsCount}/${event.preparedQuestionsCount}`, color: "secondary" },
+          { label: `Ведущий: ${event.hostSnapshot.nickname}` },
         ]}
+        controls={editable ? (
+          <>
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
+              <AppPillButton
+                variant={event.status === "open" ? "contained" : "outlined"}
+                disabled={busy}
+                onClick={event.status === "open" ? () => setPendingConfirmation("complete") : () => void quizEvent.actions.reopen()}
+              >
+                {event.status === "open" ? "Завершить проведение" : "Открыть для редактирования"}
+              </AppPillButton>
+              <IconButton
+                aria-label="Действия с проведением"
+                onClick={(menuEvent) => setEventActionsAnchor(menuEvent.currentTarget)}
+                sx={{ border: 1, borderColor: "divider", bgcolor: "background.paper" }}
+              >
+                <MoreHorizRoundedIcon />
+              </IconButton>
+            </Stack>
+            <Menu anchorEl={eventActionsAnchor} open={Boolean(eventActionsAnchor)} onClose={() => setEventActionsAnchor(null)}>
+              <MenuItem
+                sx={{ color: "error.main" }}
+                onClick={() => { setEventActionsAnchor(null); setPendingConfirmation("delete"); }}
+              >
+                Удалить проведение
+              </MenuItem>
+            </Menu>
+          </>
+        ) : undefined}
+        cardSx={{
+          position: "relative",
+          overflow: "hidden",
+          minHeight: { md: 190 },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            width: 420,
+            height: 420,
+            right: -120,
+            bottom: -180,
+            borderRadius: "50%",
+            bgcolor: "rgba(104, 124, 255, 0.08)",
+          },
+          "& > *": { position: "relative", zIndex: 1 },
+        }}
       />
       {quizEvent.error ? <Alert severity="error">{quizEvent.error}</Alert> : null}
       {!editable ? <Alert severity="info">Это проведение доступно только для просмотра.</Alert> : null}
@@ -62,9 +110,7 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
         onSaveResult={(questionId) => void quizEvent.actions.saveQuestionResult(questionId)}
         onSaveChat={(questionId, rawText) => quizEvent.actions.saveQuestionChat(questionId, rawText)}
         onMarkAsNotConducted={(questionId) => void quizEvent.actions.markAsNotConducted(questionId)}
-        onRequestComplete={() => setPendingConfirmation("complete")}
-        onReopen={() => void quizEvent.actions.reopen()}
-        onRequestDelete={() => setPendingConfirmation("delete")}
+        onMarkAsUnreviewed={(questionId) => void quizEvent.actions.markAsUnreviewed(questionId)}
       />
       {pendingConfirmation === "complete" ? <AppConfirmDialog open title="Завершить проведение?" description="Завершить можно только после сохранения результата каждого проведённого вопроса." confirmLabel="Завершить" cancelLabel="Отмена" loading={busy} onClose={() => setPendingConfirmation(null)} onConfirm={() => { setPendingConfirmation(null); void quizEvent.actions.complete(); }} /> : null}
       {pendingConfirmation === "delete" ? <AppConfirmDialog open title="Удалить проведение?" description="Промежуточные результаты и история ответов будут удалены без возможности восстановления." confirmLabel="Удалить" cancelLabel="Отмена" confirmColor="error" loading={busy} onClose={() => setPendingConfirmation(null)} onConfirm={() => void remove()} /> : null}

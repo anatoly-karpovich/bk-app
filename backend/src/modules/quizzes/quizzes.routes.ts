@@ -24,6 +24,7 @@ export function createQuizzesRouter(configs: QuizConfigsController, quizzes: Qui
   router.post("/quiz-events/:eventId/complete", asyncHandler(events.complete));
   router.post("/quiz-events/:eventId/reopen", asyncHandler(events.reopen));
   router.post("/quiz-events/:eventId/questions/:questionId/mark-not-conducted", asyncHandler(events.markAsNotConducted));
+  router.post("/quiz-events/:eventId/questions/:questionId/mark-unreviewed", asyncHandler(events.markAsUnreviewed));
   router.put("/quiz-events/:eventId/questions/:questionId/chat", asyncHandler(events.saveQuestionChat));
   router.put("/quiz-events/:eventId/questions/:questionId/result", asyncHandler(events.saveQuestionResult));
   router.put("/quiz-events/:eventId/questions/:questionId/message", asyncHandler(events.setMessage));

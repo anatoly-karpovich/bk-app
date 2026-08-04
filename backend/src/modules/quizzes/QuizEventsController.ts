@@ -63,6 +63,11 @@ export class QuizEventsController {
       const body = parseRequest(quizEventRevisionSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ð°Ñ revision");
       return this.service.markAsNotConducted(req.authUser!, p.projectId, p.eventId, p.questionId, body.revision);
     });
+  markAsUnreviewed = async (req: Request, res: Response) =>
+    this.questionAction(req, res, (p) => {
+      const body = parseRequest(quizEventRevisionSchema, req.body, "Некорректная revision");
+      return this.service.markAsUnreviewed(req.authUser!, p.projectId, p.eventId, p.questionId, body.revision);
+    });
   setMessage = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
       const body = parseRequest(quizMessageSchema, req.body, "Некорректный текст сообщения");

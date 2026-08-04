@@ -104,6 +104,17 @@ export class QuizEventsService {
       this.engine.markAsNotConducted(event, questionId),
     );
   }
+  async markAsUnreviewed(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) =>
+      this.engine.markAsUnreviewed(event, questionId),
+    );
+  }
   async setMessage(
     actor: CurrentUser,
     projectId: string,
