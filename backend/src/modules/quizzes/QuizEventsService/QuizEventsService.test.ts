@@ -63,7 +63,7 @@ const actor: CurrentUser = {
   projectProfiles: [{ projectId: "project", nickname: "Dark" }],
 };
 
-function setup(): { service: QuizEventsService; event: QuizEventDocument; questionId: string } {
+function setup(): { service: QuizEventsService; event: QuizEventDocument; questionId: string; updatesCount: () => number } {
   const answerRanker = new QuizAnswerRanker();
   const engine = new QuizEventEngine(
     answerRanker,
@@ -75,10 +75,12 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
   event.projectId = "project";
   const questionId = event.questions[0].id;
   const documentId = new ObjectId();
+  let updates = 0;
   const repository = {
     findByIdAndProjectId: async () => ({ ...event, _id: documentId }),
     update: async (_id: string, _projectId: string, expectedRevision: number, next: QuizEventDocument) => {
       if (event.revision !== expectedRevision) return null;
+      updates += 1;
       event = { ...next, revision: expectedRevision + 1 };
       return { ...event, _id: documentId };
     },
@@ -94,7 +96,7 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
     new ChatMessageDeduplicator(identity),
     new QuizReadModelFactory(answerRanker),
   );
-  return { service, event, questionId };
+  return { service, event, questionId, updatesCount: () => updates };
 }
 
 test("imports, persists diagnostics, filters public chat, and makes repeated imports idempotent", async () => {
@@ -187,6 +189,59 @@ test("clears effective chat and reports a no-op clear without a revision change"
   const noOp = await service.clearChat(actor, "project", "event", questionId, cleared.event.revision);
   assert.equal(noOp.event.revision, cleared.event.revision);
   assert.equal(noOp.mutation.effectiveChange, false);
+});
+
+test("saves a complete selection set atomically and treats an equivalent set as a no-op", async () => {
+  const { service, questionId, updatesCount } = setup();
+  const imported = await service.addChatFragment(
+    actor,
+    "project",
+    "event",
+    questionId,
+    "21:02 [Alice] private [Dark] late\n21:01 [Bob] private [Dark] early",
+    0,
+  );
+  const messageIdByPlayer = new Map(
+    imported.event.questions[0].playerGroups.map((group) => [group.playerName, group.messages[0].id]),
+  );
+  const alice = messageIdByPlayer.get("Alice")!;
+  const bob = messageIdByPlayer.get("Bob")!;
+  const updatesBeforeInvalidSave = updatesCount();
+
+  await assert.rejects(
+    () => service.saveAnswerSelections(actor, "project", "event", questionId, [
+      { playerName: "Alice", selectedMessageId: alice },
+      { playerName: "Bob", selectedMessageId: alice },
+    ], imported.event.revision),
+    (error: { code?: string }) => error.code === "quiz_player_answer_selection_error",
+  );
+  assert.equal(updatesCount(), updatesBeforeInvalidSave);
+
+  const saved = await service.saveAnswerSelections(actor, "project", "event", questionId, [
+    { playerName: "Alice", selectedMessageId: alice },
+    { playerName: "Bob", selectedMessageId: bob },
+  ], imported.event.revision);
+  assert.deepEqual(saved.ranking.map((answer) => answer.playerName), ["Bob", "Alice"]);
+  assert.deepEqual(saved.result, { previousSelectionsCount: 0, nextSelectionsCount: 2, effectiveChange: true });
+
+  const noOp = await service.saveAnswerSelections(actor, "project", "event", questionId, [
+    { playerName: "Bob", selectedMessageId: bob },
+    { playerName: "Alice", selectedMessageId: alice },
+  ], saved.event.revision);
+  assert.equal(noOp.event.revision, saved.event.revision);
+  assert.equal(noOp.result.effectiveChange, false);
+  assert.equal(updatesCount(), updatesBeforeInvalidSave + 1);
+
+  const changed = await service.saveAnswerSelections(
+    actor,
+    "project",
+    "event",
+    questionId,
+    [{ playerName: "Bob", selectedMessageId: bob }],
+    noOp.event.revision,
+  );
+  assert.deepEqual(changed.ranking.map((answer) => answer.playerName), ["Bob"]);
+  assert.deepEqual(changed.result, { previousSelectionsCount: 2, nextSelectionsCount: 1, effectiveChange: true });
 });
 
 test("rejects a stale revision without overwriting the current event", async () => {

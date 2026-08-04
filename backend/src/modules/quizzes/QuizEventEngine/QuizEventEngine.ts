@@ -425,9 +425,12 @@ export class QuizEventEngine {
 
   private assertSelections(question: QuizEventQuestion, selections: QuizSelectedAnswer[]): void {
     const players = new Set<string>();
+    const messages = new Set<string>();
     for (const selection of selections) {
       if (players.has(selection.playerName)) throw new QuizPlayerAnswerSelectionError("duplicate_player_selection");
       players.add(selection.playerName);
+      if (messages.has(selection.selectedMessageId)) throw new QuizPlayerAnswerSelectionError("duplicate_message_selection");
+      messages.add(selection.selectedMessageId);
       const message = question.chatMessages.find((candidate) => candidate.id === selection.selectedMessageId);
       if (!message) throw new QuizChatMessageNotFoundError(selection.selectedMessageId);
       if (message.from !== selection.playerName) throw new QuizPlayerAnswerSelectionError("selected_message_wrong_player");

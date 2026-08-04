@@ -53,3 +53,9 @@ export const quizEventRevisionSchema = z.object({ revision: z.number().int().non
 export const quizMessageSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
 export const quizMessageKindSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]) });
 export const chatFragmentSchema = quizEventRevisionSchema.extend({ rawText: z.string().min(1).max(QUIZ_CHAT_RAW_TEXT_MAX_LENGTH) });
+export const saveQuizAnswerSelectionsSchema = quizEventRevisionSchema.extend({
+  selections: z.array(z.object({
+    playerName: z.string().trim().min(1).max(500),
+    selectedMessageId: z.string().uuid(),
+  })),
+});

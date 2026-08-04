@@ -39,5 +39,5 @@ export class QuizChatMessageNotFoundError extends AppError {
 }
 
 export class QuizPlayerAnswerSelectionError extends AppError {
-  constructor(reason: "selected_message_required" | "selected_message_forbidden" | "selected_message_wrong_player" | "duplicate_player_selection") { super("Недопустимый выбор сообщения игрока", { code: "quiz_player_answer_selection_error", statusCode: 400, details: { reason } }); }
+  constructor(reason: "selected_message_required" | "selected_message_forbidden" | "selected_message_wrong_player" | "duplicate_player_selection" | "duplicate_message_selection") { super("Недопустимый выбор сообщения игрока", { code: "quiz_player_answer_selection_error", statusCode: 400, details: { reason } }); }
 }

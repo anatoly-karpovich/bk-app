@@ -17,6 +17,8 @@ import type {
   QuizEventView,
   QuizChatFragment,
   QuizMessageKind,
+  QuizRankedAnswerView,
+  QuizSelectedAnswer,
   QuizSnapshot,
 } from "../domain/types";
 
@@ -50,6 +52,16 @@ export interface QuizChatMutation {
 export interface QuizChatMutationResult {
   event: QuizEventView;
   mutation: QuizChatMutation;
+}
+
+export interface SaveQuizAnswerSelectionsResult {
+  event: QuizEventView;
+  ranking: QuizRankedAnswerView[];
+  result: {
+    previousSelectionsCount: number;
+    nextSelectionsCount: number;
+    effectiveChange: boolean;
+  };
 }
 
 export class QuizEventsService {
@@ -245,6 +257,29 @@ export class QuizEventsService {
     };
   }
 
+  async saveAnswerSelections(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    selections: QuizSelectedAnswer[],
+    expectedRevision: number,
+  ): Promise<SaveQuizAnswerSelectionsResult> {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    const previous = this.engine.getQuestion(event, questionId);
+    const candidate = structuredClone(event);
+    const updated = this.engine.setSelectedAnswers(candidate, questionId, selections);
+    if (updated === candidate) {
+      const view = this.readModels.create(eventId, event);
+      return this.selectionResult(view, questionId, previous.selectedAnswers.length, selections.length, false);
+    }
+    const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
+    if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+    const view = this.readModels.create(eventId, saved);
+    return this.selectionResult(view, questionId, previous.selectedAnswers.length, selections.length, true);
+  }
+
   private async mutate(
     actor: CurrentUser,
     projectId: string,
@@ -296,6 +331,21 @@ export class QuizEventsService {
       retainedMessagesCount: fragment.retainedMessagesCount,
       removedPersistedSelectionsCount: fragment.removedPersistedSelectionsCount,
       effectiveChange: fragment.effectiveChange,
+    };
+  }
+  private selectionResult(
+    event: QuizEventView,
+    questionId: string,
+    previousSelectionsCount: number,
+    nextSelectionsCount: number,
+    effectiveChange: boolean,
+  ): SaveQuizAnswerSelectionsResult {
+    const question = event.questions.find((candidate) => candidate.id === questionId);
+    if (!question) throw new Error("Updated quiz event question was not found");
+    return {
+      event,
+      ranking: question.ranking,
+      result: { previousSelectionsCount, nextSelectionsCount, effectiveChange },
     };
   }
   private snapshot(quizId: string, quiz: import("../domain/types").QuizDocument): QuizSnapshot {
