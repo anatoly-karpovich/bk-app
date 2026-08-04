@@ -64,6 +64,16 @@ export interface SaveQuizAnswerSelectionsResult {
   };
 }
 
+export interface ReviewQuizQuestionResult {
+  event: QuizEventView;
+  result: {
+    conductedOrder: number;
+    awardsCount: number;
+    reviewedAt: string;
+    nextUnconductedQuestionId: string | null;
+  };
+}
+
 export class QuizEventsService {
   constructor(
     private readonly repository: QuizEventsRepository,
@@ -122,6 +132,60 @@ export class QuizEventsService {
   async reopen(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number) {
     return this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.reopenEvent(event));
   }
+  async review(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    expectedRevision: number,
+  ): Promise<ReviewQuizQuestionResult> {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    const saved = await this.repository.update(
+      eventId,
+      projectId,
+      expectedRevision,
+      this.engine.reviewQuestion(structuredClone(event), questionId, actor.id),
+    );
+    if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+
+    const view = this.readModels.create(eventId, saved);
+    const question = view.questions.find((candidate) => candidate.id === questionId);
+    if (!question || question.conductedOrder === null || question.reviewedAt === null) {
+      throw new Error("Reviewed quiz event question was not found");
+    }
+    return {
+      event: view,
+      result: {
+        conductedOrder: question.conductedOrder,
+        awardsCount: question.awards.length,
+        reviewedAt: question.reviewedAt,
+        nextUnconductedQuestionId: view.firstUnconductedQuestionId,
+      },
+    };
+  }
+  async unreview(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) =>
+      this.engine.unreviewQuestion(event, questionId),
+    );
+  }
+  async markAsNotConducted(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) =>
+      this.engine.markAsNotConducted(event, questionId),
+    );
+  }
   async setMessage(
     actor: CurrentUser,
     projectId: string,
@@ -136,7 +200,7 @@ export class QuizEventsService {
     );
   }
 
-  async addChatFragment(
+  async appendChat(
     actor: CurrentUser,
     projectId: string,
     eventId: string,
@@ -172,6 +236,18 @@ export class QuizEventsService {
       },
       mutation: this.mutationFromFragment(fragment),
     };
+  }
+
+  /** Temporary compatibility adapter for the pre-ADR chat-fragments endpoint. */
+  async addChatFragment(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    rawText: string,
+    expectedRevision: number,
+  ): Promise<AddQuizChatFragmentResult> {
+    return this.appendChat(actor, projectId, eventId, questionId, rawText, expectedRevision);
   }
 
   async replaceChat(

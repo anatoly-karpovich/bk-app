@@ -255,3 +255,33 @@ test("rejects a stale revision without overwriting the current event", async () 
   assert.equal(completed.status, "completed");
   assert.equal(completed.revision, 1);
 });
+
+test("reviews through the service command and returns the compact review result", async () => {
+  const { service, questionId } = setup();
+
+  const reviewed = await service.review(actor, "project", "event", questionId, 0);
+
+  assert.equal(reviewed.event.revision, 1);
+  assert.deepEqual(reviewed.result, {
+    conductedOrder: 1,
+    awardsCount: 0,
+    reviewedAt: reviewed.result.reviewedAt,
+    nextUnconductedQuestionId: null,
+  });
+});
+
+test("enforces event ownership and completed read-only state for question mutations", async () => {
+  const { service, questionId } = setup();
+  const anotherHost: CurrentUser = { ...actor, id: "another-host" };
+
+  await assert.rejects(
+    () => service.review(anotherHost, "project", "event", questionId, 0),
+    (error: { code?: string }) => error.code === "FORBIDDEN",
+  );
+
+  const completed = await service.complete(actor, "project", "event", 0);
+  await assert.rejects(
+    () => service.appendChat(actor, "project", "event", questionId, "21:00 [Alice] private [Dark] answer", completed.revision),
+    (error: { code?: string }) => error.code === "quiz_conflict",
+  );
+});
