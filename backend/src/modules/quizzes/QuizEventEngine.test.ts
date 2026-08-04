@@ -53,7 +53,7 @@ test("calculates regular and bonus awards once per exact player and recalculates
   assert.equal(event.questions[0].status, "completed");
 });
 
-test("preserves a completed index and manual override when other pending questions are reordered", () => {
+test("opens the next pending question after completion and preserves completed indexes", () => {
   const quizEngine = engine();
   let event = quizEngine.create(snapshot(3), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
   event = quizEngine.start(event);
@@ -61,13 +61,39 @@ test("preserves a completed index and manual override when other pending questio
   event = quizEngine.startQuestion(event, secondId);
   event = quizEngine.completeQuestion(event, secondId);
   const firstId = event.questions.find((question) => question.quizQuestionId === "question-1")!.id;
-  event = quizEngine.setMessage(event, firstId, "question", "Ручной текст", "host");
-  const movable = event.questions.filter((question) => question.status === "pending" || question.status === "skipped").map((question) => question.id).reverse();
-  event = quizEngine.reorder(event, movable);
-
   const completed = event.questions.find((question) => question.id === secondId)!;
   assert.equal(completed.questionIndex, 1);
-  assert.equal(event.questions.find((question) => question.id === firstId)?.message.messageTextOverride, "Ручной текст");
+  assert.equal(event.currentQuestionId, firstId);
+  assert.equal(event.questions.find((question) => question.id === firstId)?.status, "active");
   const view = new QuizReadModelFactory(quizEngine).create("event", event);
   assert.equal(view.questions.find((question) => question.id === firstId)?.questionText, "Question 1");
+});
+
+test("replaces active answers with exactly the host-confirmed preview candidates", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  event = quizEngine.start(event);
+  const questionId = event.questions[0].id;
+  event = quizEngine.startQuestion(event, questionId);
+  event = quizEngine.appendAnswers(event, questionId, { mode: "append", rawText: "old", insertedByUserId: "host", parsed: [parsed("Old", "old answer")] });
+  event = quizEngine.appendAnswers(event, questionId, {
+    mode: "replace",
+    rawText: "replacement",
+    insertedByUserId: "host",
+    parsed: [parsed("Alice", "correct"), parsed("Bob", "wrong")],
+    acceptedCanonicalKeys: ["Alice:correct"],
+  });
+
+  assert.deepEqual(event.questions[0].answers.filter((answer) => answer.isActive).map((answer) => [answer.playerName, answer.rawMessage, answer.status]), [["Alice", "correct", "accepted"]]);
+  assert.equal(event.questions[0].chatFragments.filter((fragment) => fragment.isActive).length, 1);
+  assert.equal(event.questions[0].chatFragments.filter((fragment) => fragment.isActive)[0].rawText, "replacement");
+
+  event = quizEngine.appendAnswers(event, questionId, {
+    mode: "replace",
+    rawText: "replacement again",
+    insertedByUserId: "host",
+    parsed: [parsed("Alice", "correct")],
+    acceptedCanonicalKeys: ["Alice:correct"],
+  });
+  assert.deepEqual(event.questions[0].answers.filter((answer) => answer.isActive).map((answer) => answer.playerName), ["Alice"]);
 });

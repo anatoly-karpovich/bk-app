@@ -12,10 +12,12 @@ test("parses every supported direct-message form with an exact host nickname", (
     "[**Emrys**] private [Dark] ответ",
     "[**Emrys**] private [Dark, Почтальон] ответ",
     "[**Emrys**] private [Почтальон, Dark] ответ",
+    "[Emrys] to [Dark] ответ",
+    "[Emrys] private [Dark] ответ",
   ];
   const parsed = parser.parse({ rawText: rows.join("\n"), hostNickname: "Dark" });
 
-  assert.equal(parsed.length, 6);
+  assert.equal(parsed.length, 8);
   assert.ok(parsed.every((row) => row.playerName === "Emrys" && row.rawMessage === "ответ" && row.transport === "direct"));
 });
 
@@ -44,4 +46,10 @@ test("uses a timestamp-free canonical key so duplicate rows from separate fragme
   const [withoutTimestamp] = parser.parse({ rawText: "[**Emrys**] to [Dark] ответ", hostNickname: "Dark" });
 
   assert.equal(withTimestamp.canonicalKey, withoutTimestamp.canonicalKey);
+});
+
+test("parses a plain clan recipient after clipboard formatting is removed", () => {
+  const parsed = parser.parse({ rawText: "[Player] private [klan] answer", hostNickname: "Dark" });
+
+  assert.deepEqual(parsed.map((row) => [row.playerName, row.rawMessage, row.transport]), [["Player", "answer", "clan"]]);
 });

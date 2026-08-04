@@ -33,6 +33,7 @@ export function createQuizzesRouter(configs: QuizConfigsController, quizzes: Qui
   router.post("/quiz-events/:eventId/questions/:questionId/restore", asyncHandler(events.restoreQuestion));
   router.put("/quiz-events/:eventId/questions/:questionId/message", asyncHandler(events.setMessage));
   router.delete("/quiz-events/:eventId/questions/:questionId/message-override", asyncHandler(events.clearMessage));
+  router.post("/quiz-events/:eventId/questions/:questionId/chat-fragments/preview", asyncHandler(events.previewFragment));
   router.post("/quiz-events/:eventId/questions/:questionId/chat-fragments", asyncHandler(events.addFragment));
   router.post("/quiz-events/:eventId/questions/:questionId/answers/status", asyncHandler(events.setAnswerStatus));
   router.post("/quiz-events/:eventId/questions/:questionId/answers/bulk-status", asyncHandler(events.setBulkAnswerStatus));

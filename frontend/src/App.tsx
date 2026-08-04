@@ -23,6 +23,7 @@ import QuizzesPage from "./features/utilities/quizzes/QuizzesPage";
 import QuizCreatePage from "./features/utilities/quizzes/QuizCreatePage";
 import QuizEditorPage from "./features/utilities/quizzes/QuizEditorPage";
 import QuizEventsPage from "./features/utilities/quizzes/QuizEventsPage";
+import QuizEventPage from "./features/utilities/quizzes/QuizEventPage";
 
 export default function App() {
   return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
@@ -70,6 +71,7 @@ function AuthenticatedApp() {
           <Route path="/quizzes" element={<QuizzesPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/create" element={<QuizCreatePage selectedProject={selectedProject} />} />
           <Route path="/quizzes/events" element={<QuizEventsPage selectedProject={selectedProject} />} />
+          <Route path="/quizzes/events/:eventId" element={<QuizEventPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/:quizId/edit" element={<QuizEditorPage selectedProject={selectedProject} />} />
           <Route path="/project" element={<ProjectPage selectedProject={selectedProject} canEdit={user?.role === "admin"} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />

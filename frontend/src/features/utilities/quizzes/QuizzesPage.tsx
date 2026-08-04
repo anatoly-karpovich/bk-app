@@ -22,7 +22,7 @@ interface Props {
   selectedProject: Project | null;
 }
 
-function QuizCard({ quiz, canEdit, onOpen, onDelete }: { quiz: Quiz; canEdit: boolean; onOpen: () => void; onDelete: () => void }) {
+function QuizCard({ quiz, canEdit, busy, onOpen, onDelete, onRun }: { quiz: Quiz; canEdit: boolean; busy: boolean; onOpen: () => void; onDelete: () => void; onRun: () => void }) {
   const completedCount = quiz.questions.filter(isQuestionComplete).length;
   const statusLabel = quiz.status === "ready" ? "Готова" : "Черновик";
 
@@ -67,7 +67,7 @@ function QuizCard({ quiz, canEdit, onOpen, onDelete }: { quiz: Quiz; canEdit: bo
         </AppResponsiveGrid>
 
         <Box sx={{ mt: "auto", pt: 1.5, display: "flex", justifyContent: "flex-end" }}>
-          <AppPillButton variant="outlined" startIcon={<PlayArrowRoundedIcon />}>Провести</AppPillButton>
+          <AppPillButton variant="outlined" startIcon={<PlayArrowRoundedIcon />} disabled={busy || quiz.status !== "ready"} onClick={onRun}>Провести</AppPillButton>
         </Box>
       </CardContent>
     </Card>
@@ -83,6 +83,7 @@ export default function QuizzesPage({ selectedProject }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Quiz | null>(null);
+  const [startingQuizId, setStartingQuizId] = useState<string | null>(null);
   const projectId = selectedProject?.id;
 
   const load = async () => {
@@ -115,6 +116,19 @@ export default function QuizzesPage({ selectedProject }: Props) {
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не удалось удалить викторину.");
+    }
+  };
+  const startEvent = async (quiz: Quiz) => {
+    if (!projectId || quiz.status !== "ready") return;
+    setStartingQuizId(quiz.id);
+    setError(null);
+    try {
+      const event = await quizzesApi.createEvent(projectId, quiz.id);
+      navigate(`/quizzes/events/${encodeURIComponent(event.id)}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не удалось начать проведение.");
+    } finally {
+      setStartingQuizId(null);
     }
   };
 
@@ -160,7 +174,7 @@ export default function QuizzesPage({ selectedProject }: Props) {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" }, gap: 2.25 }}>
           {visibleQuizzes.map((quiz) => {
             const canEdit = user?.role === "admin" || quiz.createdByUserId === user?.id;
-            return <QuizCard key={quiz.id} quiz={quiz} canEdit={canEdit} onOpen={() => navigate(`/quizzes/${encodeURIComponent(quiz.id)}/edit`)} onDelete={() => setPendingDelete(quiz)} />;
+            return <QuizCard key={quiz.id} quiz={quiz} canEdit={canEdit} busy={startingQuizId === quiz.id} onOpen={() => navigate(`/quizzes/${encodeURIComponent(quiz.id)}/edit`)} onDelete={() => setPendingDelete(quiz)} onRun={() => void startEvent(quiz)} />;
           })}
         </Box>
       ) : (

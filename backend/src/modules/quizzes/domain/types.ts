@@ -161,6 +161,7 @@ export interface QuizAnswer {
   rawMessage: string;
   transport: "direct" | "clan";
   order: number;
+  isActive: boolean;
   status: QuizAnswerStatus;
   decidedAt: string | null;
   decidedByUserId: string | null;

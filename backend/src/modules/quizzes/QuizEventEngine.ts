@@ -47,7 +47,9 @@ export class QuizEventEngine {
       return { ...completed, awards: this.calculateAwards(event.quizSnapshot, completed, now) };
     });
     const next = { ...event, questions, currentQuestionId: null, updatedAt: now };
-    return { ...next, summary: this.buildSummary(next, now) };
+    const withSummary = { ...next, summary: this.buildSummary(next, now) };
+    const nextQuestion = withSummary.questions.find((item) => item.status === "pending");
+    return nextQuestion ? this.startQuestion(withSummary, nextQuestion.id) : withSummary;
   }
 
   skipQuestion(event: QuizEventDocument, questionId: string): QuizEventDocument {
@@ -86,17 +88,22 @@ export class QuizEventEngine {
     return { ...event, questions: event.questions.map((question) => question.id !== questionId ? question : { ...question, message: kind === "question" ? { ...question.message, messageTextOverride: text, messageTextUpdatedAt: text === null ? null : now, messageTextUpdatedByUserId: text === null ? null : actorId } : { ...question.message, answerTextOverride: text, answerTextUpdatedAt: text === null ? null : now, answerTextUpdatedByUserId: text === null ? null : actorId }, updatedAt: now }), updatedAt: now };
   }
 
-  appendAnswers(event: QuizEventDocument, questionId: string, input: { mode: "append" | "replace"; rawText: string; insertedByUserId: string; parsed: Array<Omit<QuizAnswer, "id" | "fragmentId" | "order" | "status" | "decidedAt" | "decidedByUserId">> }): QuizEventDocument {
+  appendAnswers(event: QuizEventDocument, questionId: string, input: { mode: "append" | "replace"; rawText: string; insertedByUserId: string; parsed: Array<Omit<QuizAnswer, "id" | "fragmentId" | "order" | "isActive" | "status" | "decidedAt" | "decidedByUserId">>; acceptedCanonicalKeys?: string[] }): QuizEventDocument {
     this.assertStatus(event, "active");
     const now = new Date().toISOString();
     return { ...event, questions: event.questions.map((question) => {
       if (question.id !== questionId) return question;
       const fragmentId = randomUUID();
       const fragment = { id: fragmentId, rawText: input.rawText, mode: input.mode, isActive: true, insertedAt: now, insertedByUserId: input.insertedByUserId };
-      const existingKeys = new Set(question.answers.map((answer) => answer.canonicalKey));
+      const acceptedCanonicalKeys = input.acceptedCanonicalKeys ?? [];
+      const acceptedKeys = new Set(acceptedCanonicalKeys);
+      if (acceptedCanonicalKeys.some((key) => !input.parsed.some((line) => line.canonicalKey === key))) throw new Error("Подтверждённый ответ не найден в preview фрагмента");
+      const existingKeys = new Set((input.mode === "replace" ? [] : question.answers.filter((answer) => answer.isActive !== false)).map((answer) => answer.canonicalKey));
       let order = Math.max(0, ...question.answers.map((answer) => answer.order));
-      const answers = [...question.answers, ...input.parsed.filter((line) => !existingKeys.has(line.canonicalKey)).map((line) => ({ ...line, id: randomUUID(), fragmentId, order: ++order, status: "pending" as const, decidedAt: null, decidedByUserId: null }))];
-      return { ...question, chatFragments: [...question.chatFragments.map((fragment) => input.mode === "replace" ? { ...fragment, isActive: false } : fragment), fragment], answers, updatedAt: now };
+      const importedLines = input.mode === "replace" ? input.parsed.filter((line) => acceptedKeys.has(line.canonicalKey)) : input.parsed;
+      const importedAnswers = importedLines.filter((line) => !existingKeys.has(line.canonicalKey)).map((line) => ({ ...line, id: randomUUID(), fragmentId, order: ++order, isActive: true, status: input.mode === "replace" ? "accepted" as const : "pending" as const, decidedAt: input.mode === "replace" ? now : null, decidedByUserId: input.mode === "replace" ? input.insertedByUserId : null }));
+      const priorAnswers = input.mode === "replace" ? question.answers.map((answer) => ({ ...answer, isActive: false })) : question.answers;
+      return { ...question, chatFragments: [...question.chatFragments.map((fragment) => input.mode === "replace" ? { ...fragment, isActive: false } : fragment), fragment], answers: [...priorAnswers, ...importedAnswers], updatedAt: now };
     }), updatedAt: now };
   }
 
@@ -120,7 +127,7 @@ export class QuizEventEngine {
     let totalAcceptedAnswers = 0;
     let totalUniqueCorrectAnswers = 0;
     for (const question of event.questions) {
-      totalAcceptedAnswers += question.answers.filter((answer) => answer.status === "accepted").length;
+      totalAcceptedAnswers += question.answers.filter((answer) => answer.isActive !== false && answer.status === "accepted").length;
       const ranked = this.rankedAnswers(question);
       totalUniqueCorrectAnswers += ranked.length;
       for (const answer of ranked) {
@@ -138,7 +145,7 @@ export class QuizEventEngine {
 
   rankedAnswers(question: QuizEventQuestion): QuizAnswer[] {
     const seen = new Set<string>();
-    return question.answers.filter((answer) => answer.status === "accepted").sort((left, right) => left.order - right.order).filter((answer) => !seen.has(answer.playerName) && (seen.add(answer.playerName), true));
+    return question.answers.filter((answer) => answer.isActive !== false && answer.status === "accepted").sort((left, right) => left.order - right.order).filter((answer) => !seen.has(answer.playerName) && (seen.add(answer.playerName), true));
   }
 
   private calculateAwards(snapshot: QuizSnapshot, question: QuizEventQuestion, now: string): QuizAward[] {

@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { AppError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { QuizEventsService } from "./QuizEventsService";
-import { answerStatusSchema, bulkAnswerStatusSchema, chatFragmentSchema, createQuizEventSchema, projectIdParamsSchema, quizEventParamsSchema, quizEventQuestionParamsSchema, quizMessageKindSchema, quizMessageSchema, quizParamsSchema, reorderQuizQuestionsSchema } from "./quizzes.schemas";
+import { answerStatusSchema, bulkAnswerStatusSchema, chatFragmentSchema, chatPreviewSchema, createQuizEventSchema, projectIdParamsSchema, quizEventParamsSchema, quizEventQuestionParamsSchema, quizMessageKindSchema, quizMessageSchema, quizParamsSchema, reorderQuizQuestionsSchema } from "./quizzes.schemas";
 
 export class QuizEventsController {
   constructor(private readonly service: QuizEventsService) {}
@@ -22,7 +22,8 @@ export class QuizEventsController {
   restoreQuestion = async (req: Request, res: Response) => this.questionAction(req, res, (p) => this.service.restoreQuestion(req.authUser!, p.projectId, p.eventId, p.questionId));
   setMessage = async (req: Request, res: Response) => this.questionAction(req, res, (p) => { const body = parseRequest(quizMessageSchema, req.body, "Некорректный текст сообщения"); return this.service.setMessage(req.authUser!, p.projectId, p.eventId, p.questionId, body.messageKind, body.text); });
   clearMessage = async (req: Request, res: Response) => this.questionAction(req, res, (p) => { const body = parseRequest(quizMessageKindSchema, req.body, "Некорректный тип сообщения"); return this.service.setMessage(req.authUser!, p.projectId, p.eventId, p.questionId, body.messageKind, null); });
-  addFragment = async (req: Request, res: Response) => this.questionAction(req, res, (p) => { const body = parseRequest(chatFragmentSchema, req.body, "Некорректный chat fragment"); return this.service.addFragment(req.authUser!, p.projectId, p.eventId, p.questionId, body.mode, body.rawText); });
+  previewFragment = async (req: Request, res: Response) => this.questionAction(req, res, (p) => this.service.previewFragment(req.authUser!, p.projectId, p.eventId, p.questionId, parseRequest(chatPreviewSchema, req.body, "Некорректный chat fragment").rawText));
+  addFragment = async (req: Request, res: Response) => this.questionAction(req, res, (p) => { const body = parseRequest(chatFragmentSchema, req.body, "Некорректный chat fragment"); return this.service.addFragment(req.authUser!, p.projectId, p.eventId, p.questionId, body.mode, body.rawText, body.acceptedCanonicalKeys); });
   setAnswerStatus = async (req: Request, res: Response) => this.questionAction(req, res, (p) => { const body = parseRequest(answerStatusSchema, req.body, "Некорректный статус ответа"); return this.service.setAnswerStatus(req.authUser!, p.projectId, p.eventId, p.questionId, [body.answerId], body.status); });
   setBulkAnswerStatus = async (req: Request, res: Response) => this.questionAction(req, res, (p) => { const body = parseRequest(bulkAnswerStatusSchema, req.body, "Некорректный статус ответов"); return this.service.setAnswerStatus(req.authUser!, p.projectId, p.eventId, p.questionId, body.answerIds, body.status); });
   private action(req: Request, res: Response, action: (params: { projectId: string; eventId: string }) => Promise<unknown>) { return this.respond(res, () => action(parseRequest(quizEventParamsSchema, req.params, "Некорректные параметры"))); }

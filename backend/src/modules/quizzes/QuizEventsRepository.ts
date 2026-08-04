@@ -16,7 +16,10 @@ export class QuizEventsRepository {
   async findByProjectId(projectId: string): Promise<Array<WithId<QuizEventDocument>>> { return (await this.collection()).find({ projectId }).sort({ updatedAt: -1 }).toArray(); }
   async findByIdAndProjectId(id: string, projectId: string): Promise<WithId<QuizEventDocument> | null> { return (await this.collection()).findOne({ _id: this.objectId(id), projectId }); }
   async create(event: QuizEventDocument): Promise<WithId<QuizEventDocument> | null> { const c = await this.collection(); const result = await c.insertOne(event); return c.findOne({ _id: result.insertedId }); }
-  async update(id: string, projectId: string, event: QuizEventDocument): Promise<WithId<QuizEventDocument> | null> { return (await this.collection()).findOneAndUpdate({ _id: this.objectId(id), projectId }, { $set: event }, { returnDocument: "after" }); }
+  async update(id: string, projectId: string, event: QuizEventDocument): Promise<WithId<QuizEventDocument> | null> {
+    const { _id: _ignoredId, ...document } = event as WithId<QuizEventDocument>;
+    return (await this.collection()).findOneAndUpdate({ _id: this.objectId(id), projectId }, { $set: document }, { returnDocument: "after" });
+  }
   async delete(id: string, projectId: string): Promise<boolean> { return (await this.collection()).deleteOne({ _id: this.objectId(id), projectId }).then((result) => result.deletedCount === 1); }
   async deleteByProjectId(projectId: string): Promise<void> { await (await this.collection()).deleteMany({ projectId }); }
   private collection() { return this.mongoDatabase.getCollection<QuizEventDocument>(COLLECTION); }

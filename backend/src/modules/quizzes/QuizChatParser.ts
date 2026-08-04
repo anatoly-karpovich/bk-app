@@ -20,17 +20,18 @@ export class QuizChatParser {
   }
 
   private parseDirect(line: string, hostNickname: string): Omit<ParsedQuizChatLine, "sourceLineNumber" | "canonicalKey"> | null {
-    const match = /^\[\*\*(?<player>[^\]]+)\*\*\] (?:(?:to)|(?:private)) \[(?<recipients>[^\]]+)\] (?<message>.+)$/.exec(line);
+    const match = /^\[(?:\*\*(?<boldPlayer>[^\]]+?)\*\*|(?<plainPlayer>[^\]]+))\] (?:(?:to)|(?:private)) \[(?<recipients>[^\]]+)\] (?<message>.+)$/.exec(line);
     if (!match?.groups) return null;
-    const recipients = match.groups.recipients.split(", ");
+    const recipients = match.groups.recipients.split(",").map((recipient) => recipient.trim());
     if (!recipients.includes(hostNickname)) return null;
-    return { playerName: match.groups.player, rawMessage: match.groups.message, transport: "direct" };
+    return { playerName: match.groups.boldPlayer ?? match.groups.plainPlayer, rawMessage: match.groups.message, transport: "direct" };
   }
 
   private parseClan(line: string): Omit<ParsedQuizChatLine, "sourceLineNumber" | "canonicalKey"> | null {
     const standard = /^\[\*\*(?<player>[^\]]+)\*\*\] private \[\*\*klan\*\*\] (?<message>.+)$/.exec(line);
     const spaced = /^\[\*\*(?<player>[^\]]+)\*\*\] \*\*private \[\*\* \*\*klan\*\* \*\*\]\*\* (?<message>.+)$/.exec(line);
-    const match = standard ?? spaced;
+    const plain = /^\[(?<player>[^\]]+)\] private \[(?:\*\*)?klan(?:\*\*)?\] (?<message>.+)$/i.exec(line);
+    const match = standard ?? spaced ?? plain;
     if (!match?.groups) return null;
     return { playerName: match.groups.player, rawMessage: match.groups.message, transport: "clan" };
   }

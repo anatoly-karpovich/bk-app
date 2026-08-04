@@ -22,7 +22,11 @@ export class QuizEventsService {
     const quiz = await this.quizzesRepository.findByIdAndProjectId(quizId, projectId);
     if (!quiz) throw new QuizNotFoundError(quizId);
     if (validateQuiz(quiz).length) throw new Error("Из неготовой викторины нельзя создать проведение");
-    const event = this.engine.create(this.snapshot(quizId, quiz), getHostSnapshot(actor, projectId), input.name?.trim() || quiz.name);
+    const createdEvent = this.engine.create(this.snapshot(quizId, quiz), getHostSnapshot(actor, projectId), input.name?.trim() || quiz.name);
+    const firstQuestionId = createdEvent.questions[0]?.id;
+    const event = firstQuestionId
+      ? this.engine.startQuestion(this.engine.start(createdEvent), firstQuestionId)
+      : this.engine.start(createdEvent);
     event.projectId = projectId;
     const created = await this.repository.create(event);
     if (!created) throw new Error("Failed to load created quiz event");
@@ -41,8 +45,13 @@ export class QuizEventsService {
   async restoreQuestion(actor: CurrentUser, projectId: string, eventId: string, questionId: string) { return this.mutate(actor, projectId, eventId, (event) => this.engine.restoreQuestion(event, questionId)); }
   async reorder(actor: CurrentUser, projectId: string, eventId: string, questionIds: string[]) { return this.mutate(actor, projectId, eventId, (event) => this.engine.reorder(event, questionIds)); }
   async setMessage(actor: CurrentUser, projectId: string, eventId: string, questionId: string, kind: QuizMessageKind, text: string | null) { return this.mutate(actor, projectId, eventId, (event) => this.engine.setMessage(event, questionId, kind, text, actor.id)); }
-  async addFragment(actor: CurrentUser, projectId: string, eventId: string, questionId: string, mode: "append" | "replace", rawText: string) {
-    return this.mutate(actor, projectId, eventId, (event) => this.engine.appendAnswers(event, questionId, { mode, rawText, insertedByUserId: actor.id, parsed: this.parser.parse({ rawText, hostNickname: event.hostSnapshot.nickname }) }));
+  async previewFragment(actor: CurrentUser, projectId: string, eventId: string, questionId: string, rawText: string) {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    if (!event.questions.some((question) => question.id === questionId)) throw new Error("Вопрос Event не найден");
+    return this.parser.parse({ rawText, hostNickname: event.hostSnapshot.nickname });
+  }
+  async addFragment(actor: CurrentUser, projectId: string, eventId: string, questionId: string, mode: "append" | "replace", rawText: string, acceptedCanonicalKeys: string[]) {
+    return this.mutate(actor, projectId, eventId, (event) => this.engine.appendAnswers(event, questionId, { mode, rawText, insertedByUserId: actor.id, parsed: this.parser.parse({ rawText, hostNickname: event.hostSnapshot.nickname }), acceptedCanonicalKeys }));
   }
   async setAnswerStatus(actor: CurrentUser, projectId: string, eventId: string, questionId: string, answerIds: string[], status: QuizAnswerStatus) { return this.mutate(actor, projectId, eventId, (event) => this.engine.changeAnswerStatus(event, questionId, answerIds, status, actor.id)); }
 
