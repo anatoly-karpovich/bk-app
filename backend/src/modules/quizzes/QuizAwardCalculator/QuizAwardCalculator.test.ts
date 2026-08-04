@@ -44,7 +44,7 @@ test("uses source questionIndex for regular rules and conductedOrder for bonus s
     ["bonus_position", 3],
   ]);
   assert.equal(awards[0].source.questionIndex, 2);
-  assert.equal(awards[0].source.conductedOrder, null);
+  assert.equal(awards[0].source.conductedOrder, 1);
   assert.equal(awards[1].source.questionIndex, 2);
   assert.equal(awards[1].source.conductedOrder, 1);
 });

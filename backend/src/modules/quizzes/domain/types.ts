@@ -193,7 +193,8 @@ export interface QuizQuestionMessageState {
 export interface QuizAwardSource {
   kind: "regular_all" | "regular_position" | "bonus_position";
   questionIndex: number;
-  conductedOrder: number | null;
+  /** Actual event position, retained alongside the source-question coordinate for audit. */
+  conductedOrder: number;
   position: number | null;
   regularRuleMode: QuizRegularRewardRule["mode"] | null;
   bonusRuleId: string | null;

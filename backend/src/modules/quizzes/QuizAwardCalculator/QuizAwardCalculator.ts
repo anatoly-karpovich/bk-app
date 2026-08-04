@@ -45,10 +45,13 @@ export class QuizAwardCalculator {
     regularRuleMode: QuizAward["source"]["regularRuleMode"],
     bonusRuleId: string | null = null,
   ): QuizAward {
+    if (question.conductedOrder === null) {
+      throw new Error("Quiz awards can only be created for conducted questions");
+    }
     const source = {
       kind,
       questionIndex: question.questionIndex,
-      conductedOrder: kind === "bonus_position" ? question.conductedOrder : null,
+      conductedOrder: question.conductedOrder,
       position: kind === "regular_all" ? null : answer.position,
       regularRuleMode,
       bonusRuleId,

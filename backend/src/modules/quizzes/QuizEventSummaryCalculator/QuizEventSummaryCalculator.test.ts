@@ -23,7 +23,7 @@ test("includes only reviewed conducted questions and their persisted awards", ()
     selectedAnswers: [{ playerName: "Alice", selectedMessageId: "message-1" }],
     awards: [{
       id: "award", selectedMessageId: "message-1", playerName: "Alice", questionIndex: 1,
-      source: { kind: "regular_all", questionIndex: 1, conductedOrder: null, position: null, regularRuleMode: "all_accepted", bonusRuleId: null },
+      source: { kind: "regular_all", questionIndex: 1, conductedOrder: 1, position: null, regularRuleMode: "all_accepted", bonusRuleId: null },
       rewards: [{ resourceId: "coins", amount: 5 }], awardedAt: "now",
     }],
   });
