@@ -15,3 +15,19 @@ export class QuizValidationError extends AppError {
 export class QuizConflictError extends AppError {
   constructor(message: string) { super(message, { code: "quiz_conflict", statusCode: 409 }); }
 }
+
+export class QuizEventNotFoundError extends AppError {
+  constructor(id: string) { super(`Quiz event ${id} was not found`, { code: "quiz_event_not_found", statusCode: 404 }); }
+}
+
+export class QuizQuestionNotFoundError extends AppError {
+  constructor(id: string) { super(`Quiz event question ${id} was not found`, { code: "quiz_question_not_found", statusCode: 404 }); }
+}
+
+export class QuizChatMessageNotFoundError extends AppError {
+  constructor(id: string) { super(`Quiz chat message ${id} was not found`, { code: "quiz_chat_message_not_found", statusCode: 404 }); }
+}
+
+export class QuizPlayerAnswerSelectionError extends AppError {
+  constructor(reason: "selected_message_required" | "selected_message_forbidden" | "selected_message_wrong_player") { super("Недопустимый выбор сообщения игрока", { code: "quiz_player_answer_selection_error", statusCode: 400, details: { reason } }); }
+}

@@ -1,6 +1,6 @@
 import { buildQuizMessage } from "./domain/messageBuilder";
 import type { QuizEventDocument, QuizEventQuestion, QuizEventView, QuizPlayerMessageGroupView } from "./domain/types";
-import { QuizEventEngine } from "./QuizEventEngine";
+import { QuizEventEngine } from "./QuizEventEngine/QuizEventEngine";
 
 export class QuizReadModelFactory {
   constructor(private readonly engine: QuizEventEngine) {}

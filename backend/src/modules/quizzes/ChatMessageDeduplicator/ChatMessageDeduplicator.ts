@@ -1,5 +1,5 @@
-import { ChatMessageIdentity } from "../chat/ChatMessageIdentity";
-import type { QuizChatMessage, QuizChatMessageCandidate } from "./domain/types";
+import { ChatMessageIdentity } from "../../chat/ChatMessageIdentity";
+import type { QuizChatMessage, QuizChatMessageCandidate } from "../domain/types";
 
 export interface DeduplicationResult<T> {
   unique: T[];
@@ -9,7 +9,10 @@ export interface DeduplicationResult<T> {
 export class ChatMessageDeduplicator {
   constructor(private readonly identity: ChatMessageIdentity) {}
 
-  deduplicate(existing: QuizChatMessage[], incoming: QuizChatMessageCandidate[]): DeduplicationResult<QuizChatMessageCandidate> {
+  deduplicate(
+    existing: QuizChatMessage[],
+    incoming: QuizChatMessageCandidate[],
+  ): DeduplicationResult<QuizChatMessageCandidate> {
     const known = new Set(existing.map((message) => message.canonicalKey));
     const unique: QuizChatMessageCandidate[] = [];
     let duplicatesCount = 0;

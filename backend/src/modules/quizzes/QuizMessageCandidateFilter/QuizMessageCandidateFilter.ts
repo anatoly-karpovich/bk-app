@@ -1,6 +1,6 @@
-import { ChatMessageIdentity } from "../chat/ChatMessageIdentity";
-import { ChatTransport, type ParsedChatMessage } from "../chat/domain/types";
-import type { QuizChatMessageCandidate } from "./domain/types";
+import { ChatMessageIdentity } from "../../chat/ChatMessageIdentity";
+import { ChatTransport, type ParsedChatMessage } from "../../chat/domain/types";
+import type { QuizChatMessageCandidate } from "../domain/types";
 
 export interface QuizMessageFilterContext {
   hostNickname: string;

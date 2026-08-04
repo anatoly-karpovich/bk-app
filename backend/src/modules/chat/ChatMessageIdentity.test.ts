@@ -10,3 +10,13 @@ test("creates stable identities without mutating recipient order", () => {
   assert.equal(first, second);
   assert.deepEqual(recipients, ["Dark", "Helper"]);
 });
+
+test("keeps distinct sender, text, punctuation, case, and timestamp identities", () => {
+  const identity = new ChatMessageIdentity();
+  const base = { from: "Alice", to: ["Dark"], text: "Минск", timestamp: "21:05" };
+  const key = identity.createKey(base);
+  assert.notEqual(key, identity.createKey({ ...base, from: "alice" }));
+  assert.notEqual(key, identity.createKey({ ...base, text: "Минск!" }));
+  assert.notEqual(key, identity.createKey({ ...base, text: "минск" }));
+  assert.notEqual(key, identity.createKey({ ...base, timestamp: "21:06" }));
+});

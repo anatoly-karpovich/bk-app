@@ -1,4 +1,4 @@
-import type { QuizChatMessage, QuizPlayerAnswerDecision } from "./domain/types";
+import type { QuizChatMessage, QuizPlayerAnswerDecision } from "../domain/types";
 
 export interface RankedQuizAnswer {
   playerName: string;
@@ -9,20 +9,33 @@ export interface RankedQuizAnswer {
 }
 
 export class QuizAnswerRanker {
-  rank(messages: QuizChatMessage[], decisions: QuizPlayerAnswerDecision[], questionStartedAt: string | null): RankedQuizAnswer[] {
+  rank(
+    messages: QuizChatMessage[],
+    decisions: QuizPlayerAnswerDecision[],
+    questionStartedAt: string | null,
+  ): RankedQuizAnswer[] {
     const messagesById = new Map(messages.map((message) => [message.id, message]));
     return decisions
       .filter((decision) => decision.status === "accepted" && decision.selectedMessageId)
       .map((decision) => {
         const message = messagesById.get(decision.selectedMessageId!);
         if (!message || message.from !== decision.playerName) throw new Error("Недопустимое решение по ответу игрока");
-        return { playerName: decision.playerName, selectedMessageId: message.id, timestamp: message.timestamp, firstSeenOrder: message.firstSeenOrder };
+        return {
+          playerName: decision.playerName,
+          selectedMessageId: message.id,
+          timestamp: message.timestamp,
+          firstSeenOrder: message.firstSeenOrder,
+        };
       })
       .sort((left, right) => this.compare(left, right, questionStartedAt))
       .map((answer, index) => ({ ...answer, position: index + 1 }));
   }
 
-  compare(left: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">, right: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">, questionStartedAt: string | null): number {
+  compare(
+    left: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">,
+    right: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">,
+    questionStartedAt: string | null,
+  ): number {
     const leftOrder = this.relativeMinutes(left.timestamp, questionStartedAt);
     const rightOrder = this.relativeMinutes(right.timestamp, questionStartedAt);
     if (leftOrder !== rightOrder) return leftOrder - rightOrder;

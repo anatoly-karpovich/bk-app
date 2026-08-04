@@ -40,3 +40,18 @@ test("keeps long public messages separate when clipboard timestamps are missing 
     ]);
   }
 });
+
+test("ignores unsupported lines and preserves answer text verbatim", () => {
+  const input = "not a chat line\n[Player] private [Dark]  Минск!  to [Other] private 😀\n[broken private [Dark] answer";
+  const first = parser.parse(input);
+  const second = parser.parse(input);
+  assert.deepEqual(first, second);
+  assert.deepEqual(first, [{ from: "Player", to: ["Dark"], text: " Минск!  to [Other] private 😀", timestamp: null, sourceLineNumber: 2 }]);
+});
+
+test("preserves supported character, space, and case variants in character nicknames", () => {
+  const nicknames = ["1-st", "13district", "T-Rex", "Monkey Business", "Повелитель Земли", "Dark_Knight", "Уфф-ф", "BROdyaga"];
+  const messages = parser.parse(nicknames.map((nickname) => `[**${nickname}**] private [Dark] ответ`).join("\n"));
+  assert.deepEqual(messages.map((message) => message.from), nicknames);
+  assert.ok(messages.every((message) => message.to[0] === "Dark" && message.text === "ответ"));
+});
