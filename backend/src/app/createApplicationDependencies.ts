@@ -51,6 +51,7 @@ import { ChatParser } from "../modules/chat/ChatParser";
 import { ChatMessageIdentity } from "../modules/chat/ChatMessageIdentity";
 import { ChatMessageDeduplicator } from "../modules/quizzes/ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizAnswerRanker } from "../modules/quizzes/QuizAnswerRanker/QuizAnswerRanker";
+import { QuizAwardCalculator } from "../modules/quizzes/QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../modules/quizzes/QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizMessageCandidateFilter } from "../modules/quizzes/QuizMessageCandidateFilter/QuizMessageCandidateFilter";
 import { QuizReadModelFactory } from "../modules/quizzes/QuizReadModelFactory";
@@ -123,7 +124,11 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const rewardGrantService = new RewardGrantService(randomizer);
   const chatMessageIdentity = new ChatMessageIdentity();
   const quizAnswerRanker = new QuizAnswerRanker();
-  const quizEventEngine = new QuizEventEngine(quizAnswerRanker, new QuizEventSummaryCalculator());
+  const quizEventEngine = new QuizEventEngine(
+    quizAnswerRanker,
+    new QuizAwardCalculator(),
+    new QuizEventSummaryCalculator(),
+  );
   const quizReadModelFactory = new QuizReadModelFactory(quizAnswerRanker);
   const quizEventsService = new QuizEventsService(
     quizEventsRepository,

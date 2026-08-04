@@ -15,11 +15,13 @@ import {
   QuizQuestionNotFoundError,
 } from "../errors";
 import { QuizAnswerRanker, type RankedQuizAnswer } from "../QuizAnswerRanker/QuizAnswerRanker";
+import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 
 export class QuizEventEngine {
   constructor(
     private readonly answerRanker: QuizAnswerRanker,
+    private readonly awardCalculator: QuizAwardCalculator,
     private readonly summaryCalculator: QuizEventSummaryCalculator,
   ) {}
 
@@ -53,6 +55,71 @@ export class QuizEventEngine {
   reopenEvent(event: QuizEventDocument): QuizEventDocument {
     if (event.status !== "completed") throw new QuizConflictError("Переоткрыть можно только завершённое проведение");
     return { ...event, status: "open", completedAt: null, updatedAt: new Date().toISOString() };
+  }
+
+  reviewQuestion(event: QuizEventDocument, questionId: string, actorId: string): QuizEventDocument {
+    this.assertOpen(event);
+    const current = this.getQuestion(event, questionId);
+    const now = new Date().toISOString();
+    const reviewed = {
+      ...current,
+      conductedOrder: current.conductedOrder ?? this.nextConductedOrder(event),
+      reviewedAt: now,
+      reviewedByUserId: actorId,
+      updatedAt: now,
+    };
+    const ranking = this.answerRanker.rank(reviewed.chatMessages, reviewed.selectedAnswers);
+    reviewed.awards = this.awardCalculator.calculate(event.quizSnapshot, reviewed, ranking, now);
+    return this.rebuildSummary({
+      ...event,
+      questions: event.questions.map((question) => question.id === questionId ? reviewed : question),
+      updatedAt: now,
+    }, now);
+  }
+
+  unreviewQuestion(event: QuizEventDocument, questionId: string): QuizEventDocument {
+    this.assertOpen(event);
+    const question = this.getQuestion(event, questionId);
+    if (!this.hasReviewedResult(question)) return event;
+    const now = new Date().toISOString();
+    return this.rebuildSummary({
+      ...event,
+      questions: event.questions.map((item) =>
+        item.id === questionId ? this.clearReviewedResult(item, now) : item,
+      ),
+      updatedAt: now,
+    }, now);
+  }
+
+  markAsNotConducted(event: QuizEventDocument, questionId: string): QuizEventDocument {
+    this.assertOpen(event);
+    const question = this.getQuestion(event, questionId);
+    if (question.conductedOrder === null) return event;
+
+    const now = new Date().toISOString();
+    const removedOrder = question.conductedOrder;
+    const questions = event.questions.map((item) => {
+      if (item.id === questionId) {
+        return {
+          ...item,
+          conductedOrder: null,
+          reviewedAt: null,
+          reviewedByUserId: null,
+          awards: [],
+          updatedAt: now,
+        };
+      }
+      if (item.conductedOrder === null || item.conductedOrder < removedOrder) return item;
+
+      const reordered = { ...item, conductedOrder: item.conductedOrder - 1, updatedAt: now };
+      if (reordered.reviewedAt !== null) {
+        const ranking = this.answerRanker.rank(reordered.chatMessages, reordered.selectedAnswers);
+        reordered.awards = this.awardCalculator.calculate(event.quizSnapshot, reordered, ranking, now);
+      }
+      return reordered;
+    });
+
+    return this.rebuildSummary({ ...event, questions, updatedAt: now }, now);
   }
 
   setMessage(
@@ -109,13 +176,15 @@ export class QuizEventEngine {
     this.getQuestion(event, questionId);
     const now = new Date().toISOString();
     const fragmentId = randomUUID();
-    return {
+    let changedReviewedResult = false;
+    const next = {
       ...event,
       questions: event.questions.map((question) => {
         if (question.id !== questionId) return question;
         let nextOrder = Math.max(0, ...question.chatMessages.map((message) => message.firstSeenOrder));
+        changedReviewedResult = input.messages.length > 0 && this.hasReviewedResult(question);
         return {
-          ...question,
+          ...(changedReviewedResult ? this.clearReviewedResult(question, now) : question),
           chatMessages: [
             ...question.chatMessages,
             ...input.messages.map((message) => ({
@@ -143,6 +212,7 @@ export class QuizEventEngine {
       }),
       updatedAt: now,
     };
+    return changedReviewedResult ? this.rebuildSummary(next, now) : next;
   }
 
   setSelectedAnswers(
@@ -155,15 +225,21 @@ export class QuizEventEngine {
     this.assertSelections(question, selectedAnswers);
     if (this.sameSelections(question.selectedAnswers, selectedAnswers)) return event;
     const now = new Date().toISOString();
-    return {
+    const changedReviewedResult = this.hasReviewedResult(question);
+    const next = {
       ...event,
       questions: event.questions.map((item) =>
         item.id === questionId
-          ? { ...item, selectedAnswers: structuredClone(selectedAnswers), updatedAt: now }
+          ? {
+              ...(changedReviewedResult ? this.clearReviewedResult(item, now) : item),
+              selectedAnswers: structuredClone(selectedAnswers),
+              updatedAt: now,
+            }
           : item,
       ),
       updatedAt: now,
     };
+    return changedReviewedResult ? this.rebuildSummary(next, now) : next;
   }
 
   /** Temporary adapter for the old per-player endpoint. Removed with the HTTP transition. */
@@ -215,6 +291,28 @@ export class QuizEventEngine {
       awards: [],
       updatedAt: now,
     };
+  }
+
+  private nextConductedOrder(event: QuizEventDocument): number {
+    return Math.max(0, ...event.questions.map((question) => question.conductedOrder ?? 0)) + 1;
+  }
+
+  private hasReviewedResult(question: QuizEventQuestion): boolean {
+    return question.reviewedAt !== null || question.reviewedByUserId !== null || question.awards.length > 0;
+  }
+
+  private clearReviewedResult(question: QuizEventQuestion, now: string): QuizEventQuestion {
+    return {
+      ...question,
+      reviewedAt: null,
+      reviewedByUserId: null,
+      awards: [],
+      updatedAt: now,
+    };
+  }
+
+  private rebuildSummary(event: QuizEventDocument, generatedAt: string): QuizEventDocument {
+    return { ...event, summary: this.summaryCalculator.calculate(event.questions, generatedAt) };
   }
 
   private assertSelections(question: QuizEventQuestion, selections: QuizSelectedAnswer[]): void {

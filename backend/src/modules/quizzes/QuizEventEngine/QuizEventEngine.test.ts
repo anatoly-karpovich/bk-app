@@ -3,6 +3,7 @@ import test from "node:test";
 import type { ResourceSnapshot } from "../../rewards";
 import { ChatTransport } from "../../chat/domain/types";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
+import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
 import type { QuizChatMessageCandidate, QuizSnapshot } from "../domain/types";
@@ -36,7 +37,7 @@ function candidate(from: string, text: string, timestamp = "21:00"): QuizChatMes
 }
 
 function engine() {
-  return new QuizEventEngine(new QuizAnswerRanker(), new QuizEventSummaryCalculator());
+  return new QuizEventEngine(new QuizAnswerRanker(), new QuizAwardCalculator(), new QuizEventSummaryCalculator());
 }
 
 test("creates an open event with unconducted, unreviewed questions", () => {
@@ -72,16 +73,106 @@ test("persists one selected message per player and ranks the selected answers", 
   assert.throws(() => quizEngine.setSelectedAnswers(event, questionId, [{ playerName: "Bob", selectedMessageId: alice.id }]));
 });
 
-test("completes and reopens without inferring a question lifecycle", () => {
+test("assigns continuous conducted order in the host's review order", () => {
   const quizEngine = engine();
-  const created = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
-  const completed = quizEngine.completeEvent(created);
+  let event = quizEngine.create(snapshot(3), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  const [first, second, third] = event.questions;
+
+  event = quizEngine.reviewQuestion(event, first.id, "host");
+  event = quizEngine.reviewQuestion(event, third.id, "host");
+  event = quizEngine.reviewQuestion(event, second.id, "host");
+
+  assert.deepEqual(event.questions.map((question) => question.conductedOrder), [1, 3, 2]);
+  assert.equal(event.summary?.totalConductedQuestions, 3);
+  assert.equal(event.summary?.totalReviewedQuestions, 3);
+});
+
+test("an effective selection change clears review and awards without changing conducted order", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(3), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  const [first, , third] = event.questions;
+  event = quizEngine.reviewQuestion(event, first.id, "host");
+  event = quizEngine.appendChatFragment(event, third.id, {
+    rawText: "chat", parsedMessagesCount: 1, candidateMessagesCount: 1, duplicateMessagesCount: 0, insertedByUserId: "host",
+    messages: [candidate("Alice", "answer")],
+  });
+  const answerId = event.questions[2].chatMessages[0].id;
+  event = quizEngine.setSelectedAnswers(event, third.id, [{ playerName: "Alice", selectedMessageId: answerId }]);
+  event = quizEngine.reviewQuestion(event, third.id, "host");
+
+  assert.equal(event.questions[2].conductedOrder, 2);
+  assert.equal(event.questions[2].awards.length, 1);
+  const awardId = event.questions[2].awards[0].id;
+
+  event.questions[2].awards = [];
+  event = quizEngine.reviewQuestion(event, third.id, "host");
+  assert.equal(event.questions[2].conductedOrder, 2);
+  assert.equal(event.questions[2].awards[0].id, awardId);
+
+  event = quizEngine.setSelectedAnswers(event, third.id, []);
+
+  assert.equal(event.questions[2].conductedOrder, 2);
+  assert.equal(event.questions[2].reviewedAt, null);
+  assert.deepEqual(event.questions[2].awards, []);
+  assert.equal(event.summary?.totalReviewedQuestions, 1);
+
+  event = quizEngine.reviewQuestion(event, third.id, "host");
+  assert.equal(event.questions[2].conductedOrder, 2);
+  assert.ok(event.questions[2].reviewedAt);
+  assert.deepEqual(event.questions[2].awards, []);
+  assert.equal(event.summary?.totalReviewedQuestions, 2);
+});
+
+test("marking a question not conducted compacts order and recalculates affected bonus awards", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(3), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  event.quizSnapshot.configRulesSnapshot.bonusRules = [{
+    id: "second-slot", questionIndex: 2, position: 1, rewardPool: allPool,
+  }];
+
+  for (const question of event.questions) {
+    event = quizEngine.appendChatFragment(event, question.id, {
+      rawText: "chat", parsedMessagesCount: 1, candidateMessagesCount: 1, duplicateMessagesCount: 0, insertedByUserId: "host",
+      messages: [candidate(`Player ${question.questionIndex}`, "answer")],
+    });
+    const messageId = event.questions.find((item) => item.id === question.id)!.chatMessages[0].id;
+    event = quizEngine.setSelectedAnswers(event, question.id, [{ playerName: `Player ${question.questionIndex}`, selectedMessageId: messageId }]);
+    event = quizEngine.reviewQuestion(event, question.id, "host");
+  }
+
+  assert.equal(event.questions[1].awards.some((award) => award.source.kind === "bonus_position"), true);
+  assert.equal(event.questions[2].awards.some((award) => award.source.kind === "bonus_position"), false);
+
+  event = quizEngine.markAsNotConducted(event, event.questions[0].id);
+
+  assert.deepEqual(event.questions.map((question) => question.conductedOrder), [null, 1, 2]);
+  assert.equal(event.questions[0].reviewedAt, null);
+  assert.deepEqual(event.questions[0].awards, []);
+  assert.equal(event.questions[1].reviewedAt !== null, true);
+  assert.equal(event.questions[1].awards.some((award) => award.source.kind === "bonus_position"), false);
+  assert.equal(event.questions[2].awards.some((award) => award.source.kind === "bonus_position"), true);
+  assert.equal(event.summary?.totalReviewedQuestions, 2);
+});
+
+test("completes and reopens with unreviewed and unused questions without recalculating awards", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(3), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  event = quizEngine.reviewQuestion(event, event.questions[0].id, "host");
+  event = quizEngine.reviewQuestion(event, event.questions[1].id, "host");
+  event = quizEngine.unreviewQuestion(event, event.questions[1].id);
+
+  const completed = quizEngine.completeEvent(event);
+  const summaryBeforeReopen = structuredClone(completed.summary);
   const reopened = quizEngine.reopenEvent(completed);
 
   assert.equal(completed.status, "completed");
   assert.ok(completed.completedAt);
+  assert.equal(completed.summary?.totalPreparedQuestions, 3);
+  assert.equal(completed.summary?.totalConductedQuestions, 2);
+  assert.equal(completed.summary?.totalReviewedQuestions, 1);
   assert.equal(reopened.status, "open");
   assert.equal(reopened.completedAt, null);
+  assert.deepEqual(reopened.summary, summaryBeforeReopen);
 });
 
 test("building a read model has no side effects on persisted event data", () => {

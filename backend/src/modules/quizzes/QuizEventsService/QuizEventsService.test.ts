@@ -6,6 +6,7 @@ import { ChatParser } from "../../chat/ChatParser";
 import type { CurrentUser } from "../../auth/domain/types";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
+import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizEventsService } from "./QuizEventsService";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
@@ -63,7 +64,7 @@ const actor: CurrentUser = {
 
 function setup(): { service: QuizEventsService; event: QuizEventDocument; questionId: string } {
   const answerRanker = new QuizAnswerRanker();
-  const engine = new QuizEventEngine(answerRanker, new QuizEventSummaryCalculator());
+  const engine = new QuizEventEngine(answerRanker, new QuizAwardCalculator(), new QuizEventSummaryCalculator());
   let event = engine.create(snapshot, { userId: actor.id, displayName: actor.displayName, nickname: "Dark" }, "Event");
   event.projectId = "project";
   const questionId = event.questions[0].id;
