@@ -6,7 +6,7 @@ import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
-import { QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError } from "../errors";
+import { QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizValidationError } from "../errors";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
@@ -15,6 +15,7 @@ import { validateQuiz } from "../domain/validation";
 import type {
   QuizEventDocument,
   QuizEventView,
+  QuizChatFragment,
   QuizMessageKind,
   QuizSnapshot,
 } from "../domain/types";
@@ -28,6 +29,27 @@ export interface AddQuizChatFragmentResult {
     addedMessagesCount: number;
     duplicateMessagesCount: number;
   };
+  mutation: QuizChatMutation;
+}
+
+export interface QuizChatMutation {
+  fragmentId: string | null;
+  mode: "append" | "replace" | "clear";
+  parsedMessagesCount: number;
+  candidateMessagesCount: number;
+  duplicateMessagesCount: number;
+  previousMessagesCount: number;
+  nextMessagesCount: number;
+  addedMessagesCount: number;
+  removedMessagesCount: number;
+  retainedMessagesCount: number;
+  removedPersistedSelectionsCount: number;
+  effectiveChange: boolean;
+}
+
+export interface QuizChatMutationResult {
+  event: QuizEventView;
+  mutation: QuizChatMutation;
 }
 
 export class QuizEventsService {
@@ -113,13 +135,9 @@ export class QuizEventsService {
     const event = await this.editableEvent(actor, projectId, eventId);
     this.assertExpectedRevision(event, eventId, expectedRevision);
     const question = this.engine.getQuestion(event, questionId);
-    const parsed = this.chatParser.parse(rawText);
-    const candidates = this.candidateFilter.filter(parsed, {
-      hostNickname: event.hostSnapshot.nickname,
-      allowedTransports: [ChatTransport.DIRECT, ChatTransport.CLAN],
-    });
+    const { parsed, candidates } = this.parseCandidates(event, rawText);
     const deduplicated = this.deduplicator.deduplicate(question.chatMessages, candidates);
-    const updated = this.engine.appendChatFragment(structuredClone(event), questionId, {
+    const updated = this.engine.appendChat(structuredClone(event), questionId, {
       rawText,
       parsedMessagesCount: parsed.length,
       candidateMessagesCount: candidates.length,
@@ -139,6 +157,90 @@ export class QuizEventsService {
         candidateMessagesCount: fragment.candidateMessagesCount,
         addedMessagesCount: fragment.addedMessagesCount,
         duplicateMessagesCount: fragment.duplicateMessagesCount,
+      },
+      mutation: this.mutationFromFragment(fragment),
+    };
+  }
+
+  async replaceChat(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    rawText: string,
+    expectedRevision: number,
+  ): Promise<QuizChatMutationResult> {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    const { parsed, candidates } = this.parseCandidates(event, rawText);
+    const deduplicated = this.deduplicator.deduplicate([], candidates);
+    if (!deduplicated.unique.length) {
+      throw new QuizValidationError("Не найдено сообщений для замены. Текущий чат не изменён.");
+    }
+    const updated = this.engine.replaceChat(structuredClone(event), questionId, {
+      rawText,
+      parsedMessagesCount: parsed.length,
+      candidateMessagesCount: candidates.length,
+      duplicateMessagesCount: deduplicated.duplicatesCount,
+      messages: deduplicated.unique,
+      insertedByUserId: actor.id,
+    });
+    const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
+    if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+    const fragment = this.engine.getQuestion(saved, questionId).chatFragments.at(-1)!;
+    return { event: this.readModels.create(eventId, saved), mutation: this.mutationFromFragment(fragment) };
+  }
+
+  async clearChat(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    questionId: string,
+    expectedRevision: number,
+  ): Promise<QuizChatMutationResult> {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    const question = this.engine.getQuestion(event, questionId);
+    const previousMessagesCount = question.chatMessages.length;
+    const removedPersistedSelectionsCount = question.selectedAnswers.length;
+    const effectiveChange = previousMessagesCount > 0 || removedPersistedSelectionsCount > 0;
+    if (!effectiveChange) {
+      return {
+        event: this.readModels.create(eventId, event),
+        mutation: {
+          fragmentId: null,
+          mode: "clear",
+          parsedMessagesCount: 0,
+          candidateMessagesCount: 0,
+          duplicateMessagesCount: 0,
+          previousMessagesCount,
+          nextMessagesCount: 0,
+          addedMessagesCount: 0,
+          removedMessagesCount: 0,
+          retainedMessagesCount: 0,
+          removedPersistedSelectionsCount: 0,
+          effectiveChange: false,
+        },
+      };
+    }
+    const updated = this.engine.clearChat(structuredClone(event), questionId);
+    const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
+    if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+    return {
+      event: this.readModels.create(eventId, saved),
+      mutation: {
+        fragmentId: null,
+        mode: "clear",
+        parsedMessagesCount: 0,
+        candidateMessagesCount: 0,
+        duplicateMessagesCount: 0,
+        previousMessagesCount,
+        nextMessagesCount: 0,
+        addedMessagesCount: 0,
+        removedMessagesCount: previousMessagesCount,
+        retainedMessagesCount: 0,
+        removedPersistedSelectionsCount,
+        effectiveChange: true,
       },
     };
   }
@@ -171,6 +273,30 @@ export class QuizEventsService {
   }
   private assertExpectedRevision(event: QuizEventDocument, eventId: string, expectedRevision: number): void {
     if (event.revision !== expectedRevision) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+  }
+  private parseCandidates(event: QuizEventDocument, rawText: string) {
+    const parsed = this.chatParser.parse(rawText);
+    const candidates = this.candidateFilter.filter(parsed, {
+      hostNickname: event.hostSnapshot.nickname,
+      allowedTransports: [ChatTransport.DIRECT, ChatTransport.CLAN],
+    });
+    return { parsed, candidates };
+  }
+  private mutationFromFragment(fragment: QuizChatFragment): QuizChatMutation {
+    return {
+      fragmentId: fragment.id,
+      mode: fragment.mode,
+      parsedMessagesCount: fragment.parsedMessagesCount,
+      candidateMessagesCount: fragment.candidateMessagesCount,
+      duplicateMessagesCount: fragment.duplicateMessagesCount,
+      previousMessagesCount: fragment.previousMessagesCount,
+      nextMessagesCount: fragment.nextMessagesCount,
+      addedMessagesCount: fragment.addedMessagesCount,
+      removedMessagesCount: fragment.removedMessagesCount,
+      retainedMessagesCount: fragment.retainedMessagesCount,
+      removedPersistedSelectionsCount: fragment.removedPersistedSelectionsCount,
+      effectiveChange: fragment.effectiveChange,
+    };
   }
   private snapshot(quizId: string, quiz: import("../domain/types").QuizDocument): QuizSnapshot {
     return {

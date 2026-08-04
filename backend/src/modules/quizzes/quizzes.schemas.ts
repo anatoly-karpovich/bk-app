@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
 
+/** Infrastructure guardrail for raw chat payloads; no product limit is imposed on message counts. */
+export const QUIZ_CHAT_RAW_TEXT_MAX_LENGTH = 100_000;
+
 const resourceAmountSchema = z.object({ resourceId: z.string().trim().min(1).max(120), amount: z.number().finite().positive() });
 const poolSchema = z.object({ mode: z.literal("all"), rewards: z.array(resourceAmountSchema).min(1) });
 const regularRuleSchema = z.discriminatedUnion("mode", [
@@ -49,4 +52,4 @@ export const createQuizEventSchema = z.object({ name: z.string().max(160).option
 export const quizEventRevisionSchema = z.object({ revision: z.number().int().nonnegative() });
 export const quizMessageSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
 export const quizMessageKindSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]) });
-export const chatFragmentSchema = quizEventRevisionSchema.extend({ rawText: z.string().min(1).max(100_000) });
+export const chatFragmentSchema = quizEventRevisionSchema.extend({ rawText: z.string().min(1).max(QUIZ_CHAT_RAW_TEXT_MAX_LENGTH) });

@@ -17,12 +17,23 @@ import {
 import { QuizAnswerRanker, type RankedQuizAnswer } from "../QuizAnswerRanker/QuizAnswerRanker";
 import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
+import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
+
+export interface QuizChatMutationInput {
+  rawText: string;
+  parsedMessagesCount: number;
+  candidateMessagesCount: number;
+  duplicateMessagesCount: number;
+  messages: QuizChatMessageCandidate[];
+  insertedByUserId: string;
+}
 
 export class QuizEventEngine {
   constructor(
     private readonly answerRanker: QuizAnswerRanker,
     private readonly awardCalculator: QuizAwardCalculator,
     private readonly summaryCalculator: QuizEventSummaryCalculator,
+    private readonly selectedAnswerPruner: QuizSelectedAnswerPruner,
   ) {}
 
   create(snapshot: QuizSnapshot, host: QuizEventDocument["hostSnapshot"], name: string): QuizEventDocument {
@@ -160,51 +171,53 @@ export class QuizEventEngine {
     };
   }
 
-  appendChatFragment(
+  appendChat(
     event: QuizEventDocument,
     questionId: string,
-    input: {
-      rawText: string;
-      parsedMessagesCount: number;
-      candidateMessagesCount: number;
-      duplicateMessagesCount: number;
-      messages: QuizChatMessageCandidate[];
-      insertedByUserId: string;
-    },
+    input: QuizChatMutationInput,
   ): QuizEventDocument {
     this.assertOpen(event);
     this.getQuestion(event, questionId);
     const now = new Date().toISOString();
     const fragmentId = randomUUID();
-    let changedReviewedResult = false;
+    let reviewWasCleared = false;
     const next = {
       ...event,
       questions: event.questions.map((question) => {
         if (question.id !== questionId) return question;
-        let nextOrder = Math.max(0, ...question.chatMessages.map((message) => message.firstSeenOrder));
-        changedReviewedResult = input.messages.length > 0 && this.hasReviewedResult(question);
+        const previousMessagesCount = question.chatMessages.length;
+        let nextOrder = Math.max(0, ...question.chatMessages.map((message) => message.effectiveOrder));
+        const effectiveChange = input.messages.length > 0;
+        reviewWasCleared = effectiveChange && this.hasReviewedResult(question);
         return {
-          ...(changedReviewedResult ? this.clearReviewedResult(question, now) : question),
+          ...(effectiveChange ? this.clearReviewedResult(question, now) : question),
           chatMessages: [
             ...question.chatMessages,
             ...input.messages.map((message) => ({
               ...message,
               id: randomUUID(),
-              firstSeenFragmentId: fragmentId,
-              firstSeenOrder: ++nextOrder,
+              sourceFragmentId: fragmentId,
+              effectiveOrder: ++nextOrder,
             })),
           ],
           chatFragments: [
             ...question.chatFragments,
             {
               id: fragmentId,
+              mode: "append" as const,
               rawText: input.rawText,
               insertedAt: now,
               insertedByUserId: input.insertedByUserId,
               parsedMessagesCount: input.parsedMessagesCount,
               candidateMessagesCount: input.candidateMessagesCount,
-              addedMessagesCount: input.messages.length,
               duplicateMessagesCount: input.duplicateMessagesCount,
+              previousMessagesCount,
+              nextMessagesCount: previousMessagesCount + input.messages.length,
+              addedMessagesCount: input.messages.length,
+              removedMessagesCount: 0,
+              retainedMessagesCount: previousMessagesCount,
+              removedPersistedSelectionsCount: 0,
+              effectiveChange,
             },
           ],
           updatedAt: now,
@@ -212,7 +225,93 @@ export class QuizEventEngine {
       }),
       updatedAt: now,
     };
-    return changedReviewedResult ? this.rebuildSummary(next, now) : next;
+    return reviewWasCleared ? this.rebuildSummary(next, now) : next;
+  }
+
+  replaceChat(
+    event: QuizEventDocument,
+    questionId: string,
+    input: QuizChatMutationInput,
+  ): QuizEventDocument {
+    this.assertOpen(event);
+    const current = this.getQuestion(event, questionId);
+    if (!input.messages.length) throw new QuizConflictError("Не найдено сообщений для замены");
+
+    const now = new Date().toISOString();
+    const fragmentId = randomUUID();
+    const existingByCanonicalKey = new Map(current.chatMessages.map((message) => [message.canonicalKey, message]));
+    const nextMessages = input.messages.map((message, index) => ({
+      ...message,
+      id: existingByCanonicalKey.get(message.canonicalKey)?.id ?? randomUUID(),
+      sourceFragmentId: fragmentId,
+      effectiveOrder: index + 1,
+    }));
+    const effectiveChange = !this.sameEffectiveChat(current.chatMessages, nextMessages);
+    const pruned = this.selectedAnswerPruner.prune(current.selectedAnswers, nextMessages);
+    const selectionsChanged = pruned.removedCount > 0;
+    const resultChanged = effectiveChange || selectionsChanged;
+    const retainedMessagesCount = nextMessages.filter((message) => existingByCanonicalKey.has(message.canonicalKey)).length;
+    const nextQuestion = {
+      ...(resultChanged ? this.clearReviewedResult(current, now) : current),
+      ...(effectiveChange ? { chatMessages: nextMessages } : {}),
+      ...(selectionsChanged ? { selectedAnswers: pruned.selections } : {}),
+      chatFragments: [
+        ...current.chatFragments,
+        {
+          id: fragmentId,
+          mode: "replace" as const,
+          rawText: input.rawText,
+          insertedAt: now,
+          insertedByUserId: input.insertedByUserId,
+          parsedMessagesCount: input.parsedMessagesCount,
+          candidateMessagesCount: input.candidateMessagesCount,
+          duplicateMessagesCount: input.duplicateMessagesCount,
+          previousMessagesCount: current.chatMessages.length,
+          nextMessagesCount: nextMessages.length,
+          addedMessagesCount: nextMessages.length - retainedMessagesCount,
+          removedMessagesCount: current.chatMessages.length - retainedMessagesCount,
+          retainedMessagesCount,
+          removedPersistedSelectionsCount: pruned.removedCount,
+          effectiveChange: resultChanged,
+        },
+      ],
+      updatedAt: now,
+    };
+    const next = {
+      ...event,
+      questions: event.questions.map((question) => question.id === questionId ? nextQuestion : question),
+      updatedAt: now,
+    };
+    return resultChanged && this.hasReviewedResult(current) ? this.rebuildSummary(next, now) : next;
+  }
+
+  clearChat(event: QuizEventDocument, questionId: string): QuizEventDocument {
+    this.assertOpen(event);
+    const current = this.getQuestion(event, questionId);
+    const effectiveChange = current.chatMessages.length > 0 || current.selectedAnswers.length > 0;
+    if (!effectiveChange) return event;
+
+    const now = new Date().toISOString();
+    const next = {
+      ...event,
+      questions: event.questions.map((question) => question.id === questionId ? {
+        ...this.clearReviewedResult(question, now),
+        chatMessages: [],
+        selectedAnswers: [],
+        updatedAt: now,
+      } : question),
+      updatedAt: now,
+    };
+    return this.hasReviewedResult(current) ? this.rebuildSummary(next, now) : next;
+  }
+
+  /** Temporary compatibility adapter for the existing append endpoint. */
+  appendChatFragment(
+    event: QuizEventDocument,
+    questionId: string,
+    input: QuizChatMutationInput,
+  ): QuizEventDocument {
+    return this.appendChat(event, questionId, input);
   }
 
   setSelectedAnswers(
@@ -313,6 +412,15 @@ export class QuizEventEngine {
 
   private rebuildSummary(event: QuizEventDocument, generatedAt: string): QuizEventDocument {
     return { ...event, summary: this.summaryCalculator.calculate(event.questions, generatedAt) };
+  }
+
+  private sameEffectiveChat(
+    current: QuizEventQuestion["chatMessages"],
+    replacement: QuizEventQuestion["chatMessages"],
+  ): boolean {
+    return current.length === replacement.length && current.every(
+      (message, index) => message.canonicalKey === replacement[index]?.canonicalKey,
+    );
   }
 
   private assertSelections(question: QuizEventQuestion, selections: QuizSelectedAnswer[]): void {

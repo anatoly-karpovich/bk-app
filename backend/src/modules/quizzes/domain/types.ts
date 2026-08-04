@@ -144,13 +144,20 @@ export interface QuizSnapshot {
 
 export interface QuizChatFragment {
   id: string;
+  mode: "append" | "replace";
   rawText: string;
   insertedAt: string;
   insertedByUserId: string;
   parsedMessagesCount: number;
   candidateMessagesCount: number;
-  addedMessagesCount: number;
   duplicateMessagesCount: number;
+  previousMessagesCount: number;
+  nextMessagesCount: number;
+  addedMessagesCount: number;
+  removedMessagesCount: number;
+  retainedMessagesCount: number;
+  removedPersistedSelectionsCount: number;
+  effectiveChange: boolean;
 }
 
 export interface QuizChatMessageCandidate {
@@ -165,8 +172,8 @@ export interface QuizChatMessageCandidate {
 
 export interface QuizChatMessage extends QuizChatMessageCandidate {
   id: string;
-  firstSeenFragmentId: string;
-  firstSeenOrder: number;
+  sourceFragmentId: string;
+  effectiveOrder: number;
 }
 
 export interface QuizSelectedAnswer {
@@ -260,7 +267,7 @@ export interface QuizChatMessageView {
   id: string;
   text: string;
   timestamp: string | null;
-  firstSeenOrder: number;
+  effectiveOrder: number;
   transport: ChatTransport;
 }
 
@@ -274,7 +281,7 @@ export interface QuizRankedAnswerView {
   playerName: string;
   selectedMessageId: string;
   timestamp: string | null;
-  firstSeenOrder: number;
+  effectiveOrder: number;
   position: number;
 }
 

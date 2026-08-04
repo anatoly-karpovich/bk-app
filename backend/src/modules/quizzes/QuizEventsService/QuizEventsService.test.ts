@@ -8,6 +8,7 @@ import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageD
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
 import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
+import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
 import { QuizEventsService } from "./QuizEventsService";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
@@ -64,7 +65,12 @@ const actor: CurrentUser = {
 
 function setup(): { service: QuizEventsService; event: QuizEventDocument; questionId: string } {
   const answerRanker = new QuizAnswerRanker();
-  const engine = new QuizEventEngine(answerRanker, new QuizAwardCalculator(), new QuizEventSummaryCalculator());
+  const engine = new QuizEventEngine(
+    answerRanker,
+    new QuizAwardCalculator(),
+    new QuizEventSummaryCalculator(),
+    new QuizSelectedAnswerPruner(),
+  );
   let event = engine.create(snapshot, { userId: actor.id, displayName: actor.displayName, nickname: "Dark" }, "Event");
   event.projectId = "project";
   const questionId = event.questions[0].id;
@@ -112,6 +118,75 @@ test("imports, persists diagnostics, filters public chat, and makes repeated imp
   assert.equal(repeated.importResult.duplicateMessagesCount, 1);
   assert.equal(repeated.event.questions[0].chatFragments.length, 2);
   assert.equal(repeated.event.questions[0].playerGroups[0].messages.length, 1);
+  assert.equal(repeated.mutation.effectiveChange, false);
+  assert.equal(repeated.mutation.previousMessagesCount, 1);
+  assert.equal(repeated.mutation.nextMessagesCount, 1);
+});
+
+test("replaces the effective chat, retains canonical IDs, and rejects an empty replacement", async () => {
+  const { service, questionId } = setup();
+  const first = await service.addChatFragment(
+    actor,
+    "project",
+    "event",
+    questionId,
+    "21:00 [Alice] private [Dark] old\n21:01 [Bob] private [Dark] removed",
+    0,
+  );
+  const aliceId = first.event.questions[0].playerGroups[0].messages[0].id;
+
+  const replaced = await service.replaceChat(
+    actor,
+    "project",
+    "event",
+    questionId,
+    "21:00 [Cara] private [Dark] new\n21:00 [Alice] private [Dark] old",
+    first.event.revision,
+  );
+
+  const groups = replaced.event.questions[0].playerGroups;
+  assert.deepEqual(groups.map((group) => group.playerName), ["Cara", "Alice"]);
+  assert.equal(groups.find((group) => group.playerName === "Alice")?.messages[0].id, aliceId);
+  assert.deepEqual(replaced.mutation, {
+    fragmentId: replaced.mutation.fragmentId,
+    mode: "replace",
+    parsedMessagesCount: 2,
+    candidateMessagesCount: 2,
+    duplicateMessagesCount: 0,
+    previousMessagesCount: 2,
+    nextMessagesCount: 2,
+    addedMessagesCount: 1,
+    removedMessagesCount: 1,
+    retainedMessagesCount: 1,
+    removedPersistedSelectionsCount: 0,
+    effectiveChange: true,
+  });
+
+  await assert.rejects(
+    () => service.replaceChat(actor, "project", "event", questionId, "21:03 [**StormBetter**] public", replaced.event.revision),
+    (error: { code?: string }) => error.code === "quiz_validation_error",
+  );
+});
+
+test("clears effective chat and reports a no-op clear without a revision change", async () => {
+  const { service, questionId } = setup();
+  const imported = await service.addChatFragment(
+    actor,
+    "project",
+    "event",
+    questionId,
+    "21:00 [Alice] private [Dark] answer",
+    0,
+  );
+
+  const cleared = await service.clearChat(actor, "project", "event", questionId, imported.event.revision);
+  assert.equal(cleared.event.questions[0].playerGroups.length, 0);
+  assert.equal(cleared.mutation.removedMessagesCount, 1);
+  assert.equal(cleared.mutation.effectiveChange, true);
+
+  const noOp = await service.clearChat(actor, "project", "event", questionId, cleared.event.revision);
+  assert.equal(noOp.event.revision, cleared.event.revision);
+  assert.equal(noOp.mutation.effectiveChange, false);
 });
 
 test("rejects a stale revision without overwriting the current event", async () => {

@@ -35,7 +35,7 @@ const question: QuizEventQuestion = {
 
 test("uses source questionIndex for regular rules and conductedOrder for bonus slots", () => {
   const calculator = new QuizAwardCalculator();
-  const ranking = [{ playerName: "Alice", selectedMessageId: "message-1", timestamp: "21:00", firstSeenOrder: 1, position: 1 }];
+  const ranking = [{ playerName: "Alice", selectedMessageId: "message-1", timestamp: "21:00", effectiveOrder: 1, position: 1 }];
 
   const awards = calculator.calculate(snapshot, question, ranking, "2026-08-04T12:01:00.000Z");
 
@@ -51,7 +51,7 @@ test("uses source questionIndex for regular rules and conductedOrder for bonus s
 
 test("returns the same awards for the same reviewed result", () => {
   const calculator = new QuizAwardCalculator();
-  const ranking = [{ playerName: "Alice", selectedMessageId: "message-1", timestamp: "21:00", firstSeenOrder: 1, position: 1 }];
+  const ranking = [{ playerName: "Alice", selectedMessageId: "message-1", timestamp: "21:00", effectiveOrder: 1, position: 1 }];
 
   assert.deepEqual(
     calculator.calculate(snapshot, question, ranking, "2026-08-04T12:01:00.000Z"),

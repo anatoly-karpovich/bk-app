@@ -5,6 +5,7 @@ import { ChatTransport } from "../../chat/domain/types";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
 import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
+import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
 import type { QuizChatMessageCandidate, QuizSnapshot } from "../domain/types";
 import { QuizEventEngine } from "./QuizEventEngine";
@@ -36,8 +37,24 @@ function candidate(from: string, text: string, timestamp = "21:00"): QuizChatMes
   return { from, to: ["Dark"], text, timestamp, sourceLineNumber: 1, transport: ChatTransport.DIRECT, canonicalKey: `${from}:${text}:${timestamp}` };
 }
 
+function chatInput(messages: QuizChatMessageCandidate[]) {
+  return {
+    rawText: "chat",
+    parsedMessagesCount: messages.length,
+    candidateMessagesCount: messages.length,
+    duplicateMessagesCount: 0,
+    messages,
+    insertedByUserId: "host",
+  };
+}
+
 function engine() {
-  return new QuizEventEngine(new QuizAnswerRanker(), new QuizAwardCalculator(), new QuizEventSummaryCalculator());
+  return new QuizEventEngine(
+    new QuizAnswerRanker(),
+    new QuizAwardCalculator(),
+    new QuizEventSummaryCalculator(),
+    new QuizSelectedAnswerPruner(),
+  );
 }
 
 test("creates an open event with unconducted, unreviewed questions", () => {
@@ -152,6 +169,77 @@ test("marking a question not conducted compacts order and recalculates affected 
   assert.equal(event.questions[1].awards.some((award) => award.source.kind === "bonus_position"), false);
   assert.equal(event.questions[2].awards.some((award) => award.source.kind === "bonus_position"), true);
   assert.equal(event.summary?.totalReviewedQuestions, 2);
+});
+
+test("replace retains canonical message IDs, prunes dangling selections, and resets the reviewed result", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  const questionId = event.questions[0].id;
+  const alice = candidate("Alice", "old", "21:02");
+  const bob = candidate("Bob", "removed", "21:01");
+  event = quizEngine.appendChat(event, questionId, chatInput([alice, bob]));
+  const [aliceMessage, bobMessage] = event.questions[0].chatMessages;
+  event = quizEngine.setSelectedAnswers(event, questionId, [
+    { playerName: "Alice", selectedMessageId: aliceMessage.id },
+    { playerName: "Bob", selectedMessageId: bobMessage.id },
+  ]);
+  event = quizEngine.reviewQuestion(event, questionId, "host");
+  const conductedOrder = event.questions[0].conductedOrder;
+
+  event = quizEngine.replaceChat(event, questionId, chatInput([
+    alice,
+    candidate("Cara", "new", "21:00"),
+  ]));
+
+  const question = event.questions[0];
+  assert.deepEqual(question.chatMessages.map((message) => [message.from, message.id, message.effectiveOrder]), [
+    ["Alice", aliceMessage.id, 1],
+    ["Cara", question.chatMessages[1].id, 2],
+  ]);
+  assert.deepEqual(question.selectedAnswers, [{ playerName: "Alice", selectedMessageId: aliceMessage.id }]);
+  assert.equal(question.conductedOrder, conductedOrder);
+  assert.equal(question.reviewedAt, null);
+  assert.deepEqual(question.awards, []);
+  assert.equal(question.chatFragments.at(-1)?.removedPersistedSelectionsCount, 1);
+  assert.equal(question.chatFragments.at(-1)?.effectiveChange, true);
+});
+
+test("a no-op replace preserves review and awards while recording the attempt", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  const questionId = event.questions[0].id;
+  const alice = candidate("Alice", "answer");
+  event = quizEngine.appendChat(event, questionId, chatInput([alice]));
+  const messageId = event.questions[0].chatMessages[0].id;
+  event = quizEngine.setSelectedAnswers(event, questionId, [{ playerName: "Alice", selectedMessageId: messageId }]);
+  event = quizEngine.reviewQuestion(event, questionId, "host");
+  const reviewedAt = event.questions[0].reviewedAt;
+  const awards = structuredClone(event.questions[0].awards);
+
+  event = quizEngine.replaceChat(event, questionId, chatInput([alice]));
+
+  assert.equal(event.questions[0].reviewedAt, reviewedAt);
+  assert.deepEqual(event.questions[0].awards, awards);
+  assert.equal(event.questions[0].chatFragments.at(-1)?.effectiveChange, false);
+});
+
+test("clear removes the effective chat and selections without changing conducted order", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  const questionId = event.questions[0].id;
+  event = quizEngine.appendChat(event, questionId, chatInput([candidate("Alice", "answer")]));
+  const messageId = event.questions[0].chatMessages[0].id;
+  event = quizEngine.setSelectedAnswers(event, questionId, [{ playerName: "Alice", selectedMessageId: messageId }]);
+  event = quizEngine.reviewQuestion(event, questionId, "host");
+  const conductedOrder = event.questions[0].conductedOrder;
+
+  event = quizEngine.clearChat(event, questionId);
+
+  assert.equal(event.questions[0].conductedOrder, conductedOrder);
+  assert.deepEqual(event.questions[0].chatMessages, []);
+  assert.deepEqual(event.questions[0].selectedAnswers, []);
+  assert.equal(event.questions[0].reviewedAt, null);
+  assert.deepEqual(event.questions[0].awards, []);
 });
 
 test("completes and reopens with unreviewed and unused questions without recalculating awards", () => {

@@ -4,22 +4,22 @@ import { ChatTransport } from "../../chat/domain/types";
 import type { QuizChatMessage, QuizSelectedAnswer } from "../domain/types";
 import { QuizAnswerRanker } from "./QuizAnswerRanker";
 
-const message = (id: string, from: string, timestamp: string | null, firstSeenOrder: number): QuizChatMessage => ({
+const message = (id: string, from: string, timestamp: string | null, effectiveOrder: number): QuizChatMessage => ({
   id,
   from,
   to: ["Dark"],
   text: id,
   timestamp,
-  firstSeenOrder,
-  firstSeenFragmentId: "fragment",
-  sourceLineNumber: firstSeenOrder,
+  effectiveOrder,
+  sourceFragmentId: "fragment",
+  sourceLineNumber: effectiveOrder,
   transport: ChatTransport.DIRECT,
   canonicalKey: id,
 });
 
 const selected = (playerName: string, selectedMessageId: string): QuizSelectedAnswer => ({ playerName, selectedMessageId });
 
-test("ranks persisted selections by time, then first-seen order, with missing times last", () => {
+test("ranks persisted selections by time, then effective order, with missing times last", () => {
   const result = new QuizAnswerRanker().rank(
     [
       message("late", "Alice", "21:02", 3),

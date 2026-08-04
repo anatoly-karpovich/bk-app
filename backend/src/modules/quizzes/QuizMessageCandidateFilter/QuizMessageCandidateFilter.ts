@@ -18,7 +18,7 @@ export class QuizMessageCandidateFilter {
         ? context.allowedTransports.includes(ChatTransport.CLAN) && message.to.includes("klan")
         : context.allowedTransports.includes(ChatTransport.DIRECT) && message.to.includes(context.hostNickname);
       if (!accepted) return [];
-      return [{ ...message, transport, canonicalKey: this.identity.createKey(message) }];
+      return [{ ...message, transport, canonicalKey: this.identity.createKey({ ...message, transport }) }];
     });
   }
 }

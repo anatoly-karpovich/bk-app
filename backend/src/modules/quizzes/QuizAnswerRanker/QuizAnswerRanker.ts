@@ -4,7 +4,7 @@ export interface RankedQuizAnswer {
   playerName: string;
   selectedMessageId: string;
   timestamp: string | null;
-  firstSeenOrder: number;
+  effectiveOrder: number;
   position: number;
 }
 
@@ -22,7 +22,7 @@ export class QuizAnswerRanker {
           playerName: selection.playerName,
           selectedMessageId: message.id,
           timestamp: message.timestamp,
-          firstSeenOrder: message.firstSeenOrder,
+          effectiveOrder: message.effectiveOrder,
         };
       })
       .sort((left, right) => this.compare(left, right))
@@ -30,13 +30,13 @@ export class QuizAnswerRanker {
   }
 
   compare(
-    left: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">,
-    right: Pick<RankedQuizAnswer, "timestamp" | "firstSeenOrder">,
+    left: Pick<RankedQuizAnswer, "timestamp" | "effectiveOrder">,
+    right: Pick<RankedQuizAnswer, "timestamp" | "effectiveOrder">,
   ): number {
     const leftOrder = this.minutes(left.timestamp);
     const rightOrder = this.minutes(right.timestamp);
     if (leftOrder !== rightOrder) return leftOrder - rightOrder;
-    return left.firstSeenOrder - right.firstSeenOrder;
+    return left.effectiveOrder - right.effectiveOrder;
   }
 
   private minutes(timestamp: string | null): number {

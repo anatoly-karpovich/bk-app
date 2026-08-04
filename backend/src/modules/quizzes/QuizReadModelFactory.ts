@@ -40,7 +40,7 @@ export class QuizReadModelFactory {
         selectedMessageId: selections.get(message.from)?.selectedMessageId ?? null,
         messages: [],
       };
-      group.messages.push({ id: message.id, text: message.text, timestamp: message.timestamp, firstSeenOrder: message.firstSeenOrder, transport: message.transport });
+      group.messages.push({ id: message.id, text: message.text, timestamp: message.timestamp, effectiveOrder: message.effectiveOrder, transport: message.transport });
       groups.set(message.from, group);
     }
     return [...groups.values()]
@@ -48,13 +48,13 @@ export class QuizReadModelFactory {
       .sort((left, right) => this.compareMessages(left.messages[0]!, right.messages[0]!));
   }
 
-  private compareMessages(left: { timestamp: string | null; firstSeenOrder: number }, right: { timestamp: string | null; firstSeenOrder: number }): number {
+  private compareMessages(left: { timestamp: string | null; effectiveOrder: number }, right: { timestamp: string | null; effectiveOrder: number }): number {
     const minutes = (timestamp: string | null) => {
       if (!timestamp) return Number.MAX_SAFE_INTEGER;
       const [hour, minute] = timestamp.split(":").map(Number);
       return hour * 60 + minute;
     };
     const difference = minutes(left.timestamp) - minutes(right.timestamp);
-    return difference || left.firstSeenOrder - right.firstSeenOrder;
+    return difference || left.effectiveOrder - right.effectiveOrder;
   }
 }
