@@ -102,7 +102,7 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
 test("imports, persists diagnostics, filters public chat, and makes repeated imports idempotent", async () => {
   const { service, questionId } = setup();
   const rawText = "21:00 [Alice] private [Dark] Минск\n21:01 [**StormBetter**] Объявление";
-  const first = await service.addChatFragment(actor, "project", "event", questionId, rawText, 0);
+  const first = await service.appendChat(actor, "project", "event", questionId, rawText, 0);
   assert.deepEqual(first.importResult, {
     fragmentId: first.importResult.fragmentId,
     parsedMessagesCount: 2,
@@ -115,7 +115,7 @@ test("imports, persists diagnostics, filters public chat, and makes repeated imp
     ["Alice"],
   );
 
-  const repeated = await service.addChatFragment(actor, "project", "event", questionId, rawText, first.event.revision);
+  const repeated = await service.appendChat(actor, "project", "event", questionId, rawText, first.event.revision);
   assert.equal(repeated.importResult.addedMessagesCount, 0);
   assert.equal(repeated.importResult.duplicateMessagesCount, 1);
   assert.equal(repeated.event.questions[0].chatFragments.length, 2);
@@ -127,7 +127,7 @@ test("imports, persists diagnostics, filters public chat, and makes repeated imp
 
 test("replaces the effective chat, retains canonical IDs, and rejects an empty replacement", async () => {
   const { service, questionId } = setup();
-  const first = await service.addChatFragment(
+  const first = await service.appendChat(
     actor,
     "project",
     "event",
@@ -172,7 +172,7 @@ test("replaces the effective chat, retains canonical IDs, and rejects an empty r
 
 test("clears effective chat and reports a no-op clear without a revision change", async () => {
   const { service, questionId } = setup();
-  const imported = await service.addChatFragment(
+  const imported = await service.appendChat(
     actor,
     "project",
     "event",
@@ -193,7 +193,7 @@ test("clears effective chat and reports a no-op clear without a revision change"
 
 test("saves a complete selection set atomically and treats an equivalent set as a no-op", async () => {
   const { service, questionId, updatesCount } = setup();
-  const imported = await service.addChatFragment(
+  const imported = await service.appendChat(
     actor,
     "project",
     "event",

@@ -32,6 +32,5 @@ export function createQuizzesRouter(configs: QuizConfigsController, quizzes: Qui
   router.put("/quiz-events/:eventId/questions/:questionId/answer-selections", asyncHandler(events.saveAnswerSelections));
   router.put("/quiz-events/:eventId/questions/:questionId/message", asyncHandler(events.setMessage));
   router.delete("/quiz-events/:eventId/questions/:questionId/message-override", asyncHandler(events.clearMessage));
-  router.post("/quiz-events/:eventId/questions/:questionId/chat-fragments", asyncHandler(events.addFragment));
   return router;
 }

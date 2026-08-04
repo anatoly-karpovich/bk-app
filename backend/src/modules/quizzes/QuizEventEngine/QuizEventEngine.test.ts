@@ -76,7 +76,7 @@ test("persists one selected message per player and ranks the selected answers", 
   const quizEngine = engine();
   let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
   const questionId = event.questions[0].id;
-  event = quizEngine.appendChatFragment(event, questionId, {
+  event = quizEngine.appendChat(event, questionId, {
     rawText: "chat", parsedMessagesCount: 2, candidateMessagesCount: 2, duplicateMessagesCount: 0, insertedByUserId: "host",
     messages: [candidate("Alice", "later", "21:02"), candidate("Bob", "first", "21:01")],
   });
@@ -109,7 +109,7 @@ test("an effective selection change clears review and awards without changing co
   let event = quizEngine.create(snapshot(3), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
   const [first, , third] = event.questions;
   event = quizEngine.reviewQuestion(event, first.id, "host");
-  event = quizEngine.appendChatFragment(event, third.id, {
+  event = quizEngine.appendChat(event, third.id, {
     rawText: "chat", parsedMessagesCount: 1, candidateMessagesCount: 1, duplicateMessagesCount: 0, insertedByUserId: "host",
     messages: [candidate("Alice", "answer")],
   });
@@ -148,7 +148,7 @@ test("marking a question not conducted compacts order and recalculates affected 
   }];
 
   for (const question of event.questions) {
-    event = quizEngine.appendChatFragment(event, question.id, {
+    event = quizEngine.appendChat(event, question.id, {
       rawText: "chat", parsedMessagesCount: 1, candidateMessagesCount: 1, duplicateMessagesCount: 0, insertedByUserId: "host",
       messages: [candidate(`Player ${question.questionIndex}`, "answer")],
     });
@@ -267,7 +267,7 @@ test("building a read model has no side effects on persisted event data", () => 
   const quizEngine = engine();
   let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
   const questionId = event.questions[0].id;
-  event = quizEngine.appendChatFragment(event, questionId, {
+  event = quizEngine.appendChat(event, questionId, {
     rawText: "chat", parsedMessagesCount: 1, candidateMessagesCount: 1, duplicateMessagesCount: 0, insertedByUserId: "host",
     messages: [candidate("Alice", "answer")],
   });

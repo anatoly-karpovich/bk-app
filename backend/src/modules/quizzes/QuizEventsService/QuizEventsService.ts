@@ -22,7 +22,7 @@ import type {
   QuizSnapshot,
 } from "../domain/types";
 
-export interface AddQuizChatFragmentResult {
+export interface AppendQuizChatResult {
   event: QuizEventView;
   importResult: {
     fragmentId: string;
@@ -207,7 +207,7 @@ export class QuizEventsService {
     questionId: string,
     rawText: string,
     expectedRevision: number,
-  ): Promise<AddQuizChatFragmentResult> {
+  ): Promise<AppendQuizChatResult> {
     const event = await this.editableEvent(actor, projectId, eventId);
     this.assertExpectedRevision(event, eventId, expectedRevision);
     const question = this.engine.getQuestion(event, questionId);
@@ -236,18 +236,6 @@ export class QuizEventsService {
       },
       mutation: this.mutationFromFragment(fragment),
     };
-  }
-
-  /** Temporary compatibility adapter for the pre-ADR chat-fragments endpoint. */
-  async addChatFragment(
-    actor: CurrentUser,
-    projectId: string,
-    eventId: string,
-    questionId: string,
-    rawText: string,
-    expectedRevision: number,
-  ): Promise<AddQuizChatFragmentResult> {
-    return this.appendChat(actor, projectId, eventId, questionId, rawText, expectedRevision);
   }
 
   async replaceChat(

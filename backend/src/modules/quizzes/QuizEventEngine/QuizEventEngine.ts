@@ -305,15 +305,6 @@ export class QuizEventEngine {
     return this.hasReviewedResult(current) ? this.rebuildSummary(next, now) : next;
   }
 
-  /** Temporary compatibility adapter for the existing append endpoint. */
-  appendChatFragment(
-    event: QuizEventDocument,
-    questionId: string,
-    input: QuizChatMutationInput,
-  ): QuizEventDocument {
-    return this.appendChat(event, questionId, input);
-  }
-
   setSelectedAnswers(
     event: QuizEventDocument,
     questionId: string,
@@ -339,23 +330,6 @@ export class QuizEventEngine {
       updatedAt: now,
     };
     return changedReviewedResult ? this.rebuildSummary(next, now) : next;
-  }
-
-  /** Temporary adapter for the old per-player endpoint. Removed with the HTTP transition. */
-  setPlayerAnswer(
-    event: QuizEventDocument,
-    questionId: string,
-    input: { playerName: string; status: "pending" | "accepted" | "rejected"; selectedMessageId: string | null },
-  ): QuizEventDocument {
-    const question = this.getQuestion(event, questionId);
-    const selections = question.selectedAnswers.filter((answer) => answer.playerName !== input.playerName);
-    if (input.status === "accepted") {
-      if (!input.selectedMessageId) throw new QuizPlayerAnswerSelectionError("selected_message_required");
-      selections.push({ playerName: input.playerName, selectedMessageId: input.selectedMessageId });
-    } else if (input.selectedMessageId) {
-      throw new QuizPlayerAnswerSelectionError("selected_message_forbidden");
-    }
-    return this.setSelectedAnswers(event, questionId, selections);
   }
 
   rankedAnswers(question: QuizEventQuestion): RankedQuizAnswer[] {

@@ -83,18 +83,6 @@ export class QuizEventsController {
       const body = parseRequest(quizMessageKindSchema, req.body, "Некорректный тип сообщения");
       return this.service.setMessage(req.authUser!, p.projectId, p.eventId, p.questionId, body.messageKind, null, body.revision);
     });
-  addFragment = async (req: Request, res: Response) =>
-    this.questionAction(req, res, (p) => {
-      const body = parseRequest(chatFragmentSchema, req.body, "Некорректный chat fragment");
-      return this.service.addChatFragment(
-        req.authUser!,
-        p.projectId,
-        p.eventId,
-        p.questionId,
-        body.rawText,
-        body.revision,
-      );
-    });
   appendChat = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
       const body = parseRequest(chatFragmentSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ chat append");
