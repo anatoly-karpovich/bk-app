@@ -64,8 +64,7 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
   return (
     <Stack spacing={3}>
       <GamePageHeader
-        breadcrumbPath="/configs"
-        breadcrumbItems={[{ label: quizConfigsTexts.page.breadcrumb }]}
+        breadcrumbPath="/configs/quizzes"
         title={quizConfigsTexts.page.title}
         description={quizConfigsTexts.page.description}
         chips={[

@@ -77,9 +77,8 @@ export default function QuizConfigPage({ selectedProject }: QuizConfigPageProps)
     <Grid container spacing={3} alignItems="flex-start">
       <Grid item xs={12}>
         <GamePageHeader
-          breadcrumbPath="/configs"
+          breadcrumbPath="/configs/quizzes"
           breadcrumbItems={[
-            { label: quizConfigsTexts.page.breadcrumb, to: "/configs/quizzes" },
             { label: draft.name || quizConfigsTexts.card.untitled },
           ]}
           title={draft.name || quizConfigsTexts.card.untitled}

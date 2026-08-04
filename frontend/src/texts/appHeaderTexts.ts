@@ -10,9 +10,9 @@ export const appHeaderTexts = {
     journey: "Карта Мародёров",
     lotto: "Лото",
     battleship: "Морской бой",
-    project: "Настройки проекта",
-    configs: "Игровые конфиги",
-    quizConfigs: "Конфиги викторин",
+    project: "Проект",
+    configs: "Игры",
+    quizConfigs: "Викторины",
     users: "Пользователи",
   },
 };

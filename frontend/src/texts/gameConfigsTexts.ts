@@ -14,7 +14,7 @@ const gameDescriptions: Record<GameType, string> = {
 
 export const gameConfigsTexts = {
   page: {
-    title: "Игровые конфиги",
+    title: "Конфиги игр",
     description: "Правила для новых игр. Уже созданные партии продолжают использовать сохранённый снимок конфига.",
     projectChip: (projectName: string) => `Проект: ${projectName}`,
     gameTypesChip: (count: number) => `Типов игр: ${count}`,
@@ -28,13 +28,14 @@ export const gameConfigsTexts = {
     configCount: (count: number) => {
       const lastTwoDigits = count % 100;
       const lastDigit = count % 10;
-      const label = lastTwoDigits >= 11 && lastTwoDigits <= 14
-        ? "конфигов"
-        : lastDigit === 1
-          ? "конфиг"
-          : lastDigit >= 2 && lastDigit <= 4
-            ? "конфига"
-            : "конфигов";
+      const label =
+        lastTwoDigits >= 11 && lastTwoDigits <= 14
+          ? "конфигов"
+          : lastDigit === 1
+            ? "конфиг"
+            : lastDigit >= 2 && lastDigit <= 4
+              ? "конфига"
+              : "конфигов";
 
       return `${count} ${label}`;
     },
