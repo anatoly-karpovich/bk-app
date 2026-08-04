@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ResourceSnapshot } from "../../rewards";
-import { RewardGrantService, type Randomizer } from "../../rewards";
 import { ChatTransport } from "../../chat/domain/types";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
+import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
 import type { QuizChatMessageCandidate, QuizSnapshot } from "../domain/types";
 import { QuizEventEngine } from "./QuizEventEngine";
@@ -36,8 +36,7 @@ function candidate(from: string, text: string, timestamp = "21:00"): QuizChatMes
 }
 
 function engine() {
-  const randomizer: Randomizer = { succeeds: () => true, pickWeightedIndex: () => 0 };
-  return new QuizEventEngine(new RewardGrantService(randomizer), new QuizAnswerRanker());
+  return new QuizEventEngine(new QuizAnswerRanker(), new QuizEventSummaryCalculator());
 }
 
 test("creates an open event with unconducted, unreviewed questions", () => {
@@ -48,7 +47,7 @@ test("creates an open event with unconducted, unreviewed questions", () => {
   assert.deepEqual(event.questions.map((question) => [question.conductedOrder, question.reviewedAt, question.selectedAnswers]), [
     [null, null, []], [null, null, []],
   ]);
-  const view = new QuizReadModelFactory(engine()).create("event", event);
+  const view = new QuizReadModelFactory(new QuizAnswerRanker()).create("event", event);
   assert.equal(view.preparedQuestionsCount, 2);
   assert.equal(view.conductedQuestionsCount, 0);
   assert.equal(view.reviewedQuestionsCount, 0);
@@ -83,4 +82,19 @@ test("completes and reopens without inferring a question lifecycle", () => {
   assert.ok(completed.completedAt);
   assert.equal(reopened.status, "open");
   assert.equal(reopened.completedAt, null);
+});
+
+test("building a read model has no side effects on persisted event data", () => {
+  const quizEngine = engine();
+  let event = quizEngine.create(snapshot(), { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  const questionId = event.questions[0].id;
+  event = quizEngine.appendChatFragment(event, questionId, {
+    rawText: "chat", parsedMessagesCount: 1, candidateMessagesCount: 1, duplicateMessagesCount: 0, insertedByUserId: "host",
+    messages: [candidate("Alice", "answer")],
+  });
+  const before = structuredClone(event);
+
+  new QuizReadModelFactory(new QuizAnswerRanker()).create("event", event);
+
+  assert.deepEqual(event, before);
 });

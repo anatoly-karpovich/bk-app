@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { addResourceAmounts, type RewardGrantService } from "../../rewards";
 import type {
   QuizChatMessageCandidate,
   QuizEventDocument,
   QuizEventQuestion,
-  QuizEventSummary,
   QuizMessageKind,
   QuizQuestion,
   QuizSelectedAnswer,
@@ -17,11 +15,12 @@ import {
   QuizQuestionNotFoundError,
 } from "../errors";
 import { QuizAnswerRanker, type RankedQuizAnswer } from "../QuizAnswerRanker/QuizAnswerRanker";
+import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 
 export class QuizEventEngine {
   constructor(
-    _rewardGrantService: RewardGrantService,
     private readonly answerRanker: QuizAnswerRanker,
+    private readonly summaryCalculator: QuizEventSummaryCalculator,
   ) {}
 
   create(snapshot: QuizSnapshot, host: QuizEventDocument["hostSnapshot"], name: string): QuizEventDocument {
@@ -48,7 +47,7 @@ export class QuizEventEngine {
     this.assertOpen(event);
     const now = new Date().toISOString();
     const next = { ...event, status: "completed" as const, completedAt: now, updatedAt: now };
-    return { ...next, summary: this.buildSummary(next, now) };
+    return { ...next, summary: this.summaryCalculator.calculate(next.questions, now) };
   }
 
   reopenEvent(event: QuizEventDocument): QuizEventDocument {
@@ -192,43 +191,6 @@ export class QuizEventEngine {
     const question = event.questions.find((candidate) => candidate.id === id);
     if (!question) throw new QuizQuestionNotFoundError(id);
     return question;
-  }
-
-  buildSummary(event: QuizEventDocument, generatedAt = new Date().toISOString()): QuizEventSummary {
-    const entries = new Map<string, { correctAnswers: number; regularRewards: import("../../rewards").ResourceAmount[]; bonusRewards: import("../../rewards").ResourceAmount[] }>();
-    const reviewedQuestions = event.questions.filter(
-      (question) => question.conductedOrder !== null && question.reviewedAt !== null,
-    );
-    for (const question of reviewedQuestions) {
-      for (const answer of this.rankedAnswers(question)) {
-        const entry = entries.get(answer.playerName) ?? { correctAnswers: 0, regularRewards: [], bonusRewards: [] };
-        entry.correctAnswers += 1;
-        for (const award of question.awards.filter((candidate) => candidate.selectedMessageId === answer.selectedMessageId)) {
-          if (award.source.kind === "bonus_position") entry.bonusRewards.push(...award.rewards);
-          else entry.regularRewards.push(...award.rewards);
-        }
-        entries.set(answer.playerName, entry);
-      }
-    }
-    const players = [...entries.entries()]
-      .map(([playerName, entry]) => ({
-        playerName,
-        correctAnswers: entry.correctAnswers,
-        regularRewards: addResourceAmounts(entry.regularRewards),
-        bonusRewards: addResourceAmounts(entry.bonusRewards),
-        totalRewards: addResourceAmounts([...entry.regularRewards, ...entry.bonusRewards]),
-      }))
-      .sort((left, right) => left.playerName.localeCompare(right.playerName, "ru"));
-    return {
-      players,
-      totalPreparedQuestions: event.questions.length,
-      totalConductedQuestions: event.questions.filter((question) => question.conductedOrder !== null).length,
-      totalReviewedQuestions: reviewedQuestions.length,
-      totalSelectedAnswers: reviewedQuestions.reduce((total, question) => total + question.selectedAnswers.length, 0),
-      totalUniquePlayers: players.length,
-      totalRewards: addResourceAmounts(players.flatMap((player) => player.totalRewards)),
-      generatedAt,
-    };
   }
 
   private createQuestion(question: QuizQuestion, now: string): QuizEventQuestion {

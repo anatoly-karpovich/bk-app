@@ -1,9 +1,9 @@
 import { buildQuizMessage } from "./domain/messageBuilder";
 import type { QuizEventDocument, QuizEventQuestion, QuizEventView, QuizPlayerMessageGroupView } from "./domain/types";
-import { QuizEventEngine } from "./QuizEventEngine/QuizEventEngine";
+import { QuizAnswerRanker } from "./QuizAnswerRanker/QuizAnswerRanker";
 
 export class QuizReadModelFactory {
-  constructor(private readonly engine: QuizEventEngine) {}
+  constructor(private readonly answerRanker: QuizAnswerRanker) {}
 
   create(id: string, event: QuizEventDocument): QuizEventView {
     const questionsById = new Map(event.quizSnapshot.questions.map((question) => [question.id, question]));
@@ -25,7 +25,7 @@ export class QuizReadModelFactory {
           generatedMessage,
           generatedAnswerMessage,
           playerGroups: this.playerGroups(question),
-          ranking: this.engine.rankedAnswers(question),
+          ranking: this.answerRanker.rank(question.chatMessages, question.selectedAnswers),
         };
       }),
     };

@@ -4,16 +4,15 @@ import { ObjectId } from "mongodb";
 import { ChatMessageIdentity } from "../../chat/ChatMessageIdentity";
 import { ChatParser } from "../../chat/ChatParser";
 import type { CurrentUser } from "../../auth/domain/types";
-import { RewardGrantService, type Randomizer } from "../../rewards";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
+import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizEventsService } from "./QuizEventsService";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
 import { QuizReadModelFactory } from "../QuizReadModelFactory";
 import type { QuizEventDocument, QuizSnapshot } from "../domain/types";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 
-const randomizer: Randomizer = { succeeds: () => true, pickWeightedIndex: () => 0 };
 const templates = { defaultTemplate: { template: "{questionText}", variables: {} }, questionOverrides: [] };
 const snapshot: QuizSnapshot = {
   quizId: "quiz",
@@ -63,7 +62,8 @@ const actor: CurrentUser = {
 };
 
 function setup(): { service: QuizEventsService; event: QuizEventDocument; questionId: string } {
-  const engine = new QuizEventEngine(new RewardGrantService(randomizer), new QuizAnswerRanker());
+  const answerRanker = new QuizAnswerRanker();
+  const engine = new QuizEventEngine(answerRanker, new QuizEventSummaryCalculator());
   let event = engine.create(snapshot, { userId: actor.id, displayName: actor.displayName, nickname: "Dark" }, "Event");
   event.projectId = "project";
   const questionId = event.questions[0].id;
@@ -85,7 +85,7 @@ function setup(): { service: QuizEventsService; event: QuizEventDocument; questi
     new ChatParser(),
     new QuizMessageCandidateFilter(identity),
     new ChatMessageDeduplicator(identity),
-    new QuizReadModelFactory(engine),
+    new QuizReadModelFactory(answerRanker),
   );
   return { service, event, questionId };
 }
