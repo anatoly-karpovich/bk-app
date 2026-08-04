@@ -1,15 +1,12 @@
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
-import type { ReactNode } from "react";
 import AppInfoAlert from "../../../../components/ui/AppInfoAlert";
-import AppPillButton from "../../../../components/ui/AppPillButton";
 import AppSelectableListItem from "../../../../components/ui/AppSelectableListItem";
-import type { QuizQuestionDraft } from "../types";
 import { isQuestionComplete } from "../quizEditor.helpers";
+import type { QuizQuestionDraft } from "../types";
 
 export type QuizEditorSection = "general" | string;
 
@@ -19,11 +16,10 @@ interface QuizQuestionNavProps {
   editable: boolean;
   onSelect: (section: QuizEditorSection) => void;
   onReorder: (sourceId: string, targetId: string) => void;
-  configControl?: ReactNode;
-  startAction?: { label: string; disabled?: boolean; onClick: () => void };
 }
 
-export default function QuizQuestionNav({ questions, activeSection, editable, onSelect, onReorder, configControl, startAction }: QuizQuestionNavProps) {
+export default function QuizQuestionNav({ questions, activeSection, editable, onSelect, onReorder }: QuizQuestionNavProps) {
+  const completeCount = questions.filter(isQuestionComplete).length;
   const handleDrop = (targetId: string, event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const sourceId = event.dataTransfer.getData("text/quiz-question-id");
@@ -31,19 +27,23 @@ export default function QuizQuestionNav({ questions, activeSection, editable, on
   };
 
   return (
-    <Card>
-      <CardContent>
+    <Card sx={{ position: { lg: "sticky" }, top: { lg: 104 }, maxHeight: { lg: "calc(100vh - 126px)" }, overflow: "auto", boxShadow: "0 12px 30px rgba(28, 39, 55, 0.08)" }}>
+      <CardContent sx={{ p: 1.75 }}>
         <Stack spacing={2}>
-          <Stack spacing={0.25}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 0.5 }}>
             <Typography variant="h5">Викторина</Typography>
-            <Typography variant="body2" color="text.secondary">Сведения и порядок вопросов</Typography>
+            <Typography variant="caption" fontWeight={800} color="text.secondary">{completeCount}/{questions.length} готовы</Typography>
           </Stack>
 
-          {configControl}
-          {startAction ? <AppPillButton variant="contained" onClick={startAction.onClick} disabled={startAction.disabled}>{startAction.label}</AppPillButton> : null}
-
           <Stack spacing={1}>
-            {questions.length ? <AppSelectableListItem primaryText="Общие сведения" secondaryText="Название и описание" icon={<EditNoteRoundedIcon fontSize="small" />} selected={activeSection === "general"} onClick={() => onSelect("general")} /> : null}
+            <AppSelectableListItem
+              primaryText="Общие сведения"
+              secondaryText="Название и описание"
+              icon={<EditNoteRoundedIcon fontSize="small" />}
+              selected={activeSection === "general"}
+              onClick={() => onSelect("general")}
+              iconSx={{ width: 32, height: 32, borderRadius: "50%" }}
+            />
             {questions.map((question) => {
               const complete = isQuestionComplete(question);
               return (
@@ -57,16 +57,14 @@ export default function QuizQuestionNav({ questions, activeSection, editable, on
                 >
                   <AppSelectableListItem
                     primaryText={`Вопрос ${question.questionIndex}`}
-                    secondaryText={complete ? "Заполнен" : "Нужны вопрос и ответ"}
-                    icon={<HelpOutlineRoundedIcon fontSize="small" />}
+                    secondaryText={complete ? question.text : "Нужны вопрос и ответ"}
+                    icon={complete ? <CheckCircleRoundedIcon fontSize="small" /> : <ErrorOutlineRoundedIcon fontSize="small" />}
                     selected={activeSection === question.id}
                     onClick={() => onSelect(question.id)}
-                    trailing={
-                      <Stack direction="row" alignItems="center" spacing={0.5}>
-                        {editable ? <DragIndicatorRoundedIcon fontSize="small" color="disabled" /> : null}
-                        {complete ? <CheckCircleRoundedIcon color="success" fontSize="small" /> : <ErrorOutlineRoundedIcon color="warning" fontSize="small" />}
-                      </Stack>
-                    }
+                    iconSx={complete
+                      ? { width: 32, height: 32, borderRadius: "50%", bgcolor: "success.main", color: "success.contrastText" }
+                      : { width: 32, height: 32, borderRadius: "50%", bgcolor: "warning.light", color: "warning.contrastText" }}
+                    trailing={editable ? <DragIndicatorRoundedIcon fontSize="small" color="disabled" /> : null}
                   />
                 </Box>
               );

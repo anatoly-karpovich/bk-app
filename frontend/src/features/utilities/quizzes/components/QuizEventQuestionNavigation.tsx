@@ -2,6 +2,7 @@ import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import PriorityHighRoundedIcon from "@mui/icons-material/PriorityHighRounded";
 import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import AppSelectableListItem from "../../../../components/ui/AppSelectableListItem";
 import type { QuizEventQuestion } from "../types";
 import { getQuizQuestionStateLabel, getShortQuizQuestionText } from "./quizEventWorkspace.helpers";
 
@@ -14,14 +15,16 @@ interface QuizEventQuestionNavigationProps {
   onSelectSummary: () => void;
 }
 
-function QuestionStateIcon({ question }: { question: QuizEventQuestion }) {
-  if (question.reviewedAt) {
-    return <Box sx={{ width: 32, height: 32, display: "grid", placeItems: "center", borderRadius: "50%", bgcolor: "success.main", color: "common.white" }}><CheckRoundedIcon fontSize="small" /></Box>;
-  }
-  if (question.conductedOrder !== null) {
-    return <Box sx={{ width: 32, height: 32, display: "grid", placeItems: "center", borderRadius: "50%", bgcolor: "#ffd95f", color: "#7d5900" }}><PriorityHighRoundedIcon fontSize="small" /></Box>;
-  }
-  return <Box sx={{ width: 32, height: 32, border: 2, borderColor: "#c9d1da", borderRadius: "50%", bgcolor: "#f8fafc" }} />;
+function questionIcon(question: QuizEventQuestion) {
+  if (question.reviewedAt) return <CheckRoundedIcon fontSize="small" />;
+  if (question.conductedOrder !== null) return <PriorityHighRoundedIcon fontSize="small" />;
+  return null;
+}
+
+function questionIconSx(question: QuizEventQuestion) {
+  if (question.reviewedAt) return { width: 32, height: 32, borderRadius: "50%", bgcolor: "success.main", color: "common.white" };
+  if (question.conductedOrder !== null) return { width: 32, height: 32, borderRadius: "50%", bgcolor: "#ffd95f", color: "#7d5900" };
+  return { width: 32, height: 32, border: 2, borderColor: "#c9d1da", borderRadius: "50%", bgcolor: "#f8fafc" };
 }
 
 export default function QuizEventQuestionNavigation({
@@ -54,41 +57,15 @@ export default function QuizEventQuestionNavigation({
             const selected = !summarySelected && question.id === selectedQuestionId;
             const answerCount = question.ranking.length;
             return (
-              <Box
+              <AppSelectableListItem
                 key={question.id}
-                component="button"
-                type="button"
-                aria-pressed={selected}
+                primaryText={`Вопрос ${question.questionIndex} · ${getQuizQuestionStateLabel(question)}`}
+                secondaryText={getShortQuizQuestionText(question.questionText)}
+                icon={questionIcon(question)}
+                iconSx={questionIconSx(question)}
+                selected={selected}
                 onClick={() => onSelectQuestion(question.id)}
-                sx={{
-                  width: "100%",
-                  p: 1.25,
-                  border: 1,
-                  borderColor: selected ? "primary.light" : "divider",
-                  borderRadius: 2.25,
-                  bgcolor: selected ? "rgba(79, 70, 229, 0.055)" : "background.paper",
-                  boxShadow: selected ? "0 0 0 1px rgba(79, 70, 229, 0.08)" : "none",
-                  display: "grid",
-                  gridTemplateColumns: "32px minmax(0, 1fr) 27px",
-                  alignItems: "center",
-                  gap: 1.25,
-                  color: "text.primary",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  transition: "border-color 160ms ease, background-color 160ms ease",
-                  "&:hover": { borderColor: "primary.light", bgcolor: "rgba(79, 70, 229, 0.025)" },
-                  "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 },
-                }}
-              >
-                <QuestionStateIcon question={question} />
-                <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" spacing={0.5} alignItems="baseline" flexWrap="wrap" useFlexGap>
-                    <Typography variant="subtitle2" noWrap>Вопрос {question.questionIndex}</Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap>{getQuizQuestionStateLabel(question)}</Typography>
-                  </Stack>
-                  <Typography variant="caption" display="block" noWrap sx={{ mt: 0.25, color: "#39414a" }}>{getShortQuizQuestionText(question.questionText)}</Typography>
-                </Box>
-                <Box
+                trailing={<Box
                   sx={{
                     width: 27,
                     height: 27,
@@ -102,41 +79,13 @@ export default function QuizEventQuestionNavigation({
                   }}
                 >
                   {answerCount}
-                </Box>
-              </Box>
+                </Box>}
+              />
             );
           })}
 
           {summary ? (
-            <Box
-              component="button"
-              type="button"
-              aria-pressed={summarySelected}
-              onClick={onSelectSummary}
-              sx={{
-                mt: 0.5,
-                p: 1.25,
-                border: 1,
-                borderRadius: 2.25,
-                display: "grid",
-                gridTemplateColumns: "32px minmax(0, 1fr)",
-                gap: 1.25,
-                alignItems: "center",
-                color: "text.primary",
-                textAlign: "left",
-                cursor: "pointer",
-                boxShadow: summarySelected ? "0 0 0 1px rgba(79, 70, 229, 0.08)" : "none",
-                borderColor: summarySelected ? "primary.light" : "divider",
-                bgcolor: summarySelected ? "rgba(79, 70, 229, 0.055)" : "#f8fafc",
-                "&:hover": { borderColor: "primary.light", bgcolor: "rgba(79, 70, 229, 0.025)" },
-              }}
-            >
-              <Box sx={{ width: 32, height: 32, display: "grid", placeItems: "center", borderRadius: "50%", bgcolor: "rgba(79, 70, 229, 0.1)", color: "primary.main" }}><SummarizeRoundedIcon fontSize="small" /></Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="subtitle2">Итоги проведения</Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>{summary}</Typography>
-              </Box>
-            </Box>
+            <Box sx={{ mt: 0.5 }}><AppSelectableListItem primaryText="Итоги проведения" secondaryText={summary} icon={<SummarizeRoundedIcon fontSize="small" />} iconSx={{ width: 32, height: 32, borderRadius: "50%", bgcolor: "rgba(79, 70, 229, 0.1)", color: "primary.main" }} selected={summarySelected} onClick={onSelectSummary} /></Box>
           ) : null}
         </Stack>
       </CardContent>

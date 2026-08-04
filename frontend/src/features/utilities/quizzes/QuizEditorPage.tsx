@@ -9,6 +9,7 @@ import type { Project } from "../../projects/types";
 import { quizzesApi } from "./api/quizzes.client";
 import QuizEditorWorkspace from "./components/QuizEditorWorkspace";
 import QuizQuestionNav, { type QuizEditorSection } from "./components/QuizQuestionNav";
+import QuizSaveBar from "./components/QuizSaveBar";
 import { applyDraftToQuiz, createDraftFromQuiz, reorderQuestions, type QuizDraft } from "./quizEditor.helpers";
 import type { Quiz } from "./types";
 
@@ -98,7 +99,10 @@ export default function QuizEditorPage({ selectedProject }: QuizEditorPageProps)
       {error ? <Alert severity="error">{error}</Alert> : null}
       <Stack direction={{ xs: "column", lg: "row" }} spacing={3} alignItems="flex-start">
         <Stack sx={{ width: { xs: "100%", lg: 360 }, flexShrink: 0 }}><QuizQuestionNav questions={draft.questions} activeSection={activeSection} editable={canEdit} onSelect={setActiveSection} onReorder={(sourceId, targetId) => setDraft({ ...draft, questions: reorderQuestions(draft.questions, sourceId, targetId) })} /></Stack>
-        <Stack sx={{ flex: 1, minWidth: 0, width: "100%" }}><QuizEditorWorkspace draft={draft} quiz={source} activeSection={activeSection} editable={canEdit} hostName={hostName} onChange={setDraft} /></Stack>
+        <Stack spacing={2} sx={{ flex: 1, minWidth: 0, width: "100%" }}>
+          <QuizEditorWorkspace draft={draft} quiz={source} activeSection={activeSection} editable={canEdit} hostName={hostName} onChange={setDraft} />
+          {canEdit ? <QuizSaveBar dirty={isDirty} loading={isLoading} onSave={() => void save()} /> : null}
+        </Stack>
       </Stack>
     </Stack>
   );

@@ -31,6 +31,7 @@ interface GamePageHeaderProps {
   chips?: GamePageHeaderChip[];
   actions?: GamePageHeaderAction[];
   controls?: ReactNode;
+  footer?: ReactNode;
   cardSx?: SxProps<Theme>;
 }
 
@@ -42,6 +43,7 @@ export default function GamePageHeader({
   chips = [],
   actions = [],
   controls,
+  footer,
   cardSx,
 }: GamePageHeaderProps) {
   const hasTrailingContent = Boolean(controls || actions.length);
@@ -87,6 +89,7 @@ export default function GamePageHeader({
               </Stack>
             ) : null}
             {description ? <Typography variant="body1" color="text.secondary">{description}</Typography> : null}
+            {footer}
           </Stack>
 
           {hasTrailingContent ? (

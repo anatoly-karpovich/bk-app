@@ -1,5 +1,6 @@
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { Box, Typography } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 
 interface AppSelectableListItemProps {
@@ -11,6 +12,7 @@ interface AppSelectableListItemProps {
   disabled?: boolean;
   ariaLabel?: string;
   trailing?: ReactNode;
+  iconSx?: SxProps<Theme>;
 }
 
 export default function AppSelectableListItem({
@@ -22,6 +24,7 @@ export default function AppSelectableListItem({
   disabled = false,
   ariaLabel,
   trailing,
+  iconSx,
 }: AppSelectableListItemProps) {
   return (
     <Box
@@ -62,6 +65,7 @@ export default function AppSelectableListItem({
           borderRadius: 1.5,
           bgcolor: "rgba(8, 145, 178, 0.12)",
           color: "secondary.dark",
+          ...iconSx,
         }}
       >
         {icon}
