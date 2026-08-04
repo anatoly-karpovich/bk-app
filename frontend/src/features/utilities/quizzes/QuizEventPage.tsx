@@ -61,6 +61,8 @@ export default function QuizEventPage({ selectedProject }: QuizEventPageProps) {
         onPlayerSelectedMessage={quizEvent.setPlayerSelectedMessage}
         onSaveSelections={(questionId) => void quizEvent.actions.saveSelections(questionId)}
         onAppendChat={(questionId, rawText) => quizEvent.actions.appendChat(questionId, rawText)}
+        onReplaceChat={(questionId, rawText) => quizEvent.actions.replaceChat(questionId, rawText)}
+        onClearChat={(questionId) => quizEvent.actions.clearChat(questionId)}
         onReview={(questionId) => void quizEvent.actions.review(questionId)}
         onUnreview={(questionId) => void quizEvent.actions.unreview(questionId)}
         onMarkAsNotConducted={(questionId) => void quizEvent.actions.markAsNotConducted(questionId)}
