@@ -52,6 +52,13 @@ features/
     mappers/
     storage.ts
     types.ts
+  utilities/
+    quizzes/
+      api/
+      components/
+      hooks/
+      mappers/
+      types.ts
   rewards/
     types.ts
     resourceAmounts.ts
@@ -248,6 +255,17 @@ refreshGameIndexes(...)
 If a function changes the real game result, move it to backend.
 
 This applies equally to Journey, Battleships, Lotto, and future games.
+
+### Quizzes boundary
+
+Quiz UI has three host-facing areas: Quiz Config editors under `features/configs`, Quiz library/editor pages under `features/utilities/quizzes`, and Quiz Event conduct pages under the same feature.
+
+- Treat the backend's `QuizConfigView`, `QuizView`, and `QuizEventView` as API DTOs, not page models. Their structured sections follow the repository standard: Config and Quiz use `meta`, `content`, `configuration`, `validation`; Quiz Event uses `meta`, `configuration`, `state`.
+- Keep DTO declarations in `features/utilities/quizzes/api/quiz.views.ts` and map them through `mappers/QuizViewMapper.ts` before components/hooks consume them. Existing flat `Quiz`, `QuizConfig`, and `QuizEvent` types are page models; do not make components depend directly on API nesting or persistence fields.
+- API clients own request/response mapping. In particular, config saves must send an explicit editable payload only; never PUT response metadata, validation data, snapshots, or other read-only fields back to the backend.
+- Quiz Event mutations use the event revision returned by the backend. The frontend may hold selection drafts and UI expansion state, but it must not assign conducted order, rank answers, validate final selections, resolve rewards, clear results after chat changes, or determine completion.
+- Display Quiz and Event rewards using the resources returned in the corresponding Quiz/Event snapshot. Do not substitute mutable project resources when rendering historical Quiz or Event data.
+- The event workspace may render only the public chat model: raw text, player groups, ranking, generated messages, and saved awards. Do not add client dependencies on parser internals such as recipient lists, canonical keys, source-line numbers, or persisted selected-answer records.
 
 Specific frontend boundary reminders:
 

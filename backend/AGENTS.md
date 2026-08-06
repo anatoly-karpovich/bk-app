@@ -80,6 +80,22 @@ src/
       lotto.schemas.ts
       domain/
       errors/
+    quizzes/
+      QuizConfigsController.ts
+      QuizConfigsService.ts
+      QuizConfigsRepository.ts
+      QuizzesController.ts
+      QuizzesService.ts
+      QuizzesRepository.ts
+      QuizEventsController.ts
+      QuizEventsService/
+      QuizEventsRepository.ts
+      QuizConfigReadModelFactory.ts
+      QuizReadModelFactory.ts
+      QuizEventReadModelFactory.ts
+      quizzes.routes.ts
+      quizzes.schemas.ts
+      domain/
     forumTopic/
       ForumTopicController.ts
       ForumTopicService.ts
@@ -336,6 +352,41 @@ The Lotto engine should be the only place that knows how to:
 - build the legacy grouped summary of remaining numbers
 
 The Lotto read-model factory is the correct place for host-facing derived fields such as prize tables from saved payouts, visible winner groups, event ordering for UI, and saved-game metadata. It must not recalculate prize allocation from rules.
+
+## Quizzes module expectations
+
+Quizzes has three related, but distinct, project-scoped entities:
+
+- `QuizConfig` is an editable reward and message-template preset;
+- `Quiz` is an editable question set created from a config snapshot;
+- `QuizEvent` is one runtime conduct of a Quiz.
+
+Keep their ownership and persisted snapshots explicit:
+
+- A Quiz snapshots the selected config rules and only the project resources used by those rules. It must remain interpretable if the project catalog or source config later changes.
+- A Quiz Event snapshots the Quiz, its resources, and its config rules. Its results must be rendered from that saved snapshot, never by re-reading mutable project/config data.
+- A Quiz with an attached event is no longer editable or deletable. Do not bypass this lifecycle rule with a generic document update.
+- A Quiz Event owns its own optimistic-concurrency `revision`. Every event mutation must require the expected revision and persist the incremented result atomically.
+
+`QuizEventEngine` owns all conduct rules: assigning conducted order, validating selected answers, ranking answers, resolving regular and bonus awards, resetting invalidated results, completing/reopening an event, and rebuilding its saved summary. The frontend must not recreate any of these decisions.
+
+Chat parsing is an input pipeline, not a frontend concern:
+
+- `ChatParser` parses raw text;
+- `QuizMessageCandidateFilter` limits messages to the host and allowed transports;
+- `ChatMessageDeduplicator` removes repeated messages;
+- `QuizSelectedAnswerPruner` removes selections invalidated by a chat replacement.
+
+Keep the raw editable chat and materialized source messages in persistence, but expose only the public workspace required by the host: raw text, update metadata, player groups, and safe message fields. Do not expose recipient lists, canonical deduplication keys, source-line numbers, or raw selected-answer records.
+
+Quiz uses only `all` reward pools. `QuizAwardCalculator` and `QuizEventSummaryCalculator` produce saved awards and summaries once from the event snapshot; read paths must never re-resolve pools or recalculate historical outcomes.
+
+Public Quiz responses are explicit read models:
+
+- `QuizConfigView` and `QuizView` expose `meta`, `content`, `configuration`, and `validation`;
+- `QuizEventView` exposes `meta`, `configuration`, and runtime `state`.
+
+`QuizConfigReadModelFactory`, `QuizReadModelFactory`, and `QuizEventReadModelFactory` own those projections. Do not spread Mongo documents or `Quiz*Document` values into HTTP responses, and do not reintroduce `_id`, `schemaVersion`, `quizQuestionId`, raw `selectedAnswers`, or raw parsed-chat fields into public DTOs. Preserve the legacy-safe projection for historical events that lack newer chat-workspace fields.
 
 ---
 
