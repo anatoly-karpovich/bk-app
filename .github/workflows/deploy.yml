@@ -11,7 +11,7 @@ jobs:
   deploy:
     name: Deploy main to production
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Prepare SSH
@@ -42,35 +42,46 @@ jobs:
             -p "$SSH_PORT" \
             "$SSH_USER@$SSH_HOST" \
             'bash -se' <<'REMOTE_SCRIPT'
+
           set -Eeuo pipefail
 
           APP_DIR=/opt/bk-app
           SITE_DIR=/var/www/html
           DOMAIN=https://combats-dj.com
+          LOCAL_API_URL=http://127.0.0.1:3001/api
+          EXTERNAL_API_URL="$DOMAIN/api"
 
-          echo "==> Updating repository"
+          echo "==> Checking repository"
           cd "$APP_DIR"
 
-          if [ "$(git branch --show-current)" != "main" ]; then
-            echo "Server repository is not on main"
+          CURRENT_BRANCH="$(git branch --show-current)"
+
+          if [ "$CURRENT_BRANCH" != "main" ]; then
+            echo "Server repository is on '$CURRENT_BRANCH', expected 'main'"
             exit 1
           fi
 
           if [ -n "$(git status --porcelain)" ]; then
-            echo "Server repository has uncommitted changes"
+            echo "Server repository has uncommitted changes:"
             git status --short
             exit 1
           fi
 
-          git pull --ff-only origin main
-          DEPLOYED_COMMIT="$(git rev-parse --short HEAD)"
+          PREVIOUS_COMMIT="$(git rev-parse --short HEAD)"
+          echo "Current production commit: $PREVIOUS_COMMIT"
 
-          echo "==> Building backend"
+          echo "==> Updating repository"
+          git pull --ff-only origin main
+
+          DEPLOYED_COMMIT="$(git rev-parse --short HEAD)"
+          echo "Target production commit: $DEPLOYED_COMMIT"
+
+          echo "==> Installing and building backend"
           cd "$APP_DIR/backend"
           npm ci
           npm run build
 
-          echo "==> Building frontend"
+          echo "==> Installing and building frontend"
           cd "$APP_DIR/frontend"
           npm ci
           npm run build
@@ -79,22 +90,79 @@ jobs:
           sudo rm -rf "$SITE_DIR"/*
           sudo cp -a "$APP_DIR/frontend/dist/." "$SITE_DIR/"
 
-          echo "==> Restarting backend"
+          echo "==> Reloading systemd and restarting backend"
+          sudo systemctl daemon-reload
           sudo systemctl restart bk-app
-          systemctl is-active --quiet bk-app
 
-          echo "==> Validating Nginx"
-          sudo nginx -t
+          echo "==> Waiting for backend locally"
 
-          echo "==> Checking frontend"
-          curl --fail --silent --show-error --head "$DOMAIN" > /dev/null
+          BACKEND_READY=false
 
-          echo "==> Checking backend"
-          API_STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' "$DOMAIN/api")"
-          if [ "$API_STATUS" != "401" ]; then
-            echo "Unexpected /api status: $API_STATUS; expected 401"
+          for attempt in $(seq 1 30); do
+            LOCAL_STATUS="$(
+              curl \
+                --silent \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --max-time 3 \
+                "$LOCAL_API_URL" || true
+            )"
+
+            if [ "$LOCAL_STATUS" = "401" ]; then
+              BACKEND_READY=true
+              echo "Backend is ready after attempt $attempt"
+              break
+            fi
+
+            echo "Attempt $attempt/30: local API returned ${LOCAL_STATUS:-no response}"
+            sleep 2
+          done
+
+          if [ "$BACKEND_READY" != "true" ]; then
+            echo "Backend did not become ready in time"
+            sudo systemctl status bk-app --no-pager || true
+            sudo journalctl -u bk-app -n 100 --no-pager || true
             exit 1
           fi
 
-          echo "Deployment completed: $DEPLOYED_COMMIT"
+          echo "==> Checking backend service"
+          systemctl is-active --quiet bk-app
+
+          echo "==> Validating Nginx configuration"
+          sudo nginx -t
+
+          echo "==> Checking frontend"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --head \
+            --max-time 10 \
+            --retry 5 \
+            --retry-delay 2 \
+            "$DOMAIN" > /dev/null
+
+          echo "==> Checking backend through Nginx"
+          EXTERNAL_STATUS="$(
+            curl \
+              --silent \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 10 \
+              --retry 5 \
+              --retry-delay 2 \
+              "$EXTERNAL_API_URL"
+          )"
+
+          if [ "$EXTERNAL_STATUS" != "401" ]; then
+            echo "External API returned $EXTERNAL_STATUS; expected 401"
+            sudo systemctl status bk-app --no-pager || true
+            sudo journalctl -u bk-app -n 100 --no-pager || true
+            exit 1
+          fi
+
+          echo "==> Deployment completed successfully"
+          echo "Previous commit: $PREVIOUS_COMMIT"
+          echo "Deployed commit: $DEPLOYED_COMMIT"
+
           REMOTE_SCRIPT
