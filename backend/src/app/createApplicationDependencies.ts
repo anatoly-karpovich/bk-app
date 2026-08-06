@@ -39,6 +39,27 @@ import { SessionsRepository } from "../modules/auth/SessionsRepository";
 import { UsersRepository } from "../modules/auth/UsersRepository";
 import { UsersController } from "../modules/users/UsersController";
 import { UsersService } from "../modules/users/UsersService";
+import { QuizConfigsRepository } from "../modules/quizzes/QuizConfigsRepository";
+import { QuizConfigsService } from "../modules/quizzes/QuizConfigsService";
+import { QuizConfigsController } from "../modules/quizzes/QuizConfigsController";
+import { QuizConfigReadModelFactory } from "../modules/quizzes/QuizConfigReadModelFactory";
+import { QuizzesRepository } from "../modules/quizzes/QuizzesRepository";
+import { QuizzesService } from "../modules/quizzes/QuizzesService";
+import { QuizzesController } from "../modules/quizzes/QuizzesController";
+import { QuizReadModelFactory } from "../modules/quizzes/QuizReadModelFactory";
+import { QuizEventsRepository } from "../modules/quizzes/QuizEventsRepository";
+import { QuizEventEngine } from "../modules/quizzes/QuizEventEngine/QuizEventEngine";
+import { ChatParser } from "../modules/chat/ChatParser";
+import { ChatMessageIdentity } from "../modules/chat/ChatMessageIdentity";
+import { ChatMessageDeduplicator } from "../modules/quizzes/ChatMessageDeduplicator/ChatMessageDeduplicator";
+import { QuizAnswerRanker } from "../modules/quizzes/QuizAnswerRanker/QuizAnswerRanker";
+import { QuizAwardCalculator } from "../modules/quizzes/QuizAwardCalculator/QuizAwardCalculator";
+import { QuizEventSummaryCalculator } from "../modules/quizzes/QuizEventSummaryCalculator/QuizEventSummaryCalculator";
+import { QuizSelectedAnswerPruner } from "../modules/quizzes/QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
+import { QuizMessageCandidateFilter } from "../modules/quizzes/QuizMessageCandidateFilter/QuizMessageCandidateFilter";
+import { QuizEventReadModelFactory } from "../modules/quizzes/QuizEventReadModelFactory";
+import { QuizEventsService } from "../modules/quizzes/QuizEventsService/QuizEventsService";
+import { QuizEventsController } from "../modules/quizzes/QuizEventsController";
 
 export interface ApplicationDependencies {
   authController: AuthController;
@@ -49,6 +70,9 @@ export interface ApplicationDependencies {
   journeyController: JourneyController;
   lottoController: LottoController;
   projectsController: ProjectsController;
+  quizConfigsController: QuizConfigsController;
+  quizzesController: QuizzesController;
+  quizEventsController: QuizEventsController;
   usersController: UsersController;
 }
 
@@ -62,6 +86,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const authController = new AuthController(authService);
 
   const projectsRepository = new ProjectsRepository(mongoDatabase);
+  const quizConfigsRepository = new QuizConfigsRepository(mongoDatabase);
+  const quizzesRepository = new QuizzesRepository(mongoDatabase);
+  const quizEventsRepository = new QuizEventsRepository(mongoDatabase);
   const gameConfigsRepository = new GameConfigsRepository(mongoDatabase);
   const battleshipsRepository = new BattleshipsRepository();
   const journeyRepository = new JourneyRepository();
@@ -73,9 +100,14 @@ export function createApplicationDependencies(): ApplicationDependencies {
     battleshipsRepository,
     lottoRepository,
     usersRepository,
+    quizConfigsRepository,
+    quizzesRepository,
+    quizEventsRepository,
   );
   const projectsController = new ProjectsController(projectsService);
-  const usersController = new UsersController(new UsersService(usersRepository, sessionsRepository, passwordHasher, projectsRepository));
+  const usersController = new UsersController(
+    new UsersService(usersRepository, sessionsRepository, passwordHasher, projectsRepository),
+  );
 
   const gameConfigReadModelFactory = new GameConfigReadModelFactory();
   const gameConfigsService = new GameConfigsService(
@@ -84,10 +116,44 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigReadModelFactory,
   );
   const gameConfigsController = new GameConfigsController(gameConfigsService);
+  const quizConfigsService = new QuizConfigsService(
+    quizConfigsRepository,
+    projectsRepository,
+    new QuizConfigReadModelFactory(),
+  );
+  const quizConfigsController = new QuizConfigsController(quizConfigsService);
+  const quizzesService = new QuizzesService(
+    quizzesRepository,
+    quizConfigsRepository,
+    projectsRepository,
+    new QuizReadModelFactory(),
+  );
+  const quizzesController = new QuizzesController(quizzesService);
 
   const cryptoRandomizer = new CryptoRandomizer();
-  const randomizer = process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
+  const randomizer =
+    process.env.REWARD_RANDOMIZER_DEBUG === "true" ? new LoggingRandomizer(cryptoRandomizer) : cryptoRandomizer;
   const rewardGrantService = new RewardGrantService(randomizer);
+  const chatMessageIdentity = new ChatMessageIdentity();
+  const quizAnswerRanker = new QuizAnswerRanker();
+  const quizEventEngine = new QuizEventEngine(
+    quizAnswerRanker,
+    new QuizAwardCalculator(),
+    new QuizEventSummaryCalculator(),
+    new QuizSelectedAnswerPruner(),
+  );
+  const quizEventReadModelFactory = new QuizEventReadModelFactory(quizAnswerRanker);
+  const quizEventsService = new QuizEventsService(
+    quizEventsRepository,
+    quizzesRepository,
+    projectsRepository,
+    quizEventEngine,
+    new ChatParser(),
+    new QuizMessageCandidateFilter(chatMessageIdentity),
+    new ChatMessageDeduplicator(chatMessageIdentity),
+    quizEventReadModelFactory,
+  );
+  const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
   const battleshipsReadModelFactory = new BattleshipsReadModelFactory(battleshipsEngine);
   const battleshipsService = new BattleshipsService(
@@ -126,12 +192,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
 
   const lottoEngine = new LottoEngine(rewardGrantService, new LottoPayoutDistributor());
   const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
-  const lottoService = new LottoService(
-    lottoRepository,
-    lottoEngine,
-    lottoReadModelFactory,
-    gameConfigsService,
-  );
+  const lottoService = new LottoService(lottoRepository, lottoEngine, lottoReadModelFactory, gameConfigsService);
   const lottoController = new LottoController(lottoService);
 
   const forumTopicController = new ForumTopicController(forumTopicService);
@@ -145,6 +206,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyController,
     lottoController,
     projectsController,
+    quizConfigsController,
+    quizzesController,
+    quizEventsController,
     usersController,
   };
 }

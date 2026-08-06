@@ -112,9 +112,10 @@ export default function BattleshipsSavedGamesDialog({
                             size="small"
                             color={game.status === "finished" ? "success" : "info"}
                             label={getBattleshipsSavedGameStatusLabel(game)}
-                          />
-                          <AppChip size="small" variant="outlined" label={`${savedGamesTexts.player}: ${game.playerName}`} />
-                          <AppChip
+                           />
+                           <AppChip size="small" variant="outlined" label={`${savedGamesTexts.player}: ${game.playerName}`} />
+                           <AppChip size="small" variant="outlined" label={`${savedGamesTexts.dj}: ${game.djName || "Не указан"}`} />
+                           <AppChip
                             size="small"
                             variant="outlined"
                             label={`${savedGamesTexts.prize}: ${formatResourceAmounts(game.currentPrize, game.resources) || "0"}`}
@@ -173,9 +174,6 @@ export default function BattleshipsSavedGamesDialog({
                         backgroundColor: "rgba(15, 23, 42, 0.02)",
                       }}
                     >
-                      <Typography variant="body2" color="text.secondary">
-                        {savedGamesTexts.dj}: {game.djName || "Не указан"}
-                      </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Ресурсы: {game.resources.map((resource) => resource.label).join(", ")}
                       </Typography>

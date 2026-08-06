@@ -23,7 +23,7 @@ export default function ConfigSummaryCard({ title, description, items }: ConfigS
               {description}
             </Typography>
           </Stack>
-          <AppResponsiveGrid columns={{ xs: 1, sm: 2 }} gap={1.25} sx={{ flex: 1, maxWidth: { lg: 720 } }}>
+          <AppResponsiveGrid columns={{ xs: 1, sm: 2, xl: 3 }} gap={1.25} sx={{ flex: 1, maxWidth: { lg: 960 } }}>
             {items.map((item) => (
               <Card key={item.label} variant="outlined" sx={{ boxShadow: "none", bgcolor: "rgba(248, 250, 252, 0.8)" }}>
                 <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>

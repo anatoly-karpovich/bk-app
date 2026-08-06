@@ -10,6 +10,8 @@ interface ConfigSectionNavProps<TSectionId extends string> {
   sections: readonly ConfigSection<TSectionId>[];
   activeSection: TSectionId;
   changedSections: readonly TSectionId[];
+  warningSections?: readonly TSectionId[];
+  readySections?: readonly TSectionId[];
   onSelect: (section: TSectionId) => void;
 }
 
@@ -20,6 +22,8 @@ export default function ConfigSectionNav<TSectionId extends string>({
   sections,
   activeSection,
   changedSections,
+  warningSections = [],
+  readySections = [],
   onSelect,
 }: ConfigSectionNavProps<TSectionId>) {
   return (
@@ -28,14 +32,17 @@ export default function ConfigSectionNav<TSectionId extends string>({
         <Stack spacing={2}>
           <Stack spacing={0.25}>
             <Typography variant="h5">{heading}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {description}
-            </Typography>
+            <Typography variant="body2" color="text.secondary">{description}</Typography>
           </Stack>
 
           <Stack spacing={1}>
             {sections.map((section) => {
               const changed = changedSections.includes(section.id);
+              const warning = warningSections.includes(section.id);
+              const ready = readySections.includes(section.id);
+              const statusColor = changed ? "primary.main" : warning ? "warning.main" : ready ? "success.main" : "transparent";
+              const statusLabel = changed ? "Раздел изменён" : warning ? "Раздел требует заполнения" : "Раздел готов";
+
               return (
                 <AppSelectableListItem
                   key={section.id}
@@ -44,26 +51,18 @@ export default function ConfigSectionNav<TSectionId extends string>({
                   icon={section.icon}
                   selected={section.id === activeSection}
                   onClick={() => onSelect(section.id)}
-                  trailing={
-                    changed ? (
-                      <Box
-                        aria-label="Раздел изменён"
-                        sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          display: "grid",
-                          placeItems: "center",
-                          bgcolor: "primary.main",
-                          color: "primary.contrastText",
-                          fontSize: 14,
-                          fontWeight: 800,
-                        }}
-                      >
-                        !
-                      </Box>
-                    ) : undefined
-                  }
+                  trailing={changed || warning || ready ? (
+                    <Box
+                      aria-label={statusLabel}
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        bgcolor: statusColor,
+                        boxShadow: changed ? "0 0 0 3px rgba(79, 70, 229, 0.12)" : "none",
+                      }}
+                    />
+                  ) : undefined}
                 />
               );
             })}

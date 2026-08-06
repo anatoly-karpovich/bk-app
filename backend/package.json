@@ -8,6 +8,8 @@
     "db:local:down": "docker compose -f docker-compose.mongo.yml down",
     "db:local:logs": "docker compose -f docker-compose.mongo.yml logs -f mongo",
     "build": "tsc",
+    "test": "tsx --test src/modules/**/*.test.ts",
+    "test:quizzes": "tsx --test src/modules/quizzes/**/*.test.ts",
     "dev": "npm run dev:local",
     "dev:local": "set \"BK_APP_ENV_FILE=.env.local\" && nodemon --watch src --ext ts --exec tsx src/server.ts",
     "dev:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && nodemon --watch src --ext ts --exec tsx src/server.ts",

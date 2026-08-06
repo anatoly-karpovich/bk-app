@@ -10,6 +10,13 @@ interface PageBreadcrumbsProps {
 
 export default function PageBreadcrumbs({ pagePath, additionalItems = [] }: PageBreadcrumbsProps) {
   const navigation = findNavigationItem(pagePath);
+  if (navigation?.group.id === "quizzes") {
+    return <AppBreadcrumbs items={[
+      { label: appHeaderTexts.brandTitle, to: "/" },
+      { label: navigation.item.label, to: additionalItems.length ? navigation.item.to : undefined },
+      ...additionalItems,
+    ]} />;
+  }
   const items: AppBreadcrumbItem[] = [
     { label: appHeaderTexts.brandTitle, to: "/" },
     ...(navigation

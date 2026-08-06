@@ -1,7 +1,18 @@
 import { useMemo, useState } from "react";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import { Alert, Box, Card, CardContent, CircularProgress, Grid, InputAdornment, Stack, Typography } from "@mui/material";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  Grid,
+  InputAdornment,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppTextInput from "../../components/ui/AppTextInput";
@@ -83,11 +94,22 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
               variant: "text",
               color: "inherit",
             },
+            {
+              key: "quiz-configs",
+              label: "Викторины",
+              icon: <QuizRoundedIcon />,
+              onClick: () => navigate("/configs/quizzes"),
+              variant: "outlined",
+            },
           ]}
         />
       </Grid>
 
-      {error ? <Grid item xs={12}><Alert severity="error">{error}</Alert></Grid> : null}
+      {error ? (
+        <Grid item xs={12}>
+          <Alert severity="error">{error}</Alert>
+        </Grid>
+      ) : null}
 
       <Grid item xs={12} lg={4} xl={3}>
         <GameTypeFilterCard
@@ -105,10 +127,17 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
         <Stack spacing={2.25}>
           <Card>
             <CardContent>
-              <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                justifyContent="space-between"
+                alignItems={{ md: "center" }}
+                spacing={2}
+              >
                 <Stack spacing={0.5}>
                   <Typography variant="h5">{gameConfigsTexts.section.title(gameType)}</Typography>
-                  <Typography variant="body2" color="text.secondary">{gameConfigsTexts.section.description(gameType)}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {gameConfigsTexts.section.description(gameType)}
+                  </Typography>
                 </Stack>
                 <AppTextInput
                   size="small"
@@ -118,7 +147,9 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
                   inputProps={{ "aria-label": gameConfigsTexts.section.searchPlaceholder }}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start"><SearchRoundedIcon fontSize="small" color="disabled" /></InputAdornment>
+                      <InputAdornment position="start">
+                        <SearchRoundedIcon fontSize="small" color="disabled" />
+                      </InputAdornment>
                     ),
                   }}
                   sx={{ width: { xs: "100%", md: 260 }, flexShrink: 0 }}
@@ -128,9 +159,17 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
           </Card>
 
           {isLoading ? (
-            <Stack alignItems="center" sx={{ py: 6 }}><CircularProgress /></Stack>
+            <Stack alignItems="center" sx={{ py: 6 }}>
+              <CircularProgress />
+            </Stack>
           ) : visibleConfigs.length ? (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" }, gap: 2.25 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" },
+                gap: 2.25,
+              }}
+            >
               {visibleConfigs.map((config) => (
                 <Box key={config.id}>
                   <GameConfigCard
@@ -146,10 +185,14 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
             <Card>
               <CardContent sx={{ py: 4, textAlign: "center" }}>
                 <Typography variant="h6">
-                  {selectedGameConfigs.length ? gameConfigsTexts.empty.searchTitle : gameConfigsTexts.empty.noConfigs(gameType)}
+                  {selectedGameConfigs.length
+                    ? gameConfigsTexts.empty.searchTitle
+                    : gameConfigsTexts.empty.noConfigs(gameType)}
                 </Typography>
                 {selectedGameConfigs.length ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>{gameConfigsTexts.empty.searchDescription}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+                    {gameConfigsTexts.empty.searchDescription}
+                  </Typography>
                 ) : null}
               </CardContent>
             </Card>

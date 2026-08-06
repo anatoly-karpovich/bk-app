@@ -106,6 +106,23 @@ Journey runtime supports only `JourneyV2Game`. Legacy Journey normalization is a
 
 Journey exposes one public `JourneyGameView` read model for every game endpoint. Do not reintroduce raw persisted rounds, player move history, duplicate player collections, or storage-format details into the API or UI.
 
+### Public API read-model standard
+
+Public API responses are explicit read models built by dedicated factories. Never expose or spread persistence/Mongo documents into a response.
+
+Use this shared top-level vocabulary when it applies:
+
+- `id`, `createdAt`, `updatedAt` — stable identity and audit timestamps;
+- `meta` — lifecycle, ownership, status, relationships, and concurrency tokens;
+- `content` — user-editable domain content for non-runtime entities;
+- `configuration` — rules, resource snapshots, and other immutable configuration context;
+- `validation` — computed readiness/validation issues;
+- `state` — current runtime state, only for entities that execute or progress over time.
+
+Do not add an artificial `state` to editor/configuration entities. Use `content` plus `configuration` instead. A runtime entity such as a game or Quiz Event may expose `state`, while its saved rules and resource snapshots remain under `configuration`.
+
+Persisted document types and public DTO/read-model types must stay separate. Frontend API clients consume the DTO and map it to page models; they must not infer persistence structure or depend on storage-only fields.
+
 ---
 
 ## Frontend responsibility
