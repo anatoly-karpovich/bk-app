@@ -7,7 +7,7 @@ export type LottoConfigSectionId = "general" | "card" | "prizes" | "distribution
 
 export type BattleshipsConfigSectionId = "general" | "boards" | "board" | "fleet" | "rewards";
 
-export type QuizConfigSectionId = "description" | "rewards" | "messages";
+export type QuizConfigSectionId = "general" | "rewards" | "bonus" | "messages";
 
 export interface ConfigSection<TSectionId extends string> {
   id: TSectionId;
