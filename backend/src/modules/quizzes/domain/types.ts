@@ -77,11 +77,6 @@ export interface QuizConfigDocument {
   schemaVersion: 1;
 }
 
-export interface QuizConfigView extends QuizConfigDocument {
-  id: string;
-  validationIssues: QuizValidationIssue[];
-}
-
 export interface QuizConfigRulesSnapshot {
   configId: string;
   configName: string;
@@ -122,11 +117,6 @@ export interface QuizDocument {
   createdAt: string;
   updatedAt: string;
   schemaVersion: 1;
-}
-
-export interface QuizView extends QuizDocument {
-  id: string;
-  validationIssues: QuizValidationIssue[];
 }
 
 export interface QuizSnapshot {
@@ -273,22 +263,4 @@ export interface QuizRankedAnswerView {
   timestamp: string | null;
   effectiveOrder: number;
   position: number;
-}
-
-export interface QuizEventQuestionView extends Omit<QuizEventQuestion, "selectedAnswers"> {
-  questionTitle: string | null;
-  questionText: string;
-  generatedMessage: string;
-  generatedAnswerMessage: string;
-  playerGroups: QuizPlayerMessageGroupView[];
-  ranking: QuizRankedAnswerView[];
-}
-
-export interface QuizEventView extends Omit<QuizEventDocument, "questions"> {
-  id: string;
-  conductedQuestionsCount: number;
-  reviewedQuestionsCount: number;
-  preparedQuestionsCount: number;
-  firstUnconductedQuestionId: string | null;
-  questions: QuizEventQuestionView[];
 }

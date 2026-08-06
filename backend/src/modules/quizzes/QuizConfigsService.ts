@@ -5,9 +5,10 @@ import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
 import { QuizConfigNotFoundError, QuizConflictError } from "./errors";
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
+import { QuizConfigReadModelFactory } from "./QuizConfigReadModelFactory";
 import { validateQuizConfig } from "./domain/validation";
-import { publicDocumentFields } from "./domain/publicDocument";
-import type { QuizConfigDocument, QuizConfigView, QuizMessageTemplates, QuizRegularRewardRule, QuizRegularRewardOverride, QuizBonusRewardRule } from "./domain/types";
+import type { QuizConfigDocument, QuizMessageTemplates, QuizRegularRewardRule, QuizRegularRewardOverride, QuizBonusRewardRule } from "./domain/types";
+import type { QuizConfigView } from "./domain/readModels";
 
 export interface SaveQuizConfigInput {
   name: string;
@@ -22,7 +23,11 @@ export interface SaveQuizConfigInput {
 }
 
 export class QuizConfigsService {
-  constructor(private readonly repository: QuizConfigsRepository, private readonly projectsRepository: ProjectsRepository) {}
+  constructor(
+    private readonly repository: QuizConfigsRepository,
+    private readonly projectsRepository: ProjectsRepository,
+    private readonly readModels: QuizConfigReadModelFactory,
+  ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizConfigView[]> {
     assertProjectAccess(actor, projectId);
@@ -98,7 +103,7 @@ export class QuizConfigsService {
 
   private toView(id: string, config: QuizConfigDocument, resources: Parameters<typeof validateQuizConfig>[1]): QuizConfigView {
     const validationIssues = validateQuizConfig(config, resources);
-    return { id, ...publicDocumentFields(config), status: validationIssues.length ? "draft" : "ready", validationIssues };
+    return this.readModels.create(id, config, validationIssues);
   }
 
   private toDocument(

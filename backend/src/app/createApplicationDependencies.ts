@@ -42,9 +42,11 @@ import { UsersService } from "../modules/users/UsersService";
 import { QuizConfigsRepository } from "../modules/quizzes/QuizConfigsRepository";
 import { QuizConfigsService } from "../modules/quizzes/QuizConfigsService";
 import { QuizConfigsController } from "../modules/quizzes/QuizConfigsController";
+import { QuizConfigReadModelFactory } from "../modules/quizzes/QuizConfigReadModelFactory";
 import { QuizzesRepository } from "../modules/quizzes/QuizzesRepository";
 import { QuizzesService } from "../modules/quizzes/QuizzesService";
 import { QuizzesController } from "../modules/quizzes/QuizzesController";
+import { QuizReadModelFactory } from "../modules/quizzes/QuizReadModelFactory";
 import { QuizEventsRepository } from "../modules/quizzes/QuizEventsRepository";
 import { QuizEventEngine } from "../modules/quizzes/QuizEventEngine/QuizEventEngine";
 import { ChatParser } from "../modules/chat/ChatParser";
@@ -55,7 +57,7 @@ import { QuizAwardCalculator } from "../modules/quizzes/QuizAwardCalculator/Quiz
 import { QuizEventSummaryCalculator } from "../modules/quizzes/QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizSelectedAnswerPruner } from "../modules/quizzes/QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
 import { QuizMessageCandidateFilter } from "../modules/quizzes/QuizMessageCandidateFilter/QuizMessageCandidateFilter";
-import { QuizReadModelFactory } from "../modules/quizzes/QuizReadModelFactory";
+import { QuizEventReadModelFactory } from "../modules/quizzes/QuizEventReadModelFactory";
 import { QuizEventsService } from "../modules/quizzes/QuizEventsService/QuizEventsService";
 import { QuizEventsController } from "../modules/quizzes/QuizEventsController";
 
@@ -114,9 +116,18 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigReadModelFactory,
   );
   const gameConfigsController = new GameConfigsController(gameConfigsService);
-  const quizConfigsService = new QuizConfigsService(quizConfigsRepository, projectsRepository);
+  const quizConfigsService = new QuizConfigsService(
+    quizConfigsRepository,
+    projectsRepository,
+    new QuizConfigReadModelFactory(),
+  );
   const quizConfigsController = new QuizConfigsController(quizConfigsService);
-  const quizzesService = new QuizzesService(quizzesRepository, quizConfigsRepository, projectsRepository);
+  const quizzesService = new QuizzesService(
+    quizzesRepository,
+    quizConfigsRepository,
+    projectsRepository,
+    new QuizReadModelFactory(),
+  );
   const quizzesController = new QuizzesController(quizzesService);
 
   const cryptoRandomizer = new CryptoRandomizer();
@@ -131,7 +142,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new QuizEventSummaryCalculator(),
     new QuizSelectedAnswerPruner(),
   );
-  const quizReadModelFactory = new QuizReadModelFactory(quizAnswerRanker);
+  const quizEventReadModelFactory = new QuizEventReadModelFactory(quizAnswerRanker);
   const quizEventsService = new QuizEventsService(
     quizEventsRepository,
     quizzesRepository,
@@ -140,7 +151,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new ChatParser(),
     new QuizMessageCandidateFilter(chatMessageIdentity),
     new ChatMessageDeduplicator(chatMessageIdentity),
-    quizReadModelFactory,
+    quizEventReadModelFactory,
   );
   const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);

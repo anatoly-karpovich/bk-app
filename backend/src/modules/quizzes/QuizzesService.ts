@@ -6,9 +6,10 @@ import { ProjectsRepository } from "../projects/ProjectsRepository";
 import { QuizConfigNotFoundError, QuizConflictError, QuizNotFoundError, QuizValidationError } from "./errors";
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { QuizzesRepository } from "./QuizzesRepository";
+import { QuizReadModelFactory } from "./QuizReadModelFactory";
 import { collectResourceIds, validateQuiz, validateQuizConfig } from "./domain/validation";
-import { publicDocumentFields } from "./domain/publicDocument";
-import type { QuizConfigDocument, QuizConfigRulesSnapshot, QuizDocument, QuizMessageTemplates, QuizQuestion, QuizView } from "./domain/types";
+import type { QuizConfigDocument, QuizConfigRulesSnapshot, QuizDocument, QuizMessageTemplates, QuizQuestion } from "./domain/types";
+import type { QuizView } from "./domain/readModels";
 
 export interface CreateQuizInput {
   configId: string;
@@ -29,6 +30,7 @@ export class QuizzesService {
     private readonly repository: QuizzesRepository,
     private readonly configsRepository: QuizConfigsRepository,
     private readonly projectsRepository: ProjectsRepository,
+    private readonly readModels: QuizReadModelFactory,
   ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizView[]> {
@@ -116,7 +118,7 @@ export class QuizzesService {
 
   private toView(id: string, quiz: QuizDocument): QuizView {
     const validationIssues = validateQuiz(quiz);
-    return { id, ...publicDocumentFields(quiz), status: validationIssues.length ? "draft" : "ready", validationIssues };
+    return this.readModels.create(id, quiz, validationIssues);
   }
 
   private async getProject(projectId: string) {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ObjectId } from "mongodb";
 import { QuizAnswerRanker } from "./QuizAnswerRanker/QuizAnswerRanker";
-import { QuizReadModelFactory } from "./QuizReadModelFactory";
+import { QuizEventReadModelFactory } from "./QuizEventReadModelFactory";
 import type { QuizEventDocument } from "./domain/types";
 
 test("projects historical event questions without chat workspace fields", () => {
@@ -36,12 +36,12 @@ test("projects historical event questions without chat workspace fields", () => 
     _id: new ObjectId(),
   } as unknown as QuizEventDocument;
 
-  const view = new QuizReadModelFactory(new QuizAnswerRanker()).create("event", event);
+  const view = new QuizEventReadModelFactory(new QuizAnswerRanker()).create("event", event);
 
-  assert.deepEqual(view.questions[0].chat.messages, []);
-  assert.deepEqual(view.questions[0].awards, []);
-  assert.deepEqual(view.questions[0].playerGroups, []);
-  assert.equal(view.questions[0].ranking.length, 0);
+  assert.deepEqual(view.state.questions[0].chat.playerGroups, []);
+  assert.deepEqual(view.state.questions[0].result.awards, []);
+  assert.equal(view.state.questions[0].result.ranking.length, 0);
   assert.equal("_id" in view, false);
   assert.doesNotMatch(JSON.stringify(view), /buffer/);
+  assert.doesNotMatch(JSON.stringify(view), /quizQuestionId|selectedAnswers|canonicalKey/);
 });

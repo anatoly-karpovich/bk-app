@@ -9,10 +9,11 @@ import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMe
 import { QuizConflictError, QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizValidationError } from "../errors";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
-import { QuizReadModelFactory } from "../QuizReadModelFactory";
+import { QuizEventReadModelFactory } from "../QuizEventReadModelFactory";
 import { QuizzesRepository } from "../QuizzesRepository";
 import { validateQuiz } from "../domain/validation";
-import type { QuizEventDocument, QuizEventView, QuizMessageKind, QuizSelectedAnswer, QuizSnapshot } from "../domain/types";
+import type { QuizEventDocument, QuizMessageKind, QuizSelectedAnswer, QuizSnapshot } from "../domain/types";
+import type { QuizEventView } from "../domain/readModels";
 
 export interface SaveQuizQuestionChatResult {
   event: QuizEventView;
@@ -44,7 +45,7 @@ export class QuizEventsService {
     private readonly chatParser: ChatParser,
     private readonly candidateFilter: QuizMessageCandidateFilter,
     private readonly deduplicator: ChatMessageDeduplicator,
-    private readonly readModels: QuizReadModelFactory,
+    private readonly readModels: QuizEventReadModelFactory,
   ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizEventView[]> {
@@ -187,9 +188,9 @@ export class QuizEventsService {
     const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
     if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     const view = this.readModels.create(eventId, saved);
-    const question = view.questions.find((candidate) => candidate.id === questionId);
-    if (!question || question.conductedOrder === null || question.reviewedAt === null) throw new Error("Saved quiz question result was not found");
-    return { event: view, result: { conductedOrder: question.conductedOrder, awardsCount: question.awards.length, reviewedAt: question.reviewedAt } };
+    const question = view.state.questions.find((candidate) => candidate.id === questionId);
+    if (!question || question.workflow.conductedOrder === null || question.workflow.reviewedAt === null) throw new Error("Saved quiz question result was not found");
+    return { event: view, result: { conductedOrder: question.workflow.conductedOrder, awardsCount: question.result.awards.length, reviewedAt: question.workflow.reviewedAt } };
   }
 
   private async mutate(

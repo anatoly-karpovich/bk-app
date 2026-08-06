@@ -7,7 +7,7 @@ import type {
   QuizQuestion,
   QuizRegularRewardRule,
   QuizValidationIssue,
-  QuizView,
+  QuizDocument,
 } from "./types";
 
 const ALLOWED_PLACEHOLDERS = new Set([
@@ -50,7 +50,7 @@ export function validateQuizConfig(config: QuizConfigDocument, resources: Projec
   return issues;
 }
 
-export function validateQuiz(quiz: QuizView | Omit<QuizView, "id" | "validationIssues">): QuizValidationIssue[] {
+export function validateQuiz(quiz: QuizDocument): QuizValidationIssue[] {
   const issues: QuizValidationIssue[] = [];
   const snapshot = quiz.configRulesSnapshot;
   const configForValidation: QuizConfigDocument = {
