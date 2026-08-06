@@ -3,19 +3,98 @@ name: Deploy to Lightsail
 on:
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
-  ssh-check:
-    runs-on: ubuntu-latest
+  deploy:
+    name: Deploy main to production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
 
     steps:
-      - name: Check SSH connection
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            whoami
-            hostname
-            pwd
+      - name: Prepare SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -Eeuo pipefail
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -Eeuo pipefail
+
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" \
+            'bash -se' <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+
+          APP_DIR=/opt/bk-app
+          SITE_DIR=/var/www/html
+          DOMAIN=https://combats-dj.com
+
+          echo "==> Updating repository"
+          cd "$APP_DIR"
+
+          if [ "$(git branch --show-current)" != "main" ]; then
+            echo "Server repository is not on main"
+            exit 1
+          fi
+
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Server repository has uncommitted changes"
+            git status --short
+            exit 1
+          fi
+
+          git pull --ff-only origin main
+          DEPLOYED_COMMIT="$(git rev-parse --short HEAD)"
+
+          echo "==> Building backend"
+          cd "$APP_DIR/backend"
+          npm ci
+          npm run build
+
+          echo "==> Building frontend"
+          cd "$APP_DIR/frontend"
+          npm ci
+          npm run build
+
+          echo "==> Publishing frontend"
+          sudo rm -rf "$SITE_DIR"/*
+          sudo cp -a "$APP_DIR/frontend/dist/." "$SITE_DIR/"
+
+          echo "==> Restarting backend"
+          sudo systemctl restart bk-app
+          systemctl is-active --quiet bk-app
+
+          echo "==> Validating Nginx"
+          sudo nginx -t
+
+          echo "==> Checking frontend"
+          curl --fail --silent --show-error --head "$DOMAIN" > /dev/null
+
+          echo "==> Checking backend"
+          API_STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' "$DOMAIN/api")"
+          if [ "$API_STATUS" != "401" ]; then
+            echo "Unexpected /api status: $API_STATUS; expected 401"
+            exit 1
+          fi
+
+          echo "Deployment completed: $DEPLOYED_COMMIT"
+          REMOTE_SCRIPT
