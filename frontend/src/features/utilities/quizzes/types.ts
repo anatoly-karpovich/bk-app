@@ -13,7 +13,7 @@ export type QuizRegularRule =
   | { mode: "by_position"; positionRewards: Array<{ position: number; rewardPool: QuizRewardPool }> };
 export interface QuizRegularRewardOverride { questionIndex: number; rule: QuizRegularRule; }
 export interface QuizBonusRule { id: string; questionIndex: number; position: number; rewardPool: QuizRewardPool; }
-export interface QuizConfig { id: string; name: string; description: string; status: QuizStatus; questionCount: number | null; defaultRegularRule: QuizRegularRule | null; regularRewardOverrides: QuizRegularRewardOverride[]; bonusRules: QuizBonusRule[]; messageTemplates: QuizMessageTemplates | null; answerMessageTemplates: QuizMessageTemplates | null; isSystem: boolean; createdByUserId: string; validationIssues: QuizValidationIssue[]; }
+export interface QuizConfig { id: string; name: string; description: string; status: QuizStatus; questionCount: number | null; defaultRegularRule: QuizRegularRule | null; regularRewardOverrides: QuizRegularRewardOverride[]; bonusRules: QuizBonusRule[]; messageTemplates: QuizMessageTemplates | null; answerMessageTemplates: QuizMessageTemplates | null; isSystem: boolean; createdByUserId: string; updatedByUserId: string; createdAt: string; updatedAt: string; validationIssues: QuizValidationIssue[]; }
 export interface QuizQuestion { id: string; questionIndex: number; title: string | null; text: string; correctAnswer: string | null; attachmentUrl: string | null; notes: string | null; }
 export interface QuizQuestionDraft {
   id: string;

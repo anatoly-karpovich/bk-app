@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import { Alert, Box, Card, CardContent, CircularProgress, InputAdornment, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
+import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import AppTextInput from "../../components/ui/AppTextInput";
+import { useAuth } from "../auth/useAuth";
 import { quizConfigsTexts } from "../../texts/quizConfigsTexts";
 import type { Project } from "../projects/types";
 import { quizConfigsApi } from "./api/quizConfigs.client";
@@ -18,16 +21,18 @@ interface QuizConfigsPageProps {
 
 export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [configs, setConfigs] = useState<QuizConfig[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<QuizConfig | null>(null);
   const projectId = selectedProject?.id;
+  const showSearch = configs.length >= 4;
 
   const loadConfigs = async () => {
-    if (!projectId) {
-      return;
-    }
+    if (!projectId) return;
 
     setIsLoading(true);
     setError(null);
@@ -47,22 +52,44 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
 
   const visibleConfigs = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-
-    if (!normalizedQuery) {
-      return configs;
-    }
+    if (!showSearch || !normalizedQuery) return configs;
 
     return configs.filter((config) =>
       `${config.name} ${config.description}`.toLocaleLowerCase().includes(normalizedQuery),
     );
-  }, [configs, searchQuery]);
+  }, [configs, searchQuery, showSearch]);
+
+  const stats = useMemo(
+    () => ({
+      system: configs.filter((config) => config.isSystem).length,
+      draft: configs.filter((config) => config.status === "draft").length,
+    }),
+    [configs],
+  );
+
+  const deleteConfig = async () => {
+    if (!projectId || !pendingDelete) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      await quizConfigsApi.delete(projectId, pendingDelete.id);
+      setConfigs((current) => current.filter((config) => config.id !== pendingDelete.id));
+      setPendingDelete(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : quizConfigsTexts.alerts.deleteFailed);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (!selectedProject) {
     return <Alert severity="warning">{quizConfigsTexts.alerts.projectRequired}</Alert>;
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2.75}>
       <GamePageHeader
         breadcrumbPath="/configs/quizzes"
         title={quizConfigsTexts.page.title}
@@ -70,6 +97,8 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
         chips={[
           { label: quizConfigsTexts.page.projectChip(selectedProject.name) },
           { label: quizConfigsTexts.page.configsChip(configs.length), color: "secondary" },
+          { label: quizConfigsTexts.page.systemConfigsChip(stats.system) },
+          { label: quizConfigsTexts.page.draftConfigsChip(stats.draft), color: "warning" },
         ]}
         actions={[
           {
@@ -81,13 +110,39 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
             variant: "text",
             color: "inherit",
           },
+          {
+            key: "create",
+            label: quizConfigsTexts.page.create,
+            icon: <AddRoundedIcon />,
+            onClick: () => navigate("/configs/quizzes/create"),
+            variant: "contained",
+          },
         ]}
+        cardSx={{
+          position: "relative",
+          overflow: "hidden",
+          minHeight: { md: 200 },
+          "&::after": {
+            content: '\"\"',
+            position: "absolute",
+            width: 420,
+            height: 420,
+            right: -120,
+            bottom: -180,
+            borderRadius: "50%",
+            bgcolor: "rgba(104, 124, 255, 0.08)",
+          },
+          "& > *": { position: "relative", zIndex: 1 },
+          "& .MuiTypography-h3": {
+            fontSize: { xs: "2.5rem", md: "3.75rem" },
+          },
+        }}
       />
 
       {error ? <Alert severity="error">{error}</Alert> : null}
 
       <Card>
-        <CardContent>
+        <CardContent sx={{ p: { xs: 2.25, md: 2.5 } }}>
           <Stack
             direction={{ xs: "column", md: "row" }}
             justifyContent="space-between"
@@ -100,21 +155,27 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
                 {quizConfigsTexts.section.description}
               </Typography>
             </Stack>
-            <AppTextInput
-              size="small"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={quizConfigsTexts.section.searchPlaceholder}
-              inputProps={{ "aria-label": quizConfigsTexts.section.searchPlaceholder }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchRoundedIcon fontSize="small" color="disabled" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ width: { xs: "100%", md: 280 }, flexShrink: 0 }}
-            />
+            {showSearch ? (
+              <AppTextInput
+                size="small"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={quizConfigsTexts.section.searchPlaceholder}
+                inputProps={{ "aria-label": quizConfigsTexts.section.searchPlaceholder }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon fontSize="small" color="disabled" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ width: { xs: "100%", md: 280 }, flexShrink: 0 }}
+              />
+            ) : (
+              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                {quizConfigsTexts.section.searchHint}
+              </Typography>
+            )}
           </Stack>
         </CardContent>
       </Card>
@@ -127,22 +188,37 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "minmax(0, 1fr)", xl: "repeat(2, minmax(0, 1fr))" },
+            gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" },
             gap: 2.25,
           }}
         >
-          {visibleConfigs.map((config) => (
-            <QuizConfigSelectionCard
-              key={config.id}
-              config={config}
-              onSelect={() => navigate(`/configs/quizzes/${encodeURIComponent(config.id)}`)}
-            />
-          ))}
+          {visibleConfigs.map((config) => {
+            const canEdit = user?.role === "admin" || (!config.isSystem && config.createdByUserId === user?.id);
+            const canDelete = !config.isSystem && canEdit;
+            const authorLabel = config.isSystem
+              ? quizConfigsTexts.card.systemAuthor
+              : config.createdByUserId === user?.id
+                ? user.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? user.displayName
+                : config.createdByUserId;
+
+            return (
+              <QuizConfigSelectionCard
+                key={config.id}
+                config={config}
+                resources={selectedProject.resources}
+                authorLabel={authorLabel}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                onSelect={() => navigate(`/configs/quizzes/${encodeURIComponent(config.id)}`)}
+                onDelete={() => setPendingDelete(config)}
+              />
+            );
+          })}
         </Box>
       ) : (
         <Card>
-          <CardContent sx={{ py: 4, textAlign: "center" }}>
-            <QuizRoundedIcon color="disabled" sx={{ fontSize: 36, mb: 1 }} />
+          <CardContent sx={{ py: 6, textAlign: "center" }}>
+            <QuizRoundedIcon color="disabled" sx={{ fontSize: 42, mb: 1.25 }} />
             <Typography variant="h6">
               {configs.length ? quizConfigsTexts.empty.searchTitle : quizConfigsTexts.empty.noConfigsTitle}
             </Typography>
@@ -152,6 +228,20 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
           </CardContent>
         </Card>
       )}
+
+      {pendingDelete ? (
+        <AppConfirmDialog
+          open
+          title={quizConfigsTexts.deleteDialog.title}
+          description={quizConfigsTexts.deleteDialog.description(pendingDelete.name || quizConfigsTexts.card.untitled)}
+          confirmLabel={quizConfigsTexts.deleteDialog.confirm}
+          cancelLabel={quizConfigsTexts.deleteDialog.cancel}
+          confirmColor="error"
+          loading={isDeleting}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={() => void deleteConfig()}
+        />
+      ) : null}
     </Stack>
   );
 }

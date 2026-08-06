@@ -7,6 +7,7 @@ import BattleshipsConfigPage from "./features/configs/BattleshipsConfigPage";
 import GameConfigsPage from "./features/configs/GameConfigsPage";
 import QuizConfigsPage from "./features/configs/QuizConfigsPage";
 import QuizConfigPage from "./features/configs/QuizConfigPage";
+import QuizConfigCreatePage from "./features/configs/QuizConfigCreatePage";
 import JourneyConfigPage from "./features/configs/JourneyConfigPage";
 import LottoConfigPage from "./features/configs/LottoConfigPage";
 import JourneyPage from "./features/journey/JourneyPage";
@@ -76,6 +77,7 @@ function AuthenticatedApp() {
           <Route path="/project" element={<ProjectPage selectedProject={selectedProject} canEdit={user?.role === "admin"} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/quizzes" element={<QuizConfigsPage selectedProject={selectedProject} />} />
+          <Route path="/configs/quizzes/create" element={<QuizConfigCreatePage selectedProject={selectedProject} />} />
           <Route path="/configs/quizzes/:configId" element={<QuizConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
