@@ -1,4 +1,5 @@
 import { buildQuizMessage } from "./domain/messageBuilder";
+import { publicDocumentFields } from "./domain/publicDocument";
 import type { QuizEventDocument, QuizEventQuestion, QuizEventView, QuizPlayerMessageGroupView } from "./domain/types";
 import { QuizAnswerRanker } from "./QuizAnswerRanker/QuizAnswerRanker";
 
@@ -8,7 +9,7 @@ export class QuizReadModelFactory {
   create(id: string, event: QuizEventDocument): QuizEventView {
     const questionsById = new Map(event.quizSnapshot.questions.map((question) => [question.id, question]));
     return {
-      id, ...structuredClone(event),
+      id, ...publicDocumentFields(event),
       conductedQuestionsCount: event.questions.filter((question) => question.conductedOrder !== null).length,
       reviewedQuestionsCount: event.questions.filter((question) => question.reviewedAt !== null).length,
       preparedQuestionsCount: event.questions.length,

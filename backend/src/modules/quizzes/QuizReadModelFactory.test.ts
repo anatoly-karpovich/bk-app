@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ObjectId } from "mongodb";
 import { QuizAnswerRanker } from "./QuizAnswerRanker/QuizAnswerRanker";
 import { QuizReadModelFactory } from "./QuizReadModelFactory";
 import type { QuizEventDocument } from "./domain/types";
@@ -32,6 +33,7 @@ test("projects historical event questions without chat workspace fields", () => 
       schemaVersion: 1,
     },
     questions: [{ id: "event-question", quizQuestionId: "source-question", questionIndex: 1, conductedOrder: null, reviewedAt: null, reviewedByUserId: null, selectedAnswers: [{ playerName: "Alice", selectedMessageId: "missing-message" }], updatedAt: "now" }],
+    _id: new ObjectId(),
   } as unknown as QuizEventDocument;
 
   const view = new QuizReadModelFactory(new QuizAnswerRanker()).create("event", event);
@@ -40,4 +42,6 @@ test("projects historical event questions without chat workspace fields", () => 
   assert.deepEqual(view.questions[0].awards, []);
   assert.deepEqual(view.questions[0].playerGroups, []);
   assert.equal(view.questions[0].ranking.length, 0);
+  assert.equal("_id" in view, false);
+  assert.doesNotMatch(JSON.stringify(view), /buffer/);
 });

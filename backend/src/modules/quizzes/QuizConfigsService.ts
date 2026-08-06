@@ -6,6 +6,7 @@ import { ProjectsRepository } from "../projects/ProjectsRepository";
 import { QuizConfigNotFoundError, QuizConflictError } from "./errors";
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { validateQuizConfig } from "./domain/validation";
+import { publicDocumentFields } from "./domain/publicDocument";
 import type { QuizConfigDocument, QuizConfigView, QuizMessageTemplates, QuizRegularRewardRule, QuizRegularRewardOverride, QuizBonusRewardRule } from "./domain/types";
 
 export interface SaveQuizConfigInput {
@@ -97,7 +98,7 @@ export class QuizConfigsService {
 
   private toView(id: string, config: QuizConfigDocument, resources: Parameters<typeof validateQuizConfig>[1]): QuizConfigView {
     const validationIssues = validateQuizConfig(config, resources);
-    return { id, ...structuredClone(config), status: validationIssues.length ? "draft" : "ready", validationIssues };
+    return { id, ...publicDocumentFields(config), status: validationIssues.length ? "draft" : "ready", validationIssues };
   }
 
   private toDocument(

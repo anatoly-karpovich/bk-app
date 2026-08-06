@@ -7,6 +7,7 @@ import { QuizConfigNotFoundError, QuizConflictError, QuizNotFoundError, QuizVali
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { QuizzesRepository } from "./QuizzesRepository";
 import { collectResourceIds, validateQuiz, validateQuizConfig } from "./domain/validation";
+import { publicDocumentFields } from "./domain/publicDocument";
 import type { QuizConfigDocument, QuizConfigRulesSnapshot, QuizDocument, QuizMessageTemplates, QuizQuestion, QuizView } from "./domain/types";
 
 export interface CreateQuizInput {
@@ -115,7 +116,7 @@ export class QuizzesService {
 
   private toView(id: string, quiz: QuizDocument): QuizView {
     const validationIssues = validateQuiz(quiz);
-    return { id, ...structuredClone(quiz), status: validationIssues.length ? "draft" : "ready", validationIssues };
+    return { id, ...publicDocumentFields(quiz), status: validationIssues.length ? "draft" : "ready", validationIssues };
   }
 
   private async getProject(projectId: string) {
