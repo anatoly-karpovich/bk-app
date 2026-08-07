@@ -8,6 +8,8 @@ import { normalizeJourneyRules, validateJourneyRules } from "../journey/domain/c
 import type { JourneyRulesInput } from "../journey/domain/types";
 import { normalizeLottoRules, validateLottoRules } from "../lotto/domain/config";
 import type { LottoRulesInput } from "../lotto/domain/types";
+import { normalizeLottoBingoRules, validateLottoBingoRules } from "../lottoBingo/domain/config";
+import type { LottoBingoRulesInput } from "../lottoBingo/domain/types";
 import { GameConfigReadModelFactory } from "./GameConfigReadModelFactory";
 import { GameConfigsRepository } from "./GameConfigsRepository";
 import { collectResourceIdsFromRules } from "./domain/resourceReferences";
@@ -19,6 +21,7 @@ import type {
   GameType,
   JourneyGameConfig,
   LottoGameConfig,
+  LottoBingoGameConfig,
 } from "./domain/types";
 import { GameConfigCurrencyValidationError, GameConfigNameConflictError, GameConfigNotFoundError } from "./errors";
 import type { CurrentUser } from "../auth/domain/types";
@@ -82,6 +85,7 @@ export class GameConfigsService {
     if (input.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
     if (input.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
     if (input.gameType === "lotto") validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
+    if (input.gameType === "lotto_bingo") validateLottoBingoRules(rules as ReturnType<typeof normalizeLottoBingoRules>, project.resources);
     const now = new Date().toISOString();
     const created = await this.repository.create({
       projectId,
@@ -132,6 +136,7 @@ export class GameConfigsService {
     if (current.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
     if (current.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
     if (current.gameType === "lotto") validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
+    if (current.gameType === "lotto_bingo") validateLottoBingoRules(rules as ReturnType<typeof normalizeLottoBingoRules>, project.resources);
     const updated = await this.repository.update(projectId, gameConfigId, {
       projectId,
       gameType: current.gameType,
@@ -183,6 +188,10 @@ export class GameConfigsService {
     return this.getGameConfigContext(projectId, gameConfigId, "lotto") as Promise<GameConfigContext<LottoGameConfig>>;
   }
 
+  async getLottoBingoGameConfigContext(projectId: string, gameConfigId: string): Promise<GameConfigContext<LottoBingoGameConfig>> {
+    return this.getGameConfigContext(projectId, gameConfigId, "lotto_bingo") as Promise<GameConfigContext<LottoBingoGameConfig>>;
+  }
+
   private async getGameConfigContext(
     projectId: string,
     gameConfigId: string,
@@ -227,6 +236,8 @@ export class GameConfigsService {
         return normalizeBattleshipsRules(rules as BattleshipsRulesInput);
       case "lotto":
         return normalizeLottoRules(rules as LottoRulesInput);
+      case "lotto_bingo":
+        return normalizeLottoBingoRules(rules as LottoBingoRulesInput);
     }
   }
 

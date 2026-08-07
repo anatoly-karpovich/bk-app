@@ -157,6 +157,7 @@ async function run(): Promise<void> {
         journey: createDeterministicObjectId(`${legacyConfigId}:journey`).toHexString(),
         battleships: createDeterministicObjectId(`${legacyConfigId}:battleships`).toHexString(),
         lotto: createDeterministicObjectId(`${legacyConfigId}:lotto`).toHexString(),
+        lotto_bingo: createDeterministicObjectId(`${legacyConfigId}:lotto_bingo`).toHexString(),
       },
     };
     mappings.set(legacyConfigId, mapping);
