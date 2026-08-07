@@ -11,7 +11,8 @@ import { useAuth } from "../../auth/useAuth";
 import type { Project } from "../../projects/types";
 import { quizzesApi } from "./api/quizzes.client";
 import QuizLibraryCard from "./components/QuizLibraryCard";
-import { getQuizAuthorLabel, getQuizEvent, getQuizLibraryStatus, type QuizLibraryStatus } from "./quizLibrary.helpers";
+import { getQuizAuthorLabel } from "./quizAuthor.helpers";
+import { getQuizEvent, getQuizLibraryStatus, type QuizLibraryStatus } from "./quizLibrary.helpers";
 import type { Quiz, QuizEvent } from "./types";
 
 interface Props {
@@ -51,13 +52,13 @@ export default function QuizzesPage({ selectedProject }: Props) {
 
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
   const authors = useMemo(() => quizzes.reduce<Map<string, string>>((result, quiz) => {
-    if (!result.has(quiz.createdByUserId)) result.set(quiz.createdByUserId, getQuizAuthorLabel(quiz, getQuizEvent(quiz, eventsById), user, projectId ?? ""));
+    if (!result.has(quiz.createdByUserId)) result.set(quiz.createdByUserId, getQuizAuthorLabel(quiz.createdByNickname));
     return result;
-  }, new Map()), [eventsById, projectId, quizzes, user]);
+  }, new Map()), [quizzes]);
   const libraryItems = useMemo(() => quizzes.map((quiz) => {
     const event = getQuizEvent(quiz, eventsById);
-    return { quiz, event, status: getQuizLibraryStatus(quiz, event), authorLabel: getQuizAuthorLabel(quiz, event, user, projectId ?? "") };
-  }), [eventsById, projectId, quizzes, user]);
+    return { quiz, event, status: getQuizLibraryStatus(quiz, event), authorLabel: getQuizAuthorLabel(quiz.createdByNickname) };
+  }), [eventsById, quizzes]);
   const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     return libraryItems.filter((item) => {

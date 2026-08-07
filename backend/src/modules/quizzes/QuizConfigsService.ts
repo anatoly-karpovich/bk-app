@@ -4,6 +4,7 @@ import { assertOwnedByUser, assertProjectAccess } from "../auth/authorization";
 import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
 import { QuizConfigNotFoundError, QuizConflictError } from "./errors";
+import type { QuizCreatorReadFields } from "./QuizCreatorReadProjection";
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { QuizConfigReadModelFactory } from "./QuizConfigReadModelFactory";
 import { validateQuizConfig } from "./domain/validation";
@@ -32,7 +33,7 @@ export class QuizConfigsService {
   async list(actor: CurrentUser, projectId: string): Promise<QuizConfigView[]> {
     assertProjectAccess(actor, projectId);
     const project = await this.getProject(projectId);
-    return (await this.repository.findByProjectId(projectId)).map((config) => this.toView(config._id.toHexString(), config, project.resources));
+    return (await this.repository.findReadByProjectId(projectId)).map((config) => this.toView(config._id.toHexString(), config, project.resources));
   }
 
   async get(actor: CurrentUser, projectId: string, configId: string): Promise<QuizConfigView> {
@@ -52,7 +53,7 @@ export class QuizConfigsService {
     const config = this.toDocument(projectId, actor.id, now, input, requestedSystem, actor.id, project.resources);
     const created = await this.repository.create(config);
     if (!created) throw new Error("Failed to load created quiz config");
-    return this.toView(created._id.toHexString(), created, project.resources);
+    return this.toViewFromId(projectId, created._id.toHexString(), project.resources);
   }
 
   async update(actor: CurrentUser, projectId: string, configId: string, input: SaveQuizConfigInput): Promise<QuizConfigView> {
@@ -70,7 +71,7 @@ export class QuizConfigsService {
     const requestedSystem = actor.role === "admin" ? input.isSystem === true : current.isSystem;
     const updated = await this.repository.update(configId, projectId, this.toDocument(projectId, current.createdByUserId, current.createdAt, input, requestedSystem, actor.id, project.resources));
     if (!updated) throw new QuizConfigNotFoundError(configId);
-    return this.toView(updated._id.toHexString(), updated, project.resources);
+    return this.toViewFromId(projectId, updated._id.toHexString(), project.resources);
   }
 
   async clone(actor: CurrentUser, projectId: string, configId: string): Promise<QuizConfigView> {
@@ -83,7 +84,7 @@ export class QuizConfigsService {
     const { _id: _ignored, ...sourceDocument } = source;
     const copied = await this.repository.create({ ...structuredClone(sourceDocument), name, isSystem: false, createdByUserId: actor.id, updatedByUserId: actor.id, createdAt: now, updatedAt: now });
     if (!copied) throw new Error("Failed to load cloned quiz config");
-    return this.toView(copied._id.toHexString(), copied, project.resources);
+    return this.toViewFromId(projectId, copied._id.toHexString(), project.resources);
   }
 
   async delete(actor: CurrentUser, projectId: string, configId: string): Promise<void> {
@@ -96,14 +97,14 @@ export class QuizConfigsService {
   }
 
   private async toViewFromId(projectId: string, configId: string, resources: Parameters<typeof validateQuizConfig>[1]): Promise<QuizConfigView> {
-    const config = await this.repository.findByIdAndProjectId(configId, projectId);
+    const config = await this.repository.findReadByIdAndProjectId(configId, projectId);
     if (!config) throw new QuizConfigNotFoundError(configId);
     return this.toView(configId, config, resources);
   }
 
-  private toView(id: string, config: QuizConfigDocument, resources: Parameters<typeof validateQuizConfig>[1]): QuizConfigView {
+  private toView(id: string, config: QuizConfigDocument & QuizCreatorReadFields, resources: Parameters<typeof validateQuizConfig>[1]): QuizConfigView {
     const validationIssues = validateQuizConfig(config, resources);
-    return this.readModels.create(id, config, validationIssues);
+    return this.readModels.create(id, config, validationIssues, config.createdByNickname);
   }
 
   private toDocument(

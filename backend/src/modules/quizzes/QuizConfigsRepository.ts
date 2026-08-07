@@ -1,5 +1,6 @@
 import { ObjectId, type WithId } from "mongodb";
 import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
+import { createQuizCreatorReadProjection, type QuizCreatorReadFields } from "./QuizCreatorReadProjection";
 import type { QuizConfigDocument } from "./domain/types";
 
 const COLLECTION = "quizConfigs";
@@ -20,8 +21,23 @@ export class QuizConfigsRepository {
     return (await this.collection()).find({ projectId }).sort({ updatedAt: -1 }).toArray();
   }
 
+  async findReadByProjectId(projectId: string): Promise<Array<WithId<QuizConfigDocument> & QuizCreatorReadFields>> {
+    return (await this.collection())
+      .aggregate<WithId<QuizConfigDocument> & QuizCreatorReadFields>([
+        ...createQuizCreatorReadProjection({ projectId }),
+        { $sort: { updatedAt: -1 } },
+      ])
+      .toArray();
+  }
+
   async findByIdAndProjectId(id: string, projectId: string): Promise<WithId<QuizConfigDocument> | null> {
     return (await this.collection()).findOne({ _id: this.objectId(id), projectId });
+  }
+
+  async findReadByIdAndProjectId(id: string, projectId: string): Promise<(WithId<QuizConfigDocument> & QuizCreatorReadFields) | null> {
+    return (await this.collection())
+      .aggregate<WithId<QuizConfigDocument> & QuizCreatorReadFields>(createQuizCreatorReadProjection({ _id: this.objectId(id), projectId }))
+      .next();
   }
 
   async findByProjectIdAndName(projectId: string, name: string): Promise<WithId<QuizConfigDocument> | null> {

@@ -22,9 +22,10 @@ export interface QuizConfigView {
   meta: {
     projectId: string;
     status: "draft" | "ready";
-    isSystem: boolean;
-    createdByUserId: string;
-    updatedByUserId: string;
+        isSystem: boolean;
+        createdByUserId: string;
+        createdByNickname: string | null;
+        updatedByUserId: string;
   };
   content: { name: string; description: string; questionCount: number | null };
   configuration: {
@@ -45,9 +46,10 @@ export interface QuizView {
     projectId: string;
     configId: string;
     eventId: string | null;
-    status: "draft" | "ready";
-    createdByUserId: string;
-    updatedByUserId: string;
+        status: "draft" | "ready";
+        createdByUserId: string;
+        createdByNickname: string | null;
+        updatedByUserId: string;
   };
   content: { name: string; description: string; questions: QuizQuestion[] };
   configuration: {

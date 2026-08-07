@@ -13,6 +13,7 @@ import { quizConfigsTexts } from "../../texts/quizConfigsTexts";
 import type { Project } from "../projects/types";
 import { quizConfigsApi } from "./api/quizConfigs.client";
 import QuizConfigSelectionCard from "./components/QuizConfigSelectionCard";
+import { getQuizAuthorLabel } from "../utilities/quizzes/quizAuthor.helpers";
 import type { QuizConfig } from "../utilities/quizzes/types";
 
 interface QuizConfigsPageProps {
@@ -195,11 +196,7 @@ export default function QuizConfigsPage({ selectedProject }: QuizConfigsPageProp
           {visibleConfigs.map((config) => {
             const canEdit = user?.role === "admin" || (!config.isSystem && config.createdByUserId === user?.id);
             const canDelete = !config.isSystem && canEdit;
-            const authorLabel = config.isSystem
-              ? quizConfigsTexts.card.systemAuthor
-              : config.createdByUserId === user?.id
-                ? user.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? user.displayName
-                : config.createdByUserId;
+            const authorLabel = getQuizAuthorLabel(config.createdByNickname);
 
             return (
               <QuizConfigSelectionCard

@@ -4,6 +4,7 @@ import { assertOwnedByUser, assertProjectAccess } from "../auth/authorization";
 import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
 import { QuizConfigNotFoundError, QuizConflictError, QuizNotFoundError, QuizValidationError } from "./errors";
+import type { QuizCreatorReadFields } from "./QuizCreatorReadProjection";
 import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { QuizzesRepository } from "./QuizzesRepository";
 import { QuizReadModelFactory } from "./QuizReadModelFactory";
@@ -36,12 +37,12 @@ export class QuizzesService {
   async list(actor: CurrentUser, projectId: string): Promise<QuizView[]> {
     assertProjectAccess(actor, projectId);
     await this.getProject(projectId);
-    return (await this.repository.findByProjectId(projectId)).map((quiz) => this.toView(quiz._id.toHexString(), quiz));
+    return (await this.repository.findReadByProjectId(projectId)).map((quiz) => this.toView(quiz._id.toHexString(), quiz));
   }
 
   async get(actor: CurrentUser, projectId: string, quizId: string): Promise<QuizView> {
     assertProjectAccess(actor, projectId);
-    const quiz = await this.repository.findByIdAndProjectId(quizId, projectId);
+    const quiz = await this.repository.findReadByIdAndProjectId(quizId, projectId);
     if (!quiz) throw new QuizNotFoundError(quizId);
     return this.toView(quizId, quiz);
   }
@@ -76,7 +77,7 @@ export class QuizzesService {
     quiz.status = validateQuiz(quiz).length ? "draft" : "ready";
     const created = await this.repository.create(quiz);
     if (!created) throw new Error("Failed to load created quiz");
-    return this.toView(created._id.toHexString(), created);
+    return this.get(actor, projectId, created._id.toHexString());
   }
 
   async update(actor: CurrentUser, projectId: string, quizId: string, input: UpdateQuizInput): Promise<QuizView> {
@@ -93,7 +94,7 @@ export class QuizzesService {
     next.status = validateQuiz(next).length ? "draft" : "ready";
     const updated = await this.repository.update(quizId, projectId, next);
     if (!updated) throw new QuizNotFoundError(quizId);
-    return this.toView(quizId, updated);
+    return this.get(actor, projectId, quizId);
   }
 
   async delete(actor: CurrentUser, projectId: string, quizId: string): Promise<void> {
@@ -116,9 +117,9 @@ export class QuizzesService {
     };
   }
 
-  private toView(id: string, quiz: QuizDocument): QuizView {
+  private toView(id: string, quiz: QuizDocument & QuizCreatorReadFields): QuizView {
     const validationIssues = validateQuiz(quiz);
-    return this.readModels.create(id, quiz, validationIssues);
+    return this.readModels.create(id, quiz, validationIssues, quiz.createdByNickname);
   }
 
   private async getProject(projectId: string) {

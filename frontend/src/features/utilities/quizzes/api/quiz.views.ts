@@ -20,6 +20,7 @@ export interface QuizConfigApiView {
     status: QuizConfig["status"];
     isSystem: boolean;
     createdByUserId: string;
+    createdByNickname: string | null;
     updatedByUserId: string;
   };
   content: { name: string; description: string; questionCount: number | null };
@@ -43,6 +44,7 @@ export interface QuizApiView {
     eventId: string | null;
     status: QuizConfig["status"];
     createdByUserId: string;
+    createdByNickname: string | null;
     updatedByUserId: string;
   };
   content: { name: string; description: string; questions: QuizQuestion[] };

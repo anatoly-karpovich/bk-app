@@ -15,10 +15,11 @@ test("projects quiz configs into meta, content, configuration, and validation", 
     createdAt: "created", updatedAt: "updated", schemaVersion: 1,
   };
 
-  const view = new QuizConfigReadModelFactory().create("config", config, []);
+  const view = new QuizConfigReadModelFactory().create("config", config, [], "Автор");
 
   assert.deepEqual(Object.keys(view).sort(), ["configuration", "content", "createdAt", "id", "meta", "updatedAt", "validation"]);
   assert.equal(view.meta.status, "ready");
+  assert.equal(view.meta.createdByNickname, "Автор");
   assert.equal(view.content.name, "Config");
   assert.equal("schemaVersion" in view, false);
 });
@@ -33,10 +34,11 @@ test("projects quizzes into meta, content, configuration, and validation", () =>
     createdByUserId: "author", updatedByUserId: "editor", createdAt: "created", updatedAt: "updated", schemaVersion: 1,
   };
 
-  const view = new QuizReadModelFactory().create("quiz", quiz, []);
+  const view = new QuizReadModelFactory().create("quiz", quiz, [], null);
 
   assert.deepEqual(Object.keys(view).sort(), ["configuration", "content", "createdAt", "id", "meta", "updatedAt", "validation"]);
   assert.equal(view.meta.configId, "config");
+  assert.equal(view.meta.createdByNickname, null);
   assert.equal(view.content.questions[0].correctAnswer, "Answer");
   assert.equal("schemaVersion" in view, false);
 });

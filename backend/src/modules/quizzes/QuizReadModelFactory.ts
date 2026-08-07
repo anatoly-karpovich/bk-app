@@ -2,7 +2,7 @@ import type { QuizDocument, QuizValidationIssue } from "./domain/types";
 import type { QuizView } from "./domain/readModels";
 
 export class QuizReadModelFactory {
-  create(id: string, quiz: QuizDocument, validationIssues: QuizValidationIssue[]): QuizView {
+  create(id: string, quiz: QuizDocument, validationIssues: QuizValidationIssue[], createdByNickname: string | null): QuizView {
     return {
       id,
       createdAt: quiz.createdAt,
@@ -13,6 +13,7 @@ export class QuizReadModelFactory {
         eventId: quiz.eventId,
         status: validationIssues.length ? "draft" : "ready",
         createdByUserId: quiz.createdByUserId,
+        createdByNickname,
         updatedByUserId: quiz.updatedByUserId,
       },
       content: { name: quiz.name, description: quiz.description, questions: clone(quiz.questions) },

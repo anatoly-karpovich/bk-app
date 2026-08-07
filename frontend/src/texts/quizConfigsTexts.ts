@@ -48,7 +48,6 @@ export const quizConfigsTexts = {
     menuAriaLabel: "Действия с конфигом",
     systemConfig: "Системный конфиг",
     personalConfig: "Личный конфиг",
-    systemAuthor: "Система",
     unknownDate: "Дата не указана",
     updatedAt: (date: string) => `Изменён ${date}`,
   },

@@ -14,7 +14,7 @@ import { getChangedQuizConfigSections, getQuizConfigRequiredFields } from "./qui
 type QuizConfigCreateInput = Pick<QuizConfig, "name" | "description" | "questionCount" | "defaultRegularRule" | "regularRewardOverrides" | "bonusRules" | "messageTemplates" | "answerMessageTemplates">;
 
 function createDraft(): QuizConfig {
-  return { id: "", name: "", description: "", status: "draft", questionCount: null, defaultRegularRule: null, regularRewardOverrides: [], bonusRules: [], messageTemplates: null, answerMessageTemplates: null, isSystem: false, createdByUserId: "", updatedByUserId: "", createdAt: "", updatedAt: "", validationIssues: [] };
+  return { id: "", name: "", description: "", status: "draft", questionCount: null, defaultRegularRule: null, regularRewardOverrides: [], bonusRules: [], messageTemplates: null, answerMessageTemplates: null, isSystem: false, createdByUserId: "", createdByNickname: null, updatedByUserId: "", createdAt: "", updatedAt: "", validationIssues: [] };
 }
 
 function toCreateInput(draft: QuizConfig): QuizConfigCreateInput {
