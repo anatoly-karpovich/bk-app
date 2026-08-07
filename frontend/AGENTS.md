@@ -52,6 +52,13 @@ features/
     mappers/
     storage.ts
     types.ts
+  lottoBingo/
+    api/
+    components/
+    hooks/
+    mappers/
+    storage.ts
+    types.ts
   utilities/
     quizzes/
       api/
@@ -131,7 +138,7 @@ When adding or changing a game page, always look for an existing shared componen
 Use this order:
 
 1. Check `src/components/` and `src/components/ui/` for a component with the same semantic role.
-2. If there is no shared component, inspect the equivalent UI in Journey, Battleships, and Lotto.
+2. If there is no shared component, inspect the equivalent UI in Journey, Battleships, Lotto, and Lotto Bingo.
 3. If the same UI or interaction exists in another game, extract or move it into `src/components/` or `src/components/ui/` as part of the same change, then use that shared source in every applicable game.
 4. Create a feature-local component only when the structure or behavior is genuinely game-specific.
 
@@ -213,16 +220,17 @@ const {
 
 The page should mostly compose cards and dialogs.
 
-The same principle applies to `BattleshipsPage.tsx` and `LottoPage.tsx`.
+The same principle applies to `BattleshipsPage.tsx`, `LottoPage.tsx`, and `LottoBingoPage.tsx`.
 
-For Battleships and Lotto, page-level orchestration should continue living in:
+For Battleships, Lotto, and Lotto Bingo, page-level orchestration should continue living in:
 
 ```text
 features/battleships/hooks/useBattleshipsGame.ts
 features/lotto/hooks/useLottoGame.ts
+features/lottoBingo/hooks/useLottoBingoGame.ts
 ```
 
-Do not let `BattleshipsPage.tsx` or `LottoPage.tsx` accumulate engine-like decision logic.
+Do not let `BattleshipsPage.tsx`, `LottoPage.tsx`, or `LottoBingoPage.tsx` accumulate engine-like decision logic.
 
 ---
 
@@ -272,6 +280,8 @@ Specific frontend boundary reminders:
 * Battleships frontend must not generate the final board, resolve reward pools, calculate prizes, or decide when the game is over. It displays saved grants and totals returned by backend.
 * Lotto frontend must not decide draw order, winner placement, resolve reward pools, distribute payouts, or build final legacy summary text. It displays saved payouts returned by backend.
 * Lotto may contain setup-only helpers for host convenience, for example draft number generation before game creation, but backend validation and final rules remain authoritative.
+* Lotto Bingo frontend must not generate tickets, draw barrels, calculate matched numbers/rows/halves/cards, determine candidates, validate winners, resolve rewards, infer operation availability, or infer permissions. It renders the backend `LottoBingoGameView` and sends only explicit commands with the backend-provided revision.
+* Lotto Bingo SSE is an opt-in invalidation channel for read-only observers. It receives only `lotto_bingo_updated`, compares revisions, and reloads the full game view; it must never merge partial game state or become a second source of truth.
 
 ---
 
@@ -543,14 +553,14 @@ Avoid:
 
 When improving the frontend, prioritize:
 
-1. Keep Journey, Battleships, Lotto, and project/preset orchestration inside feature hooks.
+1. Keep Journey, Battleships, Lotto, Lotto Bingo, and project/preset orchestration inside feature hooks.
 2. Prefer backend read-model fields over recreating derived game/config state in React.
 3. Move display transformations into mappers/view-model helpers.
 4. Keep game cards presentational.
 5. Keep future project/preset management UI focused on API-backed editing, not config ownership.
 6. Gradually eliminate localStorage except for game id or UI preferences.
 7. Remove stale legacy DTO/helpers when they are no longer referenced.
-8. Preserve host-facing UX details already implemented in Battleships and Lotto, such as restore/delete flows, visible DJ metadata, and copy-friendly result surfaces.
+8. Preserve host-facing UX details already implemented in Battleships, Lotto, and Lotto Bingo, such as restore/delete flows, visible host metadata, read-only state, and copy-friendly result surfaces.
 
 The goal is not to make React clever.
 

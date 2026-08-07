@@ -3,6 +3,7 @@ import {
   getBattleshipsGameConfigsRequest,
   getJourneyGameConfigsRequest,
   getLottoGameConfigsRequest,
+  getLottoBingoGameConfigsRequest,
   updateGameConfigRequest,
 } from "../../projects/api/projects.client";
 import type { AnyGameConfig, GameType, UpdateGameConfigInput } from "../../projects/types";
@@ -27,12 +28,13 @@ export function useGameConfigs(projectId: string | undefined) {
     setError(null);
 
     try {
-      const [journey, battleships, lotto] = await Promise.all([
+      const [journey, battleships, lotto, lottoBingo] = await Promise.all([
         getJourneyGameConfigsRequest(projectId),
         getBattleshipsGameConfigsRequest(projectId),
         getLottoGameConfigsRequest(projectId),
+        getLottoBingoGameConfigsRequest(projectId),
       ]);
-      setGameConfigs([...journey, ...battleships, ...lotto]);
+      setGameConfigs([...journey, ...battleships, ...lotto, ...lottoBingo]);
     } catch (nextError) {
       setError(getErrorMessage(nextError));
       setGameConfigs([]);

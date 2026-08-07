@@ -1,4 +1,5 @@
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
+import ConfirmationNumberRoundedIcon from "@mui/icons-material/ConfirmationNumberRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
@@ -10,6 +11,7 @@ import type { GameType } from "../../projects/types";
 const gameIcons: Record<GameType, typeof TravelExploreRoundedIcon> = {
   journey: TravelExploreRoundedIcon,
   lotto: CasinoRoundedIcon,
+  lotto_bingo: ConfirmationNumberRoundedIcon,
   battleships: DirectionsBoatRoundedIcon,
 };
 

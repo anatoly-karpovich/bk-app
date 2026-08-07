@@ -7,6 +7,7 @@ export const navigationGroups = [
     items: [
       { key: "journey", label: appHeaderTexts.nav.journey, to: "/journey" },
       { key: "lotto", label: appHeaderTexts.nav.lotto, to: "/lotto" },
+      { key: "lottoBingo", label: "Лото Бинго", to: "/lotto-bingo" },
       { key: "battleship", label: appHeaderTexts.nav.battleship, to: "/battleship" },
     ],
   },

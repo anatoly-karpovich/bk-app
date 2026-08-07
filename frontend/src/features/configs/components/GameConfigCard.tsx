@@ -45,6 +45,12 @@ function getSummaryItems(config: AnyGameConfig): ConfigSummaryItem[] {
         { label: gameConfigsTexts.card.summary.lotto.firstPlace, value: config.summary.firstPlacePrizeLabel },
         { label: gameConfigsTexts.card.summary.lotto.secondPlace, value: config.summary.secondPlacePrizeLabel },
       ];
+    case "lotto_bingo":
+      return [
+        { label: "Бочонки", value: String(config.summary.barrelsToDraw) },
+        { label: "Раунды", value: "Ряд · половина · билет" },
+        { label: "Билет", value: "6 × 9, 30 чисел" },
+      ];
   }
 }
 

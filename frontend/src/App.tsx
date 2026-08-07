@@ -10,8 +10,10 @@ import QuizConfigPage from "./features/configs/QuizConfigPage";
 import QuizConfigCreatePage from "./features/configs/QuizConfigCreatePage";
 import JourneyConfigPage from "./features/configs/JourneyConfigPage";
 import LottoConfigPage from "./features/configs/LottoConfigPage";
+import LottoBingoConfigPage from "./features/configs/LottoBingoConfigPage";
 import JourneyPage from "./features/journey/JourneyPage";
 import LottoPage from "./features/lotto/LottoPage";
+import LottoBingoPage from "./features/lottoBingo/LottoBingoPage";
 import ProjectPage from "./features/projects/ProjectPage";
 import { useProjects } from "./features/projects/hooks/useProjects";
 import LoginPage from "./features/auth/LoginPage";
@@ -68,6 +70,7 @@ function AuthenticatedApp() {
           <Route path="/" element={<DashboardPage user={user!} />} />
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/lotto-bingo" element={<LottoBingoPage selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/quizzes" element={<QuizzesPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/create" element={<QuizCreatePage selectedProject={selectedProject} />} />
@@ -81,6 +84,7 @@ function AuthenticatedApp() {
           <Route path="/configs/quizzes/:configId" element={<QuizConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
+          <Route path="/configs/lotto_bingo/:configId" element={<LottoBingoConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />
           <Route path="/users" element={<AdminRoute><UsersPage projects={projects} /></AdminRoute>} />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
