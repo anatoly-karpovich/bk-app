@@ -16,6 +16,24 @@ export class QuizConflictError extends AppError {
   constructor(message: string) { super(message, { code: "quiz_conflict", statusCode: 409 }); }
 }
 
+export class QuizQuestionResultsLockedError extends AppError {
+  constructor(blockingConductedOrders: number[]) {
+    super(
+      `Нельзя пересчитать вопрос: уже сохранены результаты вопросов ${blockingConductedOrders.map((order) => `№${order}`).join(", ")}. Сначала отмените их результаты в обратном порядке.`,
+      { code: "quiz_question_results_locked", statusCode: 409, details: { blockingConductedOrders } },
+    );
+  }
+}
+
+export class QuizQuestionResultOrderError extends AppError {
+  constructor(requiredConductedOrders: number[]) {
+    super(
+      `Сначала сохраните результаты предыдущих проведённых вопросов: ${requiredConductedOrders.map((order) => `№${order}`).join(", ")}.`,
+      { code: "quiz_question_result_order", statusCode: 409, details: { requiredConductedOrders } },
+    );
+  }
+}
+
 export class QuizEventRevisionConflictError extends AppError {
   constructor(eventId: string, expectedRevision: number) {
     super("Проведение уже изменилось в другой вкладке. Обновите данные и повторите действие.", {

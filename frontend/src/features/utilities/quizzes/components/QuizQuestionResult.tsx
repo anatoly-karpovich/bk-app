@@ -40,7 +40,14 @@ export default function QuizQuestionResult({ question, resources, expanded, onEx
           {question.ranking.length ? question.ranking.map((answer) => {
             const awards = awardsByMessageId.get(answer.selectedMessageId) ?? [];
             const regularReward = formatResourceAmounts(awards.filter((award) => award.source.kind !== "bonus_position").flatMap((award) => award.rewards), resources);
-            const bonusReward = formatResourceAmounts(awards.filter((award) => award.source.kind === "bonus_position").flatMap((award) => award.rewards), resources, { showPlus: true });
+            const bonusAwards = awards.filter((award) => award.source.kind === "bonus_position");
+            const bonusReward = formatResourceAmounts(bonusAwards.flatMap((award) => award.rewards), resources, { showPlus: true });
+            const reassignedBonusPositions = bonusAwards
+              .map((award) => award.source.bonusRulePosition)
+              .filter((position): position is number => position !== null && position !== undefined && position !== answer.position);
+            const bonusLabel = reassignedBonusPositions.length
+              ? `Бонус ${bonusReward} · за ${reassignedBonusPositions.map((position) => `${position}-е`).join(", ")} место → ${answer.position}-е место`
+              : `Бонус ${bonusReward}`;
             const hasBonus = Boolean(bonusReward);
             return (
               <Box
@@ -62,7 +69,7 @@ export default function QuizQuestionResult({ question, resources, expanded, onEx
                 <Typography fontWeight={700}>{answer.playerName}</Typography>
                 <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ gridColumn: { xs: "2", sm: "auto" }, justifyContent: { sm: "flex-end" } }}>
                   {regularReward ? <Typography variant="body2" fontWeight={700}>{regularReward}</Typography> : null}
-                  {bonusReward ? <Chip size="small" label={`Бонус ${bonusReward}`} sx={{ bgcolor: "#ffedb6", color: "#7f5a00", fontWeight: 700 }} /> : null}
+                  {bonusReward ? <Chip size="small" label={bonusLabel} sx={{ bgcolor: "#ffedb6", color: "#7f5a00", fontWeight: 700 }} /> : null}
                 </Stack>
               </Box>
             );

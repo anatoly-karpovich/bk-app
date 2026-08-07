@@ -32,6 +32,7 @@ export interface QuizConfigView {
     defaultRegularRule: QuizRegularRewardRule | null;
     regularRewardOverrides: QuizRegularRewardOverride[];
     bonusRules: QuizBonusRewardRule[];
+    limitOneBonusPerPlayer: boolean;
     messageTemplates: QuizMessageTemplates | null;
     answerMessageTemplates: QuizMessageTemplates | null;
   };

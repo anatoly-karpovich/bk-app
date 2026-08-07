@@ -24,7 +24,7 @@ export function getChangedQuizConfigSections(source: QuizConfig, draft: QuizConf
   const values: Array<[QuizConfigSectionId, unknown, unknown]> = [
     ["general", { name: source.name, description: source.description, questionCount: source.questionCount }, { name: draft.name, description: draft.description, questionCount: draft.questionCount }],
     ["rewards", { defaultRegularRule: source.defaultRegularRule, regularRewardOverrides: source.regularRewardOverrides }, { defaultRegularRule: draft.defaultRegularRule, regularRewardOverrides: draft.regularRewardOverrides }],
-    ["bonus", source.bonusRules, draft.bonusRules],
+    ["bonus", { bonusRules: source.bonusRules, limitOneBonusPerPlayer: source.limitOneBonusPerPlayer }, { bonusRules: draft.bonusRules, limitOneBonusPerPlayer: draft.limitOneBonusPerPlayer }],
     ["messages", { messageTemplates: source.messageTemplates, answerMessageTemplates: source.answerMessageTemplates }, { messageTemplates: draft.messageTemplates, answerMessageTemplates: draft.answerMessageTemplates }],
   ];
   return values.flatMap(([section, left, right]) => equal(left, right) ? [] : [section]);

@@ -34,6 +34,7 @@ export const saveQuizConfigSchema = z.object({
   defaultRegularRule: regularRuleSchema.nullable().default(null),
   regularRewardOverrides: z.array(z.object({ questionIndex: z.number().int().positive(), rule: regularRuleSchema })).default([]),
   bonusRules: z.array(z.object({ id: z.string().trim().min(1).max(160), questionIndex: z.number().int().positive(), position: z.number().int().positive(), rewardPool: poolSchema })).default([]),
+  limitOneBonusPerPlayer: z.boolean().default(false),
   messageTemplates: templatesSchema.nullable().default(null), answerMessageTemplates: templatesSchema.nullable().default(null), isSystem: z.boolean().optional(),
 });
 

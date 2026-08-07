@@ -18,6 +18,7 @@ export interface SaveQuizConfigInput {
   defaultRegularRule: QuizRegularRewardRule | null;
   regularRewardOverrides: QuizRegularRewardOverride[];
   bonusRules: QuizBonusRewardRule[];
+  limitOneBonusPerPlayer: boolean;
   messageTemplates: QuizMessageTemplates | null;
   answerMessageTemplates: QuizMessageTemplates | null;
   isSystem?: boolean;
@@ -119,7 +120,7 @@ export class QuizConfigsService {
     const now = new Date().toISOString();
     const draft: QuizConfigDocument = {
       projectId, name: input.name.trim(), description: input.description.trim(), status: "draft", questionCount: input.questionCount,
-      defaultRegularRule: structuredClone(input.defaultRegularRule), regularRewardOverrides: structuredClone(input.regularRewardOverrides), bonusRules: structuredClone(input.bonusRules),
+      defaultRegularRule: structuredClone(input.defaultRegularRule), regularRewardOverrides: structuredClone(input.regularRewardOverrides), bonusRules: structuredClone(input.bonusRules), limitOneBonusPerPlayer: input.limitOneBonusPerPlayer,
       messageTemplates: structuredClone(input.messageTemplates), answerMessageTemplates: structuredClone(input.answerMessageTemplates), isSystem,
       createdByUserId, updatedByUserId, createdAt, updatedAt: now, schemaVersion: 1,
     };

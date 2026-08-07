@@ -112,7 +112,7 @@ export class QuizzesService {
     }
     return {
       configId, configName: config.name, questionCount: config.questionCount, defaultRegularRule: structuredClone(config.defaultRegularRule),
-      regularRewardOverrides: structuredClone(config.regularRewardOverrides), bonusRules: structuredClone(config.bonusRules),
+      regularRewardOverrides: structuredClone(config.regularRewardOverrides), bonusRules: structuredClone(config.bonusRules), limitOneBonusPerPlayer: config.limitOneBonusPerPlayer === true,
       messageTemplates: structuredClone(config.messageTemplates), answerMessageTemplates: structuredClone(config.answerMessageTemplates), capturedAt, schemaVersion: 1,
     };
   }

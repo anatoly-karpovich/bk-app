@@ -6,7 +6,7 @@ import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
-import { QuizConflictError, QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizValidationError } from "../errors";
+import { QuizConflictError, QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizQuestionResultOrderError, QuizQuestionResultsLockedError, QuizValidationError } from "../errors";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
 import { QuizEventReadModelFactory } from "../QuizEventReadModelFactory";
@@ -108,9 +108,10 @@ export class QuizEventsService {
     questionId: string,
     expectedRevision: number,
   ) {
-    return this.mutate(actor, projectId, eventId, expectedRevision, (event) =>
-      this.engine.markAsNotConducted(event, questionId),
-    );
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) => {
+      this.assertQuestionResultCanBeChanged(event, questionId);
+      return this.engine.markAsNotConducted(event, questionId);
+    });
   }
   async markAsUnreviewed(
     actor: CurrentUser,
@@ -119,9 +120,10 @@ export class QuizEventsService {
     questionId: string,
     expectedRevision: number,
   ) {
-    return this.mutate(actor, projectId, eventId, expectedRevision, (event) =>
-      this.engine.markAsUnreviewed(event, questionId),
-    );
+    return this.mutate(actor, projectId, eventId, expectedRevision, (event) => {
+      this.assertQuestionResultCanBeChanged(event, questionId);
+      return this.engine.markAsUnreviewed(event, questionId);
+    });
   }
   async setMessage(
     actor: CurrentUser,
@@ -153,6 +155,8 @@ export class QuizEventsService {
       throw new QuizValidationError("Не удалось распознать сообщения. Сохранённый чат не изменён.");
     }
     const previous = this.engine.getQuestion(event, questionId);
+    const effectiveChange = !this.sameEffectiveChat(previous.chat.messages, deduplicated.unique);
+    if (effectiveChange) this.assertQuestionResultCanBeChanged(event, questionId);
     const updated = this.engine.saveQuestionChat(structuredClone(event), questionId, {
       rawText,
       messages: deduplicated.unique,
@@ -169,7 +173,7 @@ export class QuizEventsService {
         previousMessagesCount: previous.chat.messages.length,
         nextMessagesCount: deduplicated.unique.length,
         removedPersistedSelectionsCount: previous.selectedAnswers.length - this.engine.getQuestion(saved, questionId).selectedAnswers.length,
-        effectiveChange: !this.sameEffectiveChat(previous.chat.messages, this.engine.getQuestion(saved, questionId).chat.messages),
+        effectiveChange,
       },
     };
   }
@@ -184,6 +188,8 @@ export class QuizEventsService {
   ): Promise<SaveQuizQuestionResult> {
     const event = await this.editableEvent(actor, projectId, eventId);
     this.assertExpectedRevision(event, eventId, expectedRevision);
+    this.assertQuestionResultCanBeChanged(event, questionId);
+    this.assertPreviousConductedResultsReviewed(event, questionId);
     const updated = this.engine.saveQuestionResult(structuredClone(event), questionId, selections, actor.id);
     const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
     if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
@@ -231,12 +237,32 @@ export class QuizEventsService {
     return { parsed, candidates };
   }
   private sameEffectiveChat(
-    left: QuizEventDocument["questions"][number]["chat"]["messages"],
-    right: QuizEventDocument["questions"][number]["chat"]["messages"],
+    left: ReadonlyArray<Pick<QuizEventDocument["questions"][number]["chat"]["messages"][number], "canonicalKey">>,
+    right: ReadonlyArray<Pick<QuizEventDocument["questions"][number]["chat"]["messages"][number], "canonicalKey">>,
   ): boolean {
     return left.length === right.length && left.every(
       (message, index) => message.canonicalKey === right[index]?.canonicalKey,
     );
+  }
+  private assertQuestionResultCanBeChanged(event: QuizEventDocument, questionId: string): void {
+    if (event.quizSnapshot.configRulesSnapshot.limitOneBonusPerPlayer !== true) return;
+    const question = this.engine.getQuestion(event, questionId);
+    if (question.conductedOrder === null) return;
+    const blockingConductedOrders = event.questions
+      .filter((candidate) => candidate.reviewedAt !== null && candidate.conductedOrder !== null && candidate.conductedOrder > question.conductedOrder!)
+      .map((candidate) => candidate.conductedOrder!)
+      .sort((left, right) => left - right);
+    if (blockingConductedOrders.length) throw new QuizQuestionResultsLockedError(blockingConductedOrders);
+  }
+  private assertPreviousConductedResultsReviewed(event: QuizEventDocument, questionId: string): void {
+    if (event.quizSnapshot.configRulesSnapshot.limitOneBonusPerPlayer !== true) return;
+    const question = this.engine.getQuestion(event, questionId);
+    if (question.conductedOrder === null) return;
+    const requiredConductedOrders = event.questions
+      .filter((candidate) => candidate.conductedOrder !== null && candidate.conductedOrder < question.conductedOrder! && candidate.reviewedAt === null)
+      .map((candidate) => candidate.conductedOrder!)
+      .sort((left, right) => left - right);
+    if (requiredConductedOrders.length) throw new QuizQuestionResultOrderError(requiredConductedOrders);
   }
   private snapshot(quizId: string, quiz: import("../domain/types").QuizDocument): QuizSnapshot {
     return {

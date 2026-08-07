@@ -91,7 +91,7 @@ export class QuizEventEngine {
       updatedAt: now,
     };
     const ranking = this.answerRanker.rank(reviewed.chat.messages, reviewed.selectedAnswers);
-    reviewed.awards = this.awardCalculator.calculate(event.quizSnapshot, reviewed, ranking, now);
+    reviewed.awards = this.calculateAwards(event, reviewed, ranking, now);
     return this.rebuildSummary({
       ...event,
       questions: event.questions.map((question) => question.id === questionId ? reviewed : question),
@@ -122,7 +122,7 @@ export class QuizEventEngine {
       const reordered = { ...item, conductedOrder: item.conductedOrder - 1, updatedAt: now };
       if (reordered.reviewedAt !== null) {
         const ranking = this.answerRanker.rank(reordered.chat.messages, reordered.selectedAnswers);
-        reordered.awards = this.awardCalculator.calculate(event.quizSnapshot, reordered, ranking, now);
+        reordered.awards = this.calculateAwards(event, reordered, ranking, now);
       }
       return reordered;
     });
@@ -277,6 +277,22 @@ export class QuizEventEngine {
 
   private rebuildSummary(event: QuizEventDocument, generatedAt: string): QuizEventDocument {
     return { ...event, summary: this.summaryCalculator.calculate(event.questions, generatedAt) };
+  }
+
+  private calculateAwards(
+    event: QuizEventDocument,
+    question: QuizEventQuestion,
+    ranking: RankedQuizAnswer[],
+    awardedAt: string,
+  ) {
+    const priorBonusRecipients = new Set(
+      event.questions
+        .filter((candidate) => candidate.conductedOrder !== null && question.conductedOrder !== null && candidate.conductedOrder < question.conductedOrder)
+        .flatMap((candidate) => candidate.awards)
+        .filter((award) => award.source.kind === "bonus_position")
+        .map((award) => award.playerName),
+    );
+    return this.awardCalculator.calculate(event.quizSnapshot, question, ranking, awardedAt, priorBonusRecipients);
   }
 
   private sameEffectiveChat(

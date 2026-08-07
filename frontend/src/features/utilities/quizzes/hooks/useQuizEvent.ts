@@ -122,7 +122,9 @@ export function useQuizEvent(projectId: string | undefined, eventId: string | un
       applyEvent(getEvent(result), resetQuestionId);
       return result;
     } catch (cause) {
-      if (cause instanceof ApiError && cause.status === 409) {
+      if (cause instanceof ApiError && ["quiz_question_results_locked", "quiz_question_result_order"].includes(cause.code ?? "")) {
+        setError(cause.message);
+      } else if (cause instanceof ApiError && cause.status === 409) {
         await refreshAfterConflict();
       } else {
         setError(cause instanceof Error ? cause.message : "Не удалось сохранить проведение.");

@@ -12,7 +12,7 @@ export type QuizRegularRule =
   | { mode: "by_position"; positionRewards: Array<{ position: number; rewardPool: QuizRewardPool }> };
 export interface QuizRegularRewardOverride { questionIndex: number; rule: QuizRegularRule; }
 export interface QuizBonusRule { id: string; questionIndex: number; position: number; rewardPool: QuizRewardPool; }
-export interface QuizConfig { id: string; name: string; description: string; status: QuizStatus; questionCount: number | null; defaultRegularRule: QuizRegularRule | null; regularRewardOverrides: QuizRegularRewardOverride[]; bonusRules: QuizBonusRule[]; messageTemplates: QuizMessageTemplates | null; answerMessageTemplates: QuizMessageTemplates | null; isSystem: boolean; createdByUserId: string; createdByNickname: string | null; updatedByUserId: string; createdAt: string; updatedAt: string; validationIssues: QuizValidationIssue[]; }
+export interface QuizConfig { id: string; name: string; description: string; status: QuizStatus; questionCount: number | null; defaultRegularRule: QuizRegularRule | null; regularRewardOverrides: QuizRegularRewardOverride[]; bonusRules: QuizBonusRule[]; limitOneBonusPerPlayer: boolean; messageTemplates: QuizMessageTemplates | null; answerMessageTemplates: QuizMessageTemplates | null; isSystem: boolean; createdByUserId: string; createdByNickname: string | null; updatedByUserId: string; createdAt: string; updatedAt: string; validationIssues: QuizValidationIssue[]; }
 export interface QuizQuestion { id: string; questionIndex: number; title: string | null; text: string; correctAnswer: string | null; attachmentUrl: string | null; notes: string | null; }
 export interface QuizQuestionDraft {
   id: string;
@@ -35,6 +35,7 @@ export interface QuizAwardSource {
   position: number | null;
   regularRuleMode: QuizRegularRule["mode"] | null;
   bonusRuleId: string | null;
+  bonusRulePosition?: number | null;
 }
 export interface QuizAward { id: string; selectedMessageId: string; playerName: string; questionIndex: number; source: QuizAwardSource; rewards: ResourceAmount[]; awardedAt: string; }
 export interface QuizChatMessageView { id: string; text: string; timestamp: string | null; effectiveOrder: number; transport: "direct" | "clan"; }
@@ -90,7 +91,7 @@ export interface QuizEvent {
   reviewedQuestionsCount: number;
   preparedQuestionsCount: number;
   firstUnconductedQuestionId: string | null;
-  quizSnapshot: { resources: ResourceDefinition[] };
+  quizSnapshot: { resources: ResourceDefinition[]; limitOneBonusPerPlayer: boolean };
   summary: QuizEventSummary | null;
 }
 export interface QuizChatMutationResult {

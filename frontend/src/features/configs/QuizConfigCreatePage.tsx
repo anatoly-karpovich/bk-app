@@ -11,15 +11,15 @@ import { quizConfigsApi } from "./api/quizConfigs.client";
 import QuizConfigEditorWorkspace from "./components/QuizConfigEditorWorkspace";
 import { getChangedQuizConfigSections, getQuizConfigRequiredFields } from "./quizConfigEditor.helpers";
 
-type QuizConfigCreateInput = Pick<QuizConfig, "name" | "description" | "questionCount" | "defaultRegularRule" | "regularRewardOverrides" | "bonusRules" | "messageTemplates" | "answerMessageTemplates">;
+type QuizConfigCreateInput = Pick<QuizConfig, "name" | "description" | "questionCount" | "defaultRegularRule" | "regularRewardOverrides" | "bonusRules" | "limitOneBonusPerPlayer" | "messageTemplates" | "answerMessageTemplates">;
 
 function createDraft(): QuizConfig {
-  return { id: "", name: "", description: "", status: "draft", questionCount: null, defaultRegularRule: null, regularRewardOverrides: [], bonusRules: [], messageTemplates: null, answerMessageTemplates: null, isSystem: false, createdByUserId: "", createdByNickname: null, updatedByUserId: "", createdAt: "", updatedAt: "", validationIssues: [] };
+  return { id: "", name: "", description: "", status: "draft", questionCount: null, defaultRegularRule: null, regularRewardOverrides: [], bonusRules: [], limitOneBonusPerPlayer: false, messageTemplates: null, answerMessageTemplates: null, isSystem: false, createdByUserId: "", createdByNickname: null, updatedByUserId: "", createdAt: "", updatedAt: "", validationIssues: [] };
 }
 
 function toCreateInput(draft: QuizConfig): QuizConfigCreateInput {
-  const { name, description, questionCount, defaultRegularRule, regularRewardOverrides, bonusRules, messageTemplates, answerMessageTemplates } = draft;
-  return { name, description, questionCount, defaultRegularRule, regularRewardOverrides, bonusRules, messageTemplates, answerMessageTemplates };
+  const { name, description, questionCount, defaultRegularRule, regularRewardOverrides, bonusRules, limitOneBonusPerPlayer, messageTemplates, answerMessageTemplates } = draft;
+  return { name, description, questionCount, defaultRegularRule, regularRewardOverrides, bonusRules, limitOneBonusPerPlayer, messageTemplates, answerMessageTemplates };
 }
 
 interface QuizConfigCreatePageProps { selectedProject: Project | null; }

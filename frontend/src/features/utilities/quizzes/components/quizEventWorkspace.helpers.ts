@@ -1,5 +1,12 @@
 import type { QuizEventQuestion } from "../types";
 
+/** Finds the next host action from already-computed event workflow state. */
+export function getNextQuizQuestionToReview(questions: QuizEventQuestion[]): QuizEventQuestion | null {
+  return [...questions]
+    .filter((question) => question.conductedOrder !== null && question.reviewedAt === null)
+    .sort((left, right) => left.conductedOrder! - right.conductedOrder!)[0] ?? null;
+}
+
 export function getQuizQuestionStateLabel(question: QuizEventQuestion): string {
   if (question.reviewedAt !== null) return `Проверен · проведён #${question.conductedOrder}`;
   if (question.conductedOrder !== null) return `Проведён #${question.conductedOrder} · требует проверки`;
