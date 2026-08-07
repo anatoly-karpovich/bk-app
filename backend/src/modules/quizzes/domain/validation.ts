@@ -37,12 +37,18 @@ export function validateQuizConfig(config: QuizConfigDocument, resources: Projec
   });
 
   const bonusIds = new Set<string>();
+  const bonusPositions = new Set<string>();
   config.bonusRules.forEach((rule, index) => {
     const path = `bonusRules.${index}`;
     if (!rule.id.trim() || bonusIds.has(rule.id)) issues.push({ path: `${path}.id`, message: "ID бонусного правила должен быть уникальным" });
     bonusIds.add(rule.id);
     if (!isQuestionIndex(rule.questionIndex, questionCount)) issues.push({ path: `${path}.questionIndex`, message: "Номер вопроса вне диапазона" });
     if (!Number.isSafeInteger(rule.position) || rule.position < 1) issues.push({ path: `${path}.position`, message: "Позиция должна быть положительным целым числом" });
+    const positionKey = `${rule.questionIndex}:${rule.position}`;
+    if (bonusPositions.has(positionKey)) {
+      issues.push({ path: `${path}.position`, message: "A bonus for this question and place is already configured" });
+    }
+    bonusPositions.add(positionKey);
     issues.push(...validatePool(rule.rewardPool, `${path}.rewardPool`, resources));
   });
   issues.push(...validateTemplates(config.messageTemplates, "messageTemplates", questionCount));
@@ -62,6 +68,7 @@ export function validateQuiz(quiz: QuizDocument): QuizValidationIssue[] {
     defaultRegularRule: snapshot.defaultRegularRule,
     regularRewardOverrides: snapshot.regularRewardOverrides,
     bonusRules: snapshot.bonusRules,
+    limitOneBonusPerPlayer: snapshot.limitOneBonusPerPlayer,
     messageTemplates: snapshot.messageTemplates,
     answerMessageTemplates: snapshot.answerMessageTemplates,
     isSystem: false,

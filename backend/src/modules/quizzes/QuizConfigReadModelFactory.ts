@@ -20,6 +20,7 @@ export class QuizConfigReadModelFactory {
         defaultRegularRule: clone(config.defaultRegularRule),
         regularRewardOverrides: clone(config.regularRewardOverrides),
         bonusRules: clone(config.bonusRules),
+        limitOneBonusPerPlayer: config.limitOneBonusPerPlayer === true,
         messageTemplates: clone(config.messageTemplates),
         answerMessageTemplates: clone(config.answerMessageTemplates),
       },

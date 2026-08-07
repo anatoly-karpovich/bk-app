@@ -9,7 +9,7 @@ import QuizEventQuestionNavigation from "./QuizEventQuestionNavigation";
 import QuizEventSummary from "./QuizEventSummary";
 import QuizMessagePreviews from "./QuizMessagePreviews";
 import QuizQuestionResult from "./QuizQuestionResult";
-import { getQuizQuestionStateLabel, getQuizQuestionStateTone } from "./quizEventWorkspace.helpers";
+import { getNextQuizQuestionToReview, getQuizQuestionStateLabel, getQuizQuestionStateTone } from "./quizEventWorkspace.helpers";
 
 interface QuizEventWorkspaceProps {
   event: QuizEvent;
@@ -58,6 +58,19 @@ export default function QuizEventWorkspace({
   }, [question?.id, question?.reviewedAt]);
 
   if (!question) return <Alert severity="info">В проведении нет вопросов.</Alert>;
+
+  const blockingConductedOrders = event.quizSnapshot.limitOneBonusPerPlayer && question.conductedOrder !== null
+    ? event.questions
+      .filter((candidate) => candidate.reviewedAt !== null && candidate.conductedOrder !== null && candidate.conductedOrder > question.conductedOrder!)
+      .map((candidate) => candidate.conductedOrder!)
+      .sort((left, right) => left - right)
+    : [];
+  const nextQuestionToReview = event.quizSnapshot.limitOneBonusPerPlayer
+    ? getNextQuizQuestionToReview(event.questions)
+    : null;
+  const requiredQuestionIndex = question.reviewedAt === null && nextQuestionToReview && nextQuestionToReview.id !== question.id
+    ? nextQuestionToReview.questionIndex
+    : null;
 
   const nextQuestion = () => {
     const next = event.questions.find((item) => item.conductedOrder === null);
@@ -145,9 +158,10 @@ export default function QuizEventWorkspace({
             draft={selectionDrafts[question.id]}
             dirty={isSelectionDraftDirty(question.id)}
             editable={canMutate && question.reviewedAt === null}
+            requiredQuestionIndex={requiredQuestionIndex}
             busy={busy}
             expanded={answersExpanded}
-            canRequestRecheck={canMutate && question.reviewedAt !== null}
+            canRequestRecheck={canMutate && question.reviewedAt !== null && !blockingConductedOrders.length}
             onRequestRecheck={() => setConfirmMarkUnreviewed(true)}
             onExpandedChange={setAnswersExpanded}
             onPlayerSelected={(playerName, isSelected) => onPlayerSelected(question.id, playerName, isSelected)}

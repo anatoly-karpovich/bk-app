@@ -22,6 +22,7 @@ function toSaveInput(config: QuizConfig) {
     defaultRegularRule: config.defaultRegularRule,
     regularRewardOverrides: config.regularRewardOverrides,
     bonusRules: config.bonusRules,
+    limitOneBonusPerPlayer: config.limitOneBonusPerPlayer,
     messageTemplates: config.messageTemplates,
     answerMessageTemplates: config.answerMessageTemplates,
     isSystem: config.isSystem,

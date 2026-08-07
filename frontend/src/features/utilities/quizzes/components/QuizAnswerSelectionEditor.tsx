@@ -1,7 +1,8 @@
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Checkbox, Radio, Stack, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Checkbox, Radio, Stack, Typography } from "@mui/material";
 import AppChip from "../../../../components/ui/AppChip";
 import AppPillButton from "../../../../components/ui/AppPillButton";
+import { quizTexts } from "../../../../texts/quizTexts";
 import type { QuizAnswerSelectionDraft, QuizEventQuestion, QuizPlayerMessageGroup } from "../types";
 
 interface QuizAnswerSelectionEditorProps {
@@ -9,6 +10,7 @@ interface QuizAnswerSelectionEditorProps {
   draft: QuizAnswerSelectionDraft | undefined;
   dirty: boolean;
   editable: boolean;
+  requiredQuestionIndex: number | null;
   busy: boolean;
   onPlayerSelected: (playerName: string, isSelected: boolean) => void;
   onPlayerSelectedMessage: (playerName: string, selectedMessageId: string) => void;
@@ -61,10 +63,10 @@ function PlayerAnswerGroup({
   );
 }
 
-export default function QuizAnswerSelectionEditor({ question, draft, dirty, editable, busy, onPlayerSelected, onPlayerSelectedMessage, onSave, canRequestRecheck, onRequestRecheck, expanded, onExpandedChange }: QuizAnswerSelectionEditorProps) {
+export default function QuizAnswerSelectionEditor({ question, draft, dirty, editable, requiredQuestionIndex, busy, onPlayerSelected, onPlayerSelectedMessage, onSave, canRequestRecheck, onRequestRecheck, expanded, onExpandedChange }: QuizAnswerSelectionEditorProps) {
   const selectedPlayersCount = question.playerGroups.filter((group) => draft?.[group.playerName]?.isSelected ?? group.selectedMessageId !== null).length;
   const allPlayersSelected = question.playerGroups.length > 0 && selectedPlayersCount === question.playerGroups.length;
-  const canSaveResult = question.conductedOrder !== null && (dirty || question.reviewedAt === null);
+  const canSaveResult = question.conductedOrder !== null && requiredQuestionIndex === null && (dirty || question.reviewedAt === null);
   const setAllPlayersSelected = () => question.playerGroups.forEach((group) => onPlayerSelected(group.playerName, !allPlayersSelected));
 
   return (
@@ -84,6 +86,7 @@ export default function QuizAnswerSelectionEditor({ question, draft, dirty, edit
       </AccordionSummary>
       <AccordionDetails sx={{ px: { xs: 2, sm: 2.75 }, pt: 0, pb: 2.75, borderTop: 1, borderColor: "divider" }}>
         <Stack spacing={1.75} sx={{ pt: 2 }}>
+          {requiredQuestionIndex !== null ? <Alert severity="warning">{quizTexts.event.reviewOrderBlocked(requiredQuestionIndex)}</Alert> : null}
           {question.playerGroups.length ? (
             <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" useFlexGap>
               <Typography variant="body2" fontWeight={700}>Выбрано {selectedPlayersCount} из {question.playerGroups.length}</Typography>

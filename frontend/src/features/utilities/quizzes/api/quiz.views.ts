@@ -28,6 +28,7 @@ export interface QuizConfigApiView {
     defaultRegularRule: QuizRegularRule | null;
     regularRewardOverrides: QuizConfig["regularRewardOverrides"];
     bonusRules: QuizConfig["bonusRules"];
+    limitOneBonusPerPlayer: boolean;
     messageTemplates: QuizMessageTemplates | null;
     answerMessageTemplates: QuizMessageTemplates | null;
   };
@@ -57,6 +58,7 @@ export interface QuizApiView {
       defaultRegularRule: QuizRegularRule;
       regularRewardOverrides: QuizConfig["regularRewardOverrides"];
       bonusRules: QuizConfig["bonusRules"];
+      limitOneBonusPerPlayer?: boolean;
       messageTemplates: QuizMessageTemplates;
       answerMessageTemplates: QuizMessageTemplates;
       capturedAt: string;

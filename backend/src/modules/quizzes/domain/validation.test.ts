@@ -18,3 +18,12 @@ test("accepts a ready config and reports unsupported template placeholders", () 
   invalid.messageTemplates!.defaultTemplate.template = "{unknown}";
   assert.match(validateQuizConfig(invalid, resources)[0].message, /Неизвестный placeholder/);
 });
+
+test("rejects duplicate bonus places for one conducted question", () => {
+  const invalid = validConfig();
+  invalid.bonusRules = [
+    { id: "first", questionIndex: 1, position: 1, rewardPool: { mode: "all", rewards: [{ resourceId: "coins", amount: 1 }] } },
+    { id: "another-first", questionIndex: 1, position: 1, rewardPool: { mode: "all", rewards: [{ resourceId: "coins", amount: 2 }] } },
+  ];
+  assert.ok(validateQuizConfig(invalid, resources).some((issue) => issue.path === "bonusRules.1.position"));
+});

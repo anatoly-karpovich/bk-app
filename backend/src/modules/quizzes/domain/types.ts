@@ -67,6 +67,8 @@ export interface QuizConfigDocument {
   defaultRegularRule: QuizRegularRewardRule | null;
   regularRewardOverrides: QuizRegularRewardOverride[];
   bonusRules: QuizBonusRewardRule[];
+  /** Missing on pre-limit configs; legacy behavior allows repeated bonus recipients. */
+  limitOneBonusPerPlayer?: boolean;
   messageTemplates: QuizMessageTemplates | null;
   answerMessageTemplates: QuizMessageTemplates | null;
   isSystem: boolean;
@@ -84,6 +86,8 @@ export interface QuizConfigRulesSnapshot {
   defaultRegularRule: QuizRegularRewardRule;
   regularRewardOverrides: QuizRegularRewardOverride[];
   bonusRules: QuizBonusRewardRule[];
+  /** Missing on historical Quiz/Event snapshots means false. */
+  limitOneBonusPerPlayer?: boolean;
   messageTemplates: QuizMessageTemplates;
   answerMessageTemplates: QuizMessageTemplates;
   capturedAt: string;
@@ -178,6 +182,8 @@ export interface QuizAwardSource {
   position: number | null;
   regularRuleMode: QuizRegularRewardRule["mode"] | null;
   bonusRuleId: string | null;
+  /** Configured bonus position; differs from position when a bonus is reassigned. */
+  bonusRulePosition?: number | null;
 }
 
 export interface QuizAward {

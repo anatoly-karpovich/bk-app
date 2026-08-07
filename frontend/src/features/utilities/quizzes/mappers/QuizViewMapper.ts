@@ -25,6 +25,7 @@ export class QuizViewMapper {
       defaultRegularRule: view.configuration.defaultRegularRule,
       regularRewardOverrides: view.configuration.regularRewardOverrides,
       bonusRules: view.configuration.bonusRules,
+      limitOneBonusPerPlayer: view.configuration.limitOneBonusPerPlayer,
       messageTemplates: view.configuration.messageTemplates,
       answerMessageTemplates: view.configuration.answerMessageTemplates,
       isSystem: view.meta.isSystem,
@@ -94,7 +95,10 @@ export class QuizViewMapper {
       reviewedQuestionsCount: view.state.progress.reviewedQuestionsCount,
       preparedQuestionsCount: view.state.progress.preparedQuestionsCount,
       firstUnconductedQuestionId: view.state.progress.firstUnconductedQuestionId,
-      quizSnapshot: { resources: view.configuration.resources },
+      quizSnapshot: {
+        resources: view.configuration.resources,
+        limitOneBonusPerPlayer: view.configuration.configRulesSnapshot.limitOneBonusPerPlayer === true,
+      },
       summary: view.state.summary,
     };
   }
