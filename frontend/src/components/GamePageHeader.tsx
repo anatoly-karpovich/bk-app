@@ -63,7 +63,7 @@ export default function GamePageHeader({
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              xl: hasTrailingContent ? "minmax(0, 58%) minmax(0, 42%)" : "minmax(0, 1fr)",
+              xl: hasTrailingContent ? "minmax(0, 50%) minmax(0, 50%)" : "minmax(0, 1fr)",
             },
             gap: 3,
             alignItems: { xl: "center" },
@@ -83,12 +83,16 @@ export default function GamePageHeader({
             </Typography>
             {chips.length ? (
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {chips.map((chip) => (
-                  <AppChip key={chip.label} label={chip.label} color={chip.color} />
+                {chips.map((chip, index) => (
+                  <AppChip key={`${chip.label}-${index}`} label={chip.label} color={chip.color} />
                 ))}
               </Stack>
             ) : null}
-            {description ? <Typography variant="body1" color="text.secondary">{description}</Typography> : null}
+            {description ? (
+              <Typography variant="body1" color="text.secondary">
+                {description}
+              </Typography>
+            ) : null}
             {footer}
           </Stack>
 

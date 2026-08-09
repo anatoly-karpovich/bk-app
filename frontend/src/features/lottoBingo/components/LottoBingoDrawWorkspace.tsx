@@ -2,6 +2,8 @@ import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { Box, Card, CardContent, Divider, Snackbar, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 import GameActionButton from "../../../components/GameActionButton";
@@ -17,9 +19,11 @@ interface Props {
   onConfirmDraw: () => void;
   onUndo: () => void;
   onFinalize: () => void;
+  observing: boolean;
+  onToggleObservation: () => void;
 }
 
-export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmDraw, onUndo, onFinalize }: Props) {
+export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmDraw, onUndo, onFinalize, observing, onToggleObservation }: Props) {
   const { draw, round } = game.state;
   const { access } = game.meta;
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -41,9 +45,23 @@ export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmD
   return (
     <>
       <AppResponsiveGrid columns={{ xs: 1, lg: 3 }} gap={3}>
-        <Card sx={{ gridColumn: { lg: "span 1" }, alignSelf: { lg: "start" } }}>
-          <CardContent sx={{ p: { xs: 2.25, md: 2.5 } }}>
-            <Typography variant="h5">Текущий номер</Typography>
+        <Card sx={{ gridColumn: { lg: "span 1" } }}>
+          <CardContent sx={{ p: { xs: 2.25, md: 2.5 }, height: "100%", display: "flex", flexDirection: "column" }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+              <Typography variant="h5">Текущий номер</Typography>
+              {access.mode === "read_only" ? (
+                <AppPillButton
+                  size="small"
+                  variant="outlined"
+                  startIcon={observing ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
+                  disabled={busy}
+                  onClick={onToggleObservation}
+                  sx={{ flexShrink: 0 }}
+                >
+                  {observing ? "Прекратить" : "Следить"}
+                </AppPillButton>
+              ) : null}
+            </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
               Главное действие ведущего во время эфира.
             </Typography>
@@ -51,7 +69,7 @@ export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmD
               direction={{ xs: "column", sm: "row", lg: "column", xl: "row" }}
               spacing={1.75}
               alignItems="center"
-              sx={{ py: 1.75 }}
+              sx={{ flex: 1, py: 1.75 }}
             >
               <Box
                 sx={{
@@ -71,7 +89,17 @@ export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmD
                   {draw.currentBarrel ?? "—"}
                 </Typography>
               </Box>
-              <Stack spacing={1} sx={{ minWidth: 0 }}>
+              <Stack
+                spacing={1}
+                sx={{
+                  minWidth: 0,
+                  flex: { sm: 1, lg: "initial", xl: 1 },
+                  alignSelf: { sm: "stretch", lg: "auto", xl: "stretch" },
+                  justifyContent: { sm: "center", lg: "initial", xl: "center" },
+                  alignItems: { sm: "center", lg: "initial", xl: "center" },
+                  textAlign: { sm: "center", lg: "left", xl: "center" },
+                }}
+              >
                 <Typography fontWeight={800}>
                   {draw.drawnCount}-й бочонок из {draw.plannedDrawCount}
                 </Typography>
@@ -79,10 +107,10 @@ export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmD
                   <AppChip size="small" label={`Осталось: ${draw.plannedRemainingCount}`} />
                   <AppChip size="small" label={`Вне игры: ${draw.outOfGameCount}`} />
                 </Stack>
-                <Typography variant="body2" color="text.secondary">
+                {/* <Typography variant="body2" color="text.secondary">
                   После объявления номера проверьте кандидатов и чат. Следующий номер можно вытянуть даже без
                   подтверждения победителя.
-                </Typography>
+                </Typography> */}
               </Stack>
             </Stack>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -117,8 +145,9 @@ export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmD
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "repeat(10, minmax(0, 1fr))", md: "repeat(15, minmax(0, 1fr))" },
-                gap: { xs: 0.55, sm: 0.75 },
+                gridTemplateColumns: "repeat(auto-fit, 40px)",
+                gap: 0.6,
+                justifyContent: "start",
                 mt: 2,
               }}
             >
@@ -129,12 +158,12 @@ export default function LottoBingoDrawWorkspace({ game, busy, onDraw, onConfirmD
                   <Box
                     key={number}
                     sx={{
-                      aspectRatio: "1",
-                      minWidth: 0,
+                      width: 40,
+                      height: 40,
                       borderRadius: "50%",
                       display: "grid",
                       placeItems: "center",
-                      fontSize: { xs: "0.63rem", sm: "1.2rem" },
+                      fontSize: "1.2rem",
                       fontWeight: 800,
                       color: isCurrent ? "text.primary" : isDrawn ? "common.white" : "text.disabled",
                       bgcolor: isCurrent ? "#fff1a8" : isDrawn ? "primary.main" : "#fafafa",

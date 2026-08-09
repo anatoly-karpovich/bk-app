@@ -125,7 +125,7 @@ function Ticket({
       </Stack>
       {player.award ? (
         <Typography variant="caption" color="success.main" sx={{ display: "block", mt: 0.75 }}>
-          Награда сохранена:{" "}
+          Награда:{" "}
           {player.award.type === "round"
             ? `раунд ${player.award.round}`
             : player.award.type === "completed_card"

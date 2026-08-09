@@ -2,6 +2,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
+import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import { Alert, Box, Card, CardContent, CircularProgress, Stack, Typography } from "@mui/material";
 import { useState } from "react";
@@ -14,18 +15,20 @@ import AppInfoAlert from "../../components/ui/AppInfoAlert";
 import AppResponsiveGrid from "../../components/ui/AppResponsiveGrid";
 import { lottoBingoTexts } from "../../texts/lottoBingoTexts";
 import type { Project } from "../projects/types";
-import LottoBingoAuditTrail from "./components/LottoBingoAuditTrail";
+import LottoBingoCandidatePanel from "./components/LottoBingoCandidatePanel";
 import LottoBingoDrawWorkspace from "./components/LottoBingoDrawWorkspace";
+import LottoBingoFinalSummary from "./components/LottoBingoFinalSummary";
 import LottoBingoRegistrationPanel from "./components/LottoBingoRegistrationPanel";
 import LottoBingoRoundOverview from "./components/LottoBingoRoundOverview";
 import LottoBingoSavedGamesDialog from "./components/LottoBingoSavedGamesDialog";
 import LottoBingoTicketDialog from "./components/LottoBingoTicketDialog";
 import LottoBingoTicketsSection from "./components/LottoBingoTicketsSection";
 import { getLottoBingoPhaseLabel } from "./lottoBingo.helpers";
+import { getLottoBingoConfirmationCopy, type LottoBingoConfirmation } from "./lottoBingoPage.helpers";
 import { useLottoBingoGame } from "./hooks/useLottoBingoGame";
 import type { LottoBingoPlayer } from "./types";
 
-type Confirmation = "start" | "draw" | "winners" | "finalize" | "delete" | "remove" | "disqualify" | null;
+type Confirmation = LottoBingoConfirmation | null;
 
 const statusLabels = {
   preparing: "Подготовка",
@@ -109,6 +112,14 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
           onOpen: setOpenedTicket,
         }
       : null;
+  const confirmationCopy = confirm
+    ? getLottoBingoConfirmationCopy({
+        confirmation: confirm,
+        selectedWinnersCount: selectedWinnerIds.length,
+        targetPlayerName: targetPlayer?.nickname ?? null,
+        requiresDrawWithoutWinnerConfirmation: Boolean(game?.state.round.requiresDrawWithoutWinnerConfirmation),
+      })
+    : null;
 
   return (
     <>
@@ -174,23 +185,12 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
             {
               key: "reset",
               label: "Сбросить",
-              icon: <RestartAltRoundedIcon />,
+              icon: <AutorenewRoundedIcon />,
               onClick: resetUi,
               disabled: busy || !game,
               variant: "text",
+              color: "inherit",
             },
-            ...(game?.meta.access.mode === "read_only"
-              ? [
-                  {
-                    key: "observe",
-                    label: observing ? "Остановить наблюдение" : lottoBingoTexts.observe,
-                    icon: <RefreshRoundedIcon />,
-                    onClick: () => actions.setLiveObservation(!observing),
-                    disabled: busy,
-                    variant: "text" as const,
-                  },
-                ]
-              : []),
           ]}
         />
 
@@ -243,8 +243,7 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
           <>
             {access.mode === "read_only" ? (
               <AppInfoAlert>
-                Режим наблюдения. Управляющие действия недоступны; состояние можно обновлять вручную или в реальном
-                времени.
+                Режим наблюдения. Управляющие действия недоступны; состояние можно обновлять вручную или в реальном времени.
               </AppInfoAlert>
             ) : null}
 
@@ -278,16 +277,24 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
                   onConfirmDraw={() => setConfirm("draw")}
                   onUndo={() => void actions.undo()}
                   onFinalize={() => setConfirm("finalize")}
+                  observing={observing}
+                  onToggleObservation={() => actions.setLiveObservation(!observing)}
                 />
-                <LottoBingoRoundOverview
-                  game={game}
-                  busy={busy}
-                  selectedWinnerIds={selectedWinnerIds}
-                  onSelectedWinnerIdsChange={setSelectedWinnerIds}
-                  onConfirm={() => setConfirm("winners")}
-                />
+                <AppResponsiveGrid columns={{ xs: 1, lg: 3 }} gap={3}>
+                  <LottoBingoRoundOverview game={game} />
+                  {game.meta.status === "finished" ? (
+                    <LottoBingoFinalSummary game={game} />
+                  ) : (
+                    <LottoBingoCandidatePanel
+                      game={game}
+                      busy={busy}
+                      selectedWinnerIds={selectedWinnerIds}
+                      onSelectedWinnerIdsChange={setSelectedWinnerIds}
+                      onConfirm={() => setConfirm("winners")}
+                    />
+                  )}
+                </AppResponsiveGrid>
                 <LottoBingoTicketsSection {...ticketActions} />
-                {game.meta.status === "finished" ? <LottoBingoAuditTrail game={game} /> : null}
               </>
             )}
           </>
@@ -317,37 +324,11 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
       />
       <AppConfirmDialog
         open={Boolean(confirm)}
-        title={
-          confirm === "start"
-            ? "Начать игру?"
-            : confirm === "draw"
-              ? "Вытянуть следующий бочонок?"
-              : confirm === "winners"
-                ? "Подтвердить победителей?"
-                : confirm === "finalize"
-                  ? "Финализировать игру?"
-                  : confirm === "delete"
-                    ? "Удалить игру?"
-                    : confirm === "remove"
-                      ? "Удалить игрока?"
-                      : "Дисквалифицировать игрока?"
-        }
-        description={
-          confirm === "start"
-            ? "Регистрация закроется, добавление новых игроков станет недоступно."
-            : confirm === "draw" && game?.state.round.requiresDrawWithoutWinnerConfirmation
-              ? "Есть неподтверждённые кандидаты. Проверьте чат перед продолжением тиража."
-              : confirm === "winners"
-                ? `Будут подтверждены: ${selectedWinnerIds.length}. Раунд перейдёт к следующему этапу.`
-                : confirm === "finalize"
-                  ? "Награды финальных категорий будут разрешены и сохранены. Игра станет неизменяемой."
-                  : confirm === "delete"
-                    ? "Игра будет удалена безвозвратно."
-                    : `${targetPlayer?.nickname ?? "Игрок"}: действие изменит состояние игры.`
-        }
-        confirmLabel={confirm === "delete" ? "Удалить" : "Подтвердить"}
+        title={confirmationCopy?.title ?? ""}
+        description={confirmationCopy?.description ?? ""}
+        confirmLabel={confirmationCopy?.confirmLabel ?? "Подтвердить"}
         cancelLabel="Отмена"
-        confirmColor={confirm === "delete" ? "error" : "primary"}
+        confirmColor={confirmationCopy?.confirmColor ?? "primary"}
         loading={busy}
         onClose={() => {
           if (!busy) {
