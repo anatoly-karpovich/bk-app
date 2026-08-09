@@ -142,8 +142,8 @@ function Ticket({
           Открыть билет
         </MenuItem>
         {player.status === "active" && canDisqualify ? (
-          <MenuItem disabled={disabled} onClick={() => invoke(() => onDisqualify(player))}>
-            <ListItemIcon>
+          <MenuItem disabled={disabled} onClick={() => invoke(() => onDisqualify(player))} sx={{ color: "error.main" }}>
+            <ListItemIcon sx={{ color: "inherit" }}>
               <BlockRoundedIcon fontSize="small" />
             </ListItemIcon>
             Дисквалифицировать

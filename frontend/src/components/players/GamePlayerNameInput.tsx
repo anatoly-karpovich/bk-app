@@ -9,6 +9,7 @@ interface GamePlayerNameInputProps {
   onChange: (nextValue: string) => void;
   disabled?: boolean;
   errorText?: string | null;
+  showErrorInLabel?: boolean;
   helperTextMode?: HelperTextMode;
   placeholder?: string;
 }
@@ -21,6 +22,7 @@ export default function GamePlayerNameInput({
   onChange,
   disabled = false,
   errorText = null,
+  showErrorInLabel = false,
   helperTextMode = "hidden",
   placeholder = DEFAULT_PLACEHOLDER,
 }: GamePlayerNameInputProps) {
@@ -33,7 +35,7 @@ export default function GamePlayerNameInput({
   return (
     <AppTextInput
       fullWidth
-      label={label}
+      label={showErrorInLabel && errorText ? errorText : label}
       value={value}
       onChange={handleChange}
       error={Boolean(errorText)}

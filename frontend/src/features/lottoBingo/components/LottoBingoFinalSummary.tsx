@@ -27,6 +27,7 @@ export default function LottoBingoFinalSummary({ game }: { game: LottoBingoPageM
   });
   const rewardedPlayersCount = players.filter((player) => player.award?.rewards.length).length;
   const summaryText = players
+    .filter((player) => player.status !== "disqualified")
     .map((player) => `${player.nickname} — ${formatResourceAmounts(player.award?.rewards ?? [], game.configuration.resources) || "без награды"}`)
     .join("\n");
 

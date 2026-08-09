@@ -46,14 +46,19 @@ export default function LottoBingoTicketsSection({
   const [filter, setFilter] = useState<TicketFilter>("all");
   const candidateIds = useMemo(() => new Set(candidates.map((candidate) => candidate.playerId)), [candidates]);
   const visiblePlayers = useMemo(
-    () =>
-      players.filter((player) => {
+    () => {
+      const matchedPlayers = players.filter((player) => {
         const activeFilter = isRegistration ? "all" : filter;
         const matchesFilter =
           activeFilter === "all" ||
           (activeFilter === "candidate" ? candidateIds.has(player.id) : player.status === activeFilter);
         return matchesFilter && player.nickname.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
-      }),
+      });
+
+      return isRegistration
+        ? [...matchedPlayers].sort((left, right) => right.ticket.number - left.ticket.number)
+        : matchedPlayers;
+    },
     [candidateIds, filter, isRegistration, players, query],
   );
 
