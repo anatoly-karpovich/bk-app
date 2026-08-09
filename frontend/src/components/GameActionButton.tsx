@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SxProps, Theme } from "@mui/material/styles";
 import AppPillButton from "./ui/AppPillButton";
 
 interface GameActionButtonProps {
@@ -8,6 +9,7 @@ interface GameActionButtonProps {
   loading?: boolean;
   onClick: () => void;
   variant?: "contained" | "outlined";
+  sx?: SxProps<Theme>;
 }
 
 export default function GameActionButton({
@@ -17,6 +19,7 @@ export default function GameActionButton({
   loading = false,
   onClick,
   variant = "outlined",
+  sx,
 }: GameActionButtonProps) {
   return (
     <AppPillButton
@@ -26,7 +29,7 @@ export default function GameActionButton({
       onClick={onClick}
       disabled={disabled}
       loading={loading}
-      sx={{ minHeight: 40, px: 1.75, whiteSpace: "nowrap" }}
+      sx={{ minHeight: 40, px: 1.75, whiteSpace: "nowrap", ...sx }}
     >
       {label}
     </AppPillButton>

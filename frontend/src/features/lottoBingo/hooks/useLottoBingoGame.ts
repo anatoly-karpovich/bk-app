@@ -119,11 +119,18 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
     observer.onerror = () => { observer.close(); setObserving(false); };
     observerRef.current = observer;
   };
+  const resetUi = () => {
+    observerRef.current?.close();
+    observerRef.current = null;
+    setObserving(false);
+    setError(null);
+    applyGame(null);
+  };
 
   return {
     game, configs, selectedConfigId, savedGames, loading, busy, error, observing,
     actions: {
-      setError, setConfig, createGame, reload: () => reload(), loadSavedGames, restoreGame, deleteGame, setLiveObservation,
+      setError, setConfig, createGame, reload: () => reload(), loadSavedGames, restoreGame, deleteGame, setLiveObservation, resetUi,
       addPlayer: (nickname: string) => runMutation((current) => lottoBingoApi.addPlayer(current.meta.projectId, current.id, nickname, current.meta.revision)),
       removePlayer: (player: LottoBingoPlayer) => runMutation((current) => lottoBingoApi.removePlayer(current.meta.projectId, current.id, player.id, current.meta.revision)),
       start: () => runMutation((current) => lottoBingoApi.start(current.meta.projectId, current.id, current.meta.revision)),
