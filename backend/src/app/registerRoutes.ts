@@ -6,6 +6,7 @@ import { createForumTopicRouter } from "../modules/forumTopic/forumTopic.routes"
 import { createGameConfigsRouter } from "../modules/gameConfigs/gameConfigs.routes";
 import { createJourneyRouter } from "../modules/journey/journey.routes";
 import { createLottoRouter } from "../modules/lotto/lotto.routes";
+import { createLottoBingoRouter } from "../modules/lottoBingo/lottoBingo.routes";
 import { createProjectsRouter } from "../modules/projects/projects.routes";
 import { createAuthRouter } from "../modules/auth/auth.routes";
 import { createRequireAuth } from "../modules/auth/auth.middleware";
@@ -26,5 +27,6 @@ export function registerRoutes(app: Express, dependencies: ApplicationDependenci
   app.use("/api/projects/:projectId/battleships", createBattleshipsRouter(dependencies.battleshipsController));
   app.use("/api/projects/:projectId/journey", createJourneyRouter(dependencies.journeyController));
   app.use("/api/projects/:projectId/lotto", createLottoRouter(dependencies.lottoController));
+  app.use("/api/projects/:projectId/lotto-bingo", createLottoBingoRouter(dependencies.lottoBingoController));
   app.post("/api/journey/parse/moves", dependencies.journeyController.parseJourneyMovesFromForum);
 }

@@ -1,6 +1,7 @@
 import type { BattleshipsRules } from "../battleships/types";
 import type { JourneyAchievementsMap, JourneyConfig, JourneyRules } from "../journey/types";
 import type { LottoRewardDistributionMode, LottoRules } from "../lotto/types";
+import type { LottoBingoRules } from "../lottoBingo/types";
 
 export interface ProjectCurrency {
   type: "currency";
@@ -45,7 +46,7 @@ export interface Project {
   updatedAt: string;
 }
 
-export type GameType = "journey" | "battleships" | "lotto";
+export type GameType = "journey" | "battleships" | "lotto" | "lotto_bingo";
 
 export interface JourneyGameConfigSummary {
   currency: string;
@@ -73,6 +74,10 @@ export interface LottoGameConfigSummary {
   rewardDistributionMode: LottoRewardDistributionMode;
 }
 
+export interface LottoBingoGameConfigSummary {
+  barrelsToDraw: 87 | 88 | 89;
+}
+
 interface BaseGameConfig<TGameType extends GameType, TRules, TSummary> {
   id: string;
   projectId: string;
@@ -94,18 +99,19 @@ export type JourneyGameConfig = BaseGameConfig<"journey", JourneyRules, JourneyG
 };
 export type BattleshipsGameConfig = BaseGameConfig<"battleships", BattleshipsRules, BattleshipsGameConfigSummary>;
 export type LottoGameConfig = BaseGameConfig<"lotto", LottoRules, LottoGameConfigSummary>;
+export type LottoBingoGameConfig = BaseGameConfig<"lotto_bingo", LottoBingoRules, LottoBingoGameConfigSummary>;
 
-export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig;
+export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig | LottoBingoGameConfig;
 
 export interface CreateGameConfigInput {
   gameType: GameType;
   name: string;
   description: string;
-  rules: JourneyRules | BattleshipsRules | LottoRules;
+  rules: JourneyRules | BattleshipsRules | LottoRules | LottoBingoRules;
 }
 
 export interface UpdateGameConfigInput {
   name: string;
   description: string;
-  rules: JourneyRules | BattleshipsRules | LottoRules;
+  rules: JourneyRules | BattleshipsRules | LottoRules | LottoBingoRules;
 }

@@ -6,6 +6,7 @@ import type {
   GameType,
   JourneyGameConfig,
   LottoGameConfig,
+  LottoBingoGameConfig,
   Project,
   ProjectMutationInput,
   UpdateGameConfigInput,
@@ -14,6 +15,7 @@ import {
   BATTLESHIPS_GAME_CONFIG_STORAGE_KEY,
   JOURNEY_GAME_CONFIG_STORAGE_KEY,
   LOTTO_GAME_CONFIG_STORAGE_KEY,
+  LOTTO_BINGO_GAME_CONFIG_STORAGE_KEY,
 } from "../constants";
 
 const PROJECTS_API_BASE_URL = "/api/projects";
@@ -83,6 +85,12 @@ export async function getLottoGameConfigsRequest(projectId: string): Promise<Lot
   );
 }
 
+export async function getLottoBingoGameConfigsRequest(projectId: string): Promise<LottoBingoGameConfig[]> {
+  return await apiClient.get<LottoBingoGameConfig[]>(
+    `${PROJECTS_API_BASE_URL}/${encodeURIComponent(projectId)}/game-configs?gameType=lotto_bingo`,
+  );
+}
+
 export function getSelectedGameConfigStorageKey(gameType: GameType): string {
   switch (gameType) {
     case "journey":
@@ -91,5 +99,7 @@ export function getSelectedGameConfigStorageKey(gameType: GameType): string {
       return BATTLESHIPS_GAME_CONFIG_STORAGE_KEY;
     case "lotto":
       return LOTTO_GAME_CONFIG_STORAGE_KEY;
+    case "lotto_bingo":
+      return LOTTO_BINGO_GAME_CONFIG_STORAGE_KEY;
   }
 }

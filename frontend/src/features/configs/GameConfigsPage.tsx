@@ -23,7 +23,7 @@ import GameConfigCard from "./components/GameConfigCard";
 import GameTypeFilterCard from "./components/GameTypeFilterCard";
 import { useGameConfigs } from "./hooks/useGameConfigs";
 
-const gameTypes: GameType[] = ["journey", "lotto", "battleships"];
+const gameTypes: GameType[] = ["journey", "lotto", "lotto_bingo", "battleships"];
 
 interface GameConfigsPageProps {
   selectedProject: Project | null;
@@ -43,7 +43,7 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
           counts[type] = gameConfigs.filter((config) => config.gameType === type).length;
           return counts;
         },
-        { journey: 0, lotto: 0, battleships: 0 },
+        { journey: 0, lotto: 0, lotto_bingo: 0, battleships: 0 },
       ),
     [gameConfigs],
   );
@@ -85,6 +85,13 @@ export default function GameConfigsPage({ selectedProject }: GameConfigsPageProp
             { label: gameConfigsTexts.page.configsChip(gameConfigs.length), color: "secondary" },
           ]}
           actions={[
+            ...(gameType === "lotto_bingo" ? [{
+              key: "create-lotto-bingo",
+              label: "Создать конфигурацию",
+              icon: <QuizRoundedIcon />,
+              onClick: () => navigate("/configs/lotto_bingo/new"),
+              variant: "contained" as const,
+            }] : []),
             {
               key: "refresh",
               label: gameConfigsTexts.page.refresh,

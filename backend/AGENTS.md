@@ -80,6 +80,16 @@ src/
       lotto.schemas.ts
       domain/
       errors/
+    lottoBingo/
+      LottoBingoController.ts
+      LottoBingoEngine.ts
+      LottoBingoReadModelFactory.ts
+      LottoBingoRepository.ts
+      LottoBingoService.ts
+      LottoBingoUpdatePublisher.ts
+      lottoBingo.routes.ts
+      lottoBingo.schemas.ts
+      domain/
     quizzes/
       QuizConfigsController.ts
       QuizConfigsService.ts
@@ -352,6 +362,65 @@ The Lotto engine should be the only place that knows how to:
 - build the legacy grouped summary of remaining numbers
 
 The Lotto read-model factory is the correct place for host-facing derived fields such as prize tables from saved payouts, visible winner groups, event ordering for UI, and saved-game metadata. It must not recalculate prize allocation from rules.
+
+## Lotto Bingo module expectations
+
+Lotto Bingo is a separate game module. Do not reuse, extend, or couple it to the existing `lotto` engine or aggregate.
+
+Its canonical GameConfig type is `lotto_bingo`; its API route segment is `lotto-bingo`.
+
+Keep the ownership split:
+
+```text
+modules/lottoBingo/
+  LottoBingoController.ts
+  LottoBingoService.ts
+  LottoBingoRepository.ts
+  LottoBingoEngine.ts
+  LottoBingoReadModelFactory.ts
+  LottoBingoUpdatePublisher.ts
+```
+
+`LottoBingoEngine` is the only place that may:
+
+- generate and validate tickets;
+- generate the complete planned draw order;
+- draw and undo planned barrels;
+- calculate candidates, matched rows/halves/cards, and eligibility history;
+- validate and confirm a batch of round winners;
+- determine round progression and final recipient groups;
+- resolve and persist Lotto Bingo payouts;
+- enforce that each player has at most one round award;
+- enforce status transitions and gameplay invariants.
+
+Lotto Bingo rules:
+
+- a round stores an array of winners, including zero or one winner;
+- the host confirms a non-empty, unique batch of current candidates atomically using `playerIds`;
+- the host may choose only a subset of current candidates;
+- resolve a round pool once per reward category and copy the same saved result to every winner in that batch;
+- exclude every round winner from later rounds and final rewards;
+- draw only the immutable planned 87/88/89-barrel order; never draw out-of-game numbers or implement an emergency draw mode;
+- when planned barrels are exhausted and an active round is physically unreachable because tickets depend on excluded numbers, leave that round unclosed with no round payout and allow ordinary finalization;
+- final payouts go only to non-disqualified players without a round award, classified as completed-card or consolation;
+- resolved payouts are immutable and read paths must never resolve RewardPools again.
+
+Every Lotto Bingo mutation, including permanent deletion, requires `expectedRevision`. Repository writes must filter by `_id`, `projectId`, and expected `revision` atomically; a mismatch returns the stable `lotto_bingo_revision_conflict` error.
+
+Public game responses are explicit `LottoBingoGameView` DTOs created only by `LottoBingoReadModelFactory` and use:
+
+```text
+id
+createdAt
+updatedAt
+meta
+configuration
+state
+```
+
+Never expose the MongoDB document, internal audit payloads, ticket uniqueness keys, or duplicate mutable draw state. The frontend receives access capabilities from `meta.access`; it must not infer ownership or operation availability itself.
+
+SSE is an invalidation channel only. It may emit `{ type, gameId, revision }`, never a snapshot, candidate list, payout, patch, or internal event payload.
 
 ## Quizzes module expectations
 

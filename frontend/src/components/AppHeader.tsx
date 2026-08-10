@@ -22,6 +22,7 @@ import {
 import type { SelectChangeEvent } from "@mui/material/Select";
 import type { SxProps, Theme } from "@mui/material/styles";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
+import ConfirmationNumberRoundedIcon from "@mui/icons-material/ConfirmationNumberRounded";
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
@@ -52,6 +53,7 @@ interface AppHeaderProps {
 const navigationItemIcons: Record<NavigationItemKey, JSX.Element> = {
   journey: <TravelExploreRoundedIcon />,
   lotto: <CasinoRoundedIcon />,
+  lottoBingo: <ConfirmationNumberRoundedIcon />,
   battleship: <DirectionsBoatRoundedIcon />,
   project: <FolderRoundedIcon />,
   configs: <TuneRoundedIcon />,

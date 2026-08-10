@@ -3,6 +3,7 @@ import { buildBattleshipsFleetSummary, getBattleshipsBoardConfig, normalizeBattl
 import { getJourneyAchievements, getJourneyConfig, JOURNEY_MAX_JACKPOT_COUNT, normalizeJourneyRules } from "../journey/domain/config";
 import { formatJourneyCurrencyValues } from "../journey/domain/currency";
 import { getLottoRangeLabel, normalizeLottoRules } from "../lotto/domain/config";
+import { normalizeLottoBingoRules } from "../lottoBingo/domain/config";
 import type { CurrencySnapshot as ConfigCurrency } from "../../common/currency";
 import type { ResourceSnapshot } from "../rewards";
 import type {
@@ -11,6 +12,7 @@ import type {
   BattleshipsGameConfig,
   JourneyGameConfig,
   LottoGameConfig,
+  LottoBingoGameConfig,
 } from "./domain/types";
 
 export class GameConfigReadModelFactory {
@@ -27,6 +29,8 @@ export class GameConfigReadModelFactory {
         return this.createBattleshipsReadModel(configId, config, resources);
       case "lotto":
         return this.createLottoReadModel(configId, config, resources);
+      case "lotto_bingo":
+        return this.createLottoBingoReadModel(configId, config);
     }
   }
 
@@ -97,6 +101,16 @@ export class GameConfigReadModelFactory {
         otherActivePlayersPrizeLabel: this.formatRewardPool(rules.otherActivePlayersPrize, resources),
         rewardDistributionMode: rules.rewardDistributionMode,
       },
+    };
+  }
+
+  private createLottoBingoReadModel(configId: string, config: LottoBingoGameConfig) {
+    const rules = normalizeLottoBingoRules(config.rules);
+    return {
+      id: configId,
+      ...this.publicConfigFields(config),
+      rules,
+      summary: { barrelsToDraw: rules.barrelsToDraw },
     };
   }
 

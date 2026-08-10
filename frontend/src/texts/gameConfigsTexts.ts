@@ -3,12 +3,14 @@ import type { GameType } from "../features/projects/types";
 const gameNames: Record<GameType, string> = {
   journey: "Карта Мародёров",
   lotto: "Лото",
+  lotto_bingo: "Лото Бинго",
   battleships: "Морской бой",
 };
 
 const gameDescriptions: Record<GameType, string> = {
   journey: "Настройки поля, хода, бонусов, ловушек и наград.",
   lotto: "Диапазон чисел, размер карточек и призовые места.",
+  lotto_bingo: "Бочонки и награды за раунды и финал игры.",
   battleships: "Размер доски, число выстрелов, состав флота и награды.",
 };
 

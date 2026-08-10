@@ -1,9 +1,10 @@
 import type { BattleshipsRules } from "../../battleships/domain/types";
 import type { JourneyAchievementsMap, JourneyConfig, JourneyRules } from "../../journey/domain/types";
 import type { LottoRules } from "../../lotto/domain/types";
+import type { LottoBingoRules } from "../../lottoBingo/domain/types";
 import type { CurrencySnapshot } from "../../../common/currency";
 
-export type GameType = "journey" | "battleships" | "lotto";
+export type GameType = "journey" | "battleships" | "lotto" | "lotto_bingo";
 export interface JourneyGameConfigSummary {
   currency: string;
   mapSize: number;
@@ -30,6 +31,10 @@ export interface LottoGameConfigSummary {
   rewardDistributionMode: LottoRules["rewardDistributionMode"];
 }
 
+export interface LottoBingoGameConfigSummary {
+  barrelsToDraw: 87 | 88 | 89;
+}
+
 interface BaseGameConfig<TRules, TGameType extends GameType> {
   projectId: string;
   gameType: TGameType;
@@ -46,15 +51,16 @@ interface BaseGameConfig<TRules, TGameType extends GameType> {
 export type JourneyGameConfig = BaseGameConfig<JourneyRules, "journey">;
 export type BattleshipsGameConfig = BaseGameConfig<BattleshipsRules, "battleships">;
 export type LottoGameConfig = BaseGameConfig<LottoRules, "lotto">;
+export type LottoBingoGameConfig = BaseGameConfig<LottoBingoRules, "lotto_bingo">;
 
-export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig;
+export type AnyGameConfig = JourneyGameConfig | BattleshipsGameConfig | LottoGameConfig | LottoBingoGameConfig;
 
 export interface GameConfigDocument {
   projectId: string;
   gameType: GameType;
   name: string;
   description: string;
-  rules: JourneyRules | BattleshipsRules | LottoRules;
+  rules: JourneyRules | BattleshipsRules | LottoRules | LottoBingoRules;
   isSystem: boolean;
   createdByUserId: string;
   updatedByUserId: string;
@@ -73,11 +79,13 @@ export type JourneyGameConfigReadModel = BaseGameConfigReadModel<JourneyGameConf
 };
 export type BattleshipsGameConfigReadModel = BaseGameConfigReadModel<BattleshipsGameConfig, BattleshipsGameConfigSummary>;
 export type LottoGameConfigReadModel = BaseGameConfigReadModel<LottoGameConfig, LottoGameConfigSummary>;
+export type LottoBingoGameConfigReadModel = BaseGameConfigReadModel<LottoBingoGameConfig, LottoBingoGameConfigSummary>;
 
 export type AnyGameConfigReadModel =
   | JourneyGameConfigReadModel
   | BattleshipsGameConfigReadModel
-  | LottoGameConfigReadModel;
+  | LottoGameConfigReadModel
+  | LottoBingoGameConfigReadModel;
 
 export interface GameConfigContext<TConfig extends AnyGameConfig = AnyGameConfig> {
   projectCurrencies: CurrencySnapshot[];

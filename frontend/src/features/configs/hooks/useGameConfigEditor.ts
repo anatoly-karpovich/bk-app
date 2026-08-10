@@ -33,6 +33,7 @@ export function useGameConfigEditor<TGameType extends GameType>(
   gameType: TGameType,
   messages: UseGameConfigEditorMessages,
   sourceConfigId?: string | null,
+  createInitialDraft?: () => GameConfigDraft<GameConfigFor<TGameType>["rules"]>,
 ) {
   const isCreating = configId === "new";
   const [source, setSource] = useState<GameConfigFor<TGameType> | null>(null);
@@ -43,7 +44,20 @@ export function useGameConfigEditor<TGameType extends GameType>(
 
   const load = useCallback(async () => {
     const sourceId = isCreating ? sourceConfigId : configId;
-    if (!project || !sourceId) {
+    if (!project) {
+      setSource(null);
+      setDraft(null);
+      return;
+    }
+
+    if (isCreating && !sourceId && createInitialDraft) {
+      setSource(null);
+      setDraft(createInitialDraft());
+      setError(null);
+      return;
+    }
+
+    if (!sourceId) {
       setSource(null);
       setDraft(null);
       return;
@@ -68,7 +82,7 @@ export function useGameConfigEditor<TGameType extends GameType>(
     } finally {
       setIsLoading(false);
     }
-  }, [configId, gameType, isCreating, messages.loadFailed, messages.notFound, project, sourceConfigId]);
+  }, [configId, createInitialDraft, gameType, isCreating, messages.loadFailed, messages.notFound, project, sourceConfigId]);
 
   useEffect(() => {
     void load();
@@ -82,11 +96,14 @@ export function useGameConfigEditor<TGameType extends GameType>(
     if (source) {
       setDraft(toDraft(source));
       setError(null);
+    } else if (isCreating && createInitialDraft) {
+      setDraft(createInitialDraft());
+      setError(null);
     }
   }
 
   async function save(): Promise<GameConfigFor<TGameType> | null> {
-    if (!project || !source || !draft) {
+    if (!project || !draft || (!isCreating && !source)) {
       return null;
     }
 

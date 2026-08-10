@@ -10,6 +10,7 @@ import { GameConfigsRepository } from "../gameConfigs/GameConfigsRepository";
 import { collectResourceIdsFromRules } from "../gameConfigs/domain/resourceReferences";
 import { JourneyRepository } from "../journey/JourneyRepository";
 import { LottoRepository } from "../lotto/LottoRepository";
+import { LottoBingoRepository } from "../lottoBingo/LottoBingoRepository";
 import { normalizeProjectResources } from "./domain/normalizeProjectCurrencies";
 import type { Project, ProjectCurrency, ProjectReadModel, ProjectResource } from "./domain/types";
 import { ProjectsRepository } from "./ProjectsRepository";
@@ -30,6 +31,7 @@ export class ProjectsService {
     private readonly journeyRepository: JourneyRepository,
     private readonly battleshipsRepository: BattleshipsRepository,
     private readonly lottoRepository: LottoRepository,
+    private readonly lottoBingoRepository: LottoBingoRepository,
     private readonly usersRepository: UsersRepository,
     private readonly quizConfigsRepository: QuizConfigsRepository,
     private readonly quizzesRepository: QuizzesRepository,
@@ -155,6 +157,7 @@ export class ProjectsService {
       this.journeyRepository.deleteByProjectId(projectId),
       this.battleshipsRepository.deleteByProjectId(projectId),
       this.lottoRepository.deleteByProjectId(projectId),
+      this.lottoBingoRepository.deleteByProjectId(projectId),
       this.quizConfigsRepository.deleteByProjectId(projectId),
       this.quizzesRepository.deleteByProjectId(projectId),
       this.quizEventsRepository.deleteByProjectId(projectId),
