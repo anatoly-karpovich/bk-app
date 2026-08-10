@@ -88,17 +88,24 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     id: savedGame.id,
     title: savedGame.configName,
     statusLabel: savedGame.status === "finished" ? journeyTexts.statuses.complete : journeyTexts.statuses.active,
-    statusColor: savedGame.status === "finished" ? "success" as const : "info" as const,
+    statusColor: savedGame.status === "finished" ? ("success" as const) : ("info" as const),
     metadata: `Раундов: ${savedGame.roundsCount} · Ведущий: ${savedGame.djName || "Не указан"}`,
-    createdAtLabel: new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(savedGame.createdAt)),
-    updatedAtLabel: new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(savedGame.updatedAt)),
+    createdAtLabel: new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(
+      new Date(savedGame.createdAt),
+    ),
+    updatedAtLabel: new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(
+      new Date(savedGame.updatedAt),
+    ),
     details: (
       <Stack spacing={1}>
         {savedGame.players.map((player) => (
           <Stack key={player.id} spacing={0.25}>
-            <Typography variant="body2" fontWeight={700}>{player.nickname}</Typography>
+            <Typography variant="body2" fontWeight={700}>
+              {player.nickname}
+            </Typography>
             <Typography variant="body2" color="text.secondary">
-              Клетка: {player.position} · Баланс: {formatJourneyResourceAmounts(player.balanceEntries, savedGame.resources, { includeZero: true })}
+              Клетка: {player.position} · Баланс:{" "}
+              {formatJourneyResourceAmounts(player.balanceEntries, savedGame.resources, { includeZero: true })}
             </Typography>
           </Stack>
         ))}
@@ -115,6 +122,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
             isRefreshingGame={loading.isRefreshingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
             actionsDisabled={headerActionsDisabled}
+            canRefreshGame={Boolean(game)}
             canOpenRules={Boolean(journeyConfig && journeyAchievements)}
             controls={
               <GameConfigSelectField
@@ -288,7 +296,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
         currentGameId={currentGameId}
         loading={loading.isLoadingSavedGames}
         restoreLoading={loading.isRestoringGame}
-        deletingGameId={loading.isDeletingSavedGame ? deletingSavedGame?.id ?? null : null}
+        deletingGameId={loading.isDeletingSavedGame ? (deletingSavedGame?.id ?? null) : null}
         error={savedGamesError}
         onClose={() => actions.setSavedGamesDialogOpen(false)}
         onRestore={actions.restoreSavedGame}

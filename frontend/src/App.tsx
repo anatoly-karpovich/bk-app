@@ -82,15 +82,11 @@ function AuthenticatedApp() {
 
         <Routes>
           <Route path="/" element={<DashboardPage user={user!} />} />
-          <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
-          <Route path="/journey/:gameId" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
-          <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
-          <Route path="/lotto/:gameId" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
-          <Route path="/lotto-bingo" element={<LottoBingoPage selectedProject={selectedProject} />} />
-          <Route path="/lotto-bingo/:gameId" element={<LottoBingoPage selectedProject={selectedProject} />} />
-          <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/journey/:gameId?" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/lotto/:gameId?" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/lotto-bingo/:gameId?" element={<LottoBingoPage selectedProject={selectedProject} />} />
           <Route
-            path="/battleship/:gameId"
+            path="/battleship/:gameId?"
             element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />}
           />
           <Route path="/quizzes" element={<QuizzesPage selectedProject={selectedProject} />} />

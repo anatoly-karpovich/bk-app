@@ -12,6 +12,7 @@ interface JourneyPageHeaderProps {
   isRefreshingGame: boolean;
   isLoadingSavedGames: boolean;
   actionsDisabled: boolean;
+  canRefreshGame: boolean;
   canOpenRules: boolean;
   controls?: ReactNode;
   onRefreshGame: () => void;
@@ -25,6 +26,7 @@ export default function JourneyPageHeader({
   isRefreshingGame,
   isLoadingSavedGames,
   actionsDisabled,
+  canRefreshGame,
   canOpenRules,
   controls,
   onRefreshGame,
@@ -44,7 +46,7 @@ export default function JourneyPageHeader({
           label: "Обновить",
           icon: <RefreshRoundedIcon />,
           onClick: onRefreshGame,
-          disabled: actionsDisabled,
+          disabled: actionsDisabled || !canRefreshGame,
           loading: isRefreshingGame,
           variant: "outlined",
         },
