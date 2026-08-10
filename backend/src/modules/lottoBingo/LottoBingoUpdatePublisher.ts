@@ -18,6 +18,8 @@ export class LottoBingoUpdatePublisher {
   }
 
   publish(gameId: string, revision: number): void {
-    this.listenersByGameId.get(gameId)?.forEach((listener) => listener({ type: "lotto_bingo_updated", gameId, revision }));
+    this.listenersByGameId
+      .get(gameId)
+      ?.forEach((listener) => listener({ type: "lotto_bingo_updated", gameId, revision }));
   }
 }

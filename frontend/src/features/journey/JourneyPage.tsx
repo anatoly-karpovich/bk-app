@@ -1,6 +1,7 @@
-import { Alert, Grid, Stack } from "@mui/material";
+import { Alert, Grid, Stack, Typography } from "@mui/material";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import GameConfigSelectField from "../../components/GameConfigSelectField";
+import SavedGamesDialog from "../../components/SavedGamesDialog";
 import type { Project } from "../projects/types";
 import { journeyTexts } from "../../texts/journeyTexts";
 import JourneyImportDialog from "./components/JourneyImportDialog";
@@ -13,8 +14,8 @@ import JourneyPlayersSetupCard from "./components/JourneyPlayersSetupCard";
 import JourneyResultsCard from "./components/JourneyResultsCard";
 import JourneyRoundControlsCard from "./components/JourneyRoundControlsCard";
 import JourneyRulesDialog from "./components/JourneyRulesDialog";
-import JourneySavedGamesDialog from "./components/JourneySavedGamesDialog";
 import JourneyStateCard from "./components/JourneyStateCard";
+import { formatJourneyResourceAmounts } from "./journey-page.helpers";
 import { useJourneyGame } from "./hooks/useJourneyGame";
 
 const deleteSavedGameTexts = {
@@ -83,18 +84,40 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     actions,
   } = useJourneyGame({ djName, selectedProject });
 
+  const savedGameItems = savedGames.map((savedGame) => ({
+    id: savedGame.id,
+    title: savedGame.configName,
+    statusLabel: savedGame.status === "finished" ? journeyTexts.statuses.complete : journeyTexts.statuses.active,
+    statusColor: savedGame.status === "finished" ? "success" as const : "info" as const,
+    metadata: `Раундов: ${savedGame.roundsCount} · Ведущий: ${savedGame.djName || "Не указан"}`,
+    createdAtLabel: new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(savedGame.createdAt)),
+    updatedAtLabel: new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(savedGame.updatedAt)),
+    details: (
+      <Stack spacing={1}>
+        {savedGame.players.map((player) => (
+          <Stack key={player.id} spacing={0.25}>
+            <Typography variant="body2" fontWeight={700}>{player.nickname}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Клетка: {player.position} · Баланс: {formatJourneyResourceAmounts(player.balanceEntries, savedGame.resources, { includeZero: true })}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    ),
+  }));
+
   return (
     <>
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <JourneyPageHeader
             pageStatusChips={pageStatusChips}
+            isRefreshingGame={loading.isRefreshingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
-            isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            canOpenRules={Boolean(journeyConfig && journeyAchievements)}
             controls={
               <GameConfigSelectField
-                label="Пресет Journey"
                 gameConfigs={gameConfigs}
                 selectedGameConfigId={selectedGameConfigId}
                 onSelectedGameConfigChange={actions.selectGameConfig}
@@ -103,6 +126,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
                 sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
               />
             }
+            onRefreshGame={actions.refreshGame}
             onOpenRules={() => actions.setRulesDialogOpen(true)}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
@@ -258,9 +282,9 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
         loading={loading.isImportingMoves}
       />
 
-      <JourneySavedGamesDialog
+      <SavedGamesDialog
         open={savedGamesDialogOpen}
-        games={savedGames}
+        games={savedGameItems}
         currentGameId={storedGameId}
         loading={loading.isLoadingSavedGames}
         restoreLoading={loading.isRestoringGame}
@@ -268,7 +292,12 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
         error={savedGamesError}
         onClose={() => actions.setSavedGamesDialogOpen(false)}
         onRestore={actions.restoreSavedGame}
-        onDelete={actions.requestDeleteSavedGame}
+        onDelete={(gameId) => {
+          const savedGame = savedGames.find((gameItem) => gameItem.id === gameId);
+          if (savedGame) {
+            actions.requestDeleteSavedGame(savedGame);
+          }
+        }}
       />
 
       <AppConfirmDialog

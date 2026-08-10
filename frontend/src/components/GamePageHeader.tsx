@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import AppChip from "./ui/AppChip";
 import type { AppBreadcrumbItem } from "./ui/AppBreadcrumbs";
 import AppPillButton from "./ui/AppPillButton";
+import GamePageHeaderMoreMenu from "./GamePageHeaderMoreMenu";
+import type { GamePageHeaderMoreAction } from "./GamePageHeaderMoreMenu";
 import PageBreadcrumbs from "./PageBreadcrumbs";
 
 export interface GamePageHeaderChip {
@@ -30,6 +32,8 @@ interface GamePageHeaderProps {
   description?: string;
   chips?: GamePageHeaderChip[];
   actions?: GamePageHeaderAction[];
+  moreActions?: GamePageHeaderMoreAction[];
+  moreActionsDisabled?: boolean;
   controls?: ReactNode;
   footer?: ReactNode;
   cardSx?: SxProps<Theme>;
@@ -42,11 +46,13 @@ export default function GamePageHeader({
   description,
   chips = [],
   actions = [],
+  moreActions = [],
+  moreActionsDisabled = false,
   controls,
   footer,
   cardSx,
 }: GamePageHeaderProps) {
-  const hasTrailingContent = Boolean(controls || actions.length);
+  const hasTrailingContent = Boolean(controls || actions.length || moreActions.length);
 
   return (
     <Card
@@ -63,7 +69,7 @@ export default function GamePageHeader({
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              xl: hasTrailingContent ? "minmax(0, 50%) minmax(0, 50%)" : "minmax(0, 1fr)",
+              xl: hasTrailingContent ? "minmax(0, 58%) minmax(0, 42%)" : "minmax(0, 1fr)",
             },
             gap: 3,
             alignItems: { xl: "center" },
@@ -107,6 +113,15 @@ export default function GamePageHeader({
                 justifySelf: { xl: "stretch" },
                 flexWrap: { xs: "wrap", xl: "nowrap" },
                 alignItems: { sm: "center" },
+                "@media (min-width: 600px) and (max-width: 1199.95px)": {
+                  "& .game-page-header-more-actions": {
+                    order: 1,
+                  },
+                  "& .game-page-header-action-saved-games": {
+                    order: 2,
+                    flexBasis: "100%",
+                  },
+                },
               }}
             >
               {controls ? (
@@ -122,18 +137,24 @@ export default function GamePageHeader({
               ) : null}
 
               {actions.map((action) => (
-                <AppPillButton
-                  key={action.key}
-                  variant={action.variant}
-                  color={action.color}
-                  startIcon={action.icon}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                  loading={action.loading}
-                >
-                  {action.label}
-                </AppPillButton>
+                <Box key={action.key} className={`game-page-header-action-${action.key}`} sx={{ display: "flex" }}>
+                  <AppPillButton
+                    variant={action.variant}
+                    color={action.color}
+                    startIcon={action.icon}
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                    loading={action.loading}
+                  >
+                    {action.label}
+                  </AppPillButton>
+                </Box>
               ))}
+              {moreActions.length ? (
+                <Box className="game-page-header-more-actions" sx={{ display: "flex" }}>
+                  <GamePageHeaderMoreMenu actions={moreActions} disabled={moreActionsDisabled} />
+                </Box>
+              ) : null}
             </Stack>
           ) : null}
         </Box>

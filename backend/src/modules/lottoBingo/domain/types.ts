@@ -3,7 +3,14 @@ import type { ResourceAmount, ResourceSnapshot, RewardPool } from "../../rewards
 
 export type LottoBingoRound = 1 | 2 | 3;
 export type LottoBingoStatus = "preparing" | "in_progress" | "finished";
-export type LottoBingoPhase = "registration" | "round1" | "round2" | "round3" | "remaining_barrels" | "ready_to_finalize" | "finished";
+export type LottoBingoPhase =
+  | "registration"
+  | "round1"
+  | "round2"
+  | "round3"
+  | "remaining_barrels"
+  | "ready_to_finalize"
+  | "finished";
 export type LottoBingoPlayerStatus = "active" | "round_winner" | "disqualified";
 export type LottoBingoTicketCell = number | null;
 export type LottoBingoTicketGrid = LottoBingoTicketCell[][];
@@ -76,8 +83,16 @@ export interface LottoBingoEligibilityState {
 }
 
 export type LottoBingoMutationType =
-  | "game_created" | "player_added" | "player_removed" | "game_started" | "barrel_drawn"
-  | "barrel_undone" | "winner_confirmed" | "player_disqualified" | "player_restored" | "game_finished";
+  | "game_created"
+  | "player_added"
+  | "player_removed"
+  | "game_started"
+  | "barrel_drawn"
+  | "barrel_undone"
+  | "winner_confirmed"
+  | "player_disqualified"
+  | "player_restored"
+  | "game_finished";
 
 export interface LottoBingoAuditEvent {
   id: string;
@@ -113,31 +128,125 @@ export interface LottoBingoGame {
 }
 
 export interface LottoBingoGameMetaView {
-  projectId: string; configId: string; configName: string; status: LottoBingoStatus; phase: LottoBingoPhase;
-  revision: number; host: HostSnapshot; startedAt: string | null; finishedAt: string | null;
-  access: { mode: "manage" | "read_only"; canAddPlayer: boolean; canRemovePlayer: boolean; canStart: boolean; canDraw: boolean; canUndoDraw: boolean; canConfirmWinner: boolean; canDisqualifyPlayer: boolean; canRestorePlayer: boolean; canFinalize: boolean; canDelete: boolean };
+  projectId: string;
+  configId: string;
+  configName: string;
+  status: LottoBingoStatus;
+  phase: LottoBingoPhase;
+  revision: number;
+  host: HostSnapshot;
+  startedAt: string | null;
+  finishedAt: string | null;
+  access: {
+    mode: "manage" | "read_only";
+    canAddPlayer: boolean;
+    canRemovePlayer: boolean;
+    canStart: boolean;
+    canDraw: boolean;
+    canUndoDraw: boolean;
+    canConfirmWinner: boolean;
+    canDisqualifyPlayer: boolean;
+    canRestorePlayer: boolean;
+    canFinalize: boolean;
+    canDelete: boolean;
+  };
 }
 
 export interface LottoBingoGameView {
-  id: string; createdAt: string; updatedAt: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
   meta: LottoBingoGameMetaView;
   configuration: { rules: LottoBingoRules; resources: ResourceSnapshot[] };
   state: {
-    draw: { currentBarrel: number | null; drawnNumbers: number[]; drawnCount: number; plannedDrawCount: number; plannedRemainingCount: number; outOfGameCount: number };
-    round: { activeRound: LottoBingoRound | null; candidates: LottoBingoCandidateView[]; hasUnconfirmedCandidates: boolean; requiresDrawWithoutWinnerConfirmation: boolean };
+    draw: {
+      currentBarrel: number | null;
+      drawnNumbers: number[];
+      drawnCount: number;
+      plannedDrawCount: number;
+      plannedRemainingCount: number;
+      outOfGameCount: number;
+    };
+    round: {
+      activeRound: LottoBingoRound | null;
+      candidates: LottoBingoCandidateView[];
+      hasUnconfirmedCandidates: boolean;
+      requiresDrawWithoutWinnerConfirmation: boolean;
+    };
     players: LottoBingoPlayerView[];
     winners: Record<"round1" | "round2" | "round3", LottoBingoRoundWinnerView[]>;
-    rewards: { roundPayouts: LottoBingoPayoutView[]; finalPreview: LottoBingoFinalRewardPreview | null; finalPayouts: LottoBingoPayoutView[] };
+    rewards: {
+      roundPayouts: LottoBingoPayoutView[];
+      finalPreview: LottoBingoFinalRewardPreview | null;
+      finalPayouts: LottoBingoPayoutView[];
+    };
     timeline: LottoBingoTimelineEventView[];
   };
 }
 
-export interface LottoBingoCandidateView { playerId: string; nickname: string; eligibleSinceDraw: number; becameEligibleOnLatestDraw: boolean; matchedAreas: LottoBingoMatchedAreaView[]; }
-export type LottoBingoMatchedAreaView = { type: "row"; rowIndexes: number[] } | { type: "half"; half: "top" | "bottom"; rowIndexes: number[] } | { type: "full_card"; rowIndexes: number[] };
-export interface LottoBingoPlayerView { id: string; nickname: string; ticket: LottoBingoTicket; status: LottoBingoPlayerStatus; progress: { matchedNumbers: number[]; remainingNumbers: number[]; matchedCount: number; remainingCount: number; completedRowIndexes: number[]; completedHalves: Array<"top" | "bottom">; completedCard: boolean }; eligibility: { isCurrentRoundCandidate: boolean; eligibleSinceDraw: number | null; excludedFromRoundRewards: boolean; excludedFromFinalRewards: boolean }; award: LottoBingoPlayerAward | null; }
-export interface LottoBingoRoundWinnerView extends LottoBingoRoundWinner { nickname: string; rewards: ResourceAmount[]; }
-export interface LottoBingoPayoutView extends LottoBingoPayout { nickname: string; }
-export interface LottoBingoFinalRewardPreview { completedCardPlayers: LottoBingoRewardRecipientPreview[]; consolationPlayers: LottoBingoRewardRecipientPreview[]; }
-export interface LottoBingoRewardRecipientPreview { playerId: string; nickname: string; projectedRewards: ResourceAmount[]; }
-export interface LottoBingoTimelineEventView { id: string; type: LottoBingoMutationType; createdAt: string; actorName: string; message: string; }
-export interface LottoBingoGameListItemView { id: string; createdAt: string; updatedAt: string; meta: Pick<LottoBingoGameMetaView, "projectId" | "configId" | "configName" | "status" | "phase" | "host" | "startedAt" | "finishedAt">; state: { playersCount: number; drawnBarrelsCount: number; winners: Record<"round1" | "round2" | "round3", string[]> } }
+export interface LottoBingoCandidateView {
+  playerId: string;
+  nickname: string;
+  eligibleSinceDraw: number;
+  becameEligibleOnLatestDraw: boolean;
+  matchedAreas: LottoBingoMatchedAreaView[];
+}
+export type LottoBingoMatchedAreaView =
+  | { type: "row"; rowIndexes: number[] }
+  | { type: "half"; half: "top" | "bottom"; rowIndexes: number[] }
+  | { type: "full_card"; rowIndexes: number[] };
+export interface LottoBingoPlayerView {
+  id: string;
+  nickname: string;
+  ticket: LottoBingoTicket;
+  status: LottoBingoPlayerStatus;
+  progress: {
+    matchedNumbers: number[];
+    remainingNumbers: number[];
+    matchedCount: number;
+    remainingCount: number;
+    completedRowIndexes: number[];
+    completedHalves: Array<"top" | "bottom">;
+    completedCard: boolean;
+  };
+  eligibility: {
+    isCurrentRoundCandidate: boolean;
+    eligibleSinceDraw: number | null;
+    excludedFromRoundRewards: boolean;
+    excludedFromFinalRewards: boolean;
+  };
+  award: LottoBingoPlayerAward | null;
+}
+export interface LottoBingoRoundWinnerView extends LottoBingoRoundWinner {
+  nickname: string;
+  rewards: ResourceAmount[];
+}
+export interface LottoBingoPayoutView extends LottoBingoPayout {
+  nickname: string;
+}
+export interface LottoBingoFinalRewardPreview {
+  completedCardPlayers: LottoBingoRewardRecipientPreview[];
+  consolationPlayers: LottoBingoRewardRecipientPreview[];
+}
+export interface LottoBingoRewardRecipientPreview {
+  playerId: string;
+  nickname: string;
+  projectedRewards: ResourceAmount[];
+}
+export interface LottoBingoTimelineEventView {
+  id: string;
+  type: LottoBingoMutationType;
+  createdAt: string;
+  actorName: string;
+  message: string;
+}
+export interface LottoBingoGameListItemView {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  meta: Pick<
+    LottoBingoGameMetaView,
+    "projectId" | "configId" | "configName" | "status" | "phase" | "host" | "startedAt" | "finishedAt"
+  >;
+  state: { playersCount: number; drawnBarrelsCount: number; winners: Record<"round1" | "round2" | "round3", string[]> };
+}

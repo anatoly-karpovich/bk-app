@@ -108,6 +108,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   const [isLoadingSavedGames, setIsLoadingSavedGames] = useState(false);
   const [isLoadingGameConfigs, setIsLoadingGameConfigs] = useState(false);
   const [isDeletingSavedGame, setIsDeletingSavedGame] = useState(false);
+  const [isRefreshingGame, setIsRefreshingGame] = useState(false);
   const [isResettingGame, setIsResettingGame] = useState(false);
   const [isSubmittingRound, setIsSubmittingRound] = useState(false);
   const [isImportingPlayers, setIsImportingPlayers] = useState(false);
@@ -223,6 +224,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       isLoadingSavedGames ||
       isLoadingGameConfigs ||
       isDeletingSavedGame ||
+      isRefreshingGame ||
       isResettingGame ||
       isSubmittingRound ||
       isImportingPlayers ||
@@ -236,6 +238,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       isImportingPlayersFromForum,
       isLoadingGameConfigs,
       isLoadingSavedGames,
+      isRefreshingGame,
       isResettingGame,
       isRestoringGame,
       isStartingGame,
@@ -381,6 +384,30 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       setSavedGamesError(getErrorMessage(error));
     } finally {
       setIsRestoringGame(false);
+    }
+  }
+
+  async function refreshGame() {
+    if (!game?.id || !selectedProject?.id) {
+      return;
+    }
+
+    setRequestError(null);
+    setIsRefreshingGame(true);
+
+    try {
+      const refreshedGame = await getJourneyGameByIdRequest(selectedProject.id, game.id);
+
+      if (refreshedGame.projectId !== selectedProject.id) {
+        setRequestError(SAVED_GAME_PROJECT_MISMATCH_ERROR);
+        return;
+      }
+
+      setGame(refreshedGame);
+    } catch (error) {
+      setRequestError(getErrorMessage(error));
+    } finally {
+      setIsRefreshingGame(false);
     }
   }
 
@@ -787,6 +814,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       isLoadingSavedGames,
       isLoadingGameConfigs,
       isDeletingSavedGame,
+      isRefreshingGame,
       isResettingGame,
       isSubmittingRound,
       isImportingPlayers,
@@ -808,6 +836,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       selectGameConfig,
       openSavedGamesDialog,
       restoreSavedGame,
+      refreshGame,
       requestDeleteSavedGame,
       cancelDeleteSavedGame,
       confirmDeleteSavedGame,

@@ -17,8 +17,11 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
   const [selectedConfigId, setSelectedConfigId] = useState(() => loadSelectedGameConfigId(configStorageKey) ?? "");
   const [savedGames, setSavedGames] = useState<LottoBingoSavedGame[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoadingSavedGames, setIsLoadingSavedGames] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedGamesError, setSavedGamesError] = useState<string | null>(null);
   const [observing, setObserving] = useState(false);
   const observerRef = useRef<EventSource | null>(null);
 
@@ -77,9 +80,21 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
 
   const loadSavedGames = useCallback(async () => {
     if (!selectedProject?.id) return [];
+    setSavedGamesError(null);
+    setIsLoadingSavedGames(true);
     try { const values = await lottoBingoApi.list(selectedProject.id); setSavedGames(values); return values; }
-    catch (cause) { setError(errorMessage(cause, "Не удалось загрузить сохранённые игры.")); return []; }
+    catch (cause) { setSavedGamesError(errorMessage(cause, "Не удалось загрузить сохранённые игры.")); return []; }
+    finally { setIsLoadingSavedGames(false); }
   }, [selectedProject?.id]);
+
+  const refreshGame = useCallback(async () => {
+    if (!game) return null;
+    setIsRefreshing(true);
+    setError(null);
+    try { return await reload(); }
+    catch (cause) { setError(errorMessage(cause, "Не удалось обновить игру.")); return null; }
+    finally { setIsRefreshing(false); }
+  }, [game, reload]);
 
   const setConfig = (configId: string) => { setSelectedConfigId(configId); saveSelectedGameConfigId(configStorageKey, configId); };
   const createGame = async () => {
@@ -91,21 +106,21 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
   };
   const restoreGame = async (gameId: string) => {
     if (!selectedProject?.id) return null;
-    setBusy(true); setError(null);
+    setBusy(true); setSavedGamesError(null);
     try { const restored = await lottoBingoApi.get(selectedProject.id, gameId); applyGame(restored); return restored; }
-    catch (cause) { setError(errorMessage(cause, "Не удалось восстановить игру.")); return null; }
+    catch (cause) { setSavedGamesError(errorMessage(cause, "Не удалось восстановить игру.")); return null; }
     finally { setBusy(false); }
   };
   const deleteGame = async (gameId: string) => {
     if (!selectedProject?.id) return false;
-    setBusy(true); setError(null);
+    setBusy(true); setSavedGamesError(null);
     try {
       const current = game?.id === gameId ? game : await lottoBingoApi.get(selectedProject.id, gameId);
       await lottoBingoApi.delete(selectedProject.id, gameId, current.meta.revision);
       setSavedGames((values) => values.filter((item) => item.id !== gameId));
       if (game?.id === gameId) applyGame(null);
       return true;
-    } catch (cause) { setError(errorMessage(cause, "Не удалось удалить игру.")); return false; }
+    } catch (cause) { setSavedGamesError(errorMessage(cause, "Не удалось удалить игру.")); return false; }
     finally { setBusy(false); }
   };
   const setLiveObservation = (next: boolean) => {
@@ -128,9 +143,9 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
   };
 
   return {
-    game, configs, selectedConfigId, savedGames, loading, busy, error, observing,
+    game, configs, selectedConfigId, savedGames, loading, isLoadingSavedGames, isRefreshing, busy, error, savedGamesError, observing,
     actions: {
-      setError, setConfig, createGame, reload: () => reload(), loadSavedGames, restoreGame, deleteGame, setLiveObservation, resetUi,
+      setError, setConfig, createGame, reload: refreshGame, loadSavedGames, restoreGame, deleteGame, setLiveObservation, resetUi,
       addPlayer: (nickname: string) => runMutation((current) => lottoBingoApi.addPlayer(current.meta.projectId, current.id, nickname, current.meta.revision)),
       removePlayer: (player: LottoBingoPlayer) => runMutation((current) => lottoBingoApi.removePlayer(current.meta.projectId, current.id, player.id, current.meta.revision)),
       start: () => runMutation((current) => lottoBingoApi.start(current.meta.projectId, current.id, current.meta.revision)),

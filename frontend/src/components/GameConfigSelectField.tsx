@@ -8,7 +8,7 @@ interface GameConfigOption {
 }
 
 interface GameConfigSelectFieldProps {
-  label: string;
+  label?: string;
   gameConfigs: GameConfigOption[];
   selectedGameConfigId: string;
   onSelectedGameConfigChange: (nextGameConfigId: string) => void;
@@ -21,14 +21,14 @@ interface GameConfigSelectFieldProps {
 }
 
 export default function GameConfigSelectField({
-  label,
+  label = "Конфигурация",
   gameConfigs,
   selectedGameConfigId,
   onSelectedGameConfigChange,
   disabled = false,
   loading = false,
   error = null,
-  emptyLabel = "Нет доступных пресетов",
+  emptyLabel = "Нет доступных конфигураций",
   hideHelperText = false,
   sx,
 }: GameConfigSelectFieldProps) {
@@ -47,7 +47,7 @@ export default function GameConfigSelectField({
       >
         {!gameConfigs.length ? (
           <MenuItem value="" disabled>
-            {loading ? "Загрузка пресетов..." : emptyLabel}
+            {loading ? "Загружаем конфигурации..." : emptyLabel}
           </MenuItem>
         ) : null}
         {gameConfigs.map((gameConfig) => (

@@ -56,12 +56,12 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
         <Grid item xs={12}>
           <BattleshipsPageHeader
             pageStatusChips={pageStatusChips}
+            isRefreshingGame={loading.isRefreshingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
-            isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            canRefreshGame={Boolean(game)}
             controls={
               <GameConfigSelectField
-                label="Пресет Battleships"
                 gameConfigs={gameConfigs}
                 selectedGameConfigId={selectedGameConfigId}
                 onSelectedGameConfigChange={actions.selectGameConfig}
@@ -70,6 +70,7 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
                 sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
               />
             }
+            onRefreshGame={actions.refreshGame}
             onOpenRules={() => actions.setRulesDialogOpen(true)}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}

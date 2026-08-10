@@ -10,25 +10,175 @@ import { LottoBingoUpdatePublisher, type LottoBingoUpdatedEvent } from "./LottoB
 import type { LottoBingoGameListItemView, LottoBingoGameView } from "./domain/types";
 
 export class LottoBingoService {
-  constructor(private readonly repository: LottoBingoRepository, private readonly engine: LottoBingoEngine, private readonly readModels: LottoBingoReadModelFactory, private readonly gameConfigs: GameConfigsService, private readonly updates: LottoBingoUpdatePublisher) {}
+  constructor(
+    private readonly repository: LottoBingoRepository,
+    private readonly engine: LottoBingoEngine,
+    private readonly readModels: LottoBingoReadModelFactory,
+    private readonly gameConfigs: GameConfigsService,
+    private readonly updates: LottoBingoUpdatePublisher,
+  ) {}
 
-  async createGame(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<LottoBingoGameView> { const host = this.actorSnapshot(actor, projectId); const context = await this.gameConfigs.getLottoBingoGameConfigContext(projectId, gameConfigId); const resourceIds = collectResourceIdsFromRules(context.config.rules); const created = await this.repository.create(this.engine.createGame({ projectId, configId: gameConfigId, configName: context.config.name, hostUserId: actor.id, hostSnapshot: host, rules: context.config.rules, resources: context.projectResources.filter((resource) => resourceIds.has(resource.id)) })); if (!created) throw new AppError("Failed to create Lotto Bingo game", { statusCode: 500, code: "lotto_bingo_create_failed" }); return this.readModels.create(created, actor); }
-  async listGames(actor: CurrentUser, projectId: string): Promise<LottoBingoGameListItemView[]> { assertProjectAccess(actor, projectId); return (await this.repository.findByProjectId(projectId)).map((game) => this.readModels.createListItem(game)); }
-  async getGame(actor: CurrentUser, projectId: string, gameId: string): Promise<LottoBingoGameView> { assertProjectAccess(actor, projectId); return this.readModels.create(await this.requireGame(projectId, gameId), actor); }
-  async getLatestGame(actor: CurrentUser, projectId: string): Promise<LottoBingoGameView> { assertProjectAccess(actor, projectId); const game = await this.repository.findLatest(projectId); if (!game) throw new AppError("No unfinished Lotto Bingo games found", { statusCode: 404, code: "lotto_bingo_games_not_found" }); return this.readModels.create(game, actor); }
-  async addPlayer(actor: CurrentUser, projectId: string, gameId: string, nickname: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.addPlayer(game, nickname, host)); }
-  async removePlayer(actor: CurrentUser, projectId: string, gameId: string, playerId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.removePlayer(game, playerId, host)); }
-  async startGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.startGame(game, host)); }
-  async drawBarrel(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.drawBarrel(game, host)); }
-  async undoDraw(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.undoLastDraw(game, host)); }
-  async confirmWinners(actor: CurrentUser, projectId: string, gameId: string, playerIds: string[], expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.confirmWinners(game, playerIds, host)); }
-  async disqualifyPlayer(actor: CurrentUser, projectId: string, gameId: string, playerId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.disqualifyPlayer(game, playerId, host)); }
-  async restorePlayer(actor: CurrentUser, projectId: string, gameId: string, playerId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.restorePlayer(game, playerId, host)); }
-  async finalizeGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) { return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.finalizeGame(game, host)); }
-  async deleteGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number): Promise<void> { const game = await this.requireGame(projectId, gameId); assertProjectAccess(actor, projectId); assertOwnedByUser(actor, game.hostUserId); if (game.revision !== expectedRevision || !(await this.repository.delete(gameId, projectId, expectedRevision))) throw new AppError("Lotto Bingo game was changed by another operation", { statusCode: 409, code: "lotto_bingo_revision_conflict" }); }
-  async subscribe(actor: CurrentUser, projectId: string, gameId: string, listener: (event: LottoBingoUpdatedEvent) => void): Promise<() => void> { assertProjectAccess(actor, projectId); await this.requireGame(projectId, gameId); return this.updates.subscribe(gameId, listener); }
+  async createGame(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<LottoBingoGameView> {
+    const host = this.actorSnapshot(actor, projectId);
+    const context = await this.gameConfigs.getLottoBingoGameConfigContext(projectId, gameConfigId);
+    const resourceIds = collectResourceIdsFromRules(context.config.rules);
+    const created = await this.repository.create(
+      this.engine.createGame({
+        projectId,
+        configId: gameConfigId,
+        configName: context.config.name,
+        hostUserId: actor.id,
+        hostSnapshot: host,
+        rules: context.config.rules,
+        resources: context.projectResources.filter((resource) => resourceIds.has(resource.id)),
+      }),
+    );
+    if (!created)
+      throw new AppError("Failed to create Lotto Bingo game", { statusCode: 500, code: "lotto_bingo_create_failed" });
+    return this.readModels.create(created, actor);
+  }
+  async listGames(actor: CurrentUser, projectId: string): Promise<LottoBingoGameListItemView[]> {
+    assertProjectAccess(actor, projectId);
+    return (await this.repository.findByProjectId(projectId)).map((game) => this.readModels.createListItem(game));
+  }
+  async getGame(actor: CurrentUser, projectId: string, gameId: string): Promise<LottoBingoGameView> {
+    assertProjectAccess(actor, projectId);
+    return this.readModels.create(await this.requireGame(projectId, gameId), actor);
+  }
+  async getLatestGame(actor: CurrentUser, projectId: string): Promise<LottoBingoGameView> {
+    assertProjectAccess(actor, projectId);
+    const game = await this.repository.findLatest(projectId);
+    if (!game)
+      throw new AppError("No unfinished Lotto Bingo games found", {
+        statusCode: 404,
+        code: "lotto_bingo_games_not_found",
+      });
+    return this.readModels.create(game, actor);
+  }
+  async addPlayer(actor: CurrentUser, projectId: string, gameId: string, nickname: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.addPlayer(game, nickname, host),
+    );
+  }
+  async removePlayer(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    playerId: string,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.removePlayer(game, playerId, host),
+    );
+  }
+  async startGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.startGame(game, host));
+  }
+  async drawBarrel(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) => this.engine.drawBarrel(game, host));
+  }
+  async undoDraw(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.undoLastDraw(game, host),
+    );
+  }
+  async confirmWinners(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    playerIds: string[],
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.confirmWinners(game, playerIds, host),
+    );
+  }
+  async disqualifyPlayer(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    playerId: string,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.disqualifyPlayer(game, playerId, host),
+    );
+  }
+  async restorePlayer(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    playerId: string,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.restorePlayer(game, playerId, host),
+    );
+  }
+  async finalizeGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
+      this.engine.finalizeGame(game, host),
+    );
+  }
+  async deleteGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number): Promise<void> {
+    const game = await this.requireGame(projectId, gameId);
+    assertProjectAccess(actor, projectId);
+    assertOwnedByUser(actor, game.hostUserId);
+    if (game.revision !== expectedRevision || !(await this.repository.delete(gameId, projectId, expectedRevision)))
+      throw new AppError("Lotto Bingo game was changed by another operation", {
+        statusCode: 409,
+        code: "lotto_bingo_revision_conflict",
+      });
+  }
+  async subscribe(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    listener: (event: LottoBingoUpdatedEvent) => void,
+  ): Promise<() => void> {
+    assertProjectAccess(actor, projectId);
+    await this.requireGame(projectId, gameId);
+    return this.updates.subscribe(gameId, listener);
+  }
 
-  private async mutate(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number, operation: (game: LottoBingoGameDocument, host: ReturnType<typeof getHostSnapshot>) => LottoBingoGameDocument): Promise<LottoBingoGameView> { assertProjectAccess(actor, projectId); const current = await this.requireGame(projectId, gameId); assertOwnedByUser(actor, current.hostUserId); if (current.revision !== expectedRevision) throw new AppError("Lotto Bingo game was changed by another operation", { statusCode: 409, code: "lotto_bingo_revision_conflict" }); const next = operation(current, this.actorSnapshot(actor, projectId)); const updated = await this.repository.update(gameId, projectId, expectedRevision, next); if (!updated) throw new AppError("Lotto Bingo game was changed by another operation", { statusCode: 409, code: "lotto_bingo_revision_conflict" }); this.updates.publish(gameId, updated.revision); return this.readModels.create(updated, actor); }
-  private actorSnapshot(actor: CurrentUser, projectId: string): ReturnType<typeof getHostSnapshot> { if (actor.projectProfiles.some((profile) => profile.projectId === projectId)) return getHostSnapshot(actor, projectId); assertProjectAccess(actor, projectId); return { userId: actor.id, displayName: actor.displayName, nickname: actor.displayName }; }
-  private async requireGame(projectId: string, gameId: string): Promise<LottoBingoGameDocument & { _id: import("mongodb").ObjectId }> { const game = await this.repository.findByIdAndProjectId(gameId, projectId); if (!game) throw new AppError("Lotto Bingo game not found", { statusCode: 404, code: "lotto_bingo_game_not_found" }); return game; }
+  private async mutate(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    expectedRevision: number,
+    operation: (game: LottoBingoGameDocument, host: ReturnType<typeof getHostSnapshot>) => LottoBingoGameDocument,
+  ): Promise<LottoBingoGameView> {
+    assertProjectAccess(actor, projectId);
+    const current = await this.requireGame(projectId, gameId);
+    assertOwnedByUser(actor, current.hostUserId);
+    if (current.revision !== expectedRevision)
+      throw new AppError("Lotto Bingo game was changed by another operation", {
+        statusCode: 409,
+        code: "lotto_bingo_revision_conflict",
+      });
+    const next = operation(current, this.actorSnapshot(actor, projectId));
+    const updated = await this.repository.update(gameId, projectId, expectedRevision, next);
+    if (!updated)
+      throw new AppError("Lotto Bingo game was changed by another operation", {
+        statusCode: 409,
+        code: "lotto_bingo_revision_conflict",
+      });
+    this.updates.publish(gameId, updated.revision);
+    return this.readModels.create(updated, actor);
+  }
+  private actorSnapshot(actor: CurrentUser, projectId: string): ReturnType<typeof getHostSnapshot> {
+    if (actor.projectProfiles.some((profile) => profile.projectId === projectId))
+      return getHostSnapshot(actor, projectId);
+    assertProjectAccess(actor, projectId);
+    return { userId: actor.id, displayName: actor.displayName, nickname: actor.displayName };
+  }
+  private async requireGame(
+    projectId: string,
+    gameId: string,
+  ): Promise<LottoBingoGameDocument & { _id: import("mongodb").ObjectId }> {
+    const game = await this.repository.findByIdAndProjectId(gameId, projectId);
+    if (!game)
+      throw new AppError("Lotto Bingo game not found", { statusCode: 404, code: "lotto_bingo_game_not_found" });
+    return game;
+  }
 }

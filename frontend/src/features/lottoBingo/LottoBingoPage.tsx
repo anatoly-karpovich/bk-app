@@ -1,7 +1,7 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CasinoRoundedIcon from "@mui/icons-material/CasinoRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import { Alert, Box, Card, CardContent, CircularProgress, Stack, Typography } from "@mui/material";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import GameActionButton from "../../components/GameActionButton";
 import GameConfigSelectField from "../../components/GameConfigSelectField";
 import GamePageHeader from "../../components/GamePageHeader";
+import SavedGamesDialog from "../../components/SavedGamesDialog";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import AppInfoAlert from "../../components/ui/AppInfoAlert";
 import AppResponsiveGrid from "../../components/ui/AppResponsiveGrid";
@@ -20,10 +21,10 @@ import LottoBingoDrawWorkspace from "./components/LottoBingoDrawWorkspace";
 import LottoBingoFinalSummary from "./components/LottoBingoFinalSummary";
 import LottoBingoRegistrationPanel from "./components/LottoBingoRegistrationPanel";
 import LottoBingoRoundOverview from "./components/LottoBingoRoundOverview";
-import LottoBingoSavedGamesDialog from "./components/LottoBingoSavedGamesDialog";
+import LottoBingoRulesDialog from "./components/LottoBingoRulesDialog";
 import LottoBingoTicketDialog from "./components/LottoBingoTicketDialog";
 import LottoBingoTicketsSection from "./components/LottoBingoTicketsSection";
-import { getLottoBingoPhaseLabel } from "./lottoBingo.helpers";
+import { formatLottoBingoTimestamp, getLottoBingoPhaseLabel } from "./lottoBingo.helpers";
 import { getLottoBingoConfirmationCopy, type LottoBingoConfirmation } from "./lottoBingoPage.helpers";
 import { useLottoBingoGame } from "./hooks/useLottoBingoGame";
 import type { LottoBingoPlayer } from "./types";
@@ -38,11 +39,25 @@ const statusLabels = {
 
 export default function LottoBingoPage({ selectedProject }: { selectedProject: Project | null }) {
   const navigate = useNavigate();
-  const { game, configs, selectedConfigId, savedGames, loading, busy, error, observing, actions } = useLottoBingoGame({
+  const {
+    game,
+    configs,
+    selectedConfigId,
+    savedGames,
+    loading,
+    isLoadingSavedGames,
+    isRefreshing,
+    busy,
+    error,
+    savedGamesError,
+    observing,
+    actions,
+  } = useLottoBingoGame({
     selectedProject,
   });
   const [playerName, setPlayerName] = useState("");
   const [savedOpen, setSavedOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [confirm, setConfirm] = useState<Confirmation>(null);
   const [targetPlayer, setTargetPlayer] = useState<LottoBingoPlayer | null>(null);
   const [openedTicket, setOpenedTicket] = useState<LottoBingoPlayer | null>(null);
@@ -74,7 +89,7 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
       if (saved) setSelectedWinnerIds([]);
     }
     if (confirm === "finalize") await actions.finalize();
-    if (confirm === "delete" && deleteId && (await actions.deleteGame(deleteId))) setSavedOpen(false);
+    if (confirm === "delete" && deleteId) await actions.deleteGame(deleteId);
     if (confirm === "remove" && targetPlayer) await actions.removePlayer(targetPlayer);
     if (confirm === "disqualify" && targetPlayer) await actions.disqualify(targetPlayer);
     setConfirm(null);
@@ -91,6 +106,28 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
     );
 
   const access = game?.meta.access;
+  const selectedConfig = configs.find((config) => config.id === (game?.meta.configId ?? selectedConfigId)) ?? null;
+  const rules = game?.configuration.rules ?? selectedConfig?.rules ?? null;
+  const ruleResources = game?.configuration.resources ?? selectedProject.resources;
+  const savedGameItems = savedGames.map((savedGame) => ({
+    id: savedGame.id,
+    title: savedGame.meta.configName,
+    statusLabel: statusLabels[savedGame.meta.status],
+    statusColor: savedGame.meta.status === "finished" ? ("success" as const) : ("info" as const),
+    metadata: `Игроков: ${savedGame.state.playersCount} · Бочонков: ${savedGame.state.drawnBarrelsCount} · Ведущий: ${savedGame.meta.host.nickname}`,
+    createdAtLabel: formatLottoBingoTimestamp(savedGame.createdAt),
+    updatedAtLabel: formatLottoBingoTimestamp(savedGame.updatedAt),
+    details: (
+      <Stack spacing={1}>
+        <Typography variant="body2" color="text.secondary">
+          Фаза: {getLottoBingoPhaseLabel(savedGame.meta.phase)}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Подтверждённых победителей: {Object.values(savedGame.state.winners).flat().length}
+        </Typography>
+      </Stack>
+    ),
+  }));
   const ticketActions =
     game && access
       ? {
@@ -156,7 +193,6 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
           }
           controls={
             <GameConfigSelectField
-              label="Пресет Lotto Bingo"
               gameConfigs={configs}
               selectedGameConfigId={game?.meta.configId ?? selectedConfigId}
               onSelectedGameConfigChange={actions.setConfig}
@@ -171,27 +207,37 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
               label: lottoBingoTexts.refresh,
               icon: <RefreshRoundedIcon />,
               onClick: () => void actions.reload(),
-              disabled: busy || !game,
+              disabled: busy || isRefreshing || !game,
+              loading: isRefreshing,
               variant: "outlined",
             },
             {
-              key: "saved",
+              key: "saved-games",
               label: lottoBingoTexts.savedGames,
               icon: <RestoreRoundedIcon />,
               onClick: () => void openSaved(),
               disabled: busy,
               variant: "outlined",
             },
+          ]}
+          moreActions={[
+            {
+              key: "rules",
+              label: "Правила",
+              icon: <MenuBookRoundedIcon fontSize="small" />,
+              onClick: () => setRulesOpen(true),
+              disabled: !rules,
+            },
             {
               key: "reset",
-              label: "Сбросить",
-              icon: <AutorenewRoundedIcon />,
+              label: "Сбросить рабочий экран",
+              icon: <AutorenewRoundedIcon fontSize="small" />,
               onClick: resetUi,
-              disabled: busy || !game,
-              variant: "text",
-              color: "inherit",
+              disabled: !game,
+              dividerBefore: true,
             },
           ]}
+          moreActionsDisabled={busy}
         />
 
         {error ? (
@@ -243,7 +289,8 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
           <>
             {access.mode === "read_only" ? (
               <AppInfoAlert>
-                Режим наблюдения. Управляющие действия недоступны; состояние можно обновлять вручную или в реальном времени.
+                Режим наблюдения. Управляющие действия недоступны; состояние можно обновлять вручную или в реальном
+                времени.
               </AppInfoAlert>
             ) : null}
 
@@ -301,11 +348,20 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
         ) : null}
       </AppResponsiveGrid>
 
-      <LottoBingoSavedGamesDialog
+      <LottoBingoRulesDialog
+        open={rulesOpen}
+        rules={rules}
+        resources={ruleResources}
+        onClose={() => setRulesOpen(false)}
+      />
+      <SavedGamesDialog
         open={savedOpen}
-        games={savedGames}
-        currentId={game?.id ?? null}
-        disabled={busy}
+        games={savedGameItems}
+        currentGameId={game?.id ?? null}
+        loading={isLoadingSavedGames}
+        restoreLoading={busy}
+        deletingGameId={busy && deleteId ? deleteId : null}
+        error={savedGamesError}
         onClose={() => setSavedOpen(false)}
         onRestore={(id) =>
           void actions.restoreGame(id).then((value) => {
