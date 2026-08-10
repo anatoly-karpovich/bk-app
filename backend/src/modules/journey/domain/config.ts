@@ -158,7 +158,11 @@ export function normalizeJourneyRules(rawRules: JourneyRulesInput = {}): Journey
           return {
             id,
             kind,
-            mapLabel: getJourneyCellMapLabel({ id, kind, mapLabel: typeof cell.mapLabel === "string" ? cell.mapLabel.trim() : "" }),
+            mapLabel: getJourneyCellMapLabel({
+              id,
+              kind,
+              mapLabel: typeof cell.mapLabel === "string" ? cell.mapLabel.trim() : "",
+            }),
             count: nonNegativeInteger(cell.count, 0),
             rewardPool: resolvedPool(cell.rewardPool, cell.rewards, defaults.cells[0].rewardPool),
           };
@@ -239,7 +243,12 @@ export function getJourneyBonusCells(
       amount: getJourneyJackpotCount(normalized, playersCount),
     },
     ...normalized.cells.map((cell) => ({
-      cell: { id: cell.id, kind: cell.kind, mapLabel: getJourneyCellMapLabel(cell), rewardPool: clone(cell.rewardPool) },
+      cell: {
+        id: cell.id,
+        kind: cell.kind,
+        mapLabel: getJourneyCellMapLabel(cell),
+        rewardPool: clone(cell.rewardPool),
+      },
       amount: cell.count,
     })),
   ];

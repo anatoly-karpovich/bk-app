@@ -7,10 +7,7 @@ import { LottoRepository, type LottoGameDocument } from "./LottoRepository";
 import type { LottoCreatePlayerInput, LottoGameListItemReadModel, LottoGameReadModel } from "./domain/types";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
-import {
-  LottoGameNotFoundError,
-  LottoGamesNotFoundError,
-} from "./errors";
+import { LottoGameNotFoundError, LottoGamesNotFoundError } from "./errors";
 
 export type LottoGameResponse = LottoGameReadModel;
 export type LottoGameListResponse = LottoGameListItemReadModel[];
@@ -75,10 +72,16 @@ export class LottoService {
   async listLottoGameSnapshots(actor: CurrentUser, projectId: string): Promise<LottoGameListResponse> {
     assertProjectAccess(actor, projectId);
     const games = await this.repository.findByProjectId(projectId);
-    return games.filter((game) => actor.role === "admin" || game.hostUserId === actor.id).map((game) => this.readModelFactory.createListItem(game));
+    return games
+      .filter((game) => actor.role === "admin" || game.hostUserId === actor.id)
+      .map((game) => this.readModelFactory.createListItem(game));
   }
 
-  async getLatestLottoGameSnapshot(actor: CurrentUser, projectId: string, status?: LottoGameDocument["status"]): Promise<LottoGameResponse> {
+  async getLatestLottoGameSnapshot(
+    actor: CurrentUser,
+    projectId: string,
+    status?: LottoGameDocument["status"],
+  ): Promise<LottoGameResponse> {
     assertProjectAccess(actor, projectId);
     const latestGame = await this.repository.findLatest(projectId, status);
 
@@ -109,7 +112,12 @@ export class LottoService {
     return updatedGame;
   }
 
-  async removeLottoPlayerFromSnapshot(actor: CurrentUser, projectId: string, gameId: string, playerId: string): Promise<LottoGameResponse> {
+  async removeLottoPlayerFromSnapshot(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    playerId: string,
+  ): Promise<LottoGameResponse> {
     assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 
@@ -144,7 +152,11 @@ export class LottoService {
     return this.readModelFactory.create(document);
   }
 
-  private async saveLottoGameDocument(projectId: string, gameId: string, game: LottoGameDocument): Promise<LottoGameResponse | null> {
+  private async saveLottoGameDocument(
+    projectId: string,
+    gameId: string,
+    game: LottoGameDocument,
+  ): Promise<LottoGameResponse | null> {
     const normalizedGame = this.engine.normalizeGame(game);
 
     if (!normalizedGame) {

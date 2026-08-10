@@ -1,12 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../errors";
 
-export function errorMiddleware(
-  error: unknown,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-) {
+export function errorMiddleware(error: unknown, _req: Request, res: Response, _next: NextFunction) {
   if (res.headersSent) {
     return;
   }

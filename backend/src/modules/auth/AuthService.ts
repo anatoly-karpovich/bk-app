@@ -16,7 +16,11 @@ export class AuthService {
     private readonly passwordHasher: PasswordHasher,
   ) {}
 
-  async login(loginInput: string, password: string, metadata: { userAgent?: string; ipAddress?: string }): Promise<{ token: string; user: CurrentUser }> {
+  async login(
+    loginInput: string,
+    password: string,
+    metadata: { userAgent?: string; ipAddress?: string },
+  ): Promise<{ token: string; user: CurrentUser }> {
     const user = await this.usersRepository.findByLogin(normalizeLogin(loginInput));
     if (!user || user.status !== "active" || !(await this.passwordHasher.verify(user.passwordHash, password))) {
       throw new UnauthorizedError("Invalid credentials", { code: "INVALID_CREDENTIALS" });

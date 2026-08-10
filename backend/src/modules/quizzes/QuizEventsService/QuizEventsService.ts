@@ -6,7 +6,15 @@ import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
 import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
-import { QuizConflictError, QuizEventNotFoundError, QuizEventRevisionConflictError, QuizNotFoundError, QuizQuestionResultOrderError, QuizQuestionResultsLockedError, QuizValidationError } from "../errors";
+import {
+  QuizConflictError,
+  QuizEventNotFoundError,
+  QuizEventRevisionConflictError,
+  QuizNotFoundError,
+  QuizQuestionResultOrderError,
+  QuizQuestionResultsLockedError,
+  QuizValidationError,
+} from "../errors";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
 import { QuizEventReadModelFactory } from "../QuizEventReadModelFactory";
@@ -18,13 +26,13 @@ import type { QuizEventView } from "../domain/readModels";
 export interface SaveQuizQuestionChatResult {
   event: QuizEventView;
   mutation: {
-  parsedMessagesCount: number;
-  candidateMessagesCount: number;
-  duplicateMessagesCount: number;
-  previousMessagesCount: number;
-  nextMessagesCount: number;
-  removedPersistedSelectionsCount: number;
-  effectiveChange: boolean;
+    parsedMessagesCount: number;
+    candidateMessagesCount: number;
+    duplicateMessagesCount: number;
+    previousMessagesCount: number;
+    nextMessagesCount: number;
+    removedPersistedSelectionsCount: number;
+    effectiveChange: boolean;
   };
 }
 export interface SaveQuizQuestionResult {
@@ -172,7 +180,8 @@ export class QuizEventsService {
         duplicateMessagesCount: deduplicated.duplicatesCount,
         previousMessagesCount: previous.chat.messages.length,
         nextMessagesCount: deduplicated.unique.length,
-        removedPersistedSelectionsCount: previous.selectedAnswers.length - this.engine.getQuestion(saved, questionId).selectedAnswers.length,
+        removedPersistedSelectionsCount:
+          previous.selectedAnswers.length - this.engine.getQuestion(saved, questionId).selectedAnswers.length,
         effectiveChange,
       },
     };
@@ -195,8 +204,16 @@ export class QuizEventsService {
     if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     const view = this.readModels.create(eventId, saved);
     const question = view.state.questions.find((candidate) => candidate.id === questionId);
-    if (!question || question.workflow.conductedOrder === null || question.workflow.reviewedAt === null) throw new Error("Saved quiz question result was not found");
-    return { event: view, result: { conductedOrder: question.workflow.conductedOrder, awardsCount: question.result.awards.length, reviewedAt: question.workflow.reviewedAt } };
+    if (!question || question.workflow.conductedOrder === null || question.workflow.reviewedAt === null)
+      throw new Error("Saved quiz question result was not found");
+    return {
+      event: view,
+      result: {
+        conductedOrder: question.workflow.conductedOrder,
+        awardsCount: question.result.awards.length,
+        reviewedAt: question.workflow.reviewedAt,
+      },
+    };
   }
 
   private async mutate(
@@ -208,7 +225,12 @@ export class QuizEventsService {
   ): Promise<QuizEventView> {
     const event = await this.editableEvent(actor, projectId, eventId);
     this.assertExpectedRevision(event, eventId, expectedRevision);
-    const updated = await this.repository.update(eventId, projectId, expectedRevision, mutation(structuredClone(event)));
+    const updated = await this.repository.update(
+      eventId,
+      projectId,
+      expectedRevision,
+      mutation(structuredClone(event)),
+    );
     if (!updated) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     return this.readModels.create(eventId, updated);
   }
@@ -240,8 +262,9 @@ export class QuizEventsService {
     left: ReadonlyArray<Pick<QuizEventDocument["questions"][number]["chat"]["messages"][number], "canonicalKey">>,
     right: ReadonlyArray<Pick<QuizEventDocument["questions"][number]["chat"]["messages"][number], "canonicalKey">>,
   ): boolean {
-    return left.length === right.length && left.every(
-      (message, index) => message.canonicalKey === right[index]?.canonicalKey,
+    return (
+      left.length === right.length &&
+      left.every((message, index) => message.canonicalKey === right[index]?.canonicalKey)
     );
   }
   private assertQuestionResultCanBeChanged(event: QuizEventDocument, questionId: string): void {
@@ -249,7 +272,12 @@ export class QuizEventsService {
     const question = this.engine.getQuestion(event, questionId);
     if (question.conductedOrder === null) return;
     const blockingConductedOrders = event.questions
-      .filter((candidate) => candidate.reviewedAt !== null && candidate.conductedOrder !== null && candidate.conductedOrder > question.conductedOrder!)
+      .filter(
+        (candidate) =>
+          candidate.reviewedAt !== null &&
+          candidate.conductedOrder !== null &&
+          candidate.conductedOrder > question.conductedOrder!,
+      )
       .map((candidate) => candidate.conductedOrder!)
       .sort((left, right) => left - right);
     if (blockingConductedOrders.length) throw new QuizQuestionResultsLockedError(blockingConductedOrders);
@@ -259,7 +287,12 @@ export class QuizEventsService {
     const question = this.engine.getQuestion(event, questionId);
     if (question.conductedOrder === null) return;
     const requiredConductedOrders = event.questions
-      .filter((candidate) => candidate.conductedOrder !== null && candidate.conductedOrder < question.conductedOrder! && candidate.reviewedAt === null)
+      .filter(
+        (candidate) =>
+          candidate.conductedOrder !== null &&
+          candidate.conductedOrder < question.conductedOrder! &&
+          candidate.reviewedAt === null,
+      )
       .map((candidate) => candidate.conductedOrder!)
       .sort((left, right) => left - right);
     if (requiredConductedOrders.length) throw new QuizQuestionResultOrderError(requiredConductedOrders);

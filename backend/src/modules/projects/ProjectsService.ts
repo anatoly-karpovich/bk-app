@@ -40,9 +40,12 @@ export class ProjectsService {
 
   async listProjects(actor: CurrentUser): Promise<ProjectReadModel[]> {
     const projects = await this.repository.findAll();
-    const visibleProjects = actor.role === "admin"
-      ? projects
-      : projects.filter((project) => actor.projectProfiles.some((profile) => profile.projectId === project._id.toHexString()));
+    const visibleProjects =
+      actor.role === "admin"
+        ? projects
+        : projects.filter((project) =>
+            actor.projectProfiles.some((profile) => profile.projectId === project._id.toHexString()),
+          );
     const readModels = await Promise.all(visibleProjects.map((project) => this.toReadModel(project)));
     return readModels.sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
@@ -58,12 +61,15 @@ export class ProjectsService {
     return await this.toReadModel(project);
   }
 
-  async createProject(actor: CurrentUser, input: {
-    code: string;
-    name: string;
-    description: string;
-    resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
-  }): Promise<ProjectReadModel> {
+  async createProject(
+    actor: CurrentUser,
+    input: {
+      code: string;
+      name: string;
+      description: string;
+      resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
+    },
+  ): Promise<ProjectReadModel> {
     const code = input.code.trim();
     const existing = await this.repository.findByCode(code);
 
@@ -91,7 +97,10 @@ export class ProjectsService {
     const currentUser = await this.usersRepository.findById(actor.id);
     if (currentUser && !currentUser.projectProfiles.some((profile) => profile.projectId === project.id)) {
       await this.usersRepository.updateById(actor.id, {
-        projectProfiles: [...currentUser.projectProfiles, { projectId: project.id, nickname: DEFAULT_ADMIN_PROJECT_NICKNAME }],
+        projectProfiles: [
+          ...currentUser.projectProfiles,
+          { projectId: project.id, nickname: DEFAULT_ADMIN_PROJECT_NICKNAME },
+        ],
         updatedAt: new Date(),
         updatedByUserId: actor.id,
       });
@@ -106,7 +115,7 @@ export class ProjectsService {
       code: string;
       name: string;
       description: string;
-    resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
+      resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
     },
   ): Promise<ProjectReadModel> {
     const current = await this.repository.findById(projectId);
@@ -176,7 +185,9 @@ export class ProjectsService {
     nextResources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>,
   ): Promise<Set<string>> {
     const nextResourceIds = new Set(nextResources.map((resource) => resource.id.trim()));
-    const removedResourceIds = currentResources.map((resource) => resource.id).filter((resourceId) => !nextResourceIds.has(resourceId));
+    const removedResourceIds = currentResources
+      .map((resource) => resource.id)
+      .filter((resourceId) => !nextResourceIds.has(resourceId));
     const configs = await this.gameConfigsRepository.findByProjectId(projectId);
     const quizConfigs = await this.quizConfigsRepository.findByProjectId(projectId);
     const usedResourceIds = new Set([
@@ -224,7 +235,10 @@ export class ProjectsService {
         nextResource.type === "currency"
       ) {
         const nextCurrency = nextResource as Omit<ProjectCurrency, "createdAt" | "updatedAt">;
-        if (nextCurrency.valueType !== currentResource.valueType || nextCurrency.precision !== currentResource.precision) {
+        if (
+          nextCurrency.valueType !== currentResource.valueType ||
+          nextCurrency.precision !== currentResource.precision
+        ) {
           throw new ProjectResourceImmutableError(currentResource.id, "currencyFormat");
         }
       }

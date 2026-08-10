@@ -8,13 +8,15 @@ import { JourneyForumStateFormatter, type JourneyForumStateMessage } from "./Jou
 import { JourneyParser } from "./JourneyParser";
 import { JourneyReadModelFactory } from "./JourneyReadModelFactory";
 import { JourneyRepository, type JourneyGameDocument } from "./JourneyRepository";
-import type { JourneyGameListItemReadModel, JourneyGameStatus, JourneyGameView, JourneyMoveInput } from "./domain/types";
+import type {
+  JourneyGameListItemReadModel,
+  JourneyGameStatus,
+  JourneyGameView,
+  JourneyMoveInput,
+} from "./domain/types";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
-import {
-  JourneyGameNotFoundError,
-  JourneyGamesNotFoundError,
-} from "./errors";
+import { JourneyGameNotFoundError, JourneyGamesNotFoundError } from "./errors";
 
 export type JourneyGameResponse = JourneyGameView;
 export type JourneyGameListResponse = JourneyGameListItemReadModel[];
@@ -49,7 +51,10 @@ export class JourneyService {
     payload: Omit<CreateJourneyGamePayload, "configId"> & { gameConfigId: string },
   ): Promise<JourneyGameResponse> {
     const hostSnapshot = getHostSnapshot(actor, projectId);
-    const gameConfigContext = await this.gameConfigsService.getJourneyGameConfigContext(projectId, payload.gameConfigId);
+    const gameConfigContext = await this.gameConfigsService.getJourneyGameConfigContext(
+      projectId,
+      payload.gameConfigId,
+    );
 
     const nextGame = this.v2Engine.createGame(payload.nicknames, {
       rules: gameConfigContext.config.rules,
@@ -93,7 +98,11 @@ export class JourneyService {
     return this.forumStateFormatter.create(game);
   }
 
-  async previewJourneyForumMoves(actor: CurrentUser, projectId: string, gameId: string): Promise<JourneyForumMovesPreview> {
+  async previewJourneyForumMoves(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+  ): Promise<JourneyForumMovesPreview> {
     assertProjectAccess(actor, projectId);
     const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
@@ -106,16 +115,26 @@ export class JourneyService {
   }
 
   async importJourneyPlayersFromForum(actor: CurrentUser, projectId: string, forumTopicId: number): Promise<string[]> {
-    return await this.forumPlayersImporter.importPlayers(projectId, forumTopicId, getHostSnapshot(actor, projectId).nickname);
+    return await this.forumPlayersImporter.importPlayers(
+      projectId,
+      forumTopicId,
+      getHostSnapshot(actor, projectId).nickname,
+    );
   }
 
   async listJourneyGameSnapshots(actor: CurrentUser, projectId: string): Promise<JourneyGameListResponse> {
     assertProjectAccess(actor, projectId);
     const games = await this.repository.findByProjectId(projectId);
-    return games.filter((game) => actor.role === "admin" || game.hostUserId === actor.id).map((game) => this.readModelFactory.createListItem(game));
+    return games
+      .filter((game) => actor.role === "admin" || game.hostUserId === actor.id)
+      .map((game) => this.readModelFactory.createListItem(game));
   }
 
-  async getLatestJourneyGameSnapshot(actor: CurrentUser, projectId: string, status?: JourneyGameStatus): Promise<JourneyGameResponse> {
+  async getLatestJourneyGameSnapshot(
+    actor: CurrentUser,
+    projectId: string,
+    status?: JourneyGameStatus,
+  ): Promise<JourneyGameResponse> {
     assertProjectAccess(actor, projectId);
     const latestGame = await this.repository.findLatest(projectId, status);
 

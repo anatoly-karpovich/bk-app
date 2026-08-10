@@ -67,7 +67,12 @@ export class UsersRepository {
     }
     const collection = await this.getCollection();
     const [items, total] = await Promise.all([
-      collection.find(filter).sort({ displayName: 1 }).skip((options.page - 1) * options.pageSize).limit(options.pageSize).toArray(),
+      collection
+        .find(filter)
+        .sort({ displayName: 1 })
+        .skip((options.page - 1) * options.pageSize)
+        .limit(options.pageSize)
+        .toArray(),
       collection.countDocuments(filter),
     ]);
     return { items, total };

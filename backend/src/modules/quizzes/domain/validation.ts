@@ -11,7 +11,15 @@ import type {
 } from "./types";
 
 const ALLOWED_PLACEHOLDERS = new Set([
-  "questionNumber", "questionTitle", "questionText", "attachment", "correctAnswer", "quizName", "hostName", "emojiStart", "emojiEnd",
+  "questionNumber",
+  "questionTitle",
+  "questionText",
+  "attachment",
+  "correctAnswer",
+  "quizName",
+  "hostName",
+  "emojiStart",
+  "emojiEnd",
 ]);
 
 export function validateQuizConfig(config: QuizConfigDocument, resources: ProjectResource[]): QuizValidationIssue[] {
@@ -30,8 +38,10 @@ export function validateQuizConfig(config: QuizConfigDocument, resources: Projec
   const overrideIndexes = new Set<number>();
   config.regularRewardOverrides.forEach((override, index) => {
     const path = `regularRewardOverrides.${index}`;
-    if (!isQuestionIndex(override.questionIndex, questionCount)) issues.push({ path: `${path}.questionIndex`, message: "Номер вопроса вне диапазона" });
-    if (overrideIndexes.has(override.questionIndex)) issues.push({ path: `${path}.questionIndex`, message: "Переопределение для номера вопроса уже существует" });
+    if (!isQuestionIndex(override.questionIndex, questionCount))
+      issues.push({ path: `${path}.questionIndex`, message: "Номер вопроса вне диапазона" });
+    if (overrideIndexes.has(override.questionIndex))
+      issues.push({ path: `${path}.questionIndex`, message: "Переопределение для номера вопроса уже существует" });
     overrideIndexes.add(override.questionIndex);
     issues.push(...validateRegularRule(override.rule, `${path}.rule`, resources));
   });
@@ -40,10 +50,13 @@ export function validateQuizConfig(config: QuizConfigDocument, resources: Projec
   const bonusPositions = new Set<string>();
   config.bonusRules.forEach((rule, index) => {
     const path = `bonusRules.${index}`;
-    if (!rule.id.trim() || bonusIds.has(rule.id)) issues.push({ path: `${path}.id`, message: "ID бонусного правила должен быть уникальным" });
+    if (!rule.id.trim() || bonusIds.has(rule.id))
+      issues.push({ path: `${path}.id`, message: "ID бонусного правила должен быть уникальным" });
     bonusIds.add(rule.id);
-    if (!isQuestionIndex(rule.questionIndex, questionCount)) issues.push({ path: `${path}.questionIndex`, message: "Номер вопроса вне диапазона" });
-    if (!Number.isSafeInteger(rule.position) || rule.position < 1) issues.push({ path: `${path}.position`, message: "Позиция должна быть положительным целым числом" });
+    if (!isQuestionIndex(rule.questionIndex, questionCount))
+      issues.push({ path: `${path}.questionIndex`, message: "Номер вопроса вне диапазона" });
+    if (!Number.isSafeInteger(rule.position) || rule.position < 1)
+      issues.push({ path: `${path}.position`, message: "Позиция должна быть положительным целым числом" });
     const positionKey = `${rule.questionIndex}:${rule.position}`;
     if (bonusPositions.has(positionKey)) {
       issues.push({ path: `${path}.position`, message: "A bonus for this question and place is already configured" });
@@ -79,24 +92,41 @@ export function validateQuiz(quiz: QuizDocument): QuizValidationIssue[] {
     schemaVersion: 1,
   };
   const resources = quiz.resources as ProjectResource[];
-  issues.push(...validateQuizConfig(configForValidation, resources).map((issue) => ({ ...issue, path: `configRulesSnapshot.${issue.path}` })));
+  issues.push(
+    ...validateQuizConfig(configForValidation, resources).map((issue) => ({
+      ...issue,
+      path: `configRulesSnapshot.${issue.path}`,
+    })),
+  );
   if (!quiz.name.trim()) issues.push({ path: "name", message: "Название викторины обязательно" });
   const resourceIds = new Set(quiz.resources.map((resource) => resource.id));
   for (const resourceId of collectResourceIds(snapshot)) {
-    if (!resourceIds.has(resourceId)) issues.push({ path: "resources", message: `Нет сохранённого ресурса ${resourceId}` });
+    if (!resourceIds.has(resourceId))
+      issues.push({ path: "resources", message: `Нет сохранённого ресурса ${resourceId}` });
   }
   issues.push(...validateQuestions(quiz.questions, snapshot.questionCount));
-  issues.push(...validateTemplates(quiz.effectiveMessageTemplates, "effectiveMessageTemplates", snapshot.questionCount));
-  issues.push(...validateTemplates(quiz.effectiveAnswerMessageTemplates, "effectiveAnswerMessageTemplates", snapshot.questionCount));
+  issues.push(
+    ...validateTemplates(quiz.effectiveMessageTemplates, "effectiveMessageTemplates", snapshot.questionCount),
+  );
+  issues.push(
+    ...validateTemplates(
+      quiz.effectiveAnswerMessageTemplates,
+      "effectiveAnswerMessageTemplates",
+      snapshot.questionCount,
+    ),
+  );
   return issues;
 }
 
-export function collectResourceIds(config: Pick<QuizConfigDocument, "defaultRegularRule" | "regularRewardOverrides" | "bonusRules">): Set<string> {
+export function collectResourceIds(
+  config: Pick<QuizConfigDocument, "defaultRegularRule" | "regularRewardOverrides" | "bonusRules">,
+): Set<string> {
   const ids = new Set<string>();
   const addRule = (rule: QuizRegularRewardRule | null) => {
     if (!rule) return;
     if (rule.mode === "all_accepted") rule.rewardPool.rewards.forEach((reward) => ids.add(reward.resourceId));
-    else rule.positionRewards.forEach((entry) => entry.rewardPool.rewards.forEach((reward) => ids.add(reward.resourceId)));
+    else
+      rule.positionRewards.forEach((entry) => entry.rewardPool.rewards.forEach((reward) => ids.add(reward.resourceId)));
   };
   addRule(config.defaultRegularRule);
   config.regularRewardOverrides.forEach((override) => addRule(override.rule));
@@ -104,14 +134,22 @@ export function collectResourceIds(config: Pick<QuizConfigDocument, "defaultRegu
   return ids;
 }
 
-function validateRegularRule(rule: QuizRegularRewardRule, path: string, resources: ProjectResource[]): QuizValidationIssue[] {
+function validateRegularRule(
+  rule: QuizRegularRewardRule,
+  path: string,
+  resources: ProjectResource[],
+): QuizValidationIssue[] {
   if (rule.mode === "all_accepted") return validatePool(rule.rewardPool, `${path}.rewardPool`, resources);
   const issues: QuizValidationIssue[] = [];
   const positions = new Set<number>();
-  if (!rule.positionRewards.length) issues.push({ path: `${path}.positionRewards`, message: "Нужна хотя бы одна позиционная награда" });
+  if (!rule.positionRewards.length)
+    issues.push({ path: `${path}.positionRewards`, message: "Нужна хотя бы одна позиционная награда" });
   rule.positionRewards.forEach((entry, index) => {
     if (!Number.isSafeInteger(entry.position) || entry.position < 1 || positions.has(entry.position)) {
-      issues.push({ path: `${path}.positionRewards.${index}.position`, message: "Позиция должна быть уникальным положительным целым числом" });
+      issues.push({
+        path: `${path}.positionRewards.${index}.position`,
+        message: "Позиция должна быть уникальным положительным целым числом",
+      });
     }
     positions.add(entry.position);
     issues.push(...validatePool(entry.rewardPool, `${path}.positionRewards.${index}.rewardPool`, resources));
@@ -125,7 +163,8 @@ function validatePool(pool: unknown, path: string, resources: ProjectResource[])
     return [{ path, message: "В викторине поддерживается только RewardPool с mode: all" }];
   }
   const rewards = (pool as { rewards?: unknown }).rewards;
-  if (!Array.isArray(rewards) || !rewards.length) return [{ path: `${path}.rewards`, message: "Pool должен содержать хотя бы одну награду" }];
+  if (!Array.isArray(rewards) || !rewards.length)
+    return [{ path: `${path}.rewards`, message: "Pool должен содержать хотя бы одну награду" }];
   const resourcesById = new Map(resources.map((resource) => [resource.id, resource]));
   rewards.forEach((reward, index) => {
     const itemPath = `${path}.rewards.${index}`;
@@ -137,29 +176,44 @@ function validatePool(pool: unknown, path: string, resources: ProjectResource[])
     const amount = (reward as { amount?: unknown }).amount;
     const resource = resourcesById.get(resourceId);
     if (!resource) issues.push({ path: `${itemPath}.resourceId`, message: "Ресурс не принадлежит проекту" });
-    if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) issues.push({ path: `${itemPath}.amount`, message: "Количество должно быть положительным числом" });
-    if (resource?.type === "item" && !Number.isSafeInteger(amount)) issues.push({ path: `${itemPath}.amount`, message: "Количество предмета должно быть целым" });
-    if (resource?.type === "currency" && typeof amount === "number" && !Number.isInteger(amount * 10 ** resource.precision)) {
+    if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0)
+      issues.push({ path: `${itemPath}.amount`, message: "Количество должно быть положительным числом" });
+    if (resource?.type === "item" && !Number.isSafeInteger(amount))
+      issues.push({ path: `${itemPath}.amount`, message: "Количество предмета должно быть целым" });
+    if (
+      resource?.type === "currency" &&
+      typeof amount === "number" &&
+      !Number.isInteger(amount * 10 ** resource.precision)
+    ) {
       issues.push({ path: `${itemPath}.amount`, message: "Количество валюты превышает допустимую точность" });
     }
   });
   return issues;
 }
 
-function validateTemplates(templates: QuizMessageTemplates | null, path: string, questionCount: number): QuizValidationIssue[] {
+function validateTemplates(
+  templates: QuizMessageTemplates | null,
+  path: string,
+  questionCount: number,
+): QuizValidationIssue[] {
   if (!templates) return [{ path, message: "Набор шаблонов обязателен" }];
   const issues: QuizValidationIssue[] = [];
   const indexes = new Set<number>();
   const validateTemplate = (template: QuizMessageTemplates["defaultTemplate"], templatePath: string) => {
-    if (!template?.template?.trim()) issues.push({ path: `${templatePath}.template`, message: "Текст шаблона обязателен" });
+    if (!template?.template?.trim())
+      issues.push({ path: `${templatePath}.template`, message: "Текст шаблона обязателен" });
     for (const match of template?.template?.matchAll(/\{(\w+)\}/g) ?? []) {
-      if (!ALLOWED_PLACEHOLDERS.has(match[1])) issues.push({ path: `${templatePath}.template`, message: `Неизвестный placeholder {${match[1]}}` });
+      if (!ALLOWED_PLACEHOLDERS.has(match[1]))
+        issues.push({ path: `${templatePath}.template`, message: `Неизвестный placeholder {${match[1]}}` });
     }
   };
   validateTemplate(templates.defaultTemplate, `${path}.defaultTemplate`);
   templates.questionOverrides.forEach((override, index) => {
     if (!isQuestionIndex(override.questionIndex, questionCount) || indexes.has(override.questionIndex)) {
-      issues.push({ path: `${path}.questionOverrides.${index}.questionIndex`, message: "Номер вопроса должен быть уникальным и находиться в диапазоне" });
+      issues.push({
+        path: `${path}.questionOverrides.${index}.questionIndex`,
+        message: "Номер вопроса должен быть уникальным и находиться в диапазоне",
+      });
     }
     indexes.add(override.questionIndex);
     validateTemplate(override.template, `${path}.questionOverrides.${index}.template`);
@@ -169,16 +223,23 @@ function validateTemplates(templates: QuizMessageTemplates | null, path: string,
 
 function validateQuestions(questions: QuizQuestion[], questionCount: number): QuizValidationIssue[] {
   const issues: QuizValidationIssue[] = [];
-  if (questions.length !== questionCount) issues.push({ path: "questions", message: "Число вопросов не соответствует конфигу" });
+  if (questions.length !== questionCount)
+    issues.push({ path: "questions", message: "Число вопросов не соответствует конфигу" });
   const indexes = new Set<number>();
   questions.forEach((question, index) => {
     const path = `questions.${index}`;
     if (!question.id) issues.push({ path: `${path}.id`, message: "ID вопроса обязателен" });
-    if (!isQuestionIndex(question.questionIndex, questionCount) || indexes.has(question.questionIndex)) issues.push({ path: `${path}.questionIndex`, message: "Номер вопроса должен быть уникальным и находиться в диапазоне" });
+    if (!isQuestionIndex(question.questionIndex, questionCount) || indexes.has(question.questionIndex))
+      issues.push({
+        path: `${path}.questionIndex`,
+        message: "Номер вопроса должен быть уникальным и находиться в диапазоне",
+      });
     indexes.add(question.questionIndex);
     if (!question.text.trim()) issues.push({ path: `${path}.text`, message: "Текст вопроса обязателен" });
-    if (!question.correctAnswer?.trim()) issues.push({ path: `${path}.correctAnswer`, message: "Правильный ответ обязателен" });
-    if (question.attachmentUrl && !isHttpUrl(question.attachmentUrl)) issues.push({ path: `${path}.attachmentUrl`, message: "URL вложения некорректен" });
+    if (!question.correctAnswer?.trim())
+      issues.push({ path: `${path}.correctAnswer`, message: "Правильный ответ обязателен" });
+    if (question.attachmentUrl && !isHttpUrl(question.attachmentUrl))
+      issues.push({ path: `${path}.attachmentUrl`, message: "URL вложения некорректен" });
   });
   return issues;
 }

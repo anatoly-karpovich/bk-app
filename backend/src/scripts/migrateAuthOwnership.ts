@@ -24,28 +24,53 @@ async function run(): Promise<void> {
       database.collection("lotto_games").countDocuments(),
     ]);
     const report = {
-      database: connection.getDatabaseName(), adminId, projects: projects.length, gameConfigs: configs.length,
-      gamesToDrop: { journey: journeyGames, battleships: battleshipsGames, lotto: lottoGames }, applied: false,
+      database: connection.getDatabaseName(),
+      adminId,
+      projects: projects.length,
+      gameConfigs: configs.length,
+      gamesToDrop: { journey: journeyGames, battleships: battleshipsGames, lotto: lottoGames },
+      applied: false,
     };
     if (!process.argv.includes(APPLY) || !process.argv.includes(CONFIRM_DROP_GAMES)) {
-      console.log(JSON.stringify({ ...report, nextStep: `Run with ${APPLY} ${CONFIRM_DROP_GAMES} after verifying this report.` }, null, 2));
+      console.log(
+        JSON.stringify(
+          { ...report, nextStep: `Run with ${APPLY} ${CONFIRM_DROP_GAMES} after verifying this report.` },
+          null,
+          2,
+        ),
+      );
       return;
     }
     const now = new Date().toISOString();
     await Promise.all([
       database.collection("projects").updateMany({}, { $set: { createdByUserId: adminId, updatedByUserId: adminId } }),
-      database.collection("game_configs").updateMany({}, { $set: { isSystem: true, createdByUserId: adminId, updatedByUserId: adminId } }),
-      database.collection("users").updateOne({ _id: admin._id }, { $set: {
-        displayName: DEFAULT_NAME,
-        projectProfiles: projects.map((project) => ({ projectId: project._id.toHexString(), nickname: DEFAULT_NAME })),
-        updatedAt: now,
-      } }),
+      database
+        .collection("game_configs")
+        .updateMany({}, { $set: { isSystem: true, createdByUserId: adminId, updatedByUserId: adminId } }),
+      database.collection("users").updateOne(
+        { _id: admin._id },
+        {
+          $set: {
+            displayName: DEFAULT_NAME,
+            projectProfiles: projects.map((project) => ({
+              projectId: project._id.toHexString(),
+              nickname: DEFAULT_NAME,
+            })),
+            updatedAt: now,
+          },
+        },
+      ),
       database.collection("journey_games").deleteMany({}),
       database.collection("battleships_games").deleteMany({}),
       database.collection("lotto_games").deleteMany({}),
     ]);
     console.log(JSON.stringify({ ...report, applied: true }, null, 2));
-  } finally { await client.close(); }
+  } finally {
+    await client.close();
+  }
 }
 
-run().catch((error) => { console.error("Auth ownership migration failed", error); process.exit(1); });
+run().catch((error) => {
+  console.error("Auth ownership migration failed", error);
+  process.exit(1);
+});

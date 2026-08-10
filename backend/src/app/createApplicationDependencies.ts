@@ -206,7 +206,13 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const lottoController = new LottoController(lottoService);
   const lottoBingoEngine = new LottoBingoEngine(new LottoBingoTicketGenerator(), rewardGrantService);
   const lottoBingoReadModelFactory = new LottoBingoReadModelFactory(lottoBingoEngine);
-  const lottoBingoService = new LottoBingoService(lottoBingoRepository, lottoBingoEngine, lottoBingoReadModelFactory, gameConfigsService, new LottoBingoUpdatePublisher());
+  const lottoBingoService = new LottoBingoService(
+    lottoBingoRepository,
+    lottoBingoEngine,
+    lottoBingoReadModelFactory,
+    gameConfigsService,
+    new LottoBingoUpdatePublisher(),
+  );
   const lottoBingoController = new LottoBingoController(lottoBingoService);
 
   const forumTopicController = new ForumTopicController(forumTopicService);

@@ -68,10 +68,7 @@ export class BattleshipsController {
         });
       }
 
-      if (
-        error instanceof ProjectNotFoundError ||
-        error instanceof GameConfigNotFoundError
-      ) {
+      if (error instanceof ProjectNotFoundError || error instanceof GameConfigNotFoundError) {
         return res.status(error.statusCode).json({
           success: false,
           message: "Failed to create battleships game",
@@ -155,7 +152,11 @@ export class BattleshipsController {
         req.query,
         "Query parameter 'status' must be either 'in_progress' or 'finished'",
       );
-      const game = await this.battleshipsService.getLatestBattleshipsGameSnapshot(req.authUser!, getProjectId(req), status);
+      const game = await this.battleshipsService.getLatestBattleshipsGameSnapshot(
+        req.authUser!,
+        getProjectId(req),
+        status,
+      );
 
       return res.status(200).json({
         success: true,
@@ -196,7 +197,12 @@ export class BattleshipsController {
         req.body,
         "Body fields 'row' and 'column' must be positive integers",
       );
-      const updatedGame = await this.battleshipsService.submitBattleshipsShot(req.authUser!, getProjectId(req), gameId, shot);
+      const updatedGame = await this.battleshipsService.submitBattleshipsShot(
+        req.authUser!,
+        getProjectId(req),
+        gameId,
+        shot,
+      );
 
       return res.status(200).json({
         success: true,
@@ -217,10 +223,7 @@ export class BattleshipsController {
         });
       }
 
-      if (
-        error instanceof InvalidBattleshipsGameIdError ||
-        error instanceof BattleshipsShotValidationError
-      ) {
+      if (error instanceof InvalidBattleshipsGameIdError || error instanceof BattleshipsShotValidationError) {
         return res.status(400).json({
           success: false,
           message: "Failed to apply battleships shot",
@@ -264,10 +267,7 @@ export class BattleshipsController {
         });
       }
 
-      if (
-        error instanceof InvalidBattleshipsGameIdError ||
-        error instanceof BattleshipsShotValidationError
-      ) {
+      if (error instanceof InvalidBattleshipsGameIdError || error instanceof BattleshipsShotValidationError) {
         return res.status(400).json({
           success: false,
           message: "Failed to undo battleships shot",

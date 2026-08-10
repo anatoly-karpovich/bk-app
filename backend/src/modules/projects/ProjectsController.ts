@@ -27,7 +27,8 @@ export class ProjectsController {
         data: projects,
       });
     } catch (error) {
-      if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
       return res.status(500).json({
         success: false,
         message: "Failed to load projects",
@@ -50,7 +51,8 @@ export class ProjectsController {
         data: project,
       });
     } catch (error) {
-      if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
       if (error instanceof RequestValidationError) {
         return res.status(400).json({
           success: false,
@@ -105,7 +107,8 @@ export class ProjectsController {
   };
 
   private handleMutationError(error: unknown, res: Response, message: string) {
-    if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+    if (error instanceof AppError)
+      return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
     if (error instanceof RequestValidationError) {
       return res.status(400).json({ success: false, message: error.message });
     }

@@ -15,24 +15,54 @@ export class QuizAwardCalculator {
       snapshot.configRulesSnapshot.regularRewardOverrides.find(
         (override) => override.questionIndex === question.questionIndex,
       )?.rule ?? snapshot.configRulesSnapshot.defaultRegularRule;
-    const bonusRules = question.conductedOrder === null
-      ? []
-      : snapshot.configRulesSnapshot.bonusRules.filter((rule) => rule.questionIndex === question.conductedOrder);
+    const bonusRules =
+      question.conductedOrder === null
+        ? []
+        : snapshot.configRulesSnapshot.bonusRules.filter((rule) => rule.questionIndex === question.conductedOrder);
 
     const awards = ranking.flatMap((answer) => {
       const answerAwards: QuizAward[] = [];
       if (regularRule.mode === "all_accepted") {
-        answerAwards.push(this.createAward(question, answer, "regular_all", regularRule.rewardPool.rewards, awardedAt, regularRule.mode));
+        answerAwards.push(
+          this.createAward(
+            question,
+            answer,
+            "regular_all",
+            regularRule.rewardPool.rewards,
+            awardedAt,
+            regularRule.mode,
+          ),
+        );
       } else {
         const positionRule = regularRule.positionRewards.find((rule) => rule.position === answer.position);
         if (positionRule) {
-          answerAwards.push(this.createAward(question, answer, "regular_position", positionRule.rewardPool.rewards, awardedAt, regularRule.mode));
+          answerAwards.push(
+            this.createAward(
+              question,
+              answer,
+              "regular_position",
+              positionRule.rewardPool.rewards,
+              awardedAt,
+              regularRule.mode,
+            ),
+          );
         }
       }
       if (!snapshot.configRulesSnapshot.limitOneBonusPerPlayer) {
         for (const rule of bonusRules) {
           if (rule.position !== answer.position) continue;
-          answerAwards.push(this.createAward(question, answer, "bonus_position", rule.rewardPool.rewards, awardedAt, null, rule.id, rule.position));
+          answerAwards.push(
+            this.createAward(
+              question,
+              answer,
+              "bonus_position",
+              rule.rewardPool.rewards,
+              awardedAt,
+              null,
+              rule.id,
+              rule.position,
+            ),
+          );
         }
       }
       return answerAwards;
@@ -44,7 +74,18 @@ export class QuizAwardCalculator {
     for (const rule of [...bonusRules].sort((left, right) => left.position - right.position)) {
       const recipient = this.findBonusRecipient(ranking, rule.position, awardedPlayers);
       if (!recipient) continue;
-      awards.push(this.createAward(question, recipient, "bonus_position", rule.rewardPool.rewards, awardedAt, null, rule.id, rule.position));
+      awards.push(
+        this.createAward(
+          question,
+          recipient,
+          "bonus_position",
+          rule.rewardPool.rewards,
+          awardedAt,
+          null,
+          rule.id,
+          rule.position,
+        ),
+      );
       awardedPlayers.add(recipient.playerName);
     }
     return awards;
@@ -58,9 +99,13 @@ export class QuizAwardCalculator {
     const afterConfiguredPosition = ranking
       .slice(configuredPosition - 1)
       .find((answer) => !awardedPlayers.has(answer.playerName));
-    return afterConfiguredPosition
-      ?? [...ranking.slice(0, configuredPosition - 1)].reverse().find((answer) => !awardedPlayers.has(answer.playerName))
-      ?? null;
+    return (
+      afterConfiguredPosition ??
+      [...ranking.slice(0, configuredPosition - 1)]
+        .reverse()
+        .find((answer) => !awardedPlayers.has(answer.playerName)) ??
+      null
+    );
   }
 
   private createAward(

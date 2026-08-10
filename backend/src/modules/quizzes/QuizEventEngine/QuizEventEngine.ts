@@ -92,11 +92,14 @@ export class QuizEventEngine {
     };
     const ranking = this.answerRanker.rank(reviewed.chat.messages, reviewed.selectedAnswers);
     reviewed.awards = this.calculateAwards(event, reviewed, ranking, now);
-    return this.rebuildSummary({
-      ...event,
-      questions: event.questions.map((question) => question.id === questionId ? reviewed : question),
-      updatedAt: now,
-    }, now);
+    return this.rebuildSummary(
+      {
+        ...event,
+        questions: event.questions.map((question) => (question.id === questionId ? reviewed : question)),
+        updatedAt: now,
+      },
+      now,
+    );
   }
 
   markAsNotConducted(event: QuizEventDocument, questionId: string): QuizEventDocument {
@@ -146,11 +149,14 @@ export class QuizEventEngine {
       awards: [],
       updatedAt: now,
     };
-    return this.rebuildSummary({
-      ...event,
-      questions: event.questions.map((item) => item.id === questionId ? unreviewed : item),
-      updatedAt: now,
-    }, now);
+    return this.rebuildSummary(
+      {
+        ...event,
+        questions: event.questions.map((item) => (item.id === questionId ? unreviewed : item)),
+        updatedAt: now,
+      },
+      now,
+    );
   }
 
   setMessage(
@@ -191,11 +197,7 @@ export class QuizEventEngine {
     };
   }
 
-  saveQuestionChat(
-    event: QuizEventDocument,
-    questionId: string,
-    input: QuizChatMutationInput,
-  ): QuizEventDocument {
+  saveQuestionChat(event: QuizEventDocument, questionId: string, input: QuizChatMutationInput): QuizEventDocument {
     this.assertOpen(event);
     const current = this.getQuestion(event, questionId);
     const now = new Date().toISOString();
@@ -218,7 +220,7 @@ export class QuizEventEngine {
     };
     const next = {
       ...event,
-      questions: event.questions.map((question) => question.id === questionId ? nextQuestion : question),
+      questions: event.questions.map((question) => (question.id === questionId ? nextQuestion : question)),
       updatedAt: now,
     };
     return resultChanged && this.hasReviewedResult(current) ? this.rebuildSummary(next, now) : next;
@@ -287,7 +289,12 @@ export class QuizEventEngine {
   ) {
     const priorBonusRecipients = new Set(
       event.questions
-        .filter((candidate) => candidate.conductedOrder !== null && question.conductedOrder !== null && candidate.conductedOrder < question.conductedOrder)
+        .filter(
+          (candidate) =>
+            candidate.conductedOrder !== null &&
+            question.conductedOrder !== null &&
+            candidate.conductedOrder < question.conductedOrder,
+        )
         .flatMap((candidate) => candidate.awards)
         .filter((award) => award.source.kind === "bonus_position")
         .map((award) => award.playerName),
@@ -299,8 +306,9 @@ export class QuizEventEngine {
     current: QuizEventQuestion["chat"]["messages"],
     replacement: QuizEventQuestion["chat"]["messages"],
   ): boolean {
-    return current.length === replacement.length && current.every(
-      (message, index) => message.canonicalKey === replacement[index]?.canonicalKey,
+    return (
+      current.length === replacement.length &&
+      current.every((message, index) => message.canonicalKey === replacement[index]?.canonicalKey)
     );
   }
 
@@ -310,11 +318,13 @@ export class QuizEventEngine {
     for (const selection of selections) {
       if (players.has(selection.playerName)) throw new QuizPlayerAnswerSelectionError("duplicate_player_selection");
       players.add(selection.playerName);
-      if (messages.has(selection.selectedMessageId)) throw new QuizPlayerAnswerSelectionError("duplicate_message_selection");
+      if (messages.has(selection.selectedMessageId))
+        throw new QuizPlayerAnswerSelectionError("duplicate_message_selection");
       messages.add(selection.selectedMessageId);
       const message = question.chat.messages.find((candidate) => candidate.id === selection.selectedMessageId);
       if (!message) throw new QuizChatMessageNotFoundError(selection.selectedMessageId);
-      if (message.from !== selection.playerName) throw new QuizPlayerAnswerSelectionError("selected_message_wrong_player");
+      if (message.from !== selection.playerName)
+        throw new QuizPlayerAnswerSelectionError("selected_message_wrong_player");
     }
   }
 

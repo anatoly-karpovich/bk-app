@@ -25,9 +25,22 @@ const rules: BattleshipsRules = {
 
 function game(): BattleshipsGame {
   return {
-    createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", status: "in_progress",
-    playerName: "Player", djName: "DJ", projectId: "project", configId: "config", configName: "Config", resources,
-    rules, board: [[1, 0], [0, 0]], ships: [{ size: 1, cells: [{ row: 1, column: 1, isHit: false }] }], shots: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    status: "in_progress",
+    playerName: "Player",
+    djName: "DJ",
+    projectId: "project",
+    configId: "config",
+    configName: "Config",
+    resources,
+    rules,
+    board: [
+      [1, 0],
+      [0, 0],
+    ],
+    ships: [{ size: 1, cells: [{ row: 1, column: 1, isHit: false }] }],
+    shots: [],
   };
 }
 
@@ -41,7 +54,10 @@ test("resolves hit and destroy pools independently and persists their outcomes",
     { source: "hit", rewards: [{ resourceId: "coins", amount: 2 }] },
     { source: "destroy_bonus", rewards: [{ resourceId: "key", amount: 1 }] },
   ]);
-  assert.deepEqual(next.shots[0].prizeDelta, [{ resourceId: "coins", amount: 2 }, { resourceId: "key", amount: 1 }]);
+  assert.deepEqual(next.shots[0].prizeDelta, [
+    { resourceId: "coins", amount: 2 },
+    { resourceId: "key", amount: 1 },
+  ]);
   assert.deepEqual(next.shots[0].totalPrize, next.shots[0].prizeDelta);
 });
 
@@ -55,7 +71,10 @@ test("undo uses persisted reward outcomes without resolving a pool again", () =>
     },
   };
   const weightedRules = structuredClone(rules);
-  weightedRules.boards["2"].rewards.hit = { mode: "weighted_one", options: [{ reward: { resourceId: "coins", amount: 2 }, weight: 1 }] };
+  weightedRules.boards["2"].rewards.hit = {
+    mode: "weighted_one",
+    options: [{ reward: { resourceId: "coins", amount: 2 }, weight: 1 }],
+  };
   const engine = new BattleshipsEngine(new RewardGrantService(randomizer));
   const resolved = engine.makeShot({ ...game(), rules: weightedRules }, { row: 1, column: 1 });
   engine.undoLastShot(resolved);

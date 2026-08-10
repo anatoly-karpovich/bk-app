@@ -35,7 +35,11 @@ export class GameConfigsService {
     private readonly readModelFactory: GameConfigReadModelFactory,
   ) {}
 
-  async listProjectGameConfigs(actor: CurrentUser, projectId: string, gameType: GameType): Promise<AnyGameConfigReadModel[]> {
+  async listProjectGameConfigs(
+    actor: CurrentUser,
+    projectId: string,
+    gameType: GameType,
+  ): Promise<AnyGameConfigReadModel[]> {
     assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
 
@@ -47,12 +51,21 @@ export class GameConfigsService {
 
     return configs
       .map((config) =>
-        this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources),
+        this.readModelFactory.create(
+          config._id.toHexString(),
+          config as unknown as AnyGameConfig,
+          getCurrencySnapshots(project.resources),
+          project.resources,
+        ),
       )
       .sort((left, right) => left.name.localeCompare(right.name, "ru"));
   }
 
-  async getProjectGameConfig(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<AnyGameConfigReadModel> {
+  async getProjectGameConfig(
+    actor: CurrentUser,
+    projectId: string,
+    gameConfigId: string,
+  ): Promise<AnyGameConfigReadModel> {
     assertProjectAccess(actor, projectId);
     const project = await this.projectsRepository.findById(projectId);
     if (!project) {
@@ -64,7 +77,12 @@ export class GameConfigsService {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
 
-    return this.readModelFactory.create(config._id.toHexString(), config as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
+    return this.readModelFactory.create(
+      config._id.toHexString(),
+      config as unknown as AnyGameConfig,
+      getCurrencySnapshots(project.resources),
+      project.resources,
+    );
   }
 
   async createProjectGameConfig(
@@ -82,10 +100,14 @@ export class GameConfigsService {
     await this.assertNameAvailable(projectId, input.gameType, name);
     const rules = this.normalizeRules(input.gameType, input.rules);
     this.assertRulesUseProjectResources(rules, project.resources);
-    if (input.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
-    if (input.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
-    if (input.gameType === "lotto") validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
-    if (input.gameType === "lotto_bingo") validateLottoBingoRules(rules as ReturnType<typeof normalizeLottoBingoRules>, project.resources);
+    if (input.gameType === "journey")
+      validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
+    if (input.gameType === "battleships")
+      validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
+    if (input.gameType === "lotto")
+      validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
+    if (input.gameType === "lotto_bingo")
+      validateLottoBingoRules(rules as ReturnType<typeof normalizeLottoBingoRules>, project.resources);
     const now = new Date().toISOString();
     const created = await this.repository.create({
       projectId,
@@ -104,7 +126,12 @@ export class GameConfigsService {
       throw new Error("Failed to load created game config");
     }
 
-    return this.readModelFactory.create(created._id.toHexString(), created as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
+    return this.readModelFactory.create(
+      created._id.toHexString(),
+      created as unknown as AnyGameConfig,
+      getCurrencySnapshots(project.resources),
+      project.resources,
+    );
   }
 
   async updateProjectGameConfig(
@@ -133,10 +160,14 @@ export class GameConfigsService {
 
     const rules = this.normalizeRules(current.gameType, input.rules);
     this.assertRulesUseProjectResources(rules, project.resources);
-    if (current.gameType === "journey") validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
-    if (current.gameType === "battleships") validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
-    if (current.gameType === "lotto") validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
-    if (current.gameType === "lotto_bingo") validateLottoBingoRules(rules as ReturnType<typeof normalizeLottoBingoRules>, project.resources);
+    if (current.gameType === "journey")
+      validateJourneyRules(rules as ReturnType<typeof normalizeJourneyRules>, project.resources);
+    if (current.gameType === "battleships")
+      validateBattleshipsRules(rules as ReturnType<typeof normalizeBattleshipsRules>, project.resources);
+    if (current.gameType === "lotto")
+      validateLottoRules(rules as ReturnType<typeof normalizeLottoRules>, project.resources);
+    if (current.gameType === "lotto_bingo")
+      validateLottoBingoRules(rules as ReturnType<typeof normalizeLottoBingoRules>, project.resources);
     const updated = await this.repository.update(projectId, gameConfigId, {
       projectId,
       gameType: current.gameType,
@@ -154,7 +185,12 @@ export class GameConfigsService {
       throw new GameConfigNotFoundError(projectId, gameConfigId);
     }
 
-    return this.readModelFactory.create(updated._id.toHexString(), updated as unknown as AnyGameConfig, getCurrencySnapshots(project.resources), project.resources);
+    return this.readModelFactory.create(
+      updated._id.toHexString(),
+      updated as unknown as AnyGameConfig,
+      getCurrencySnapshots(project.resources),
+      project.resources,
+    );
   }
 
   async deleteProjectGameConfig(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<void> {
@@ -169,27 +205,38 @@ export class GameConfigsService {
     }
   }
 
-  async getJourneyGameConfigContext(projectId: string, gameConfigId: string): Promise<GameConfigContext<JourneyGameConfig>> {
-    return this.getGameConfigContext(projectId, gameConfigId, "journey") as Promise<GameConfigContext<JourneyGameConfig>>;
+  async getJourneyGameConfigContext(
+    projectId: string,
+    gameConfigId: string,
+  ): Promise<GameConfigContext<JourneyGameConfig>> {
+    return this.getGameConfigContext(projectId, gameConfigId, "journey") as Promise<
+      GameConfigContext<JourneyGameConfig>
+    >;
   }
 
   async getBattleshipsGameConfigContext(
     projectId: string,
     gameConfigId: string,
   ): Promise<GameConfigContext<BattleshipsGameConfig>> {
-    return this.getGameConfigContext(
-      projectId,
-      gameConfigId,
-      "battleships",
-    ) as Promise<GameConfigContext<BattleshipsGameConfig>>;
+    return this.getGameConfigContext(projectId, gameConfigId, "battleships") as Promise<
+      GameConfigContext<BattleshipsGameConfig>
+    >;
   }
 
-  async getLottoGameConfigContext(projectId: string, gameConfigId: string): Promise<GameConfigContext<LottoGameConfig>> {
+  async getLottoGameConfigContext(
+    projectId: string,
+    gameConfigId: string,
+  ): Promise<GameConfigContext<LottoGameConfig>> {
     return this.getGameConfigContext(projectId, gameConfigId, "lotto") as Promise<GameConfigContext<LottoGameConfig>>;
   }
 
-  async getLottoBingoGameConfigContext(projectId: string, gameConfigId: string): Promise<GameConfigContext<LottoBingoGameConfig>> {
-    return this.getGameConfigContext(projectId, gameConfigId, "lotto_bingo") as Promise<GameConfigContext<LottoBingoGameConfig>>;
+  async getLottoBingoGameConfigContext(
+    projectId: string,
+    gameConfigId: string,
+  ): Promise<GameConfigContext<LottoBingoGameConfig>> {
+    return this.getGameConfigContext(projectId, gameConfigId, "lotto_bingo") as Promise<
+      GameConfigContext<LottoBingoGameConfig>
+    >;
   }
 
   private async getGameConfigContext(
@@ -267,10 +314,14 @@ export class GameConfigsService {
       if (typeof record.resourceId === "string" && typeof record.amount === "number") {
         const resource = resourcesById.get(record.resourceId)!;
         if (!Number.isFinite(record.amount) || record.amount === 0) {
-          throw new GameConfigCurrencyValidationError(`Resource amount for "${record.resourceId}" must be finite and non-zero`);
+          throw new GameConfigCurrencyValidationError(
+            `Resource amount for "${record.resourceId}" must be finite and non-zero`,
+          );
         }
         if (resource.type === "item" && (!Number.isSafeInteger(record.amount) || record.amount < 0)) {
-          throw new GameConfigCurrencyValidationError(`Item amount for "${record.resourceId}" must be a positive integer`);
+          throw new GameConfigCurrencyValidationError(
+            `Item amount for "${record.resourceId}" must be a positive integer`,
+          );
         }
         const scaledValue = record.amount * 10 ** (resource.type === "currency" ? resource.precision : 0);
         if (!Number.isInteger(scaledValue)) {

@@ -78,12 +78,13 @@ export class BattleshipsReadModelFactory {
     };
   }
 
-  private buildBoardReadModel(board: number[][], shots: BattleshipsGameDocument["shots"]): BattleshipsBoardCellReadModel[][] {
+  private buildBoardReadModel(
+    board: number[][],
+    shots: BattleshipsGameDocument["shots"],
+  ): BattleshipsBoardCellReadModel[][] {
     const shotCoordinates = new Set<string>(shots.map((shot) => this.toCoordinateKey(shot.row, shot.column)));
     const hitCoordinates = new Set<string>(
-      shots
-        .filter((shot) => shot.shipSize !== null)
-        .map((shot) => this.toCoordinateKey(shot.row, shot.column)),
+      shots.filter((shot) => shot.shipSize !== null).map((shot) => this.toCoordinateKey(shot.row, shot.column)),
     );
 
     return board.map((rowCells, rowIndex) =>

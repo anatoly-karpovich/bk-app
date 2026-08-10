@@ -38,7 +38,8 @@ export class GameConfigsController {
         data: configs,
       });
     } catch (error) {
-      if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+      if (error instanceof AppError)
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
       if (error instanceof RequestValidationError) {
         return res.status(400).json({
           success: false,
@@ -64,7 +65,11 @@ export class GameConfigsController {
 
   getProjectGameConfig = async (req: Request, res: Response) => {
     try {
-      const { projectId, gameConfigId } = parseRequest(gameConfigIdParamsSchema, req.params, "Invalid route parameters");
+      const { projectId, gameConfigId } = parseRequest(
+        gameConfigIdParamsSchema,
+        req.params,
+        "Invalid route parameters",
+      );
       const config = await this.gameConfigsService.getProjectGameConfig(req.authUser!, projectId, gameConfigId);
       return res.status(200).json({ success: true, data: config });
     } catch (error) {
@@ -85,9 +90,18 @@ export class GameConfigsController {
 
   updateProjectGameConfig = async (req: Request, res: Response) => {
     try {
-      const { projectId, gameConfigId } = parseRequest(gameConfigIdParamsSchema, req.params, "Invalid route parameters");
+      const { projectId, gameConfigId } = parseRequest(
+        gameConfigIdParamsSchema,
+        req.params,
+        "Invalid route parameters",
+      );
       const input = parseRequest(updateGameConfigSchema, req.body, "Invalid game config input");
-      const config = await this.gameConfigsService.updateProjectGameConfig(req.authUser!, projectId, gameConfigId, input);
+      const config = await this.gameConfigsService.updateProjectGameConfig(
+        req.authUser!,
+        projectId,
+        gameConfigId,
+        input,
+      );
       return res.status(200).json({ success: true, data: config });
     } catch (error) {
       return this.handleMutationError(error, res, "Failed to update game config");
@@ -96,7 +110,11 @@ export class GameConfigsController {
 
   deleteProjectGameConfig = async (req: Request, res: Response) => {
     try {
-      const { projectId, gameConfigId } = parseRequest(gameConfigIdParamsSchema, req.params, "Invalid route parameters");
+      const { projectId, gameConfigId } = parseRequest(
+        gameConfigIdParamsSchema,
+        req.params,
+        "Invalid route parameters",
+      );
       await this.gameConfigsService.deleteProjectGameConfig(req.authUser!, projectId, gameConfigId);
       return res.status(200).json({ success: true });
     } catch (error) {
@@ -105,7 +123,8 @@ export class GameConfigsController {
   };
 
   private handleMutationError(error: unknown, res: Response, message: string) {
-    if (error instanceof AppError) return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+    if (error instanceof AppError)
+      return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
     if (error instanceof RequestValidationError || error instanceof GameConfigCurrencyValidationError) {
       return res.status(400).json({ success: false, message: error.message });
     }

@@ -121,24 +121,35 @@ test("lists saved achievement and jackpot grants in the forum state", () => {
     updatedAt: "2026-08-01T00:00:00.000Z",
     configuration: { resources },
     state: {
-      players: [{
-        id: "player",
-        nickname: "Анатолий",
-        status: "active",
-        position: 5,
-        baseRewardEntries: [{ resourceId: "coins", amount: 5 }],
-        bonusRewardEntries: [{ resourceId: "coins", amount: 5 }, { resourceId: "key", amount: 1 }],
-        balanceEntries: [{ resourceId: "coins", amount: 10 }, { resourceId: "key", amount: 1 }],
-        bonuses: [
-          {
-            name: "Lucky",
-            title: "Счастливчик",
-            source: "achievement" as const,
-            appliedRewards: [{ resourceId: "coins", amount: 5 }, { resourceId: "key", amount: 1 }],
-          },
-          { name: "Jackpot", title: "Сокровище", source: "jackpot" as const, appliedRewards: [] },
-        ],
-      }],
+      players: [
+        {
+          id: "player",
+          nickname: "Анатолий",
+          status: "active",
+          position: 5,
+          baseRewardEntries: [{ resourceId: "coins", amount: 5 }],
+          bonusRewardEntries: [
+            { resourceId: "coins", amount: 5 },
+            { resourceId: "key", amount: 1 },
+          ],
+          balanceEntries: [
+            { resourceId: "coins", amount: 10 },
+            { resourceId: "key", amount: 1 },
+          ],
+          bonuses: [
+            {
+              name: "Lucky",
+              title: "Счастливчик",
+              source: "achievement" as const,
+              appliedRewards: [
+                { resourceId: "coins", amount: 5 },
+                { resourceId: "key", amount: 1 },
+              ],
+            },
+            { name: "Jackpot", title: "Сокровище", source: "jackpot" as const, appliedRewards: [] },
+          ],
+        },
+      ],
     },
   } as JourneyGameView;
 
@@ -225,9 +236,10 @@ test("writes a limited cell reward with only its move comment", () => {
   assert.equal(roundTitle, buildJourneyRoundMarker(1));
   assert.match(moveComment, /5 монет и 1 ключ/);
   assert.ok(!moveComment.includes("["));
-  assert.equal(next.stateV2.rounds[0].turns[0].kind === "move"
-    ? next.stateV2.rounds[0].turns[0].commentRefs.length
-    : 0, 1);
+  assert.equal(
+    next.stateV2.rounds[0].turns[0].kind === "move" ? next.stateV2.rounds[0].turns[0].commentRefs.length : 0,
+    1,
+  );
 });
 
 test("uses shared forum markers for the game start and each move", () => {
@@ -349,16 +361,31 @@ test("keeps base rewards limited separately from saved jackpot rewards in the ga
   const summary = engine.getPlayerRewardSummary(afterBaseMove, afterBaseMove.stateV2.players[0]);
 
   assert.deepEqual(summary.baseRewardEntries, [{ resourceId: "coins", amount: 5 }]);
-  assert.deepEqual(summary.bonusRewardEntries, [{ resourceId: "coins", amount: 7 }, { resourceId: "key", amount: 1 }]);
-  assert.deepEqual(summary.balanceEntries, [{ resourceId: "coins", amount: 12 }, { resourceId: "key", amount: 1 }]);
+  assert.deepEqual(summary.bonusRewardEntries, [
+    { resourceId: "coins", amount: 7 },
+    { resourceId: "key", amount: 1 },
+  ]);
+  assert.deepEqual(summary.balanceEntries, [
+    { resourceId: "coins", amount: 12 },
+    { resourceId: "key", amount: 1 },
+  ]);
   assert.equal(summary.bonuses[0].name, "Jackpot");
   assert.equal(summary.bonuses[0].source, "jackpot");
-  assert.deepEqual(summary.bonuses[0].appliedRewards, [{ resourceId: "coins", amount: 7 }, { resourceId: "key", amount: 1 }]);
-  assert.deepEqual(afterBaseMove.stateV2.rounds[1].turns[0].kind === "move"
-    ? afterBaseMove.stateV2.rounds[1].turns[0].appliedRewards
-    : [], [{ resourceId: "coins", amount: 0 }]);
+  assert.deepEqual(summary.bonuses[0].appliedRewards, [
+    { resourceId: "coins", amount: 7 },
+    { resourceId: "key", amount: 1 },
+  ]);
+  assert.deepEqual(
+    afterBaseMove.stateV2.rounds[1].turns[0].kind === "move"
+      ? afterBaseMove.stateV2.rounds[1].turns[0].appliedRewards
+      : [],
+    [{ resourceId: "coins", amount: 0 }],
+  );
 
-  const view = new JourneyReadModelFactory(engine).create({ ...afterBaseMove, _id: { toHexString: () => "journey" } } as any);
+  const view = new JourneyReadModelFactory(engine).create({
+    ...afterBaseMove,
+    _id: { toHexString: () => "journey" },
+  } as any);
   assert.deepEqual(view.state.players[0].balanceEntries, summary.balanceEntries);
   assert.deepEqual(view.state.players[0].bonuses, summary.bonuses);
   assert.match(new JourneyForumStateFormatter().create(view).text, /12 монет, 1 ключ/);

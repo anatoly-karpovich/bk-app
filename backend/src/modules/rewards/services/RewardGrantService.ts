@@ -15,7 +15,8 @@ export class RewardGrantService {
       case "all":
         return pool.rewards.map((reward) => ({ ...reward }));
       case "weighted_one": {
-        const reward = pool.options[this.randomizer.pickWeightedIndex(pool.options.map((option) => option.weight))].reward;
+        const reward =
+          pool.options[this.randomizer.pickWeightedIndex(pool.options.map((option) => option.weight))].reward;
         return reward ? [{ ...reward }] : [];
       }
       case "independent":

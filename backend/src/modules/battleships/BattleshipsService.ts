@@ -12,10 +12,7 @@ import type {
 } from "./domain/types";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
-import {
-  BattleshipsGameNotFoundError,
-  BattleshipsGamesNotFoundError,
-} from "./errors";
+import { BattleshipsGameNotFoundError, BattleshipsGamesNotFoundError } from "./errors";
 
 export type BattleshipsGameResponse = BattleshipsGameReadModel;
 export type BattleshipsGameListResponse = BattleshipsGameListItemReadModel[];
@@ -40,7 +37,10 @@ export class BattleshipsService {
     payload: Omit<CreateBattleshipsGamePayload, "configId"> & { gameConfigId: string },
   ): Promise<BattleshipsGameResponse> {
     const hostSnapshot = getHostSnapshot(actor, projectId);
-    const gameConfigContext = await this.gameConfigsService.getBattleshipsGameConfigContext(projectId, payload.gameConfigId);
+    const gameConfigContext = await this.gameConfigsService.getBattleshipsGameConfigContext(
+      projectId,
+      payload.gameConfigId,
+    );
 
     const nextGame = this.engine.createGame(payload.playerName, {
       rules: gameConfigContext.config.rules,
@@ -65,7 +65,11 @@ export class BattleshipsService {
     return this.serializeBattleshipsGame(createdGame);
   }
 
-  async getBattleshipsGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
+  async getBattleshipsGameSnapshot(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+  ): Promise<BattleshipsGameResponse> {
     assertProjectAccess(actor, projectId);
     const game = await this.repository.findByIdAndProjectId(gameId, projectId);
 
@@ -80,7 +84,9 @@ export class BattleshipsService {
   async listBattleshipsGameSnapshots(actor: CurrentUser, projectId: string): Promise<BattleshipsGameListResponse> {
     assertProjectAccess(actor, projectId);
     const games = await this.repository.findByProjectId(projectId);
-    return games.filter((game) => actor.role === "admin" || game.hostUserId === actor.id).map((game) => this.readModelFactory.createListItem(game));
+    return games
+      .filter((game) => actor.role === "admin" || game.hostUserId === actor.id)
+      .map((game) => this.readModelFactory.createListItem(game));
   }
 
   async getLatestBattleshipsGameSnapshot(
@@ -98,7 +104,12 @@ export class BattleshipsService {
     return this.serializeBattleshipsGame(latestGame);
   }
 
-  async submitBattleshipsShot(actor: CurrentUser, projectId: string, gameId: string, shot: BattleshipsShotInput): Promise<BattleshipsGameResponse> {
+  async submitBattleshipsShot(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    shot: BattleshipsShotInput,
+  ): Promise<BattleshipsGameResponse> {
     assertProjectAccess(actor, projectId);
     const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
 

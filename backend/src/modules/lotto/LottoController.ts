@@ -68,10 +68,7 @@ export class LottoController {
         });
       }
 
-      if (
-        error instanceof ProjectNotFoundError ||
-        error instanceof GameConfigNotFoundError
-      ) {
+      if (error instanceof ProjectNotFoundError || error instanceof GameConfigNotFoundError) {
         return res.status(error.statusCode).json({
           success: false,
           message: "Failed to create lotto game",
@@ -106,11 +103,7 @@ export class LottoController {
 
   getLottoGameById = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        lottoGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(lottoGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const game = await this.lottoService.getLottoGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
@@ -186,11 +179,7 @@ export class LottoController {
 
   drawNextNumber = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        lottoGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(lottoGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const updatedGame = await this.lottoService.drawNextLottoNumber(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
@@ -230,17 +219,18 @@ export class LottoController {
 
   removePlayerFromGame = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        lottoGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(lottoGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const { playerId } = parseRequest(
         lottoPlayerIdParamsSchema,
         req.params,
         "Route parameter 'playerId' is required",
       );
-      const updatedGame = await this.lottoService.removeLottoPlayerFromSnapshot(req.authUser!, getProjectId(req), gameId, playerId);
+      const updatedGame = await this.lottoService.removeLottoPlayerFromSnapshot(
+        req.authUser!,
+        getProjectId(req),
+        gameId,
+        playerId,
+      );
 
       return res.status(200).json({
         success: true,
@@ -279,11 +269,7 @@ export class LottoController {
 
   deleteLottoGame = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        lottoGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(lottoGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       await this.lottoService.deleteLottoGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({

@@ -80,8 +80,10 @@ export class UsersService {
   async updateUser(actor: CurrentUser, userId: string, input: UpdateUserInput): Promise<UserListItem> {
     const current = await this.getUserOrThrow(userId);
     if (input.role && input.role !== current.role) {
-      if (actor.id === userId) throw new ConflictError("You cannot change your own role", { code: "CANNOT_CHANGE_OWN_ROLE" });
-      if (current.role === "admin" && current.status === "active" && input.role === "host") await this.assertNotLastActiveAdmin(current);
+      if (actor.id === userId)
+        throw new ConflictError("You cannot change your own role", { code: "CANNOT_CHANGE_OWN_ROLE" });
+      if (current.role === "admin" && current.status === "active" && input.role === "host")
+        await this.assertNotLastActiveAdmin(current);
     }
     if (input.displayName !== undefined) assertValidDisplayName(input.displayName);
     if (input.projectProfiles !== undefined) await this.assertValidProfiles(input.projectProfiles);
@@ -99,16 +101,25 @@ export class UsersService {
   async blockUser(actor: CurrentUser, userId: string): Promise<void> {
     if (actor.id === userId) throw new ConflictError("You cannot block yourself", { code: "CANNOT_BLOCK_SELF" });
     const target = await this.getUserOrThrow(userId);
-    if (target.status === "blocked") throw new ConflictError("User is already blocked", { code: "USER_ALREADY_BLOCKED" });
+    if (target.status === "blocked")
+      throw new ConflictError("User is already blocked", { code: "USER_ALREADY_BLOCKED" });
     await this.assertNotLastActiveAdmin(target);
-    await this.usersRepository.updateById(userId, { status: "blocked", updatedByUserId: actor.id, updatedAt: new Date() });
+    await this.usersRepository.updateById(userId, {
+      status: "blocked",
+      updatedByUserId: actor.id,
+      updatedAt: new Date(),
+    });
     await this.sessionsRepository.deleteByUserId(userId);
   }
 
   async unblockUser(actor: CurrentUser, userId: string): Promise<void> {
     const target = await this.getUserOrThrow(userId);
     if (target.status === "active") throw new ConflictError("User is already active", { code: "USER_ALREADY_ACTIVE" });
-    await this.usersRepository.updateById(userId, { status: "active", updatedByUserId: actor.id, updatedAt: new Date() });
+    await this.usersRepository.updateById(userId, {
+      status: "active",
+      updatedByUserId: actor.id,
+      updatedAt: new Date(),
+    });
   }
 
   async resetPassword(actor: CurrentUser, userId: string, password: string): Promise<void> {
@@ -132,7 +143,7 @@ export class UsersService {
 
   private async assertNotLastActiveAdmin(user: { role: UserRole; status: UserStatus }): Promise<void> {
     if (user.role !== "admin" || user.status !== "active") return;
-    if (await this.usersRepository.countDocuments({ role: "admin", status: "active" }) <= 1) {
+    if ((await this.usersRepository.countDocuments({ role: "admin", status: "active" })) <= 1) {
       throw new ConflictError("The last active administrator cannot be changed", { code: "LAST_ACTIVE_ADMIN" });
     }
   }
@@ -141,7 +152,12 @@ export class UsersService {
     if (!profiles.length) throw new ConflictError("At least one project profile is required", { code: "USER_INVALID" });
     const projectIds = new Set<string>();
     for (const profile of profiles) {
-      if (!profile.projectId || !profile.nickname.trim() || profile.nickname.trim().length > 80 || projectIds.has(profile.projectId)) {
+      if (
+        !profile.projectId ||
+        !profile.nickname.trim() ||
+        profile.nickname.trim().length > 80 ||
+        projectIds.has(profile.projectId)
+      ) {
         throw new ConflictError("Invalid project profiles", { code: "USER_INVALID" });
       }
       projectIds.add(profile.projectId);
@@ -158,8 +174,15 @@ function normalizeProfiles(profiles: UserProjectProfile[]): UserProjectProfile[]
 
 function toUserListItem(user: { _id: { toHexString(): string } } & UserDocument): UserListItem {
   return {
-    id: user._id.toHexString(), login: user.login, displayName: user.displayName, role: user.role, status: user.status,
-    projectProfiles: structuredClone(user.projectProfiles), createdByUserId: user.createdByUserId, updatedByUserId: user.updatedByUserId,
-    createdAt: user.createdAt.toISOString(), updatedAt: user.updatedAt.toISOString(),
+    id: user._id.toHexString(),
+    login: user.login,
+    displayName: user.displayName,
+    role: user.role,
+    status: user.status,
+    projectProfiles: structuredClone(user.projectProfiles),
+    createdByUserId: user.createdByUserId,
+    updatedByUserId: user.updatedByUserId,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
   };
 }

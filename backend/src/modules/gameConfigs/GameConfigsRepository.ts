@@ -7,10 +7,7 @@ const GAME_CONFIGS_COLLECTION = "game_configs";
 export class GameConfigsRepository {
   constructor(private readonly mongoDatabase: MongoDatabase) {}
 
-  async findByProjectIdAndGameType(
-    projectId: string,
-    gameType: GameType,
-  ): Promise<Array<WithId<GameConfigDocument>>> {
+  async findByProjectIdAndGameType(projectId: string, gameType: GameType): Promise<Array<WithId<GameConfigDocument>>> {
     const collection = await this.getCollection();
 
     return collection.find({ projectId, gameType }).toArray();
@@ -21,10 +18,7 @@ export class GameConfigsRepository {
     return collection.find({ projectId }).toArray();
   }
 
-  async findByIdAndProjectId(
-    gameConfigId: string,
-    projectId: string,
-  ): Promise<WithId<GameConfigDocument> | null> {
+  async findByIdAndProjectId(gameConfigId: string, projectId: string): Promise<WithId<GameConfigDocument> | null> {
     const collection = await this.getCollection();
     return collection.findOne({ _id: this.toObjectId(gameConfigId), projectId });
   }
@@ -69,7 +63,9 @@ export class GameConfigsRepository {
   }
 
   async assignBootstrapOwnership(userId: string): Promise<void> {
-    await (await this.getCollection()).updateMany({}, { $set: { isSystem: true, createdByUserId: userId, updatedByUserId: userId } });
+    await (
+      await this.getCollection()
+    ).updateMany({}, { $set: { isSystem: true, createdByUserId: userId, updatedByUserId: userId } });
   }
 
   private async getCollection() {

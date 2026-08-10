@@ -185,7 +185,9 @@ export class JourneyV2Engine {
         .map((move) =>
           move.moveType === MOVE_TYPES.EMPTY || move.moveType === MOVE_TYPES.EMPTY_JACKPOT
             ? "empty"
-            : game.stateV2.map[move.to] ? getJourneyCellKey(game.stateV2.map[move.to].kind, game.stateV2.map[move.to].id) : null,
+            : game.stateV2.map[move.to]
+              ? getJourneyCellKey(game.stateV2.map[move.to].kind, game.stateV2.map[move.to].id)
+              : null,
         )
         .filter(Boolean),
     );
@@ -281,13 +283,21 @@ export class JourneyV2Engine {
   getPlayerRewardSummary(
     game: JourneyV2Game,
     player: JourneyV2Player,
-  ): { baseRewardEntries: ResourceAmount[]; bonusRewardEntries: ResourceAmount[]; balanceEntries: ResourceAmount[]; bonuses: JourneyAwardedBonus[] } {
+  ): {
+    baseRewardEntries: ResourceAmount[];
+    bonusRewardEntries: ResourceAmount[];
+    balanceEntries: ResourceAmount[];
+    bonuses: JourneyAwardedBonus[];
+  } {
     const baseRewards = [...this.initialRewardsFor(player, game)];
     const bonuses: JourneyAwardedBonus[] = [];
 
     game.stateV2.rounds.forEach((round) => {
       round.turns
-        .filter((turn): turn is Extract<JourneyV2Turn, { kind: "move" }> => turn.kind === "move" && turn.playerId === player.id)
+        .filter(
+          (turn): turn is Extract<JourneyV2Turn, { kind: "move" }> =>
+            turn.kind === "move" && turn.playerId === player.id,
+        )
         .forEach((turn) => {
           if (turn.moveType === MOVE_TYPES.JACKPOT) {
             bonuses.push(this.awardedBonus(game, JOURNEY_ACHIEVEMENT_NAMES.JACKPOT, "jackpot", turn.appliedRewards));
@@ -484,9 +494,10 @@ export class JourneyV2Engine {
     source: JourneyAwardedBonus["source"],
     appliedRewards: readonly ResourceAmount[],
   ): JourneyAwardedBonus {
-    const template = name === JOURNEY_ACHIEVEMENT_NAMES.JACKPOT
-      ? getJourneyAchievements(game.rules).JACKPOT
-      : this.achievement(game, name);
+    const template =
+      name === JOURNEY_ACHIEVEMENT_NAMES.JACKPOT
+        ? getJourneyAchievements(game.rules).JACKPOT
+        : this.achievement(game, name);
     return {
       name,
       title: template?.title,
@@ -499,7 +510,9 @@ export class JourneyV2Engine {
     if (player.initialRewards) return clone(player.initialRewards);
     // Old V2 documents did not retain a separately rolled initial reward. A deterministic `all` pool
     // can be recovered safely; other legacy pools remain untouched rather than being rolled again.
-    return game.rules.initialRewardPool.mode === "all" ? game.rules.initialRewardPool.rewards.map((reward) => ({ ...reward })) : [];
+    return game.rules.initialRewardPool.mode === "all"
+      ? game.rules.initialRewardPool.rewards.map((reward) => ({ ...reward }))
+      : [];
   }
   private baseHoldings(game: JourneyV2Game, player: JourneyV2Player): ResourceHoldings {
     return this.holdingsFromAmounts(this.getPlayerRewardSummary(game, player).baseRewardEntries);
@@ -584,9 +597,7 @@ export class JourneyV2Engine {
       });
 
       const formatted = this.rewardCommentFormatter.format(game.resources, turn.resolvedRewards, turn.appliedRewards);
-      turn.commentRefs = [
-        this.commentTemplateRotator.takeNext(state, this.moveCommentKind(turn), random),
-      ];
+      turn.commentRefs = [this.commentTemplateRotator.takeNext(state, this.moveCommentKind(turn), random)];
     });
   }
 
@@ -597,7 +608,11 @@ export class JourneyV2Engine {
 
   private moveCommentKind(turn: Extract<JourneyV2Turn, { kind: "move" }>): JourneyCommentTemplateKind {
     if (turn.moveType === MOVE_TYPES.JACKPOT && !turn.resolvedRewards.length) return "jackpot:empty_reward";
-    if (!turn.resolvedRewards.length && turn.moveType !== MOVE_TYPES.EMPTY_JACKPOT && turn.moveType !== MOVE_TYPES.FINISH) {
+    if (
+      !turn.resolvedRewards.length &&
+      turn.moveType !== MOVE_TYPES.EMPTY_JACKPOT &&
+      turn.moveType !== MOVE_TYPES.FINISH
+    ) {
       return "move:moveWithoutBonus";
     }
     if (turn.moveType === MOVE_TYPES.ACHIEVEMENT) return toJourneyMoveCommentTemplateKind(MOVE_TYPES.EMPTY);
@@ -622,11 +637,12 @@ export class JourneyV2Engine {
     const state = this.getCommentState(game, Math.random);
     return references.map((reference) => {
       const template = this.commentTemplateRotator.getTemplate(state, reference);
-      const limitLabel = reference.kind === "limit:gain"
-        ? formatted?.unappliedGain
-        : reference.kind === "limit:loss"
-          ? formatted?.unappliedLoss
-          : null;
+      const limitLabel =
+        reference.kind === "limit:gain"
+          ? formatted?.unappliedGain
+          : reference.kind === "limit:loss"
+            ? formatted?.unappliedLoss
+            : null;
       return renderJourneyCommentTemplate(template.text, {
         nickname,
         rewardLabel: limitLabel ?? (formatted ? this.toRewardTemplateLabel(formatted) : null) ?? "",
@@ -672,11 +688,15 @@ export class JourneyV2Engine {
         .sort(([left], [right]) => Number(left) - Number(right))
         .map(([position, cell]) => {
           const cellType = cell.isJackpot ? "сокровище" : cell.kind === "trap" ? "ловушка" : "награда";
-          return renderJourneyCommentTemplate(JOURNEY_FORUM_MAP_CELL_TEMPLATE, {
-            position,
-            cellType,
-            rewardLabel: this.formatRewardPool(cell.rewardPool, game.resources),
-          }, { appendTerminalPunctuation: false });
+          return renderJourneyCommentTemplate(
+            JOURNEY_FORUM_MAP_CELL_TEMPLATE,
+            {
+              position,
+              cellType,
+              rewardLabel: this.formatRewardPool(cell.rewardPool, game.resources),
+            },
+            { appendTerminalPunctuation: false },
+          );
         }),
     ];
   }
@@ -684,15 +704,13 @@ export class JourneyV2Engine {
   private formatRewardPool(pool: JourneyMapCell["rewardPool"], resources: ResourceSnapshot[]): string {
     if (pool.mode === "all") return this.formatRewardAmounts(pool.rewards, resources);
     if (pool.mode === "weighted_one") {
-      return `одна из наград: ${pool.options.map((option) => option.reward ? this.formatRewardAmounts([option.reward], resources) : "пусто").join(", ")}`;
+      return `одна из наград: ${pool.options.map((option) => (option.reward ? this.formatRewardAmounts([option.reward], resources) : "пусто")).join(", ")}`;
     }
     return `возможные награды: ${pool.options.map((option) => this.formatRewardAmounts([option.reward], resources)).join(", ")}`;
   }
 
   private formatRewardAmounts(rewards: ResourceAmount[], resources: ResourceSnapshot[]): string {
-    return rewards
-      .map((reward) => this.formatResourceAmount(reward, resources, true))
-      .join(", ") || "0";
+    return rewards.map((reward) => this.formatResourceAmount(reward, resources, true)).join(", ") || "0";
   }
 
   private formatResourceAmount(reward: ResourceAmount, resources: ResourceSnapshot[], showPlus = false): string {
