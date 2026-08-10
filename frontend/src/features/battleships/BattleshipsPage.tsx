@@ -30,7 +30,7 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
     selectedGameConfigId,
     playerName,
     savedGames,
-    storedGameId,
+    currentGameId,
     deletingSavedGame,
     savedGamesDialogOpen,
     rulesDialogOpen,
@@ -147,10 +147,10 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
       <BattleshipsSavedGamesDialog
         open={savedGamesDialogOpen}
         games={savedGames}
-        currentGameId={storedGameId}
+        currentGameId={currentGameId}
         loading={loading.isLoadingSavedGames}
         restoreLoading={loading.isRestoringGame}
-        deletingGameId={loading.isDeletingSavedGame ? deletingSavedGame?.id ?? null : null}
+        deletingGameId={loading.isDeletingSavedGame ? (deletingSavedGame?.id ?? null) : null}
         error={savedGamesError}
         onClose={() => actions.setSavedGamesDialogOpen(false)}
         onRestore={actions.restoreSavedGame}

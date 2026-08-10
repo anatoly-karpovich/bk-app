@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  getBattleshipsGameConfigsRequest,
-  getSelectedGameConfigStorageKey,
-} from "../../projects/api/projects.client";
+import { useGameRoute } from "../../../hooks/useGameRoute";
+import { getBattleshipsGameConfigsRequest, getSelectedGameConfigStorageKey } from "../../projects/api/projects.client";
 import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
 import type { BattleshipsGameConfig, Project } from "../../projects/types";
 import {
@@ -13,7 +11,6 @@ import {
   submitBattleshipsShotRequest,
   undoBattleshipsShotRequest,
 } from "../api/battleships.client";
-import { clearBattleshipsGame, loadBattleshipsGameId, saveBattleshipsGameId } from "../storage";
 import type { BattleshipsPersistedGame, BattleshipsSavedGameSummary } from "../types";
 import {
   createBattleshipsFleetSummary,
@@ -38,14 +35,16 @@ function resolveSelectedGameConfigId(gameConfigs: BattleshipsGameConfig[]) {
   const fallbackGameConfigId = gameConfigs[0]?.id ?? "";
 
   return (
-    (storedGameConfigId && gameConfigs.some((gameConfig) => gameConfig.id === storedGameConfigId) && storedGameConfigId) ||
+    (storedGameConfigId &&
+      gameConfigs.some((gameConfig) => gameConfig.id === storedGameConfigId) &&
+      storedGameConfigId) ||
     fallbackGameConfigId
   );
 }
 
 export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGameParams) {
+  const { gameId, openGame, openSetup } = useGameRoute("/battleship");
   const [game, setGame] = useState<BattleshipsPersistedGame | null>(null);
-  const [storedGameId, setStoredGameId] = useState<string | null>(loadBattleshipsGameId());
   const [playerName, setPlayerName] = useState("");
   const [savedGames, setSavedGames] = useState<BattleshipsSavedGameSummary[]>([]);
   const [savedGamesDialogOpen, setSavedGamesDialogOpen] = useState(false);
@@ -54,7 +53,9 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
   const [requestError, setRequestError] = useState<string | null>(null);
   const [gameConfigsError, setGameConfigsError] = useState<string | null>(null);
   const [gameConfigs, setGameConfigs] = useState<BattleshipsGameConfig[]>([]);
-  const [selectedGameConfigId, setSelectedGameConfigId] = useState(() => loadSelectedGameConfigId(BATTLESHIPS_GAME_CONFIG_STORAGE_KEY) ?? "");
+  const [selectedGameConfigId, setSelectedGameConfigId] = useState(
+    () => loadSelectedGameConfigId(BATTLESHIPS_GAME_CONFIG_STORAGE_KEY) ?? "",
+  );
   const [deletingSavedGame, setDeletingSavedGame] = useState<BattleshipsSavedGameSummary | null>(null);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isRestoringGame, setIsRestoringGame] = useState(false);
@@ -65,15 +66,6 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
   const [isResettingGame, setIsResettingGame] = useState(false);
   const [isSubmittingShot, setIsSubmittingShot] = useState(false);
   const [isUndoingShot, setIsUndoingShot] = useState(false);
-
-  useEffect(() => {
-    if (!game?.id) {
-      return;
-    }
-
-    saveBattleshipsGameId(game.id);
-    setStoredGameId(game.id);
-  }, [game]);
 
   useEffect(() => {
     if (!selectedProject?.id) {
@@ -127,14 +119,68 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
   }, [selectedProject?.id]);
 
   useEffect(() => {
+    if (!gameId) {
+      if (game) {
+        resetBattleshipsPageState();
+      }
+      return;
+    }
+
+    if (!selectedProject?.id || game?.id === gameId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGameFromRoute() {
+      setRequestError(null);
+      setIsRestoringGame(true);
+
+      try {
+        const restoredGame = await getBattleshipsGameByIdRequest(selectedProject.id, gameId);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (restoredGame.projectId !== selectedProject.id) {
+          setRequestError(SAVED_GAME_PROJECT_MISMATCH_ERROR);
+          openSetup({ replace: true });
+          return;
+        }
+
+        setGame(restoredGame);
+        setPlayerName(restoredGame.playerName);
+        setSelectedGameConfigId(restoredGame.configId);
+      } catch (error) {
+        if (!cancelled) {
+          setRequestError(getErrorMessage(error));
+          openSetup({ replace: true });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRestoringGame(false);
+        }
+      }
+    }
+
+    void loadGameFromRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [game?.id, gameId, openSetup, selectedProject?.id]);
+
+  useEffect(() => {
     if (!game) {
       return;
     }
 
     if (game.projectId !== (selectedProject?.id ?? "")) {
       resetBattleshipsPageState();
+      openSetup({ replace: true });
     }
-  }, [game, selectedProject?.id]);
+  }, [game, openSetup, selectedProject?.id]);
 
   const selectedBattleshipsGameConfig = useMemo(
     () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
@@ -143,14 +189,17 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
   const selectedBattleshipsRules = selectedBattleshipsGameConfig?.rules ?? null;
   const resolvedResources = game?.resources ?? selectedProject?.resources ?? [];
   const boardConfig = useMemo(
-    () => game?.derived.boardConfig ?? (selectedBattleshipsRules ? getBattleshipsBoardConfig(selectedBattleshipsRules) : null),
+    () =>
+      game?.derived.boardConfig ??
+      (selectedBattleshipsRules ? getBattleshipsBoardConfig(selectedBattleshipsRules) : null),
     [game, selectedBattleshipsRules],
   );
   const fleetSummary = useMemo(
     () => game?.derived.fleetSummary ?? createBattleshipsFleetSummary(boardConfig),
     [boardConfig, game],
   );
-  const canStartGame = Boolean(selectedProject?.id) && Boolean(selectedBattleshipsRules) && Boolean(playerName.trim()) && !game;
+  const canStartGame =
+    Boolean(selectedProject?.id) && Boolean(selectedBattleshipsRules) && Boolean(playerName.trim()) && !game;
   const pageStatusChips = useMemo(
     () =>
       createBattleshipsStatusChips({
@@ -190,8 +239,6 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
   const canUndoShot = Boolean(game?.shots.length) && !boardActionsDisabled;
 
   function resetBattleshipsPageState() {
-    clearBattleshipsGame();
-    setStoredGameId(null);
     setGame(null);
     setPlayerName("");
   }
@@ -243,7 +290,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
       setGame(restoredGame);
       setPlayerName(restoredGame.playerName);
       setSavedGamesDialogOpen(false);
-      setStoredGameId(restoredGame.id);
+      openGame(restoredGame.id);
 
       if (gameConfigs.some((gameConfig) => gameConfig.id === restoredGame.configId)) {
         setSelectedGameConfigId(restoredGame.configId);
@@ -305,13 +352,9 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
       await deleteBattleshipsGameRequest(deletingSavedGame.projectId, deletingSavedGame.id);
       setSavedGames((current) => current.filter((gameItem) => gameItem.id !== deletingSavedGame.id));
 
-      if (storedGameId === deletingSavedGame.id) {
-        clearBattleshipsGame();
-        setStoredGameId(null);
-      }
-
       if (game?.id === deletingSavedGame.id) {
         resetBattleshipsPageState();
+        openSetup({ replace: true });
       }
 
       setDeletingSavedGame(null);
@@ -339,6 +382,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
 
       setGame(nextGame);
       setPlayerName(nextGame.playerName);
+      openGame(nextGame.id);
     } catch (error) {
       setRequestError(getErrorMessage(error));
     } finally {
@@ -350,6 +394,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     setRequestError(null);
     setIsResettingGame(true);
     resetBattleshipsPageState();
+    openSetup();
     setIsResettingGame(false);
   }
 
@@ -395,7 +440,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     selectedGameConfigId,
     playerName,
     savedGames,
-    storedGameId,
+    currentGameId: game?.id ?? null,
     deletingSavedGame,
     savedGamesDialogOpen,
     rulesDialogOpen,

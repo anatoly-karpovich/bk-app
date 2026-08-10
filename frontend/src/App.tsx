@@ -29,14 +29,28 @@ import QuizEventsPage from "./features/utilities/quizzes/QuizEventsPage";
 import QuizEventPage from "./features/utilities/quizzes/QuizEventPage";
 
 export default function App() {
-  return <Routes><Route path="/login" element={<LoginPage />} /><Route path="/*" element={<ProtectedRoute><AuthenticatedApp /></ProtectedRoute>} /></Routes>;
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <AuthenticatedApp />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
 }
 
 function AuthenticatedApp() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { projects, selectedProject, error, isSaving, actions } = useProjects();
-  const djName = selectedProject ? user?.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? "" : "";
+  const djName = selectedProject
+    ? (user?.projectProfiles.find((profile) => profile.projectId === selectedProject.id)?.nickname ?? "")
+    : "";
 
   useEffect(() => {
     const redirectToDashboard = () => navigate("/", { replace: true });
@@ -69,24 +83,55 @@ function AuthenticatedApp() {
         <Routes>
           <Route path="/" element={<DashboardPage user={user!} />} />
           <Route path="/journey" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/journey/:gameId" element={<JourneyPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
+          <Route path="/lotto/:gameId" element={<LottoPage djName={djName} selectedProject={selectedProject} />} />
           <Route path="/lotto-bingo" element={<LottoBingoPage selectedProject={selectedProject} />} />
+          <Route path="/lotto-bingo/:gameId" element={<LottoBingoPage selectedProject={selectedProject} />} />
           <Route path="/battleship" element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />} />
+          <Route
+            path="/battleship/:gameId"
+            element={<BattleshipsPage djName={djName} selectedProject={selectedProject} />}
+          />
           <Route path="/quizzes" element={<QuizzesPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/create" element={<QuizCreatePage selectedProject={selectedProject} />} />
           <Route path="/quizzes/events" element={<QuizEventsPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/events/:eventId" element={<QuizEventPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/:quizId/edit" element={<QuizEditorPage selectedProject={selectedProject} />} />
-          <Route path="/project" element={<ProjectPage selectedProject={selectedProject} canEdit={user?.role === "admin"} error={error} isSaving={isSaving} onUpdateProject={actions.updateProject} />} />
+          <Route
+            path="/project"
+            element={
+              <ProjectPage
+                selectedProject={selectedProject}
+                canEdit={user?.role === "admin"}
+                error={error}
+                isSaving={isSaving}
+                onUpdateProject={actions.updateProject}
+              />
+            }
+          />
           <Route path="/configs" element={<GameConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/quizzes" element={<QuizConfigsPage selectedProject={selectedProject} />} />
           <Route path="/configs/quizzes/create" element={<QuizConfigCreatePage selectedProject={selectedProject} />} />
           <Route path="/configs/quizzes/:configId" element={<QuizConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/journey/:configId" element={<JourneyConfigPage selectedProject={selectedProject} />} />
           <Route path="/configs/lotto/:configId" element={<LottoConfigPage selectedProject={selectedProject} />} />
-          <Route path="/configs/lotto_bingo/:configId" element={<LottoBingoConfigPage selectedProject={selectedProject} />} />
-          <Route path="/configs/battleships/:configId" element={<BattleshipsConfigPage selectedProject={selectedProject} />} />
-          <Route path="/users" element={<AdminRoute><UsersPage projects={projects} /></AdminRoute>} />
+          <Route
+            path="/configs/lotto_bingo/:configId"
+            element={<LottoBingoConfigPage selectedProject={selectedProject} />}
+          />
+          <Route
+            path="/configs/battleships/:configId"
+            element={<BattleshipsConfigPage selectedProject={selectedProject} />}
+          />
+          <Route
+            path="/users"
+            element={
+              <AdminRoute>
+                <UsersPage projects={projects} />
+              </AdminRoute>
+            }
+          />
           <Route path="/config" element={<Navigate to="/configs" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

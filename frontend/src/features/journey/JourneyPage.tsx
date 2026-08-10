@@ -51,7 +51,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     skippedPlayers,
     playerPendingRemoval,
     savedGames,
-    storedGameId,
+    currentGameId,
     deletingSavedGame,
     savedGamesDialogOpen,
     savedGamesError,
@@ -285,7 +285,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
       <SavedGamesDialog
         open={savedGamesDialogOpen}
         games={savedGameItems}
-        currentGameId={storedGameId}
+        currentGameId={currentGameId}
         loading={loading.isLoadingSavedGames}
         restoreLoading={loading.isRestoringGame}
         deletingGameId={loading.isDeletingSavedGame ? deletingSavedGame?.id ?? null : null}
