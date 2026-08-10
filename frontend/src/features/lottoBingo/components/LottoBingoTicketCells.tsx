@@ -21,9 +21,7 @@ export default function LottoBingoTicketCells({
   const matched = new Set(matchedNumbers);
   const candidateRows = new Set(candidate?.matchedAreas.flatMap((area) => area.rowIndexes) ?? []);
   const candidateHalves = new Set(
-    candidate?.matchedAreas
-      .map((area) => area.half)
-      .filter((half): half is "top" | "bottom" => Boolean(half)) ?? [],
+    candidate?.matchedAreas.map((area) => area.half).filter((half): half is "top" | "bottom" => Boolean(half)) ?? [],
   );
   const isScreenshot = variant === "screenshot";
 
@@ -67,10 +65,10 @@ export default function LottoBingoTicketCells({
                   ? winner
                     ? "#ebd27b"
                     : highlightedRow
-                    ? "#f9e2e0"
-                    : highlightedHalf
-                      ? "#faeeee"
-                      : "#eeeeee"
+                      ? "#f9e2e0"
+                      : highlightedHalf
+                        ? "#faeeee"
+                        : "#eeeeee"
                   : value === null
                     ? "#eceeef"
                     : highlightedRow
@@ -81,14 +79,8 @@ export default function LottoBingoTicketCells({
                           ? "#dfe3ff"
                           : "common.white",
                 color:
-                  value === null
-                    ? "transparent"
-                    : highlightedRow
-                      ? "#14532d"
-                      : isMatched
-                        ? "#262464"
-                        : "text.primary",
-                fontSize: isScreenshot ? (minHeight >= 40 ? "1rem" : "0.9rem") : "0.78rem",
+                  value === null ? "transparent" : highlightedRow ? "#14532d" : isMatched ? "#262464" : "text.primary",
+                fontSize: isScreenshot ? (minHeight >= 40 ? "1.3rem" : "1.2rem") : "0.78rem",
                 fontWeight: 900,
                 lineHeight: 1,
                 whiteSpace: "nowrap",

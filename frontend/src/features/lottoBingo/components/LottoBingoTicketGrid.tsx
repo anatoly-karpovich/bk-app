@@ -73,9 +73,24 @@ function Ticket({
             : "0 10px 24px rgba(15,23,42,.09)",
           transform: "translateY(-1px)",
         },
+        "& .lotto-bingo-ticket-actions": {
+          position: "absolute",
+          top: 1.75,
+          right: 1.75,
+          zIndex: 1,
+          opacity: 0,
+          pointerEvents: "none",
+          transform: "translateY(-4px)",
+          transition: "opacity .16s ease, transform .16s ease",
+        },
+        "&:hover .lotto-bingo-ticket-actions, &:focus-within .lotto-bingo-ticket-actions": {
+          opacity: 1,
+          pointerEvents: "auto",
+          transform: "translateY(0)",
+        },
       }}
     >
-      <Stack direction="row" justifyContent="flex-end" alignItems="center" spacing={0.25} sx={{ minHeight: 28, mb: 1 }}>
+      <Stack className="lotto-bingo-ticket-actions" direction="row" alignItems="center" spacing={0.25}>
         {candidate ? <AppChip size="small" color="warning" label="Кандидат" sx={{ fontSize: "0.61rem", height: 24 }} /> : null}
         {player.status === "disqualified" ? <AppChip size="small" color="error" label="Дисквалифицирован" sx={{ fontSize: "0.61rem", height: 24 }} /> : null}
         <IconButton
