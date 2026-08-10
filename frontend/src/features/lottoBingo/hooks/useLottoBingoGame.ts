@@ -50,8 +50,7 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
         try { applyGame(await lottoBingoApi.get(selectedProject.id, storedId)); }
         catch { clearLottoBingoGameId(); applyGame(null); }
       } else {
-        try { applyGame(await lottoBingoApi.latest(selectedProject.id)); }
-        catch (cause) { if (!(cause instanceof ApiError && cause.status === 404)) throw cause; applyGame(null); }
+        applyGame(null);
       }
     } catch (cause) {
       setError(errorMessage(cause, "Не удалось загрузить Лото Бинго."));

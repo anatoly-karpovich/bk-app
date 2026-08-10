@@ -36,7 +36,6 @@ export default function JourneyPageHeader({
     <GamePageHeader
       breadcrumbPath="/journey"
       title={journeyTexts.pageTitle}
-      description={journeyTexts.pageDescription}
       chips={pageStatusChips}
       controls={controls}
       actions={[

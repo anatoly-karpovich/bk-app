@@ -164,11 +164,6 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
         <GamePageHeader
           breadcrumbPath="/lotto-bingo"
           title={lottoBingoTexts.title}
-          description={
-            game
-              ? "Рабочий экран ведущего: тираж, кандидаты на «Бинго», билеты игроков и подтверждение победителей."
-              : lottoBingoTexts.description
-          }
           chips={
             game
               ? [

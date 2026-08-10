@@ -36,7 +36,6 @@ export default function LottoPageHeader({
     <GamePageHeader
       breadcrumbPath="/lotto"
       title={lottoTexts.pageTitle}
-      description={lottoTexts.pageDescription}
       chips={pageStatusChips}
       controls={controls}
       actions={[
