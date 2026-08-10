@@ -19,9 +19,11 @@ export const createUserSchema = z.object({
   role: userRoleSchema,
   projectProfiles: z.array(profileSchema).min(1),
 });
-export const updateUserSchema = z.object({
-  displayName: z.string().trim().min(1).max(80).optional(),
-  role: userRoleSchema.optional(),
-  projectProfiles: z.array(profileSchema).min(1).optional(),
-}).refine((input) => Object.keys(input).length > 0, "At least one field is required");
+export const updateUserSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(80).optional(),
+    role: userRoleSchema.optional(),
+    projectProfiles: z.array(profileSchema).min(1).optional(),
+  })
+  .refine((input) => Object.keys(input).length > 0, "At least one field is required");
 export const resetPasswordSchema = z.object({ password: z.string().min(10).max(128) });

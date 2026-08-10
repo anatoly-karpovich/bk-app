@@ -100,9 +100,7 @@ export function getJourneyAchievementProgress(
   const { finishPosition } = getJourneyConfig(rules);
   const collectorTargets = getJourneyCollectorTargets(rules);
   const visitedTargetIds = new Set(
-    player.movesHistory
-      .map(getCollectorTargetId)
-      .filter((targetId): targetId is string => Boolean(targetId)),
+    player.movesHistory.map(getCollectorTargetId).filter((targetId): targetId is string => Boolean(targetId)),
   );
   const obtainedCellIds = collectorTargets
     .map((target) => target.id)
@@ -112,19 +110,15 @@ export function getJourneyAchievementProgress(
     collector: {
       achieved: player.bonuses.some((bonus) => bonus.name === achievements.COLLECTOR.name),
       obtainedCellIds,
-      missingCellIds: collectorTargets
-        .map((target) => target.id)
-        .filter((targetId) => !visitedTargetIds.has(targetId)),
+      missingCellIds: collectorTargets.map((target) => target.id).filter((targetId) => !visitedTargetIds.has(targetId)),
     },
     unlucky: {
       achieved: player.bonuses.some((bonus) => bonus.name === achievements.UNLUCKY.name),
-      current: getCurrentStreak(
-        player.movesHistory,
-        (move) => Boolean(move.cell && hasNegativeJourneyRewards(move.cell.rewards)),
+      current: getCurrentStreak(player.movesHistory, (move) =>
+        Boolean(move.cell && hasNegativeJourneyRewards(move.cell.rewards)),
       ),
-      best: getBestStreak(
-        player.movesHistory,
-        (move) => Boolean(move.cell && hasNegativeJourneyRewards(move.cell.rewards)),
+      best: getBestStreak(player.movesHistory, (move) =>
+        Boolean(move.cell && hasNegativeJourneyRewards(move.cell.rewards)),
       ),
       target: JOURNEY_ACHIEVEMENT_STREAK_TARGETS.unlucky,
     },
@@ -136,13 +130,11 @@ export function getJourneyAchievementProgress(
     },
     lucky: {
       achieved: player.bonuses.some((bonus) => bonus.name === achievements.LUCKY.name),
-      current: getCurrentStreak(
-        player.movesHistory,
-        (move) => Boolean(move.cell && hasPositiveJourneyRewards(move.cell.rewards)),
+      current: getCurrentStreak(player.movesHistory, (move) =>
+        Boolean(move.cell && hasPositiveJourneyRewards(move.cell.rewards)),
       ),
-      best: getBestStreak(
-        player.movesHistory,
-        (move) => Boolean(move.cell && hasPositiveJourneyRewards(move.cell.rewards)),
+      best: getBestStreak(player.movesHistory, (move) =>
+        Boolean(move.cell && hasPositiveJourneyRewards(move.cell.rewards)),
       ),
       target: JOURNEY_ACHIEVEMENT_STREAK_TARGETS.lucky,
     },

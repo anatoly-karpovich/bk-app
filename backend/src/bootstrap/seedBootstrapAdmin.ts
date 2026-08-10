@@ -31,7 +31,10 @@ export async function seedBootstrapAdminIfNeeded(
   ]);
   if (projects.length) {
     await usersRepository.updateById(admin.id, {
-      projectProfiles: projects.map((project) => ({ projectId: project._id.toHexString(), nickname: DEFAULT_BOOTSTRAP_NAME })),
+      projectProfiles: projects.map((project) => ({
+        projectId: project._id.toHexString(),
+        nickname: DEFAULT_BOOTSTRAP_NAME,
+      })),
       updatedAt: new Date(),
     });
   }

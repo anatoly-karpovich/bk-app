@@ -42,9 +42,7 @@ test("grants the randomly selected weighted reward, including an explicitly empt
 
 test("grants each independent reward whose chance succeeds", () => {
   const outcomes = [true, false];
-  const service = new RewardGrantService(
-    createRandomizer({ succeeds: () => outcomes.shift() ?? false }),
-  );
+  const service = new RewardGrantService(createRandomizer({ succeeds: () => outcomes.shift() ?? false }));
 
   assert.deepEqual(
     service.resolve({

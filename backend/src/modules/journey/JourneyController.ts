@@ -82,10 +82,7 @@ export class JourneyController {
         });
       }
 
-      if (
-        error instanceof ProjectNotFoundError ||
-        error instanceof GameConfigNotFoundError
-      ) {
+      if (error instanceof ProjectNotFoundError || error instanceof GameConfigNotFoundError) {
         return res.status(error.statusCode).json({
           success: false,
           message: "Failed to create journey game",
@@ -120,11 +117,7 @@ export class JourneyController {
 
   getJourneyGameById = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        journeyGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(journeyGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const game = await this.journeyService.getJourneyGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       if (!game) {
@@ -171,11 +164,7 @@ export class JourneyController {
 
   getJourneyForumState = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        journeyGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(journeyGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const forumState = await this.journeyService.getJourneyForumState(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
@@ -215,11 +204,7 @@ export class JourneyController {
 
   previewJourneyForumMoves = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        journeyGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(journeyGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const preview = await this.journeyService.previewJourneyForumMoves(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({ success: true, data: preview });
@@ -323,11 +308,7 @@ export class JourneyController {
 
   makeJourneyRoundMove = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        journeyGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(journeyGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       const { moves } = parseRequest(
         journeyRoundMovesSchema,
         { moves: req.body?.moves },
@@ -362,10 +343,7 @@ export class JourneyController {
         });
       }
 
-      if (
-        error instanceof InvalidJourneyGameIdError ||
-        error instanceof JourneyRoundValidationError
-      ) {
+      if (error instanceof InvalidJourneyGameIdError || error instanceof JourneyRoundValidationError) {
         return res.status(400).json({
           success: false,
           message: "Failed to apply journey round",
@@ -388,7 +366,12 @@ export class JourneyController {
         req.params,
         "Route parameters 'gameId' and 'playerId' are required",
       );
-      const updatedGame = await this.journeyService.removeJourneyPlayerFromSnapshot(req.authUser!, getProjectId(req), gameId, playerId);
+      const updatedGame = await this.journeyService.removeJourneyPlayerFromSnapshot(
+        req.authUser!,
+        getProjectId(req),
+        gameId,
+        playerId,
+      );
 
       return res.status(200).json({
         success: true,
@@ -427,11 +410,7 @@ export class JourneyController {
 
   deleteJourneyGame = async (req: Request, res: Response) => {
     try {
-      const { gameId } = parseRequest(
-        journeyGameIdParamsSchema,
-        req.params,
-        "Route parameter 'gameId' is required",
-      );
+      const { gameId } = parseRequest(journeyGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
       await this.journeyService.deleteJourneyGameSnapshot(req.authUser!, getProjectId(req), gameId);
 
       return res.status(200).json({
@@ -471,11 +450,7 @@ export class JourneyController {
 
   parseJourneyPlayersFromForum = (req: Request, res: Response) => {
     try {
-      const { text } = parseRequest(
-        journeyParsePlayersSchema,
-        req.body,
-        "Body field 'text' must be a string",
-      );
+      const { text } = parseRequest(journeyParsePlayersSchema, req.body, "Body field 'text' must be a string");
 
       return res.status(200).json({
         success: true,

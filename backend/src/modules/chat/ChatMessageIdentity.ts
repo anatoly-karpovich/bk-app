@@ -14,7 +14,10 @@ export class ChatMessageIdentity {
       message.transport,
       message.from.trim(),
       [...new Set(message.to.map((recipient) => recipient.trim()))].sort(),
-      message.text.replace(/\r\n?/g, "\n").trim().replace(/[\t ]+/g, " "),
+      message.text
+        .replace(/\r\n?/g, "\n")
+        .trim()
+        .replace(/[\t ]+/g, " "),
       message.timestamp,
     ]);
   }

@@ -36,7 +36,11 @@ export class AuthController {
 
   updateOwnProjectNickname = async (req: Request, res: Response) => {
     const input = parseRequest(updateOwnProjectNicknameSchema, req.body, "Invalid project nickname");
-    const user = await this.authService.updateOwnProjectNickname(req.authUser!.id, req.params.projectId as string, input.nickname);
+    const user = await this.authService.updateOwnProjectNickname(
+      req.authUser!.id,
+      req.params.projectId as string,
+      input.nickname,
+    );
     return res.status(200).json({ success: true, data: { user } });
   };
 }
@@ -45,7 +49,10 @@ export function getSessionToken(req: Request): string | undefined {
   const cookieHeader = req.get("cookie");
   if (!cookieHeader) return undefined;
   const prefix = `${SESSION_COOKIE_NAME}=`;
-  const cookie = cookieHeader.split(";").map((value) => value.trim()).find((value) => value.startsWith(prefix));
+  const cookie = cookieHeader
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(prefix));
   if (!cookie) return undefined;
   return decodeURIComponent(cookie.slice(prefix.length));
 }

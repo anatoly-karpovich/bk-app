@@ -13,11 +13,7 @@ export class ForumTopicController {
 
   getForumTopic = async (req: Request, res: Response) => {
     try {
-      const { topicId } = parseRequest(
-        forumTopicQuerySchema,
-        req.query,
-        "Missing required query parameter: topicId",
-      );
+      const { topicId } = parseRequest(forumTopicQuerySchema, req.query, "Missing required query parameter: topicId");
       const data = await this.forumTopicService.getForumTopic(topicId);
 
       return res.status(200).json(data);

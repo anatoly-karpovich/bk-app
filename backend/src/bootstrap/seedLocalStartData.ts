@@ -4,8 +4,16 @@ import { BSON, type Db, type Document } from "mongodb";
 
 const START_DATA_DIRECTORY = path.resolve(__dirname, "..", "..", "backups", "db-data-projects");
 const START_DATA_FORMAT = "project-game-config-backup-v2";
-const COLLECTION_NAMES = ["projects", "game_configs", "journey_games", "battleships_games", "lotto_games", "configs"] as const;
-const MANUAL_RESTORE_COMMAND = "npm run backup:restore-new-schema:local -- --source backups\\db-data-projects --confirm-replace";
+const COLLECTION_NAMES = [
+  "projects",
+  "game_configs",
+  "journey_games",
+  "battleships_games",
+  "lotto_games",
+  "configs",
+] as const;
+const MANUAL_RESTORE_COMMAND =
+  "npm run backup:restore-new-schema:local -- --source backups\\db-data-projects --confirm-replace";
 
 interface BackupManifestCollection {
   name: string;
@@ -25,7 +33,7 @@ export class LocalStartDataSeedError extends Error {
   constructor(reason: string) {
     super(
       `Local start-data seed failed: ${reason}\n` +
-      `To restore the local database manually, run:\n  ${MANUAL_RESTORE_COMMAND}`,
+        `To restore the local database manually, run:\n  ${MANUAL_RESTORE_COMMAND}`,
     );
     this.name = "LocalStartDataSeedError";
   }
@@ -50,7 +58,9 @@ async function readStartData(): Promise<{ projects: Document[]; gameConfigs: Doc
   let importReport: ImportReport;
   try {
     manifest = JSON.parse(await readFile(path.join(START_DATA_DIRECTORY, "manifest.json"), "utf8")) as BackupManifest;
-    importReport = JSON.parse(await readFile(path.join(START_DATA_DIRECTORY, "import-report.json"), "utf8")) as ImportReport;
+    importReport = JSON.parse(
+      await readFile(path.join(START_DATA_DIRECTORY, "import-report.json"), "utf8"),
+    ) as ImportReport;
   } catch (error) {
     throw new LocalStartDataSeedError(
       `Could not read the start-data backup at ${START_DATA_DIRECTORY}: ${error instanceof Error ? error.message : String(error)}`,
@@ -58,7 +68,9 @@ async function readStartData(): Promise<{ projects: Document[]; gameConfigs: Doc
   }
 
   if (importReport.importFormat !== START_DATA_FORMAT) {
-    throw new LocalStartDataSeedError(`Unsupported start-data backup format: ${importReport.importFormat ?? "missing importFormat"}.`);
+    throw new LocalStartDataSeedError(
+      `Unsupported start-data backup format: ${importReport.importFormat ?? "missing importFormat"}.`,
+    );
   }
 
   if (!Array.isArray(manifest.collections)) {
@@ -95,7 +107,9 @@ async function readStartData(): Promise<{ projects: Document[]; gameConfigs: Doc
 }
 
 async function getCollectionCounts(db: Db): Promise<Record<(typeof COLLECTION_NAMES)[number], number>> {
-  const counts = await Promise.all(COLLECTION_NAMES.map(async (name) => [name, await db.collection(name).countDocuments()] as const));
+  const counts = await Promise.all(
+    COLLECTION_NAMES.map(async (name) => [name, await db.collection(name).countDocuments()] as const),
+  );
   return Object.fromEntries(counts) as Record<(typeof COLLECTION_NAMES)[number], number>;
 }
 

@@ -38,7 +38,7 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
     players,
     playerErrors,
     savedGames,
-    storedGameId,
+    currentGameId,
     deletingSavedGame,
     playerPendingRemoval,
     savedGamesDialogOpen,
@@ -64,12 +64,12 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
         <Grid item xs={12}>
           <LottoPageHeader
             pageStatusChips={pageStatusChips}
+            isRefreshingGame={loading.isRefreshingGame}
             isLoadingSavedGames={loading.isLoadingSavedGames}
-            isResettingGame={loading.isResettingGame}
             actionsDisabled={headerActionsDisabled}
+            canRefreshGame={Boolean(game)}
             controls={
               <GameConfigSelectField
-                label="Пресет Lotto"
                 gameConfigs={gameConfigs}
                 selectedGameConfigId={selectedGameConfigId}
                 onSelectedGameConfigChange={actions.selectGameConfig}
@@ -78,6 +78,7 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
                 sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "#fff" } }}
               />
             }
+            onRefreshGame={actions.refreshGame}
             onOpenRules={() => actions.setRulesDialogOpen(true)}
             onOpenSavedGames={actions.openSavedGamesDialog}
             onRestartGame={actions.restartGame}
@@ -163,10 +164,10 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
       <LottoSavedGamesDialog
         open={savedGamesDialogOpen}
         games={savedGames}
-        currentGameId={storedGameId}
+        currentGameId={currentGameId}
         loading={loading.isLoadingSavedGames}
         restoreLoading={loading.isRestoringGame}
-        deletingGameId={loading.isDeletingSavedGame ? deletingSavedGame?.id ?? null : null}
+        deletingGameId={loading.isDeletingSavedGame ? (deletingSavedGame?.id ?? null) : null}
         error={savedGamesError}
         onClose={() => actions.setSavedGamesDialogOpen(false)}
         onRestore={actions.restoreSavedGame}

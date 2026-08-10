@@ -7,7 +7,10 @@ export function validateRewardPool(pool: RewardPool, resourcesById: ReadonlyMap<
       pool.rewards.forEach((reward) => assertValidResourceAmount(reward, resourcesById));
       return;
     case "weighted_one":
-      if (!pool.options.length || pool.options.some((option) => !Number.isSafeInteger(option.weight) || option.weight <= 0)) {
+      if (
+        !pool.options.length ||
+        pool.options.some((option) => !Number.isSafeInteger(option.weight) || option.weight <= 0)
+      ) {
         throw new Error("Weighted reward pool options require positive integer weights");
       }
       pool.options.forEach((option) => {

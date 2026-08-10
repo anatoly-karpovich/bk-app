@@ -31,9 +31,7 @@ export class ConfigsRepository {
   async findAll(): Promise<Array<WithId<AppConfigDocument>>> {
     const collection = await this.getCollection();
 
-    return collection
-      .find({})
-      .toArray();
+    return collection.find({}).toArray();
   }
 
   async findById(configId: string): Promise<WithId<AppConfigDocument> | null> {
@@ -101,10 +99,12 @@ export class ConfigsRepository {
   async findLegacyCurrencyConfigs(): Promise<Array<WithId<LegacyAppConfigDocument>>> {
     const collection = await this.mongoDatabase.getCollection<LegacyAppConfigDocument>(CONFIGS_COLLECTION);
 
-    return collection.find({
-      currencies: { $exists: false },
-      currency: { $type: "string" },
-    }).toArray();
+    return collection
+      .find({
+        currencies: { $exists: false },
+        currency: { $type: "string" },
+      })
+      .toArray();
   }
 
   private async getCollection() {

@@ -2,7 +2,12 @@ import type { QuizDocument, QuizValidationIssue } from "./domain/types";
 import type { QuizView } from "./domain/readModels";
 
 export class QuizReadModelFactory {
-  create(id: string, quiz: QuizDocument, validationIssues: QuizValidationIssue[], createdByNickname: string | null): QuizView {
+  create(
+    id: string,
+    quiz: QuizDocument,
+    validationIssues: QuizValidationIssue[],
+    createdByNickname: string | null,
+  ): QuizView {
     return {
       id,
       createdAt: quiz.createdAt,

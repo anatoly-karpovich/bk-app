@@ -1,4 +1,22 @@
 import { Router } from "express";
 import { asyncHandler } from "../../common/http/asyncHandler";
 import { LottoBingoController } from "./LottoBingoController";
-export function createLottoBingoRouter(controller: LottoBingoController): Router { const router = Router({ mergeParams: true }); router.get("/games", asyncHandler(controller.list)); router.get("/games/latest", asyncHandler(controller.latest)); router.get("/games/:gameId", asyncHandler(controller.get)); router.get("/games/:gameId/events", asyncHandler(controller.events)); router.post("/games", asyncHandler(controller.create)); router.post("/games/:gameId/players", asyncHandler(controller.addPlayer)); router.delete("/games/:gameId/players/:playerId", asyncHandler(controller.removePlayer)); router.post("/games/:gameId/start", asyncHandler(controller.start)); router.post("/games/:gameId/draws", asyncHandler(controller.draw)); router.post("/games/:gameId/draws/undo", asyncHandler(controller.undo)); router.post("/games/:gameId/winners", asyncHandler(controller.confirmWinners)); router.post("/games/:gameId/players/:playerId/disqualify", asyncHandler(controller.disqualify)); router.post("/games/:gameId/players/:playerId/restore", asyncHandler(controller.restore)); router.post("/games/:gameId/finalize", asyncHandler(controller.finalize)); router.delete("/games/:gameId", asyncHandler(controller.delete)); return router; }
+export function createLottoBingoRouter(controller: LottoBingoController): Router {
+  const router = Router({ mergeParams: true });
+  router.get("/games", asyncHandler(controller.list));
+  router.get("/games/latest", asyncHandler(controller.latest));
+  router.get("/games/:gameId", asyncHandler(controller.get));
+  router.get("/games/:gameId/events", asyncHandler(controller.events));
+  router.post("/games", asyncHandler(controller.create));
+  router.post("/games/:gameId/players", asyncHandler(controller.addPlayer));
+  router.delete("/games/:gameId/players/:playerId", asyncHandler(controller.removePlayer));
+  router.post("/games/:gameId/start", asyncHandler(controller.start));
+  router.post("/games/:gameId/draws", asyncHandler(controller.draw));
+  router.post("/games/:gameId/draws/undo", asyncHandler(controller.undo));
+  router.post("/games/:gameId/winners", asyncHandler(controller.confirmWinners));
+  router.post("/games/:gameId/players/:playerId/disqualify", asyncHandler(controller.disqualify));
+  router.post("/games/:gameId/players/:playerId/restore", asyncHandler(controller.restore));
+  router.post("/games/:gameId/finalize", asyncHandler(controller.finalize));
+  router.delete("/games/:gameId", asyncHandler(controller.delete));
+  return router;
+}

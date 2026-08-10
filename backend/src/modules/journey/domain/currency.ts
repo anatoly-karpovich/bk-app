@@ -68,7 +68,9 @@ export function formatJourneyCurrencyValues(
   } = {},
 ): string {
   const { showPlus = false, includeZero = true } = options;
-  const valuesByCurrencyId = new Map(normalizeJourneyCurrencyValues(values).map((value) => [value.currencyId, value.value]));
+  const valuesByCurrencyId = new Map(
+    normalizeJourneyCurrencyValues(values).map((value) => [value.currencyId, value.value]),
+  );
 
   return currencies
     .map((currency) => ({
@@ -105,7 +107,9 @@ export function applyJourneyRewardsToBalance(params: {
   const { balance, rewards, currencies, maxPrizes } = params;
   const nextBalance = normalizeJourneyBalance(balance, currencies);
   const normalizedRewards = normalizeJourneyCurrencyValues(rewards);
-  const maxByCurrencyId = new Map((maxPrizes ?? []).map((value) => [value.currencyId, Math.max(0, Math.trunc(value.value))]));
+  const maxByCurrencyId = new Map(
+    (maxPrizes ?? []).map((value) => [value.currencyId, Math.max(0, Math.trunc(value.value))]),
+  );
   const appliedRewards: JourneyCurrencyValue[] = [];
   let changedCurrenciesCount = 0;
   let hasAnyCappedPositiveReward = false;

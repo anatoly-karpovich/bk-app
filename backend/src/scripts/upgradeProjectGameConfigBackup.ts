@@ -181,7 +181,9 @@ async function run(): Promise<void> {
 
   const [manifest, importReport] = await Promise.all([
     readFile(path.join(sourceDirectory, "manifest.json"), "utf8").then((value) => JSON.parse(value) as BackupManifest),
-    readFile(path.join(sourceDirectory, "import-report.json"), "utf8").then((value) => JSON.parse(value) as ImportReport),
+    readFile(path.join(sourceDirectory, "import-report.json"), "utf8").then(
+      (value) => JSON.parse(value) as ImportReport,
+    ),
   ]);
   if (importReport.importFormat !== V1_FORMAT) {
     throw new Error(`Expected ${V1_FORMAT}, received ${importReport.importFormat ?? "missing format"}`);
@@ -282,21 +284,50 @@ async function run(): Promise<void> {
     const indexes = sourceIndexes.get(collectionName)!;
     const dataFile = `${collectionName}.data.ejson`;
     const indexesFile = `${collectionName}.indexes.ejson`;
-    await Promise.all([writeEjsonArray(outputDirectory, dataFile, documents), writeEjsonArray(outputDirectory, indexesFile, indexes)]);
-    outputCollections.push({ name: collectionName, documents: documents.length, indexes: indexes.length, dataFile, indexesFile });
+    await Promise.all([
+      writeEjsonArray(outputDirectory, dataFile, documents),
+      writeEjsonArray(outputDirectory, indexesFile, indexes),
+    ]);
+    outputCollections.push({
+      name: collectionName,
+      documents: documents.length,
+      indexes: indexes.length,
+      dataFile,
+      indexesFile,
+    });
   }
   await writeFile(
     path.join(outputDirectory, "manifest.json"),
-    JSON.stringify({ exportedAt: manifest.exportedAt, dbName: manifest.dbName, collections: outputCollections }, null, 2),
+    JSON.stringify(
+      { exportedAt: manifest.exportedAt, dbName: manifest.dbName, collections: outputCollections },
+      null,
+      2,
+    ),
     "utf8",
   );
   await writeFile(
     path.join(outputDirectory, "import-report.json"),
-    JSON.stringify({ importFormat: V2_FORMAT, upgradedFrom: V1_FORMAT, unresolved: importReport.unresolved ?? {} }, null, 2),
+    JSON.stringify(
+      { importFormat: V2_FORMAT, upgradedFrom: V1_FORMAT, unresolved: importReport.unresolved ?? {} },
+      null,
+      2,
+    ),
     "utf8",
   );
 
-  console.log(JSON.stringify({ sourceDirectory, outputDirectory, projects: projects.length, gameConfigs: gameConfigs.length, format: V2_FORMAT }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        sourceDirectory,
+        outputDirectory,
+        projects: projects.length,
+        gameConfigs: gameConfigs.length,
+        format: V2_FORMAT,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 run().catch((error) => {

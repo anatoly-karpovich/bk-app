@@ -153,6 +153,8 @@ Project-level resources and preset rules must be read from project-scoped backen
 
 Current host-facing pages such as Journey, Battleships, Lotto, and Project Settings should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
 
+For Journey, Lotto, Lotto Bingo, and Battleships, the current game is identified by the URL (`/journey/:gameId`, `/lotto/:gameId`, `/lotto-bingo/:gameId`, and `/battleship/:gameId`). Starting or restoring a game must navigate to its URL; opening that URL must restore the game from the backend. Resetting the workspace or deleting its open game must return to the base game route. Do not persist current game IDs in localStorage.
+
 Project Settings is the host-facing source for a project's resource catalog. It edits a local draft before one explicit project update; selecting a resource changes only the editor context and must not change persisted state until the host saves.
 
 Journey forum messages are backend-generated from compact comment events. Keep player-action wording gender-neutral with forms such as `нашёл(-ла)` and `угодил(-а)`.
@@ -165,7 +167,6 @@ Do not use localStorage as a database.
 
 Allowed:
 
-- current game id
 - theme
 - UI preferences
 - temporary drafts if needed

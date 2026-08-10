@@ -9,7 +9,13 @@ import { QuizConfigsRepository } from "./QuizConfigsRepository";
 import { QuizzesRepository } from "./QuizzesRepository";
 import { QuizReadModelFactory } from "./QuizReadModelFactory";
 import { collectResourceIds, validateQuiz, validateQuizConfig } from "./domain/validation";
-import type { QuizConfigDocument, QuizConfigRulesSnapshot, QuizDocument, QuizMessageTemplates, QuizQuestion } from "./domain/types";
+import type {
+  QuizConfigDocument,
+  QuizConfigRulesSnapshot,
+  QuizDocument,
+  QuizMessageTemplates,
+  QuizQuestion,
+} from "./domain/types";
 import type { QuizView } from "./domain/readModels";
 
 export interface CreateQuizInput {
@@ -37,7 +43,9 @@ export class QuizzesService {
   async list(actor: CurrentUser, projectId: string): Promise<QuizView[]> {
     assertProjectAccess(actor, projectId);
     await this.getProject(projectId);
-    return (await this.repository.findReadByProjectId(projectId)).map((quiz) => this.toView(quiz._id.toHexString(), quiz));
+    return (await this.repository.findReadByProjectId(projectId)).map((quiz) =>
+      this.toView(quiz._id.toHexString(), quiz),
+    );
   }
 
   async get(actor: CurrentUser, projectId: string, quizId: string): Promise<QuizView> {
@@ -53,14 +61,23 @@ export class QuizzesService {
     const config = await this.configsRepository.findByIdAndProjectId(input.configId, projectId);
     if (!config) throw new QuizConfigNotFoundError(input.configId);
     const configIssues = validateQuizConfig(config, project.resources);
-    if (configIssues.length) throw new QuizValidationError("Из неготового конфига нельзя создать викторину", configIssues);
+    if (configIssues.length)
+      throw new QuizValidationError("Из неготового конфига нельзя создать викторину", configIssues);
     const now = new Date().toISOString();
     const snapshot = this.createRulesSnapshot(input.configId, config, now);
     const resourceIds = collectResourceIds(config);
-    const resources = project.resources.filter((resource) => resourceIds.has(resource.id)).map((resource) => structuredClone(resource));
+    const resources = project.resources
+      .filter((resource) => resourceIds.has(resource.id))
+      .map((resource) => structuredClone(resource));
     const quiz: QuizDocument = {
-      projectId, configId: input.configId, eventId: null, configRulesSnapshot: snapshot, resources,
-      name: input.name.trim(), description: input.description.trim(), status: "draft",
+      projectId,
+      configId: input.configId,
+      eventId: null,
+      configRulesSnapshot: snapshot,
+      resources,
+      name: input.name.trim(),
+      description: input.description.trim(),
+      status: "draft",
       questions: input.questions.map((question) => ({
         id: randomUUID(),
         questionIndex: question.questionIndex,
@@ -72,7 +89,11 @@ export class QuizzesService {
       })),
       effectiveMessageTemplates: { ...structuredClone(snapshot.messageTemplates), questionOverrides: [] },
       effectiveAnswerMessageTemplates: { ...structuredClone(snapshot.answerMessageTemplates), questionOverrides: [] },
-      createdByUserId: actor.id, updatedByUserId: actor.id, createdAt: now, updatedAt: now, schemaVersion: 1,
+      createdByUserId: actor.id,
+      updatedByUserId: actor.id,
+      createdAt: now,
+      updatedAt: now,
+      schemaVersion: 1,
     };
     quiz.status = validateQuiz(quiz).length ? "draft" : "ready";
     const created = await this.repository.create(quiz);
@@ -87,9 +108,14 @@ export class QuizzesService {
     assertOwnedByUser(actor, current.createdByUserId);
     if (current.eventId) throw new QuizConflictError("Нельзя изменить викторину, для которой уже создано проведение");
     const next: QuizDocument = {
-      ...structuredClone(current), name: input.name.trim(), description: input.description.trim(), questions: structuredClone(input.questions),
-      effectiveMessageTemplates: structuredClone(input.effectiveMessageTemplates), effectiveAnswerMessageTemplates: structuredClone(input.effectiveAnswerMessageTemplates),
-      updatedByUserId: actor.id, updatedAt: new Date().toISOString(),
+      ...structuredClone(current),
+      name: input.name.trim(),
+      description: input.description.trim(),
+      questions: structuredClone(input.questions),
+      effectiveMessageTemplates: structuredClone(input.effectiveMessageTemplates),
+      effectiveAnswerMessageTemplates: structuredClone(input.effectiveAnswerMessageTemplates),
+      updatedByUserId: actor.id,
+      updatedAt: new Date().toISOString(),
     };
     next.status = validateQuiz(next).length ? "draft" : "ready";
     const updated = await this.repository.update(quizId, projectId, next);
@@ -103,17 +129,34 @@ export class QuizzesService {
     if (!current) throw new QuizNotFoundError(quizId);
     assertOwnedByUser(actor, current.createdByUserId);
     if (current.eventId) throw new QuizConflictError("Нельзя удалить викторину, для которой уже создано проведение");
-    if (!await this.repository.delete(quizId, projectId)) throw new QuizNotFoundError(quizId);
+    if (!(await this.repository.delete(quizId, projectId))) throw new QuizNotFoundError(quizId);
   }
 
-  private createRulesSnapshot(configId: string, config: QuizConfigDocument, capturedAt: string): QuizConfigRulesSnapshot {
-    if (!config.questionCount || !config.defaultRegularRule || !config.messageTemplates || !config.answerMessageTemplates) {
+  private createRulesSnapshot(
+    configId: string,
+    config: QuizConfigDocument,
+    capturedAt: string,
+  ): QuizConfigRulesSnapshot {
+    if (
+      !config.questionCount ||
+      !config.defaultRegularRule ||
+      !config.messageTemplates ||
+      !config.answerMessageTemplates
+    ) {
       throw new QuizValidationError("Конфиг не содержит обязательных правил");
     }
     return {
-      configId, configName: config.name, questionCount: config.questionCount, defaultRegularRule: structuredClone(config.defaultRegularRule),
-      regularRewardOverrides: structuredClone(config.regularRewardOverrides), bonusRules: structuredClone(config.bonusRules), limitOneBonusPerPlayer: config.limitOneBonusPerPlayer === true,
-      messageTemplates: structuredClone(config.messageTemplates), answerMessageTemplates: structuredClone(config.answerMessageTemplates), capturedAt, schemaVersion: 1,
+      configId,
+      configName: config.name,
+      questionCount: config.questionCount,
+      defaultRegularRule: structuredClone(config.defaultRegularRule),
+      regularRewardOverrides: structuredClone(config.regularRewardOverrides),
+      bonusRules: structuredClone(config.bonusRules),
+      limitOneBonusPerPlayer: config.limitOneBonusPerPlayer === true,
+      messageTemplates: structuredClone(config.messageTemplates),
+      answerMessageTemplates: structuredClone(config.answerMessageTemplates),
+      capturedAt,
+      schemaVersion: 1,
     };
   }
 

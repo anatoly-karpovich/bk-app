@@ -14,11 +14,12 @@ export function normalizeProjectResources(
     const name = resource.name?.trim() || label;
     const type = resource.type === "item" ? "item" : "currency";
     const valueType = "valueType" in resource && resource.valueType === "decimal" ? "decimal" : "integer";
-    const precision = valueType === "decimal" && "precision" in resource && typeof resource.precision === "number"
-      ? resource.precision
-      : valueType === "decimal"
-        ? 1
-        : 0;
+    const precision =
+      valueType === "decimal" && "precision" in resource && typeof resource.precision === "number"
+        ? resource.precision
+        : valueType === "decimal"
+          ? 1
+          : 0;
 
     if (ids.has(id) || codes.has(code)) {
       throw new Error(`Project resources must have unique id and code: ${id}`);
@@ -45,6 +46,8 @@ export function normalizeProjectCurrencies(
   currencies: Array<Partial<ProjectCurrency>>,
   timestamp = new Date().toISOString(),
 ): ProjectCurrency[] {
-  return normalizeProjectResources(currencies.map((currency) => ({ ...currency, type: "currency" })), timestamp)
-    .filter((resource): resource is ProjectCurrency => resource.type === "currency");
+  return normalizeProjectResources(
+    currencies.map((currency) => ({ ...currency, type: "currency" })),
+    timestamp,
+  ).filter((resource): resource is ProjectCurrency => resource.type === "currency");
 }

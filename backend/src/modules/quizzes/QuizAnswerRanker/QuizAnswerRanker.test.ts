@@ -16,7 +16,10 @@ const message = (id: string, from: string, timestamp: string | null, effectiveOr
   canonicalKey: id,
 });
 
-const selected = (playerName: string, selectedMessageId: string): QuizSelectedAnswer => ({ playerName, selectedMessageId });
+const selected = (playerName: string, selectedMessageId: string): QuizSelectedAnswer => ({
+  playerName,
+  selectedMessageId,
+});
 
 test("ranks persisted selections by time, then effective order, with missing times last", () => {
   const result = new QuizAnswerRanker().rank(
@@ -31,7 +34,12 @@ test("ranks persisted selections by time, then effective order, with missing tim
 
   assert.deepEqual(
     result.map((item) => [item.playerName, item.position]),
-    [["Cara", 1], ["Bob", 2], ["Alice", 3], ["Dana", 4]],
+    [
+      ["Cara", 1],
+      ["Bob", 2],
+      ["Alice", 3],
+      ["Dana", 4],
+    ],
   );
 });
 

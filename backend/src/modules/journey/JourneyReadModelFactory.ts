@@ -1,17 +1,7 @@
 import type { WithId } from "mongodb";
 import type { ResourceAmount } from "../rewards";
-import {
-  getJourneyAchievements,
-  getJourneyCellKey,
-  getJourneyCellMapLabel,
-  getJourneyConfig,
-} from "./domain/config";
-import type {
-  JourneyGameListItemReadModel,
-  JourneyGameView,
-  JourneyV2Game,
-  JourneyV2Player,
-} from "./domain/types";
+import { getJourneyAchievements, getJourneyCellKey, getJourneyCellMapLabel, getJourneyConfig } from "./domain/config";
+import type { JourneyGameListItemReadModel, JourneyGameView, JourneyV2Game, JourneyV2Player } from "./domain/types";
 import { JourneyV2Engine } from "./JourneyV2Engine";
 
 export class JourneyReadModelFactory {

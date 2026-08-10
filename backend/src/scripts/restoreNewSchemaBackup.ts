@@ -5,13 +5,7 @@ import { loadEnvironment } from "../bootstrap/loadEnvironment";
 import { getDefaultMongoConnection } from "../infrastructure/mongo/defaultMongo";
 
 const IMPORT_FORMAT = "project-game-config-backup-v2";
-const RESTORE_COLLECTIONS = [
-  "projects",
-  "game_configs",
-  "journey_games",
-  "battleships_games",
-  "lotto_games",
-] as const;
+const RESTORE_COLLECTIONS = ["projects", "game_configs", "journey_games", "battleships_games", "lotto_games"] as const;
 const LEGACY_CONFIGS_COLLECTION = "configs";
 
 type RestoreCollectionName = (typeof RESTORE_COLLECTIONS)[number];
@@ -86,7 +80,9 @@ async function readEjsonArray(filePath: string): Promise<Document[]> {
 
 async function readBackup(sourceDirectory: string): Promise<BackupData> {
   const manifest = JSON.parse(await readFile(path.join(sourceDirectory, "manifest.json"), "utf8")) as BackupManifest;
-  const importReport = JSON.parse(await readFile(path.join(sourceDirectory, "import-report.json"), "utf8")) as ImportReport;
+  const importReport = JSON.parse(
+    await readFile(path.join(sourceDirectory, "import-report.json"), "utf8"),
+  ) as ImportReport;
   if (importReport.importFormat !== IMPORT_FORMAT) {
     throw new Error(`Unsupported backup format: ${importReport.importFormat ?? "missing importFormat"}`);
   }
@@ -104,7 +100,9 @@ async function readBackup(sourceDirectory: string): Promise<BackupData> {
 
     const documents = await readEjsonArray(path.join(sourceDirectory, entry.dataFile));
     if (documents.length !== entry.documents) {
-      throw new Error(`Document count mismatch for ${collectionName}: manifest=${entry.documents}, data=${documents.length}`);
+      throw new Error(
+        `Document count mismatch for ${collectionName}: manifest=${entry.documents}, data=${documents.length}`,
+      );
     }
     documentsByCollection.set(collectionName, documents);
   }
@@ -118,7 +116,12 @@ async function collectionExists(db: Db, name: string): Promise<boolean> {
 
 async function getLiveCounts(db: Db): Promise<Record<string, number>> {
   const names = [...RESTORE_COLLECTIONS, LEGACY_CONFIGS_COLLECTION];
-  const counts = await Promise.all(names.map(async (name) => [name, (await collectionExists(db, name)) ? await db.collection(name).countDocuments() : 0] as const));
+  const counts = await Promise.all(
+    names.map(
+      async (name) =>
+        [name, (await collectionExists(db, name)) ? await db.collection(name).countDocuments() : 0] as const,
+    ),
+  );
   return Object.fromEntries(counts);
 }
 
@@ -157,7 +160,7 @@ async function rollbackSwaps(db: Db, swapped: SwapRecord[], suffix: string): Pro
     if (await collectionExists(db, swap.collectionName)) {
       await db.collection(swap.collectionName).rename(failedNewName);
     }
-    if (swap.rollbackName && await collectionExists(db, swap.rollbackName)) {
+    if (swap.rollbackName && (await collectionExists(db, swap.rollbackName))) {
       await db.collection(swap.rollbackName).rename(swap.collectionName);
     }
   }

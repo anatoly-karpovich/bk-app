@@ -51,7 +51,10 @@ export function normalizeAppConfigInput(input: AppConfigMutationInput): Omit<App
   };
 }
 
-export function buildPersistedAppConfig(input: AppConfigMutationInput, timestamp = new Date().toISOString()): AppConfig {
+export function buildPersistedAppConfig(
+  input: AppConfigMutationInput,
+  timestamp = new Date().toISOString(),
+): AppConfig {
   const normalized = normalizeAppConfigInput(input);
 
   return {
@@ -62,8 +65,7 @@ export function buildPersistedAppConfig(input: AppConfigMutationInput, timestamp
 }
 
 export function normalizeStoredAppConfig(
-  input: Omit<AppConfig, "createdAt" | "updatedAt"> &
-    Partial<Pick<AppConfig, "createdAt" | "updatedAt">>,
+  input: Omit<AppConfig, "createdAt" | "updatedAt"> & Partial<Pick<AppConfig, "createdAt" | "updatedAt">>,
   fallbackTimestamp: string,
 ): AppConfig {
   const normalized = normalizeAppConfigInput({

@@ -14,9 +14,10 @@ export class QuizMessageCandidateFilter {
     return messages.flatMap((message) => {
       if (message.from === context.hostNickname) return [];
       const transport = message.to.includes("klan") ? ChatTransport.CLAN : ChatTransport.DIRECT;
-      const accepted = transport === ChatTransport.CLAN
-        ? context.allowedTransports.includes(ChatTransport.CLAN) && message.to.includes("klan")
-        : context.allowedTransports.includes(ChatTransport.DIRECT) && message.to.includes(context.hostNickname);
+      const accepted =
+        transport === ChatTransport.CLAN
+          ? context.allowedTransports.includes(ChatTransport.CLAN) && message.to.includes("klan")
+          : context.allowedTransports.includes(ChatTransport.DIRECT) && message.to.includes(context.hostNickname);
       if (!accepted) return [];
       return [{ ...message, transport, canonicalKey: this.identity.createKey({ ...message, transport }) }];
     });

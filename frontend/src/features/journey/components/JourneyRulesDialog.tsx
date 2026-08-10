@@ -1,7 +1,7 @@
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 import { journeyTexts } from "../../../texts/journeyTexts";
 import AppChip from "../../../components/ui/AppChip";
-import AppPillButton from "../../../components/ui/AppPillButton";
+import GameRulesDialog from "../../../components/GameRulesDialog";
 import { formatJourneyRewardPool, formatJourneyResourceAmounts } from "../journey-page.helpers";
 import type { JourneyAchievement, JourneyAchievementsMap, JourneyConfig } from "../types";
 
@@ -74,16 +74,8 @@ export default function JourneyRulesDialog({
   journeyAchievements,
 }: JourneyRulesDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>{journeyTexts.rulesDialogTitle}</DialogTitle>
-      <DialogContent dividers>
-        <JourneyRulesSummary journeyConfig={journeyConfig} journeyAchievements={journeyAchievements} />
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <AppPillButton color="inherit" onClick={onClose}>
-          {journeyTexts.actions.close}
-        </AppPillButton>
-      </DialogActions>
-    </Dialog>
+    <GameRulesDialog open={open} title={journeyTexts.rulesDialogTitle} onClose={onClose}>
+      <JourneyRulesSummary journeyConfig={journeyConfig} journeyAchievements={journeyAchievements} />
+    </GameRulesDialog>
   );
 }

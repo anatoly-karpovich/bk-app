@@ -1,5 +1,6 @@
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import type { ReactNode } from "react";
 import GamePageHeader from "../../../components/GamePageHeader";
@@ -8,10 +9,13 @@ import type { JourneyStatusChip } from "../types";
 
 interface JourneyPageHeaderProps {
   pageStatusChips: JourneyStatusChip[];
+  isRefreshingGame: boolean;
   isLoadingSavedGames: boolean;
-  isResettingGame: boolean;
   actionsDisabled: boolean;
+  canRefreshGame: boolean;
+  canOpenRules: boolean;
   controls?: ReactNode;
+  onRefreshGame: () => void;
   onOpenRules: () => void;
   onOpenSavedGames: () => void;
   onRestartGame: () => void;
@@ -19,10 +23,13 @@ interface JourneyPageHeaderProps {
 
 export default function JourneyPageHeader({
   pageStatusChips,
+  isRefreshingGame,
   isLoadingSavedGames,
-  isResettingGame,
   actionsDisabled,
+  canRefreshGame,
+  canOpenRules,
   controls,
+  onRefreshGame,
   onOpenRules,
   onOpenSavedGames,
   onRestartGame,
@@ -31,16 +38,16 @@ export default function JourneyPageHeader({
     <GamePageHeader
       breadcrumbPath="/journey"
       title={journeyTexts.pageTitle}
-      description={journeyTexts.pageDescription}
       chips={pageStatusChips}
       controls={controls}
       actions={[
         {
-          key: "rules",
-          label: journeyTexts.actions.rules,
-          icon: <MenuBookRoundedIcon />,
-          onClick: onOpenRules,
-          disabled: actionsDisabled,
+          key: "refresh",
+          label: "Обновить",
+          icon: <RefreshRoundedIcon />,
+          onClick: onRefreshGame,
+          disabled: actionsDisabled || !canRefreshGame,
+          loading: isRefreshingGame,
           variant: "outlined",
         },
         {
@@ -52,17 +59,24 @@ export default function JourneyPageHeader({
           loading: isLoadingSavedGames,
           variant: "outlined",
         },
+      ]}
+      moreActions={[
+        {
+          key: "rules",
+          label: journeyTexts.actions.rules,
+          icon: <MenuBookRoundedIcon fontSize="small" />,
+          onClick: onOpenRules,
+          disabled: !canOpenRules,
+        },
         {
           key: "reset",
-          label: journeyTexts.actions.reset,
-          icon: <AutorenewRoundedIcon />,
+          label: "Сбросить рабочий экран",
+          icon: <AutorenewRoundedIcon fontSize="small" />,
           onClick: onRestartGame,
-          disabled: actionsDisabled && !isResettingGame,
-          loading: isResettingGame,
-          variant: "text",
-          color: "inherit",
+          dividerBefore: true,
         },
       ]}
+      moreActionsDisabled={actionsDisabled}
     />
   );
 }

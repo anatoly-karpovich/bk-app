@@ -15,11 +15,46 @@ function createRandomSource(): RandomSource {
     },
   };
 }
-const rules: LottoBingoRules = { barrelsToDraw: 87, rewards: { round1: { mode: "all", rewards: [{ resourceId: "coins", amount: 10 }] }, round2: { mode: "all", rewards: [] }, round3: { mode: "all", rewards: [] }, completedCard: { mode: "all", rewards: [{ resourceId: "coins", amount: 3 }] }, consolation: { mode: "all", rewards: [{ resourceId: "coins", amount: 1 }] } } };
+const rules: LottoBingoRules = {
+  barrelsToDraw: 87,
+  rewards: {
+    round1: { mode: "all", rewards: [{ resourceId: "coins", amount: 10 }] },
+    round2: { mode: "all", rewards: [] },
+    round3: { mode: "all", rewards: [] },
+    completedCard: { mode: "all", rewards: [{ resourceId: "coins", amount: 3 }] },
+    consolation: { mode: "all", rewards: [{ resourceId: "coins", amount: 1 }] },
+  },
+};
 
-function engine() { return new LottoBingoEngine(new LottoBingoTicketGenerator(createRandomSource()), new RewardGrantService({ succeeds: () => false, pickWeightedIndex: () => 0 })); }
-function grid(start: number): LottoBingoTicketGrid { return Array.from({ length: 6 }, (_, row) => Array.from({ length: 9 }, (_, column) => column < 5 ? start + row * 5 + column : null)); }
-function startedGame() { const value = engine(); let game = value.createGame({ projectId: "project", configId: "config", configName: "Config", hostUserId: "host", hostSnapshot: host, rules, resources: [] }); game = value.addPlayer(game, "Alpha", host); game = value.addPlayer(game, "Beta", host); game.players[0].ticket.grid = grid(1); game.players[1].ticket.grid = grid(1); game = value.startGame(game, host); return { value, game }; }
+function engine() {
+  return new LottoBingoEngine(
+    new LottoBingoTicketGenerator(createRandomSource()),
+    new RewardGrantService({ succeeds: () => false, pickWeightedIndex: () => 0 }),
+  );
+}
+function grid(start: number): LottoBingoTicketGrid {
+  return Array.from({ length: 6 }, (_, row) =>
+    Array.from({ length: 9 }, (_, column) => (column < 5 ? start + row * 5 + column : null)),
+  );
+}
+function startedGame() {
+  const value = engine();
+  let game = value.createGame({
+    projectId: "project",
+    configId: "config",
+    configName: "Config",
+    hostUserId: "host",
+    hostSnapshot: host,
+    rules,
+    resources: [],
+  });
+  game = value.addPlayer(game, "Alpha", host);
+  game = value.addPlayer(game, "Beta", host);
+  game.players[0].ticket.grid = grid(1);
+  game.players[1].ticket.grid = grid(1);
+  game = value.startGame(game, host);
+  return { value, game };
+}
 
 test("confirms several current candidates atomically and uses the same resolved round reward", () => {
   const { value, game: started } = startedGame();
@@ -29,12 +64,16 @@ test("confirms several current candidates atomically and uses the same resolved 
   const candidates = value.getCandidates(afterDraw);
   assert.equal(candidates.length, 2);
 
-  const confirmed = value.confirmWinners(afterDraw, candidates.map((candidate) => candidate.playerId), host);
+  const confirmed = value.confirmWinners(
+    afterDraw,
+    candidates.map((candidate) => candidate.playerId),
+    host,
+  );
   assert.equal(confirmed.winners.round1.length, 2);
-  assert.deepEqual(confirmed.payouts.map((payout) => payout.resolvedRewards), [
-    [{ resourceId: "coins", amount: 10 }],
-    [{ resourceId: "coins", amount: 10 }],
-  ]);
+  assert.deepEqual(
+    confirmed.payouts.map((payout) => payout.resolvedRewards),
+    [[{ resourceId: "coins", amount: 10 }], [{ resourceId: "coins", amount: 10 }]],
+  );
   assert.equal(confirmed.audit.at(-1)?.type, "winner_confirmed");
 });
 

@@ -35,9 +35,8 @@ export class JourneyForumPlayersImporter {
   private findLatestGameStartMarkerIndex(messages: ForumTopicMessage[], normalizedDjName: string): number {
     for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
       const message = messages[messageIndex];
-      const marker = normalizeName(message.authorLogin) === normalizedDjName
-        ? parseJourneyForumMarker(message.text)
-        : null;
+      const marker =
+        normalizeName(message.authorLogin) === normalizedDjName ? parseJourneyForumMarker(message.text) : null;
 
       if (marker?.kind === "game_started") {
         return messageIndex;

@@ -14,6 +14,13 @@ export function getLottoBingoPhaseLabel(phase: LottoBingoPhase) {
   return phaseLabels[phase];
 }
 
+export function formatLottoBingoTimestamp(value: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function getCandidateDescription(candidate: LottoBingoGameView["state"]["round"]["candidates"][number]) {
   return candidate.matchedAreas.map((area) => {
     if (area.type === "full_card") return "закрыт весь билет";

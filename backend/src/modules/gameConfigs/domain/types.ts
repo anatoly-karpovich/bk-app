@@ -77,7 +77,10 @@ export type JourneyGameConfigReadModel = BaseGameConfigReadModel<JourneyGameConf
   journeyConfig: JourneyConfig;
   journeyAchievements: JourneyAchievementsMap;
 };
-export type BattleshipsGameConfigReadModel = BaseGameConfigReadModel<BattleshipsGameConfig, BattleshipsGameConfigSummary>;
+export type BattleshipsGameConfigReadModel = BaseGameConfigReadModel<
+  BattleshipsGameConfig,
+  BattleshipsGameConfigSummary
+>;
 export type LottoGameConfigReadModel = BaseGameConfigReadModel<LottoGameConfig, LottoGameConfigSummary>;
 export type LottoBingoGameConfigReadModel = BaseGameConfigReadModel<LottoBingoGameConfig, LottoBingoGameConfigSummary>;
 

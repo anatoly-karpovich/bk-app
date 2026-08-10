@@ -36,7 +36,6 @@ features/
     components/
     hooks/
     mappers/
-    storage.ts
     types.ts
   battleships/
     api/
@@ -157,6 +156,8 @@ Current shared sources include:
 Keep shared components presentational and configurable. Feature components retain game-specific copy and callbacks; shared components own repeated markup and visual rules.
 
 For nested host pages, use `GamePageHeader` and its breadcrumb extension rather than creating page-local breadcrumb implementations.
+
+Game conduct pages use the shared `GamePageHeader` action hierarchy: a configuration control when relevant, primary outlined actions for `Обновить` and `Сохранённые игры`, and the secondary `Правила` plus `Сбросить рабочий экран` actions in `moreActions`. Keep the menu action ordering and divider before reset consistent with Journey and Lotto Bingo. The refresh action reloads only the currently open backend game and is disabled when there is no current game; feature wrappers provide their own copy, callbacks, and loading states.
 
 Use `AppTextInput` change-state styling only for a meaningful comparison between a local draft and its saved source. Reuse `AppSelectableListItem` trailing content for status markers rather than forking the list-item layout.
 
@@ -335,7 +336,6 @@ Do not use localStorage as a database.
 
 Allowed localStorage usage:
 
-* current game id
 * theme
 * UI preferences
 * temporary draft text if explicitly needed
@@ -349,6 +349,15 @@ Not allowed:
 * calculated results
 
 The backend is the source of truth for game data.
+
+### Current game routes
+
+The current game ID belongs in the route, not in localStorage. Journey, Lotto, Lotto Bingo, and Battleships use `/journey/:gameId`, `/lotto/:gameId`, `/lotto-bingo/:gameId`, and `/battleship/:gameId` respectively.
+
+- Starting a game or restoring it from the saved-games dialog navigates to that route.
+- A page opened with a game ID loads that exact game through its project-scoped backend API.
+- Resetting the workspace, deleting the open game, or failing to load a routed game returns to the feature's base route.
+- Reuse `hooks/useGameRoute.ts` for this navigation behavior; do not recreate game-ID localStorage helpers.
 
 ---
 

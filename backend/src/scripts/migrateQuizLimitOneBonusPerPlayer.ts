@@ -14,22 +14,34 @@ async function run(): Promise<void> {
   try {
     const matchingConfigs = await collection.countDocuments(filter);
     if (!process.argv.includes(APPLY_ARGUMENT)) {
-      console.log(JSON.stringify({
-        database: connection.getDatabaseName(),
-        matchingConfigs,
-        applied: false,
-        nextStep: `Run again with ${APPLY_ARGUMENT} to set limitOneBonusPerPlayer to false.`,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            database: connection.getDatabaseName(),
+            matchingConfigs,
+            applied: false,
+            nextStep: `Run again with ${APPLY_ARGUMENT} to set limitOneBonusPerPlayer to false.`,
+          },
+          null,
+          2,
+        ),
+      );
       return;
     }
 
     const result = await collection.updateMany(filter, { $set: { limitOneBonusPerPlayer: false } });
-    console.log(JSON.stringify({
-      database: connection.getDatabaseName(),
-      matchingConfigs,
-      modifiedConfigs: result.modifiedCount,
-      applied: true,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          database: connection.getDatabaseName(),
+          matchingConfigs,
+          modifiedConfigs: result.modifiedCount,
+          applied: true,
+        },
+        null,
+        2,
+      ),
+    );
   } finally {
     await client.close();
   }

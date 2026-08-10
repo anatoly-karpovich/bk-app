@@ -63,7 +63,11 @@ async function run(): Promise<void> {
 
     await writeFile(
       path.join(outputDirectory, "manifest.json"),
-      JSON.stringify({ exportedAt: new Date().toISOString(), dbName: connection.getDatabaseName(), collections }, null, 2),
+      JSON.stringify(
+        { exportedAt: new Date().toISOString(), dbName: connection.getDatabaseName(), collections },
+        null,
+        2,
+      ),
       "utf8",
     );
     console.log(JSON.stringify({ outputDirectory, database: connection.getDatabaseName(), collections }, null, 2));
