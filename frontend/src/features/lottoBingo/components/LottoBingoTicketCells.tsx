@@ -5,6 +5,7 @@ interface Props {
   grid: LottoBingoTicketGrid;
   matchedNumbers: number[];
   candidate?: LottoBingoCandidate;
+  winner?: boolean;
   minHeight?: number;
   variant?: "default" | "screenshot";
 }
@@ -13,6 +14,7 @@ export default function LottoBingoTicketCells({
   grid,
   matchedNumbers,
   candidate,
+  winner = false,
   minHeight = 33,
   variant = "default",
 }: Props) {
@@ -29,8 +31,9 @@ export default function LottoBingoTicketCells({
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "repeat(9, minmax(0, 1fr))",
+        gridTemplateColumns: isScreenshot ? `repeat(9, ${minHeight}px)` : "repeat(9, minmax(0, 1fr))",
         gap: isScreenshot ? 0.4 : 0.45,
+        width: "fit-content",
       }}
     >
       {grid.flatMap((row, rowIndex) =>
@@ -49,7 +52,7 @@ export default function LottoBingoTicketCells({
                 mt: rowIndex === 3 ? 1.5 : 0,
                 display: "grid",
                 placeItems: "center",
-                borderRadius: isScreenshot ? 0.65 : 0.5,
+                borderRadius: isScreenshot ? 0.25 : 0.5,
                 border: "1px solid",
                 borderColor: isScreenshot
                   ? "#cb4942"
@@ -61,7 +64,9 @@ export default function LottoBingoTicketCells({
                         ? "#8f95ef"
                         : "#c9cdd2",
                 bgcolor: isScreenshot
-                  ? highlightedRow
+                  ? winner
+                    ? "#ebd27b"
+                    : highlightedRow
                     ? "#f9e2e0"
                     : highlightedHalf
                       ? "#faeeee"
@@ -76,15 +81,17 @@ export default function LottoBingoTicketCells({
                           ? "#dfe3ff"
                           : "common.white",
                 color:
-                  value === null || (isScreenshot && isMatched)
+                  value === null
                     ? "transparent"
                     : highlightedRow
                       ? "#14532d"
                       : isMatched
                         ? "#262464"
                         : "text.primary",
-                fontSize: isScreenshot ? "0.85rem" : "0.78rem",
+                fontSize: isScreenshot ? (minHeight >= 40 ? "1rem" : "0.9rem") : "0.78rem",
                 fontWeight: 900,
+                lineHeight: 1,
+                whiteSpace: "nowrap",
                 "&::before, &::after":
                   isScreenshot && isMatched
                     ? {
@@ -94,6 +101,7 @@ export default function LottoBingoTicketCells({
                         height: 2,
                         borderRadius: 99,
                         bgcolor: "#bf332f",
+                        zIndex: 1,
                       }
                     : undefined,
                 "&::before": isScreenshot && isMatched ? { transform: "rotate(45deg)" } : undefined,
