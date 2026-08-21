@@ -58,7 +58,6 @@ import { QuizEventsRepository } from "../modules/quizzes/QuizEventsRepository";
 import { QuizEventEngine } from "../modules/quizzes/QuizEventEngine/QuizEventEngine";
 import { ChatParser } from "../modules/chat/ChatParser";
 import { ChatMessageIdentity } from "../modules/chat/ChatMessageIdentity";
-import { ChatMessageDeduplicator } from "../modules/quizzes/ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizAnswerRanker } from "../modules/quizzes/QuizAnswerRanker/QuizAnswerRanker";
 import { QuizAwardCalculator } from "../modules/quizzes/QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../modules/quizzes/QuizEventSummaryCalculator/QuizEventSummaryCalculator";
@@ -160,7 +159,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizEventEngine,
     new ChatParser(),
     new QuizMessageCandidateFilter(chatMessageIdentity),
-    new ChatMessageDeduplicator(chatMessageIdentity),
     quizEventReadModelFactory,
   );
   const quizEventsController = new QuizEventsController(quizEventsService);

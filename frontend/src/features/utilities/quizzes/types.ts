@@ -38,7 +38,8 @@ export interface QuizAwardSource {
   bonusRulePosition?: number | null;
 }
 export interface QuizAward { id: string; selectedMessageId: string; playerName: string; questionIndex: number; source: QuizAwardSource; rewards: ResourceAmount[]; awardedAt: string; }
-export interface QuizChatMessageView { id: string; text: string; timestamp: string | null; effectiveOrder: number; transport: "direct" | "clan"; }
+/** `direct` is retained for historical events saved before `to` and `private` were distinguished. */
+export interface QuizChatMessageView { id: string; text: string; timestamp: string | null; effectiveOrder: number; transport: "to" | "private" | "clan" | "direct"; }
 export interface QuizPlayerMessageGroup { playerName: string; selectedMessageId: string | null; messages: QuizChatMessageView[]; }
 export interface QuizRanking { playerName: string; selectedMessageId: string; timestamp: string | null; effectiveOrder: number; position: number; }
 export interface QuizQuestionChat { rawText: string; updatedAt: string | null; updatedByUserId: string | null; }
@@ -99,7 +100,6 @@ export interface QuizChatMutationResult {
   mutation: {
     parsedMessagesCount: number;
     candidateMessagesCount: number;
-    duplicateMessagesCount: number;
     previousMessagesCount: number;
     nextMessagesCount: number;
     removedPersistedSelectionsCount: number;

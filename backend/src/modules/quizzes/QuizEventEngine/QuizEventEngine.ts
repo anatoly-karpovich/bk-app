@@ -201,10 +201,15 @@ export class QuizEventEngine {
     this.assertOpen(event);
     const current = this.getQuestion(event, questionId);
     const now = new Date().toISOString();
-    const existingByCanonicalKey = new Map(current.chat.messages.map((message) => [message.canonicalKey, message]));
+    const existingByCanonicalKey = new Map<string, QuizEventQuestion["chat"]["messages"]>();
+    for (const message of current.chat.messages) {
+      const matches = existingByCanonicalKey.get(message.canonicalKey) ?? [];
+      matches.push(message);
+      existingByCanonicalKey.set(message.canonicalKey, matches);
+    }
     const nextMessages = input.messages.map((message, index) => ({
       ...message,
-      id: existingByCanonicalKey.get(message.canonicalKey)?.id ?? randomUUID(),
+      id: existingByCanonicalKey.get(message.canonicalKey)?.shift()?.id ?? randomUUID(),
       effectiveOrder: index + 1,
     }));
     const effectiveChange = !this.sameEffectiveChat(current.chat.messages, nextMessages);

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ChatTransport } from "./domain/types";
 import { ChatParser } from "./ChatParser";
 
 const parser = new ChatParser();
@@ -9,10 +10,10 @@ test("parses supported direct and clan messages without quiz context", () => {
     "23:53 [**Emrys**] to [Dark, Почтальон] Минск\n[PlainPlayer] private [Dark] ответ\n[**Братан**] private [**klan**] ответ\n[**ЧупаЗавр**] **private [** **klan** **]** to [J 0 K E R] ответ",
   );
   assert.deepEqual(messages, [
-    { from: "Emrys", to: ["Dark", "Почтальон"], text: "Минск", timestamp: "23:53", sourceLineNumber: 1 },
-    { from: "PlainPlayer", to: ["Dark"], text: "ответ", timestamp: null, sourceLineNumber: 2 },
-    { from: "Братан", to: ["klan"], text: "ответ", timestamp: null, sourceLineNumber: 3 },
-    { from: "ЧупаЗавр", to: ["klan"], text: "to [J 0 K E R] ответ", timestamp: null, sourceLineNumber: 4 },
+    { from: "Emrys", to: ["Dark", "Почтальон"], text: "Минск", timestamp: "23:53", sourceLineNumber: 1, transport: ChatTransport.TO },
+    { from: "PlainPlayer", to: ["Dark"], text: "ответ", timestamp: null, sourceLineNumber: 2, transport: ChatTransport.PRIVATE },
+    { from: "Братан", to: ["klan"], text: "ответ", timestamp: null, sourceLineNumber: 3, transport: ChatTransport.PRIVATE },
+    { from: "ЧупаЗавр", to: ["klan"], text: "to [J 0 K E R] ответ", timestamp: null, sourceLineNumber: 4, transport: ChatTransport.CLAN },
   ]);
 });
 
@@ -58,7 +59,7 @@ test("ignores unsupported lines and preserves answer text verbatim", () => {
   const second = parser.parse(input);
   assert.deepEqual(first, second);
   assert.deepEqual(first, [
-    { from: "Player", to: ["Dark"], text: " Минск!  to [Other] private 😀", timestamp: null, sourceLineNumber: 2 },
+    { from: "Player", to: ["Dark"], text: " Минск!  to [Other] private 😀", timestamp: null, sourceLineNumber: 2, transport: ChatTransport.PRIVATE },
   ]);
 });
 

@@ -66,7 +66,7 @@ export default function QuizChatControls({ question, busy, editable, onSave }: P
                 <Typography variant="caption">Изменение сохранённого чата сбросит результат вопроса и начисленные награды. Перед сохранением потребуется подтверждение.</Typography>
               </Box>
             ) : null}
-            {result ? <Typography variant="caption" color={result.effectiveChange ? "success.main" : "text.secondary"}>Кандидатов: {result.candidateMessagesCount}; дубликатов: {result.duplicateMessagesCount}.</Typography> : null}
+            {result ? <Typography variant="caption" color={result.effectiveChange ? "success.main" : "text.secondary"}>Распознано кандидатов: {result.candidateMessagesCount}.</Typography> : null}
           </Stack>
           </Box>
           <Box sx={{ px: { xs: 2, sm: 2.75 }, py: 1.75, borderTop: 1, borderColor: "divider", bgcolor: "#fafbfc", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>

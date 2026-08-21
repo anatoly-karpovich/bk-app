@@ -4,7 +4,6 @@ import { ObjectId } from "mongodb";
 import type { CurrentUser } from "../../auth/domain/types";
 import { ChatMessageIdentity } from "../../chat/ChatMessageIdentity";
 import { ChatParser } from "../../chat/ChatParser";
-import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizAnswerRanker } from "../QuizAnswerRanker/QuizAnswerRanker";
 import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
@@ -64,7 +63,7 @@ const actor: CurrentUser = {
   projectProfiles: [{ projectId: "project", nickname: "Dark" }],
 };
 
-function setup(sourceSnapshot: QuizSnapshot = snapshot) {
+function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
   const ranker = new QuizAnswerRanker();
   const engine = new QuizEventEngine(
     ranker,
@@ -72,7 +71,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot) {
     new QuizEventSummaryCalculator(),
     new QuizSelectedAnswerPruner(),
   );
-  let event = engine.create(sourceSnapshot, { userId: "host", displayName: "Host", nickname: "Dark" }, "Event");
+  let event = engine.create(sourceSnapshot, { userId: "host", displayName: "Host", nickname: hostNickname }, "Event");
   event.projectId = "project";
   const documentId = new ObjectId();
   const repository = {
@@ -91,7 +90,6 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot) {
     engine,
     new ChatParser(),
     new QuizMessageCandidateFilter(identity),
-    new ChatMessageDeduplicator(identity),
     new QuizEventReadModelFactory(ranker),
   );
   return { service, questionId: event.questions[0].id, questionIds: event.questions.map((question) => question.id) };
@@ -116,6 +114,50 @@ test("saves a complete chat, preserves ids on equivalent saves, and saves the fi
   );
   assert.ok(result.result.reviewedAt);
   assert.equal(result.event.state.questions[0].result.awards.length, 1);
+});
+
+test("preserves separate to and private answers from the same player", async () => {
+  const { service, questionId } = setup(snapshot, "Molly");
+  const answer = "Что такое осень - это свиньи! свиньи плещутся в канавееее...";
+  const raw = [
+    `20:39 [Геральт из Ривии] to [Molly] ${answer}`,
+    `20:39 [Геральт из Ривии] private [ Molly ] ${answer}`,
+  ].join("\n");
+
+  const saved = await service.saveQuestionChat(actor, "project", "event", questionId, raw, 0);
+  const messages = saved.event.state.questions[0].chat.playerGroups[0]!.messages;
+  assert.equal(saved.mutation.candidateMessagesCount, 2);
+  assert.deepEqual(messages.map((message) => message.transport), ["to", "private"]);
+  assert.equal(new Set(messages.map((message) => message.id)).size, 2);
+});
+
+test("preserves exact repeated answers with stable distinct ids on repeated saves", async () => {
+  const { service, questionId } = setup();
+  const raw = [
+    "20:39 [Геральт из Ривии] private [Dark] ДДТ Осень",
+    "20:39 [Геральт из Ривии] private [Dark] ДДТ Осень",
+  ].join("\n");
+
+  const first = await service.saveQuestionChat(actor, "project", "event", questionId, raw, 0);
+  const firstMessages = first.event.state.questions[0].chat.playerGroups[0]!.messages;
+  assert.equal(first.mutation.candidateMessagesCount, 2);
+  assert.equal(firstMessages.length, 2);
+  assert.equal(new Set(firstMessages.map((message) => message.id)).size, 2);
+
+  const repeated = await service.saveQuestionChat(actor, "project", "event", questionId, raw, first.event.meta.revision);
+  const repeatedMessages = repeated.event.state.questions[0].chat.playerGroups[0]!.messages;
+  assert.equal(repeated.mutation.effectiveChange, false);
+  assert.deepEqual(repeatedMessages.map((message) => message.id), firstMessages.map((message) => message.id));
+
+  const result = await service.saveQuestionResult(
+    actor,
+    "project",
+    "event",
+    questionId,
+    [{ playerName: "Геральт из Ривии", selectedMessageId: repeatedMessages[1]!.id }],
+    repeated.event.meta.revision,
+  );
+  assert.equal(result.event.state.questions[0].result.ranking[0]?.selectedMessageId, repeatedMessages[1]!.id);
 });
 
 test("rejects non-empty chat without candidates and accepts an explicit empty clear", async () => {

@@ -4,7 +4,6 @@ import { ChatParser } from "../../chat/ChatParser";
 import { ChatTransport } from "../../chat/domain/types";
 import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
-import { ChatMessageDeduplicator } from "../ChatMessageDeduplicator/ChatMessageDeduplicator";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
 import {
   QuizConflictError,
@@ -28,7 +27,6 @@ export interface SaveQuizQuestionChatResult {
   mutation: {
     parsedMessagesCount: number;
     candidateMessagesCount: number;
-    duplicateMessagesCount: number;
     previousMessagesCount: number;
     nextMessagesCount: number;
     removedPersistedSelectionsCount: number;
@@ -52,7 +50,6 @@ export class QuizEventsService {
     private readonly engine: QuizEventEngine,
     private readonly chatParser: ChatParser,
     private readonly candidateFilter: QuizMessageCandidateFilter,
-    private readonly deduplicator: ChatMessageDeduplicator,
     private readonly readModels: QuizEventReadModelFactory,
   ) {}
 
@@ -158,16 +155,15 @@ export class QuizEventsService {
     const event = await this.editableEvent(actor, projectId, eventId);
     this.assertExpectedRevision(event, eventId, expectedRevision);
     const { parsed, candidates } = this.parseCandidates(event, rawText);
-    const deduplicated = this.deduplicator.deduplicate([], candidates);
-    if (rawText.trim() && !deduplicated.unique.length) {
+    if (rawText.trim() && !candidates.length) {
       throw new QuizValidationError("Не удалось распознать сообщения. Сохранённый чат не изменён.");
     }
     const previous = this.engine.getQuestion(event, questionId);
-    const effectiveChange = !this.sameEffectiveChat(previous.chat.messages, deduplicated.unique);
+    const effectiveChange = !this.sameEffectiveChat(previous.chat.messages, candidates);
     if (effectiveChange) this.assertQuestionResultCanBeChanged(event, questionId);
     const updated = this.engine.saveQuestionChat(structuredClone(event), questionId, {
       rawText,
-      messages: deduplicated.unique,
+      messages: candidates,
       actorId: actor.id,
     });
     const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
@@ -177,9 +173,8 @@ export class QuizEventsService {
       mutation: {
         parsedMessagesCount: parsed.length,
         candidateMessagesCount: candidates.length,
-        duplicateMessagesCount: deduplicated.duplicatesCount,
         previousMessagesCount: previous.chat.messages.length,
-        nextMessagesCount: deduplicated.unique.length,
+        nextMessagesCount: candidates.length,
         removedPersistedSelectionsCount:
           previous.selectedAnswers.length - this.engine.getQuestion(saved, questionId).selectedAnswers.length,
         effectiveChange,
@@ -254,7 +249,7 @@ export class QuizEventsService {
     const parsed = this.chatParser.parse(rawText);
     const candidates = this.candidateFilter.filter(parsed, {
       hostNickname: event.hostSnapshot.nickname,
-      allowedTransports: [ChatTransport.DIRECT, ChatTransport.CLAN],
+      allowedTransports: [ChatTransport.TO, ChatTransport.PRIVATE, ChatTransport.CLAN],
     });
     return { parsed, candidates };
   }

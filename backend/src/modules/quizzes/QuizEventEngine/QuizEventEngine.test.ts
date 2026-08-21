@@ -27,7 +27,7 @@ const candidate = (from: string, text: string, timestamp = "21:00"): QuizChatMes
   text,
   timestamp,
   sourceLineNumber: 1,
-  transport: ChatTransport.DIRECT,
+  transport: ChatTransport.PRIVATE,
   canonicalKey: `${from}:${text}:${timestamp}`,
 });
 

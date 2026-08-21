@@ -13,11 +13,12 @@ export class QuizMessageCandidateFilter {
   filter(messages: ParsedChatMessage[], context: QuizMessageFilterContext): QuizChatMessageCandidate[] {
     return messages.flatMap((message) => {
       if (message.from === context.hostNickname) return [];
-      const transport = message.to.includes("klan") ? ChatTransport.CLAN : ChatTransport.DIRECT;
+      if (message.transport === null) return [];
+      const transport = message.to.includes("klan") ? ChatTransport.CLAN : message.transport;
       const accepted =
         transport === ChatTransport.CLAN
           ? context.allowedTransports.includes(ChatTransport.CLAN) && message.to.includes("klan")
-          : context.allowedTransports.includes(ChatTransport.DIRECT) && message.to.includes(context.hostNickname);
+          : context.allowedTransports.includes(transport) && message.to.includes(context.hostNickname);
       if (!accepted) return [];
       return [{ ...message, transport, canonicalKey: this.identity.createKey({ ...message, transport }) }];
     });

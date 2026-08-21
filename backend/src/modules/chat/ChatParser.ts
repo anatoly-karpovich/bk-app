@@ -1,4 +1,4 @@
-import type { ParsedChatMessage } from "./domain/types";
+import { ChatTransport, type ParsedChatMessage } from "./domain/types";
 
 export class ChatParser {
   parse(rawText: string): ParsedChatMessage[] {
@@ -27,24 +27,30 @@ export class ChatParser {
     const spacedClan = /^\[\*\*(?<from>[^\[\]]+?)\*\*\] \*\*private \[\*\* \*\*klan\*\* \*\*\]\*\* (?<text>.+)$/.exec(
       line,
     );
-    if (spacedClan?.groups) return { from: spacedClan.groups.from, to: ["klan"], text: spacedClan.groups.text };
+    if (spacedClan?.groups)
+      return { from: spacedClan.groups.from, to: ["klan"], text: spacedClan.groups.text, transport: ChatTransport.CLAN };
 
     const direct =
-      /^\[(?:\*\*(?<boldFrom>[^\[\]]+?)\*\*|(?<plainFrom>[^\[\]]+?))\] (?:(?:to)|(?:private)) \[(?<recipients>[^\]]+)\] (?<text>.+)$/.exec(
+      /^\[(?:\*\*(?<boldFrom>[^\[\]]+?)\*\*|(?<plainFrom>[^\[\]]+?))\] (?<transport>to|private) \[(?<recipients>[^\]]+)\] (?<text>.+)$/.exec(
         line,
       );
     if (direct?.groups) {
       const from = direct.groups.boldFrom ?? direct.groups.plainFrom;
       const to = direct.groups.recipients.split(",").map((recipient) => this.stripRecipientMarkup(recipient.trim()));
       if (!from || to.some((recipient) => !recipient)) return null;
-      return { from, to, text: direct.groups.text };
+      return {
+        from,
+        to,
+        text: direct.groups.text,
+        transport: direct.groups.transport === "to" ? ChatTransport.TO : ChatTransport.PRIVATE,
+      };
     }
 
     const publicMessage =
       /^\[(?:\*\*(?<boldFrom>[^\[\]]+?)\*\*|(?<plainFrom>[^\[\]]+?))\]\s*(?:,\s*)?(?<text>.+)$/.exec(line);
     if (!publicMessage?.groups) return null;
     const from = publicMessage.groups.boldFrom ?? publicMessage.groups.plainFrom;
-    return from ? { from, to: [], text: publicMessage.groups.text } : null;
+    return from ? { from, to: [], text: publicMessage.groups.text, transport: null } : null;
   }
 
   private stripClipboardPrefix(line: string): string {

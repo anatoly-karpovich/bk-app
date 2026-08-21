@@ -1,6 +1,9 @@
 export enum ChatTransport {
-  DIRECT = "direct",
+  TO = "to",
+  PRIVATE = "private",
   CLAN = "clan",
+  /** Retained for messages saved before direct deliveries were split into `to` and `private`. */
+  DIRECT = "direct",
 }
 
 export interface ParsedChatMessage {
@@ -9,4 +12,5 @@ export interface ParsedChatMessage {
   text: string;
   timestamp: string | null;
   sourceLineNumber: number;
+  transport: ChatTransport | null;
 }

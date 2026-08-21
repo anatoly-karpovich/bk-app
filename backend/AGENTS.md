@@ -443,7 +443,7 @@ Chat parsing is an input pipeline, not a frontend concern:
 
 - `ChatParser` parses raw text;
 - `QuizMessageCandidateFilter` limits messages to the host and allowed transports;
-- `ChatMessageDeduplicator` removes repeated messages;
+- every parsed quiz-message occurrence is retained, including exact repeats; stable message IDs distinguish separate occurrences when the chat is saved again;
 - `QuizSelectedAnswerPruner` removes selections invalidated by a chat replacement.
 
 Keep the raw editable chat and materialized source messages in persistence, but expose only the public workspace required by the host: raw text, update metadata, player groups, and safe message fields. Do not expose recipient lists, canonical deduplication keys, source-line numbers, or raw selected-answer records.

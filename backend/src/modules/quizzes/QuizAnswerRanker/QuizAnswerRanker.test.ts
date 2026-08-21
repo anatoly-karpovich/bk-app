@@ -12,7 +12,7 @@ const message = (id: string, from: string, timestamp: string | null, effectiveOr
   timestamp,
   effectiveOrder,
   sourceLineNumber: effectiveOrder,
-  transport: ChatTransport.DIRECT,
+  transport: ChatTransport.PRIVATE,
   canonicalKey: id,
 });
 

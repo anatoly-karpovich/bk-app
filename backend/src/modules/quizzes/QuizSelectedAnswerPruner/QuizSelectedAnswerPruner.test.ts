@@ -12,7 +12,7 @@ test("retains only selections that still belong to their player in the effective
     ],
     [{
       id: "alice", from: "Alice", to: ["Dark"], text: "Answer", timestamp: "21:00",
-      transport: ChatTransport.DIRECT, canonicalKey: "alice", sourceLineNumber: 1,
+      transport: ChatTransport.PRIVATE, canonicalKey: "alice", sourceLineNumber: 1,
       effectiveOrder: 1,
     }],
   );
