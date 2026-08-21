@@ -296,14 +296,9 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
                   playerName={playerName}
                   busy={busy}
                   canAddPlayer={access.canAddPlayer}
-                  canRemovePlayer={access.canRemovePlayer}
                   canStart={access.canStart}
                   onPlayerNameChange={setPlayerName}
                   onAddPlayer={() => void addPlayer()}
-                  onRemovePlayer={(player) => {
-                    setTargetPlayer(player);
-                    setConfirm("remove");
-                  }}
                   onStart={() => setConfirm("start")}
                 />
                 <Box sx={{ gridColumn: { lg: "span 2" } }}>

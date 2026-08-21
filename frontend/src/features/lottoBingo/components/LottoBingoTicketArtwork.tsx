@@ -29,14 +29,30 @@ export default function LottoBingoTicketArtwork({ player, candidate, size }: Pro
         mx: isDialog ? "auto" : undefined,
       }}
     >
-      <Box sx={{ display: "grid", gridTemplateColumns: `${isDialog ? 120 : 100}px auto`, gap: isDialog ? 1 : 1.25, width: "fit-content" }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: `${isDialog ? 120 : 100}px auto`,
+          gap: isDialog ? 1 : 1.25,
+          width: "fit-content",
+        }}
+      >
         <Stack alignItems="center" spacing={0} sx={{ minWidth: 0, height: "100%" }}>
           <Box sx={{ alignSelf: "stretch" }}>
             <LottoBingoTicketPlayerLabel nickname={player.nickname} fullWidth />
           </Box>
-          <Stack direction="row" spacing={isDialog ? 2.25 : 1.45} aria-hidden="true" sx={{ mt: isDialog ? 2 : 1.25, fontSize: isDialog ? "1.05rem" : "0.8rem", lineHeight: 1 }}>
+          <Stack
+            direction="row"
+            spacing={isDialog ? 2.25 : 1.45}
+            aria-hidden="true"
+            sx={{ mt: isDialog ? 2 : 1.25, fontSize: isDialog ? "1.05rem" : "0.8rem", lineHeight: 1 }}
+          >
             {[1, 2, 3].map((round) => (
-              <Box key={round} component="span" sx={{ color: wonRound !== null && round <= wonRound ? "#bd302b" : "#b8b8b8" }}>
+              <Box
+                key={round}
+                component="span"
+                sx={{ color: wonRound !== null && round <= wonRound ? "#bd302b" : "#b8b8b8" }}
+              >
                 {wonRound !== null && round <= wonRound ? "★" : "☆"}
               </Box>
             ))}
@@ -45,9 +61,20 @@ export default function LottoBingoTicketArtwork({ player, candidate, size }: Pro
             component="img"
             src={lottoBingoLogo}
             alt="Лото Бинго"
-            sx={{ mt: isDialog ? 2.25 : 1.5, width: isDialog ? 120 : 76, height: isDialog ? 120 : 76, objectFit: "cover", borderRadius: "50%", boxShadow: "0 2px 5px rgba(0,0,0,.22)" }}
+            sx={{
+              mt: isDialog ? 2.25 : 1.5,
+              width: isDialog ? 120 : 76,
+              height: isDialog ? 120 : 76,
+              objectFit: "cover",
+              borderRadius: "50%",
+              boxShadow: "0 2px 5px rgba(0,0,0,.22)",
+            }}
           />
-          <Typography variant={isDialog ? "body2" : "caption"} fontWeight={900} sx={{ mt: "auto", mb: isDialog ? 1.25 : 0.5, whiteSpace: "nowrap" }}>
+          <Typography
+            variant={isDialog ? "body2" : "caption"}
+            fontWeight={900}
+            sx={{ mt: "auto", mb: isDialog ? 1.25 : 0.5, whiteSpace: "nowrap" }}
+          >
             Билет № {player.ticket.number}
           </Typography>
         </Stack>
