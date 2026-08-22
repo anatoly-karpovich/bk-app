@@ -43,6 +43,12 @@
     "db:replace-game-configs-from-backup:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/replaceLocalGameConfigsFromBackup.ts",
     "db:migrate:auth-ownership": "tsx src/scripts/migrateAuthOwnership.ts",
     "db:migrate:auth-ownership:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migrateAuthOwnership.ts",
+    "db:migrate:players": "tsx src/scripts/migratePlayersFromGames.ts",
+    "db:migrate:players:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migratePlayersFromGames.ts",
+    "db:migrate:players:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migratePlayersFromGames.ts",
+    "db:migrate:player-aliases": "tsx src/scripts/migratePlayerAliasesToObjects.ts",
+    "db:migrate:player-aliases:local": "set \"BK_APP_ENV_FILE=.env.local\" && tsx src/scripts/migratePlayerAliasesToObjects.ts",
+    "db:migrate:player-aliases:prod": "set \"BK_APP_ENV_FILE=.env.prod\" && tsx src/scripts/migratePlayerAliasesToObjects.ts",
     "backup:prod": "npm run backup:restore-new-schema:prod -- --source backups\\db-data-projects --confirm-replace"
   },
   "dependencies": {
