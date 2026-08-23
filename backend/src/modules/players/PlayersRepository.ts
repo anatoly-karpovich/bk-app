@@ -10,7 +10,8 @@ export class PlayersRepository {
   async ensureIndexes(): Promise<void> {
     const collection = await this.getCollection();
     await Promise.all([
-      collection.createIndex({ projectId: 1, "aliases.key": 1 }, { unique: true }),
+      collection.createIndex({ projectId: 1, nicknameKey: 1 }, { unique: true }),
+      collection.createIndex({ projectId: 1, "aliases.key": 1 }),
       collection.createIndex({ projectId: 1, updatedAt: -1 }),
     ]);
   }
@@ -24,8 +25,8 @@ export class PlayersRepository {
     return (await this.getCollection()).findOne({ _id: new ObjectId(playerId), projectId });
   }
 
-  async findByProjectIdAndAliasKey(projectId: string, aliasKey: string): Promise<WithId<Player> | null> {
-    return (await this.getCollection()).findOne({ projectId, "aliases.key": aliasKey });
+  async findByProjectIdAndNicknameKey(projectId: string, nicknameKey: string): Promise<WithId<Player> | null> {
+    return (await this.getCollection()).findOne({ projectId, nicknameKey });
   }
 
   async create(player: Player): Promise<WithId<Player>> {
@@ -36,12 +37,12 @@ export class PlayersRepository {
   async upsertFromMigration(
     projectId: string,
     nickname: string,
-    aliasKey: string,
+    nicknameKey: string,
     aliases: PlayerAlias[],
     now: string,
   ): Promise<{ created: boolean }> {
     const collection = await this.getCollection();
-    const existing = await collection.findOne({ projectId, "aliases.key": aliasKey });
+    const existing = await collection.findOne({ projectId, nicknameKey });
     if (existing) {
       await this.addMigrationAliases(existing._id, aliases, now);
       return { created: false };
@@ -51,6 +52,7 @@ export class PlayersRepository {
       await collection.insertOne({
         projectId,
         nickname,
+        nicknameKey,
         aliases,
         createdAt: now,
         updatedAt: now,
@@ -58,7 +60,7 @@ export class PlayersRepository {
       return { created: true };
     } catch (error) {
       if (!(error instanceof MongoServerError) || error.code !== 11000) throw error;
-      const concurrentPlayer = await collection.findOne({ projectId, "aliases.key": aliasKey });
+      const concurrentPlayer = await collection.findOne({ projectId, nicknameKey });
       if (!concurrentPlayer) throw error;
       await this.addMigrationAliases(concurrentPlayer._id, aliases, now);
       return { created: false };
@@ -76,6 +78,11 @@ export class PlayersRepository {
 
   async deleteByProjectId(projectId: string): Promise<void> {
     await (await this.getCollection()).deleteMany({ projectId });
+  }
+
+  async delete(playerId: string, projectId: string): Promise<boolean> {
+    if (!ObjectId.isValid(playerId)) return false;
+    return (await (await this.getCollection()).deleteOne({ _id: new ObjectId(playerId), projectId })).deletedCount === 1;
   }
 
   private async getCollection() {

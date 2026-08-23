@@ -10,6 +10,7 @@ import type {
   LottoBingoMatchedAreaView,
   LottoBingoPlayer,
   LottoBingoPayoutCategory,
+  LottoBingoPlayerIdentity,
   LottoBingoRound,
   LottoBingoRules,
   LottoBingoTicketGrid,
@@ -60,10 +61,14 @@ export class LottoBingoEngine {
     return this.withAudit(game, options.hostSnapshot, "game_created", {});
   }
 
-  addPlayer(game: LottoBingoGame, nicknameInput: string, actor: HostSnapshot): LottoBingoGame {
+  addPlayer(game: LottoBingoGame, participant: LottoBingoPlayerIdentity, actor: HostSnapshot): LottoBingoGame {
     this.assertPreparing(game);
-    const nickname = nicknameInput.trim();
+    const nickname = participant.nickname.trim();
+    const playerRefId = participant.playerRefId.trim();
     if (!nickname) throw this.invalid("Player nickname is required");
+    if (!playerRefId) throw this.invalid("Player reference is required");
+    if (game.players.some((player) => player.playerRefId === playerRefId))
+      throw this.invalid(`Duplicate player reference "${playerRefId}"`);
     if (game.players.some((player) => player.nickname.toLocaleLowerCase("ru") === nickname.toLocaleLowerCase("ru")))
       throw this.invalid(`Duplicate player nickname "${nickname}"`);
     const existingKeys = new Set(game.players.map((player) => this.ticketKey(player.ticket.grid)));
@@ -79,6 +84,7 @@ export class LottoBingoEngine {
     const next = this.clone(game);
     const player: LottoBingoPlayer = {
       id: randomUUID(),
+      playerRefId,
       nickname,
       ticket: { number: next.nextTicketNumber, grid },
       status: "active",

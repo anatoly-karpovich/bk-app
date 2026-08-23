@@ -1,0 +1,1660 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Пульт ведущего — игры для чата</title>
+    <style>
+      :root {
+        --ink: #0e1720;
+        --panel: #152230;
+        --panel2: #1a2a3a;
+        --line: #27405a;
+        --brass: #c9a227;
+        --brass-dim: #8a7434;
+        --foam: #d5e6f0;
+        --mute: #7d97a8;
+        --hit: #e2552e;
+        --gold: #ffd45e;
+        --mine: #ff5470;
+        --sea: #3f6f8f;
+        --ok: #5fbf7a;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--ink);
+        color: var(--foam);
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 15px;
+        min-height: 100vh;
+        background-image: radial-gradient(ellipse at 50% -20%, #1a2c3d 0%, var(--ink) 60%);
+      }
+      header {
+        text-align: center;
+        padding: 16px 12px 0;
+      }
+      header h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: normal;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        font-size: 21px;
+        color: var(--brass);
+      }
+      header p {
+        color: var(--mute);
+        font-size: 12px;
+        letter-spacing: 0.15em;
+        margin-top: 4px;
+      }
+
+      /* ---- вкладки ---- */
+      .tabs {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin: 14px auto 0;
+        border-bottom: 1px solid var(--line);
+        max-width: 1150px;
+        padding: 0 14px;
+      }
+      .tab {
+        background: none;
+        border: 1px solid transparent;
+        border-bottom: none;
+        color: var(--mute);
+        padding: 10px 20px;
+        cursor: pointer;
+        font-family: Georgia, serif;
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        border-radius: 8px 8px 0 0;
+      }
+      .tab:hover {
+        color: var(--foam);
+      }
+      .tab.active {
+        color: var(--brass);
+        border-color: var(--line);
+        background: var(--panel);
+        position: relative;
+        top: 1px;
+      }
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+      }
+
+      .wrap {
+        max-width: 1150px;
+        margin: 0 auto;
+        padding: 18px 14px 40px;
+        display: grid;
+        grid-template-columns: 460px 1fr;
+        gap: 18px;
+      }
+      .wrap.single {
+        grid-template-columns: 1fr;
+        max-width: 760px;
+      }
+      @media (max-width: 980px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .card h2 {
+        font-family: Georgia, serif;
+        font-weight: normal;
+        font-size: 13px;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: var(--brass);
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 6px;
+      }
+
+      /* ---- поле морского боя ---- */
+      #board {
+        display: grid;
+        grid-template-columns: 28px repeat(7, 1fr);
+        gap: 3px;
+        user-select: none;
+      }
+      #board .hdr {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brass-dim);
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+      }
+      #board .cell {
+        aspect-ratio: 1;
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        cursor: pointer;
+        position: relative;
+        transition: border-color 0.12s;
+      }
+      #board .cell:hover {
+        border-color: var(--brass);
+      }
+      #board .cell.ship {
+        background: #23415a;
+      }
+      #board .cell.ship::after {
+        content: "▮";
+        color: #6f9cba;
+        font-size: 14px;
+      }
+      #board .cell.gold::after {
+        content: "💰";
+        font-size: 15px;
+      }
+      #board .cell.mine::after {
+        content: "✸";
+        color: var(--mine);
+        font-size: 15px;
+      }
+      #board .cell.miss {
+        background: #101d29;
+      }
+      #board .cell.miss::before {
+        content: "·";
+        color: var(--sea);
+        font-size: 22px;
+        position: absolute;
+      }
+      #board .cell.hitcell {
+        background: #5a2415;
+        border-color: var(--hit);
+      }
+      #board .cell.hitcell::after {
+        content: "🔥";
+        font-size: 14px;
+      }
+      #board .cell.goldhit {
+        background: #4d3d10;
+        border-color: var(--gold);
+      }
+      #board .cell.goldhit::after {
+        content: "💰";
+        font-size: 15px;
+        filter: drop-shadow(0 0 4px var(--gold));
+      }
+      #board .cell.mineblown {
+        background: #4d1220;
+        border-color: var(--mine);
+      }
+      #board .cell.mineblown::after {
+        content: "💥";
+        font-size: 15px;
+      }
+      #board .cell.sel {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 1px var(--gold);
+      }
+      .legend {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--mute);
+        line-height: 1.7;
+      }
+      .fleetstate {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--foam);
+      }
+      .fleetstate b {
+        color: var(--brass);
+      }
+
+      /* ---- игроки/чипы ---- */
+      .players {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .pchip {
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: border-color 0.12s;
+        line-height: 1.35;
+      }
+      .pchip:hover {
+        border-color: var(--brass-dim);
+      }
+      .pchip.active {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 1px var(--gold);
+      }
+      .pchip .nick {
+        font-weight: 600;
+        color: var(--foam);
+      }
+      .pchip .stats {
+        color: var(--mute);
+        font-family: Consolas, monospace;
+        font-size: 12px;
+      }
+      .pchip.dead {
+        opacity: 0.45;
+      }
+      .pchip .del {
+        color: var(--mine);
+        margin-left: 6px;
+        font-size: 11px;
+      }
+      .addrow {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      /* ---- ввод/кнопки ---- */
+      input[type="text"],
+      textarea,
+      select {
+        background: #0c1520;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--foam);
+        padding: 9px 11px;
+        font-size: 15px;
+        font-family: Consolas, "Courier New", monospace;
+        width: 100%;
+      }
+      input[type="text"]:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--brass);
+      }
+      select {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      button {
+        background: var(--panel2);
+        border: 1px solid var(--brass-dim);
+        color: var(--brass);
+        border-radius: 6px;
+        padding: 9px 14px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        text-transform: uppercase;
+        font-family: inherit;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
+        white-space: nowrap;
+      }
+      button:hover {
+        background: #22364a;
+        border-color: var(--brass);
+      }
+      button.primary {
+        background: var(--brass);
+        color: #1a1508;
+        border-color: var(--brass);
+        font-weight: 700;
+      }
+      button.primary:hover {
+        background: var(--gold);
+        border-color: var(--gold);
+      }
+      button.ghost {
+        border-color: var(--line);
+        color: var(--mute);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .fire-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .fire-row input {
+        flex: 1;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--mute);
+        margin-top: 8px;
+        line-height: 1.6;
+      }
+      .hint b {
+        color: var(--brass-dim);
+      }
+
+      /* ---- сигнальная лента (ответ) ---- */
+      .strip {
+        margin-top: 14px;
+        border: 1px solid var(--brass-dim);
+        border-radius: 6px;
+        background: #0c1520;
+        overflow: hidden;
+      }
+      .strip .striplabel {
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--brass-dim);
+        padding: 6px 12px 0;
+      }
+      .strip .striptext {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 15px;
+        padding: 8px 12px 10px;
+        min-height: 44px;
+        color: var(--foam);
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+      .strip .stripbar {
+        display: flex;
+        gap: 8px;
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        border-top: 1px dashed var(--line);
+        background: var(--panel2);
+      }
+      .copied {
+        color: var(--ok) !important;
+        border-color: var(--ok) !important;
+      }
+
+      /* ---- лог ---- */
+      .log {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12.5px;
+        color: var(--mute);
+        max-height: 210px;
+        overflow-y: auto;
+        line-height: 1.75;
+      }
+      .log .lhit {
+        color: var(--hit);
+      }
+      .log .lgold {
+        color: var(--gold);
+      }
+      .log .lmine {
+        color: var(--mine);
+      }
+      .log .lok {
+        color: var(--ok);
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .banner {
+        display: none;
+        margin-top: 12px;
+        border: 1px solid var(--gold);
+        border-radius: 6px;
+        padding: 10px 12px;
+        color: var(--gold);
+        font-family: Georgia, serif;
+        letter-spacing: 0.1em;
+        text-align: center;
+      }
+      .banner.show {
+        display: block;
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      /* ---- секрет (быки/анаграммы) ---- */
+      .secretbox {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .secret {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 34px;
+        letter-spacing: 0.35em;
+        color: var(--gold);
+        background: #0c1520;
+        border: 1px solid var(--brass-dim);
+        border-radius: 6px;
+        padding: 8px 14px 8px 20px;
+      }
+      .secret.blur {
+        filter: blur(9px);
+        cursor: pointer;
+      }
+      .secret.small {
+        font-size: 24px;
+        letter-spacing: 0.2em;
+      }
+      .subline {
+        font-size: 12px;
+        color: var(--mute);
+        margin-top: 8px;
+      }
+      .shuffled {
+        font-family: Consolas, monospace;
+        font-size: 26px;
+        letter-spacing: 0.25em;
+        color: var(--foam);
+        margin-top: 10px;
+      }
+      .rowflex {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .rowflex > * {
+        flex: 0 0 auto;
+      }
+      .rowflex input {
+        flex: 1 1 120px;
+      }
+      details {
+        margin-top: 12px;
+      }
+      details summary {
+        cursor: pointer;
+        color: var(--mute);
+        font-size: 13px;
+      }
+      textarea {
+        min-height: 70px;
+        resize: vertical;
+        margin-top: 8px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>⚓ Пульт ведущего</h1>
+      <p>ИГРЫ ДЛЯ ЧАТА · ОТВЕТ ВСЕГДА ОДНОЙ СТРОКОЙ</p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showPage('bs', this)">⚓ Морская охота</button>
+      <button class="tab" onclick="showPage('bk', this)">🐂 Быки и коровы</button>
+      <button class="tab" onclick="showPage('an', this)">🔤 Анаграммы</button>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- =============== МОРСКАЯ ОХОТА ==================== -->
+    <!-- ================================================== -->
+    <div class="page active" id="page-bs">
+      <div class="wrap">
+        <div class="stack">
+          <div class="card">
+            <h2>Скрытое поле (видит только ведущий)</h2>
+            <div id="board"></div>
+            <div class="fleetstate" id="fleetstate"></div>
+            <div class="legend">
+              ▮ палуба корабля · 💰 золотой корабль (+5) · ✸ мина (−2 выстрела)<br />
+              🔥 попадание · 💥 подорванная мина · · промах
+            </div>
+            <div class="toolbar">
+              <button onclick="newGame()">⟳ Новая игра</button>
+              <button class="ghost" onclick="undo()">↶ Отменить ход</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Журнал</h2>
+            <div class="log" id="log"></div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card">
+            <h2>Стрелки (максимум 2)</h2>
+            <div class="players" id="players"></div>
+            <div class="hint">
+              Игроки добавляются сами из вставленных сообщений. Клик по игроку — выбрать вручную, клик по <b>×</b> —
+              убрать и освободить место.
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Выстрел</h2>
+            <div class="fire-row">
+              <input
+                type="text"
+                id="cellinput"
+                placeholder="вставь сообщение из чата, напр. 18:27 [boto] а4"
+                onkeydown="if (event.key === 'Enter') fire();"
+              />
+              <button class="primary" onclick="fire()">🔥 Огонь</button>
+            </div>
+            <div class="hint">
+              Скопируй строку игрока из чата и вставь целиком — ник возьмётся из первых <b>[скобок]</b>, адресат «to
+              [...]» игнорируется. Новый ник добавится сам (не больше двух стрелков за раз). Можно и по-старому:
+              кликнуть игрока + клетку на поле или вбить просто <b>Б4</b>. Латиница понимается:
+              <b>A=А, B=Б, C=В, D=Г, E=Д, F=Е, G=Ж</b>.
+            </div>
+
+            <div class="strip">
+              <div class="striplabel">Ответ для чата</div>
+              <div class="striptext" id="response">—</div>
+              <div class="stripbar">
+                <button class="primary" id="copybtn" onclick="copyResponse()">📋 Скопировать</button>
+                <button class="ghost" onclick="copyRules(this)">Правила для чата</button>
+                <button class="ghost" onclick="copyScore(this)">Текущий счёт</button>
+              </div>
+            </div>
+
+            <div class="banner" id="banner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- =============== БЫКИ И КОРОВЫ ==================== -->
+    <!-- ================================================== -->
+    <div class="page" id="page-bk">
+      <div class="wrap single">
+        <div class="stack">
+          <div class="card">
+            <h2>Загаданное число (видит только ведущий)</h2>
+            <div class="secretbox">
+              <div
+                class="secret blur"
+                id="bk-secret"
+                onclick="this.classList.toggle('blur')"
+                title="клик — показать/скрыть"
+              >
+                ····
+              </div>
+              <button onclick="bkNew()">⟳ Новое число</button>
+            </div>
+            <div class="subline">
+              4 разные цифры, без нуля в начале. Клик по числу — размыть/показать (чтобы не спалить на стриме).
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Попытка игрока</h2>
+            <div class="rowflex">
+              <input
+                type="text"
+                id="bk-guess"
+                placeholder="вставь сообщение, напр. 18:27 [boto] 3591"
+                onkeydown="if (event.key === 'Enter') bkGuess();"
+              />
+              <button class="primary" onclick="bkGuess()">Проверить</button>
+            </div>
+            <div class="hint">
+              Вставь строку из чата целиком — ник возьмётся из первых <b>[скобок]</b>, «to [...]» игнорируется. Можно и
+              просто число: <b>3591</b> — тогда попытка запишется последнему игроку. <b>Бык</b> — цифра есть и на своём
+              месте, <b>корова</b> — цифра есть, но не там.
+            </div>
+
+            <div class="strip">
+              <div class="striplabel">Ответ для чата</div>
+              <div class="striptext" id="bk-response">—</div>
+              <div class="stripbar">
+                <button class="primary" onclick="copyEl('bk-response', this)">📋 Скопировать</button>
+                <button class="ghost" onclick="bkRules(this)">Правила для чата</button>
+                <button class="ghost" onclick="bkReveal()">Сдаёмся (показать ответ)</button>
+              </div>
+            </div>
+            <div class="banner" id="bk-banner"></div>
+          </div>
+
+          <div class="card">
+            <h2>Журнал попыток</h2>
+            <div class="log" id="bk-log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- ================== АНАГРАММЫ ===================== -->
+    <!-- ================================================== -->
+    <div class="page" id="page-an">
+      <div class="wrap single">
+        <div class="stack">
+          <div class="card">
+            <h2>Слово (видит только ведущий)</h2>
+            <div class="secretbox">
+              <div
+                class="secret small blur"
+                id="an-secret"
+                onclick="this.classList.toggle('blur')"
+                title="клик — показать/скрыть"
+              >
+                —
+              </div>
+              <select id="an-level" style="max-width: 220px" onchange="anNothing()">
+                <option value="easy">Лёгкие (4–5 букв)</option>
+                <option value="mid" selected>Средние (6–7 букв)</option>
+                <option value="hard">Сложные (8+ букв)</option>
+                <option value="all">Вперемешку</option>
+                <option value="custom">Только мои слова</option>
+              </select>
+              <button class="primary" onclick="anNext()">▶ Следующее слово</button>
+            </div>
+            <div class="shuffled" id="an-shuffled"></div>
+            <div class="subline">Кнопка «Следующее слово» сразу кладёт анаграмму в буфер — просто вставь в чат.</div>
+            <details>
+              <summary>➕ Свои слова (например, термины ОБК)</summary>
+              <textarea
+                id="an-custom"
+                placeholder="слова через запятую или с новой строки: паладин, эликсир, клановая..."
+              ></textarea>
+            </details>
+          </div>
+
+          <div class="card">
+            <h2>Кто угадал</h2>
+            <div class="rowflex">
+              <input
+                type="text"
+                id="an-nick"
+                placeholder="ник угадавшего"
+                style="max-width: 220px"
+                onkeydown="if (event.key === 'Enter') anWin();"
+              />
+              <button class="primary" onclick="anWin()">✅ Засчитать</button>
+              <button class="ghost" onclick="anHint()">Подсказка в чат</button>
+              <button class="ghost" onclick="anReveal()">Никто не угадал</button>
+            </div>
+            <div class="hint">
+              «Засчитать» даёт игроку +10 фишек, кладёт в буфер готовую строку и сразу выдаёт следующее слово.
+            </div>
+
+            <div class="strip">
+              <div class="striplabel">Ответ для чата</div>
+              <div class="striptext" id="an-response">—</div>
+              <div class="stripbar">
+                <button class="primary" onclick="copyEl('an-response', this)">📋 Скопировать</button>
+                <button class="ghost" onclick="anRules(this)">Правила для чата</button>
+                <button class="ghost" onclick="anScore(this)">Текущий счёт</button>
+                <button class="ghost" onclick="anResetScore()">Сбросить счёт</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Счёт раунда</h2>
+            <div class="players" id="an-players"></div>
+            <div style="margin-top: 10px"><h2 style="margin-top: 6px">Журнал</h2></div>
+            <div class="log" id="an-log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ==================================================== */
+      /* =================== ОБЩЕЕ ========================== */
+      /* ==================================================== */
+
+      function showPage(id, btn) {
+        document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+        document.getElementById("page-" + id).classList.add("active");
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        btn.classList.add("active");
+      }
+
+      function copyText(text, btn) {
+        const done = () => {
+          if (!btn) return;
+          const old = btn.textContent;
+          btn.classList.add("copied");
+          btn.textContent = "✓ Скопировано";
+          setTimeout(() => {
+            btn.classList.remove("copied");
+            btn.textContent = old;
+          }, 1200);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(text)
+            .then(done)
+            .catch(() => fallbackCopy(text, done));
+        } else fallbackCopy(text, done);
+      }
+      function fallbackCopy(text, done) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+        } catch (e) {}
+        document.body.removeChild(ta);
+        done();
+      }
+      function copyEl(id, btn) {
+        const t = document.getElementById(id).textContent;
+        if (t && t !== "—") copyText(t, btn);
+      }
+      function escapeHtml(s) {
+        return s.replace(
+          /[&<>"']/g,
+          (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m],
+        );
+      }
+      function plural(n, one, few, many) {
+        const m = n % 100,
+          d = n % 10;
+        if (m >= 11 && m <= 14) return many;
+        if (d === 1) return one;
+        if (d >= 2 && d <= 4) return few;
+        return many;
+      }
+      function shuffleArr(a) {
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      /* ==================================================== */
+      /* ================ МОРСКАЯ ОХОТА ===================== */
+      /* ==================================================== */
+
+      const SIZE = 7;
+      const COLS = ["А", "Б", "В", "Г", "Д", "Е", "Ж"];
+      const LAT = ["A", "B", "C", "D", "E", "F", "G"];
+      const AMMO_START = 10;
+      const MINE_COUNT = 3;
+      const MINE_PENALTY = 2;
+      const SINK_BONUS = 2;
+      const GOLD_POINTS = 5;
+      const FLEET = [3, 3, 2, 2, 1, 1, 1];
+      const MAX_PLAYERS = 2;
+
+      let state = null;
+      let selectedPlayer = null;
+      let history = [];
+
+      function emptyBoard() {
+        const b = [];
+        for (let r = 0; r < SIZE; r++) {
+          b.push([]);
+          for (let c = 0; c < SIZE; c++) b[r].push({ ship: null, gold: false, mine: false, opened: false });
+        }
+        return b;
+      }
+      function neighbors8(r, c) {
+        const out = [];
+        for (let dr = -1; dr <= 1; dr++)
+          for (let dc = -1; dc <= 1; dc++) {
+            if (!dr && !dc) continue;
+            const nr = r + dr,
+              nc = c + dc;
+            if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) out.push([nr, nc]);
+          }
+        return out;
+      }
+      function canPlace(board, r, c, len, horiz) {
+        for (let i = 0; i < len; i++) {
+          const rr = horiz ? r : r + i,
+            cc = horiz ? c + i : c;
+          if (rr >= SIZE || cc >= SIZE) return false;
+          if (board[rr][cc].ship !== null) return false;
+          for (const [nr, nc] of neighbors8(rr, cc)) if (board[nr][nc].ship !== null) return false;
+        }
+        return true;
+      }
+      function generate() {
+        for (let attempt = 0; attempt < 200; attempt++) {
+          const board = emptyBoard();
+          const ships = [];
+          let ok = true;
+          for (let s = 0; s < FLEET.length; s++) {
+            const len = FLEET[s];
+            let placed = false;
+            for (let t = 0; t < 300; t++) {
+              const horiz = Math.random() < 0.5;
+              const r = Math.floor(Math.random() * SIZE);
+              const c = Math.floor(Math.random() * SIZE);
+              if (canPlace(board, r, c, len, horiz)) {
+                const cells = [];
+                for (let i = 0; i < len; i++) {
+                  const rr = horiz ? r : r + i,
+                    cc = horiz ? c + i : c;
+                  board[rr][cc].ship = s;
+                  cells.push([rr, cc]);
+                }
+                ships.push({ size: len, cells, hits: 0, sunk: false, gold: false });
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) {
+              ok = false;
+              break;
+            }
+          }
+          if (!ok) continue;
+          const singles = ships.filter((s) => s.size === 1);
+          const g = singles[Math.floor(Math.random() * singles.length)];
+          g.gold = true;
+          const [gr, gc] = g.cells[0];
+          board[gr][gc].gold = true;
+          let mines = 0,
+            guard = 0;
+          while (mines < MINE_COUNT && guard++ < 500) {
+            const r = Math.floor(Math.random() * SIZE);
+            const c = Math.floor(Math.random() * SIZE);
+            if (board[r][c].ship === null && !board[r][c].mine) {
+              board[r][c].mine = true;
+              mines++;
+            }
+          }
+          return { board, ships };
+        }
+        alert("Не удалось расставить корабли, попробуй ещё раз");
+        return null;
+      }
+
+      function newGame() {
+        const g = generate();
+        if (!g) return;
+        const keepPlayers = state ? state.players.map((p) => ({ nick: p.nick, ammo: AMMO_START, score: 0 })) : [];
+        state = {
+          board: g.board,
+          ships: g.ships,
+          players: keepPlayers,
+          log: [],
+          over: false,
+        };
+        history = [];
+        selectedPlayer = state.players.length ? state.players[0].nick : null;
+        setResponse("—");
+        document.getElementById("banner").className = "banner";
+        addLog("— новая игра, поле сгенерировано —");
+        renderAll();
+      }
+
+      function snapshot() {
+        history.push(JSON.stringify({ state, selectedPlayer }));
+        if (history.length > 30) history.shift();
+      }
+      function undo() {
+        if (!history.length) return;
+        const snap = JSON.parse(history.pop());
+        state = snap.state;
+        selectedPlayer = snap.selectedPlayer;
+        document.getElementById("banner").className = state.over ? "banner show" : "banner";
+        setResponse("— ход отменён —");
+        renderAll();
+      }
+
+      /* разбор сообщения из чата:
+   "18:27 [boto] to [Остап Бендер] а4"  → ник boto, payload "а4"
+   "18:27 [boto] а4"                    → ник boto, payload "а4"
+   "б4"                                 → ник null, payload "б4" */
+      function parseChatMsg(str) {
+        str = str.trim();
+        const m = str.match(/\[([^\]]+)\]/);
+        if (!m) return { nick: null, payload: str };
+        const nick = m[1].trim();
+        const lastBracket = str.lastIndexOf("]");
+        const payload = str.slice(lastBracket + 1).trim();
+        return { nick, payload };
+      }
+
+      // находит игрока по нику или добавляет нового (максимум MAX_PLAYERS). null = мест нет
+      function ensurePlayer(nick) {
+        let p = state.players.find((x) => x.nick.toLowerCase() === nick.toLowerCase());
+        if (p) return p;
+        if (state.players.length >= MAX_PLAYERS) return null;
+        p = { nick, ammo: AMMO_START, score: 0 };
+        state.players.push(p);
+        addLog(`+ игрок ${nick} (${AMMO_START} выстрелов)`);
+        return p;
+      }
+
+      function removePlayer(nick, ev) {
+        ev.stopPropagation();
+        if (!confirm(`Убрать игрока ${nick}?`)) return;
+        snapshot();
+        state.players = state.players.filter((p) => p.nick !== nick);
+        if (selectedPlayer === nick) selectedPlayer = state.players.length ? state.players[0].nick : null;
+        renderAll();
+      }
+      function selectPlayer(nick) {
+        selectedPlayer = nick;
+        renderPlayers();
+        document.getElementById("cellinput").focus();
+      }
+
+      function parseCell(str) {
+        str = (str || "").toUpperCase();
+        // ищем пару буква+цифра в любом порядке, лишние символы игнорируем
+        let col = -1,
+          row = -1;
+        for (const ch of str) {
+          if (col < 0) {
+            let i = COLS.indexOf(ch);
+            if (i < 0) i = LAT.indexOf(ch);
+            if (i >= 0) {
+              col = i;
+              continue;
+            }
+          }
+          if (row < 0 && ch >= "1" && ch <= "7") {
+            row = parseInt(ch) - 1;
+          }
+          if (col >= 0 && row >= 0) break;
+        }
+        if (col < 0 || row < 0) return null;
+        return { r: row, c: col };
+      }
+      function cellName(r, c) {
+        return COLS[c] + (r + 1);
+      }
+
+      function fire() {
+        if (!state || state.over) {
+          flashResp("Игра окончена — жми «Новая игра»");
+          return;
+        }
+        const inp = document.getElementById("cellinput");
+        const msg = parseChatMsg(inp.value);
+        const cell = parseCell(msg.payload);
+        if (!cell) {
+          flashResp("Не нашёл клетку в сообщении. Нужна буква А–Ж + цифра 1–7, напр. Б4");
+          return;
+        }
+
+        snapshot();
+        let player;
+        if (msg.nick) {
+          player = ensurePlayer(msg.nick);
+          if (!player) {
+            history.pop();
+            flashResp(
+              `Уже два стрелка: ${state.players.map((p) => p.nick).join(", ")}. Убери одного (×), чтобы впустить ${msg.nick}`,
+            );
+            return;
+          }
+          selectedPlayer = player.nick;
+        } else {
+          player = state.players.find((p) => p.nick === selectedPlayer);
+          if (!player) {
+            history.pop();
+            flashResp("Не понял, кто стреляет — вставь сообщение с [ником] или выбери игрока кликом");
+            return;
+          }
+        }
+        const { r, c } = cell;
+        const sq = state.board[r][c];
+        const name = cellName(r, c);
+
+        if (player.ammo <= 0) {
+          history.pop();
+          flashResp(`У игрока ${player.nick} закончились выстрелы`);
+          renderAll();
+          return;
+        }
+        if (sq.opened) {
+          history.pop();
+          setResponse(`⚓ ${player.nick}, ${name} уже открыта — выбери другую клетку!`);
+          autoCopy();
+          inp.value = "";
+          inp.focus();
+          renderAll();
+          return;
+        }
+
+        sq.opened = true;
+        player.ammo--;
+
+        let resp = "",
+          logCls = "";
+
+        if (sq.mine) {
+          const lost = Math.min(MINE_PENALTY, player.ammo);
+          player.ammo -= lost;
+          resp = `⚓ ${player.nick}, ${name} — 💥 МИНА! −${MINE_PENALTY} выстрела`;
+          logCls = "lmine";
+        } else if (sq.ship !== null) {
+          const ship = state.ships[sq.ship];
+          ship.hits++;
+          if (ship.gold) {
+            ship.sunk = true;
+            player.score += GOLD_POINTS;
+            resp = `⚓ ${player.nick}, ${name} — 💰 ЗОЛОТОЙ КОРАБЛЬ! (+${GOLD_POINTS} очков)`;
+            logCls = "lgold";
+          } else if (ship.hits >= ship.size) {
+            ship.sunk = true;
+            const pts = 1 + SINK_BONUS;
+            player.score += pts;
+            resp = `⚓ ${player.nick}, ${name} — 🔥💀 ПОПАЛ И ПОТОПИЛ ${shipWord(ship.size)}! (+${pts} очка)`;
+            logCls = "lhit";
+          } else {
+            player.score += 1;
+            resp = `⚓ ${player.nick}, ${name} — 🔥 ПОПАЛ! (+1 очко)`;
+            logCls = "lhit";
+          }
+        } else {
+          // промах: эхолот — фонят палубы непотопленных кораблей и неподорванные мины рядом
+          const ping = neighbors8(r, c).some(([nr, nc]) => {
+            const n = state.board[nr][nc];
+            if (n.mine && !n.opened) return true;
+            if (n.ship !== null && !state.ships[n.ship].sunk) return true;
+            return false;
+          });
+          resp = ping
+            ? `⚓ ${player.nick}, ${name} — 🌊 мимо, но 📡 сонар пищит: рядом что-то есть!`
+            : `⚓ ${player.nick}, ${name} — 🌊 мимо, пусто.`;
+        }
+
+        resp += ` [выстрелов: ${player.ammo}]`;
+        addLog(`${player.nick} → ${name}: ${resp.split("—")[1] || ""}`, logCls);
+
+        const allSunk = state.ships.every((s) => s.sunk);
+        const allDry = state.players.length > 0 && state.players.every((p) => p.ammo <= 0);
+        if (allSunk || allDry) {
+          state.over = true;
+          resp += "\n" + finalTable(allSunk);
+          const b = document.getElementById("banner");
+          b.textContent = allSunk ? "🏁 Флот уничтожен — игра окончена" : "🏁 Патроны кончились — игра окончена";
+          b.className = "banner show";
+          addLog("— игра окончена —");
+        }
+
+        setResponse(resp);
+        autoCopy();
+        inp.value = "";
+        inp.focus();
+        renderAll();
+      }
+
+      function shipWord(size) {
+        return size === 3 ? "трёхпалубник" : size === 2 ? "двухпалубник" : "однопалубник";
+      }
+
+      function finalTable(allSunk) {
+        const sorted = [...state.players].sort((a, b) => b.score - a.score);
+        let s = allSunk ? "🏁 ВЕСЬ ФЛОТ УНИЧТОЖЕН! Итоги: " : "🏁 ИГРА ОКОНЧЕНА! Итоги: ";
+        s += sorted.map((p, i) => `${i + 1}. ${p.nick} — ${p.score}`).join(", ");
+        if (sorted.length && (sorted.length === 1 || sorted[0].score > sorted[1].score))
+          s += `. 👑 Победитель: ${sorted[0].nick}!`;
+        return s;
+      }
+
+      function copyResponse() {
+        const t = document.getElementById("response").textContent;
+        if (t && t !== "—") copyText(t, document.getElementById("copybtn"));
+      }
+      function autoCopy() {
+        copyResponse();
+      }
+
+      function copyRules(btn) {
+        const rules =
+          `🎯 МОРСКАЯ ОХОТА! Общее поле 7×7 (буквы А–Ж, цифры 1–7). У каждого игрока ${AMMO_START} выстрелов. ` +
+          `На поле: два трёхпалубника, два двухпалубника, три однопалубника, один из них — 💰 ЗОЛОТОЙ (+${GOLD_POINTS} очков), и ${MINE_COUNT} мины 💥 (−${MINE_PENALTY} выстрела). ` +
+          `Корабли НЕ соприкасаются друг с другом даже углами, а вот мины могут стоять где угодно — хоть вплотную к кораблю! ` +
+          `Попадание +1 очко, потопил корабль — ещё +${SINK_BONUS}. ` +
+          `При промахе работает сонар 📡: «рядом что-то есть» = в соседних клетках корабль или мина (мины тоже фонят!). ` +
+          `Стреляем так: пишем клетку в чат, например Б4. Кто наберёт больше очков — тот и победил! Огонь! 🔥`;
+        copyText(rules, btn);
+      }
+      function copyScore(btn) {
+        if (!state.players.length) {
+          copyText("Игроков пока нет", btn);
+          return;
+        }
+        const sorted = [...state.players].sort((a, b) => b.score - a.score);
+        const s = "📊 Счёт: " + sorted.map((p) => `${p.nick} — ${p.score} (выстрелов: ${p.ammo})`).join(", ");
+        copyText(s, btn);
+      }
+
+      function setResponse(t) {
+        document.getElementById("response").textContent = t;
+      }
+      function flashResp(t) {
+        setResponse("⚠ " + t);
+      }
+      function addLog(text, cls) {
+        state.log.push({ text, cls: cls || "" });
+      }
+
+      function renderAll() {
+        renderBoard();
+        renderPlayers();
+        renderLog();
+        renderFleet();
+      }
+
+      function renderBoard() {
+        const el = document.getElementById("board");
+        el.innerHTML = "";
+        el.appendChild(hdr(""));
+        for (let c = 0; c < SIZE; c++) el.appendChild(hdr(COLS[c]));
+        for (let r = 0; r < SIZE; r++) {
+          el.appendChild(hdr(String(r + 1)));
+          for (let c = 0; c < SIZE; c++) {
+            const sq = state.board[r][c];
+            const d = document.createElement("div");
+            d.className = "cell";
+            if (!sq.opened) {
+              if (sq.mine) d.classList.add("mine");
+              else if (sq.gold) d.classList.add("gold");
+              else if (sq.ship !== null) d.classList.add("ship");
+            } else {
+              if (sq.mine) d.classList.add("mineblown");
+              else if (sq.gold) d.classList.add("goldhit");
+              else if (sq.ship !== null) d.classList.add("hitcell");
+              else d.classList.add("miss");
+            }
+            d.title = cellName(r, c);
+            d.onclick = () => {
+              document.getElementById("cellinput").value = cellName(r, c);
+              document.querySelectorAll("#board .cell.sel").forEach((x) => x.classList.remove("sel"));
+              d.classList.add("sel");
+            };
+            el.appendChild(d);
+          }
+        }
+      }
+      function hdr(t) {
+        const d = document.createElement("div");
+        d.className = "hdr";
+        d.textContent = t;
+        return d;
+      }
+
+      function renderFleet() {
+        const alive = state.ships.filter((s) => !s.sunk);
+        const parts = [];
+        const c3 = alive.filter((s) => s.size === 3).length;
+        const c2 = alive.filter((s) => s.size === 2).length;
+        const c1 = alive.filter((s) => s.size === 1 && !s.gold).length;
+        const cg = alive.filter((s) => s.gold).length;
+        if (c3) parts.push(c3 > 1 ? `трёхпалубники ×${c3}` : `трёхпалубник ×1`);
+        if (c2) parts.push(`двухпалубники ×${c2}`);
+        if (c1) parts.push(`однопалубники ×${c1}`);
+        if (cg) parts.push(`💰 золотой`);
+        const minesLeft = state.board.flat().filter((q) => q.mine && !q.opened).length;
+        document.getElementById("fleetstate").innerHTML = parts.length
+          ? `На плаву: <b>${parts.join(", ")}</b> · мин осталось: <b>${minesLeft}</b>`
+          : `<b>Флот уничтожен полностью</b>`;
+      }
+
+      function renderPlayers() {
+        const el = document.getElementById("players");
+        el.innerHTML = "";
+        if (!state.players.length) {
+          el.innerHTML =
+            '<span style="color:var(--mute);font-size:13px;">Добавь игроков — счёт и патроны считаются автоматически.</span>';
+          return;
+        }
+        for (const p of state.players) {
+          const d = document.createElement("div");
+          d.className = "pchip" + (p.nick === selectedPlayer ? " active" : "") + (p.ammo <= 0 ? " dead" : "");
+          d.innerHTML = `<span class="nick">${escapeHtml(p.nick)}</span><span class="del" title="убрать">×</span><br>
+      <span class="stats">🔫 ${p.ammo} · ⭐ ${p.score}</span>`;
+          d.onclick = () => selectPlayer(p.nick);
+          d.querySelector(".del").onclick = (ev) => removePlayer(p.nick, ev);
+          el.appendChild(d);
+        }
+      }
+
+      function renderLog() {
+        const el = document.getElementById("log");
+        el.innerHTML = state.log
+          .slice()
+          .reverse()
+          .map((l) => `<div class="${l.cls}">${escapeHtml(l.text)}</div>`)
+          .join("");
+      }
+
+      /* ==================================================== */
+      /* ================ БЫКИ И КОРОВЫ ===================== */
+      /* ==================================================== */
+
+      let bk = { secret: "", over: false, attempts: {}, log: [] };
+
+      function bkNew() {
+        // 4 разные цифры, первая не 0
+        const digits = shuffleArr([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        if (digits[0] === 0) {
+          const i = 1 + Math.floor(Math.random() * 9);
+          [digits[0], digits[i]] = [digits[i], digits[0]];
+        }
+        bk.secret = digits.slice(0, 4).join("");
+        bk.over = false;
+        bk.attempts = {};
+        bk.log = [];
+        bkLog("— новое число загадано —");
+        const s = document.getElementById("bk-secret");
+        s.textContent = bk.secret;
+        s.classList.add("blur");
+        document.getElementById("bk-banner").className = "banner";
+        bkSetResp("—");
+        bkRenderLog();
+      }
+
+      function bkSetResp(t) {
+        document.getElementById("bk-response").textContent = t;
+      }
+      function bkLog(text, cls) {
+        bk.log.push({ text, cls: cls || "" });
+      }
+      function bkRenderLog() {
+        const el = document.getElementById("bk-log");
+        el.innerHTML = bk.log
+          .slice()
+          .reverse()
+          .map((l) => `<div class="${l.cls}">${escapeHtml(l.text)}</div>`)
+          .join("");
+      }
+
+      function bkGuess() {
+        if (bk.over) {
+          bkSetResp("⚠ Число уже угадано — жми «Новое число»");
+          return;
+        }
+        const gEl = document.getElementById("bk-guess");
+        const msg = parseChatMsg(gEl.value);
+        if (msg.nick) bk.lastNick = msg.nick;
+        const nick = msg.nick || bk.lastNick || "Игрок";
+        const dm = msg.payload.match(/\d{4}/);
+        if (!dm) {
+          bkSetResp("⚠ Не нашёл в сообщении число из 4 цифр");
+          return;
+        }
+        const guess = dm[0];
+        if (new Set(guess).size !== 4) {
+          const resp = `🐂 ${nick}, в числе ${guess} есть повторы — все 4 цифры должны быть разными!`;
+          bkSetResp(resp);
+          copyText(resp, null);
+          gEl.value = "";
+          gEl.focus();
+          return;
+        }
+
+        bk.attempts[nick] = (bk.attempts[nick] || 0) + 1;
+        let bulls = 0,
+          cows = 0;
+        for (let i = 0; i < 4; i++) {
+          if (guess[i] === bk.secret[i]) bulls++;
+          else if (bk.secret.includes(guess[i])) cows++;
+        }
+
+        let resp;
+        if (bulls === 4) {
+          bk.over = true;
+          const att = bk.attempts[nick];
+          resp = `🏆 ${nick} УГАДАЛ! Это было число ${bk.secret}! (попытка №${att})`;
+          const b = document.getElementById("bk-banner");
+          b.textContent = `🏆 ${nick} угадал число ${bk.secret}`;
+          b.className = "banner show";
+          bkLog(`${nick}: ${guess} — УГАДАЛ!`, "lgold");
+        } else {
+          resp = `🐂 ${nick}, ${guess} — ${bulls} ${plural(bulls, "бык", "быка", "быков")}, ${cows} ${plural(cows, "корова", "коровы", "коров")}`;
+          bkLog(`${nick}: ${guess} — ${bulls}б ${cows}к`);
+        }
+
+        bkSetResp(resp);
+        copyText(resp, null);
+        gEl.value = "";
+        gEl.focus();
+        bkRenderLog();
+      }
+
+      function bkReveal() {
+        if (!bk.secret) return;
+        bk.over = true;
+        const resp = `😈 Никто не угадал! Загадано было число ${bk.secret}`;
+        bkSetResp(resp);
+        copyText(resp, null);
+        bkLog(`— раскрыт ответ: ${bk.secret} —`, "lmine");
+        bkRenderLog();
+      }
+
+      function bkRules(btn) {
+        const rules =
+          `🐂 БЫКИ И КОРОВЫ! Я загадала число из 4 РАЗНЫХ цифр (первая не ноль). ` +
+          `Пишите свои варианты в чат — на каждый отвечаю: БЫК 🐂 = цифра угадана И стоит на своём месте, ` +
+          `КОРОВА 🐄 = цифра в числе есть, но стоит не там. Пример: загадано 3591, вариант 1593 — 2 быка (5 и 9), 2 коровы (1 и 3). ` +
+          `Кто первым назовёт число целиком (4 быка) — победил! Поехали!`;
+        copyText(rules, btn);
+      }
+
+      /* ==================================================== */
+      /* ================== АНАГРАММЫ ======================= */
+      /* ==================================================== */
+
+      const AN_WORDS = {
+        easy: [
+          "роза",
+          "стол",
+          "окно",
+          "мост",
+          "гора",
+          "рыба",
+          "волк",
+          "шарф",
+          "торт",
+          "сова",
+          "игра",
+          "каша",
+          "лиса",
+          "море",
+          "поле",
+          "река",
+          "утка",
+          "шкаф",
+          "банан",
+          "вагон",
+          "весна",
+          "гроза",
+          "доска",
+          "жираф",
+          "зебра",
+          "книга",
+          "лампа",
+          "метро",
+          "пирог",
+          "салат",
+          "туман",
+          "арбуз",
+          "груша",
+          "повар",
+          "сахар",
+          "замок",
+          "искра",
+          "волна",
+          "заяц",
+        ],
+        mid: [
+          "яблоко",
+          "гитара",
+          "кувшин",
+          "магнит",
+          "ракета",
+          "рюкзак",
+          "фонтан",
+          "компот",
+          "корона",
+          "лопата",
+          "планета",
+          "молоток",
+          "паровоз",
+          "пингвин",
+          "подушка",
+          "попугай",
+          "телефон",
+          "капуста",
+          "корабль",
+          "лошадь",
+          "сундук",
+          "берлога",
+          "гнездо",
+          "загадка",
+          "зеркало",
+          "качели",
+          "мельница",
+          "печенье",
+          "пшеница",
+          "радуга",
+          "самовар",
+          "фонарик",
+          "человек",
+          "браслет",
+          "восток",
+          "дракон",
+          "рыцарь",
+          "стрела",
+          "монета",
+          "болото",
+        ],
+        hard: [
+          "карандаш",
+          "черепаха",
+          "стрекоза",
+          "крокодил",
+          "апельсин",
+          "виноград",
+          "космонавт",
+          "сковорода",
+          "телевизор",
+          "баскетбол",
+          "библиотека",
+          "холодильник",
+          "парикмахер",
+          "электричка",
+          "магнитофон",
+          "землетрясение",
+          "воображение",
+          "государство",
+          "преподаватель",
+          "путешествие",
+          "сокровище",
+          "крепость",
+          "испытание",
+          "привидение",
+          "стратегия",
+        ],
+      };
+
+      let an = { word: "", shuffled: "", used: new Set(), score: {}, log: [] };
+
+      function anNothing() {}
+
+      function anPool() {
+        const lvl = document.getElementById("an-level").value;
+        const custom = (document.getElementById("an-custom").value || "")
+          .split(/[\s,;.\n]+/)
+          .map((w) => w.trim().toLowerCase())
+          .filter((w) => w.length >= 3 && /^[а-яё-]+$/.test(w));
+        if (lvl === "custom") return custom;
+        let pool = [];
+        if (lvl === "easy") pool = AN_WORDS.easy;
+        else if (lvl === "mid") pool = AN_WORDS.mid;
+        else if (lvl === "hard") pool = AN_WORDS.hard;
+        else pool = [...AN_WORDS.easy, ...AN_WORDS.mid, ...AN_WORDS.hard];
+        return pool.concat(custom);
+      }
+
+      function anShuffleWord(w) {
+        const up = w.toUpperCase();
+        for (let t = 0; t < 50; t++) {
+          const s = shuffleArr(up.split("")).join("");
+          if (s !== up) return s;
+        }
+        return up.split("").reverse().join("");
+      }
+
+      // выбирает следующее слово, обновляет интерфейс, возвращает строку-анаграмму для чата (или null)
+      function anPick() {
+        let pool = anPool().filter((w) => !an.used.has(w));
+        if (!pool.length) {
+          if (!anPool().length) {
+            anSetResp("⚠ В выбранном наборе нет слов — добавь свои или смени сложность");
+            return null;
+          }
+          an.used.clear(); // слова кончились — идём по второму кругу
+          anLog("— слова кончились, пошёл второй круг —");
+          pool = anPool();
+        }
+        const w = pool[Math.floor(Math.random() * pool.length)];
+        an.used.add(w);
+        an.word = w;
+        an.shuffled = anShuffleWord(w);
+        const s = document.getElementById("an-secret");
+        s.textContent = w.toUpperCase();
+        s.classList.add("blur");
+        document.getElementById("an-shuffled").textContent = an.shuffled;
+        anLog(`слово: ${w} → ${an.shuffled}`);
+        return `🔤 АНАГРАММА: ${an.shuffled} (${w.length} букв). Кто первый?`;
+      }
+
+      function anNext() {
+        const line = anPick();
+        if (!line) return;
+        anSetResp(line);
+        copyText(line, null);
+        anRenderLog();
+        document.getElementById("an-nick").focus();
+      }
+
+      function anWin() {
+        if (!an.word) {
+          anSetResp("⚠ Сначала выдай слово");
+          return;
+        }
+        const nickEl = document.getElementById("an-nick");
+        const nick = nickEl.value.trim();
+        if (!nick) {
+          anSetResp("⚠ Впиши ник угадавшего");
+          nickEl.focus();
+          return;
+        }
+        an.score[nick] = (an.score[nick] || 0) + 10;
+        const win = `✅ ${nick} угадал: ${an.word.toUpperCase()}! (+10 фишек, всего ${an.score[nick]})`;
+        anLog(`${nick} угадал «${an.word}»`, "lok");
+        anRenderScore();
+        // сразу выдаём следующее слово — в чат уходит одна строка: поздравление + новая анаграмма
+        const next = anPick();
+        const resp = next ? `${win} ${next}` : win;
+        anSetResp(resp);
+        copyText(resp, null);
+        nickEl.value = "";
+        anRenderLog();
+      }
+
+      function anHint() {
+        if (!an.word) {
+          anSetResp("⚠ Сначала выдай слово");
+          return;
+        }
+        const first = an.word[0].toUpperCase();
+        const last = an.word[an.word.length - 1].toUpperCase();
+        const resp = `💡 Подсказка: первая буква — ${first}, последняя — ${last}`;
+        anSetResp(resp);
+        copyText(resp, null);
+        anLog(`подсказка по «${an.word}»`);
+        anRenderLog();
+      }
+
+      function anReveal() {
+        if (!an.word) {
+          anSetResp("⚠ Сначала выдай слово");
+          return;
+        }
+        const resp = `😈 Никто не угадал! Это было слово: ${an.word.toUpperCase()}`;
+        anSetResp(resp);
+        copyText(resp, null);
+        anLog(`— раскрыто: ${an.word} —`, "lmine");
+        an.word = "";
+        document.getElementById("an-shuffled").textContent = "";
+        document.getElementById("an-secret").textContent = "—";
+        anRenderLog();
+      }
+
+      function anScore(btn) {
+        const entries = Object.entries(an.score);
+        if (!entries.length) {
+          copyText("Пока никто ничего не угадал", btn);
+          return;
+        }
+        entries.sort((a, b) => b[1] - a[1]);
+        const s =
+          "📊 Счёт анаграмм: " +
+          entries.map(([n, v]) => `${n} — ${v} ${plural(v, "фишка", "фишки", "фишек")}`).join(", ");
+        copyText(s, btn);
+      }
+      function anResetScore() {
+        if (!confirm("Сбросить счёт анаграмм?")) return;
+        an.score = {};
+        anLog("— счёт сброшен —");
+        anRenderScore();
+        anRenderLog();
+      }
+
+      function anSetResp(t) {
+        document.getElementById("an-response").textContent = t;
+      }
+      function anLog(text, cls) {
+        an.log.push({ text, cls: cls || "" });
+      }
+      function anRenderLog() {
+        const el = document.getElementById("an-log");
+        el.innerHTML = an.log
+          .slice()
+          .reverse()
+          .map((l) => `<div class="${l.cls}">${escapeHtml(l.text)}</div>`)
+          .join("");
+      }
+      function anRenderScore() {
+        const el = document.getElementById("an-players");
+        const entries = Object.entries(an.score).sort((a, b) => b[1] - a[1]);
+        if (!entries.length) {
+          el.innerHTML =
+            '<span style="color:var(--mute);font-size:13px;">Счёт появится, когда кто-то угадает первое слово.</span>';
+          return;
+        }
+        el.innerHTML = entries
+          .map(
+            ([n, v]) =>
+              `<div class="pchip"><span class="nick">${escapeHtml(n)}</span><br><span class="stats">🪙 ${v}</span></div>`,
+          )
+          .join("");
+      }
+
+      function anRules(btn) {
+        const rules =
+          `🔤 АНАГРАММЫ! Я кидаю в чат слово с перемешанными буквами — вы отгадываете исходное слово. ` +
+          `Кто первым написал правильный ответ в чат — тот получает 10 фишек. Все буквы на месте, ни одной лишней. Погнали!`;
+        copyText(rules, btn);
+      }
+
+      /* ================= старт ================= */
+      newGame();
+      bkNew();
+      anRenderScore();
+    </script>
+  </body>
+</html>

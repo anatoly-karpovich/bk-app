@@ -41,6 +41,7 @@ import { ProjectsRepository } from "../modules/projects/ProjectsRepository";
 import { ProjectsService } from "../modules/projects/ProjectsService";
 import { PlayersController } from "../modules/players/PlayersController";
 import { PlayerReadModelFactory } from "../modules/players/PlayerReadModelFactory";
+import { PlayerReferencesRepository } from "../modules/players/PlayerReferencesRepository";
 import { PlayersRepository } from "../modules/players/PlayersRepository";
 import { PlayersService } from "../modules/players/PlayersService";
 import { AuthController } from "../modules/auth/AuthController";
@@ -99,6 +100,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
 
   const projectsRepository = new ProjectsRepository(mongoDatabase);
   const playersRepository = new PlayersRepository(mongoDatabase);
+  const playersService = new PlayersService(
+    playersRepository,
+    projectsRepository,
+    new PlayerReadModelFactory(),
+    new PlayerReferencesRepository(mongoDatabase),
+  );
   const quizConfigsRepository = new QuizConfigsRepository(mongoDatabase);
   const quizzesRepository = new QuizzesRepository(mongoDatabase);
   const quizEventsRepository = new QuizEventsRepository(mongoDatabase);
@@ -121,9 +128,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     playersRepository,
   );
   const projectsController = new ProjectsController(projectsService);
-  const playersController = new PlayersController(
-    new PlayersService(playersRepository, projectsRepository, new PlayerReadModelFactory()),
-  );
+  const playersController = new PlayersController(playersService);
   const usersController = new UsersController(
     new UsersService(usersRepository, sessionsRepository, passwordHasher, projectsRepository),
   );
@@ -220,6 +225,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     lottoBingoReadModelFactory,
     gameConfigsService,
     new LottoBingoUpdatePublisher(),
+    playersService,
   );
   const lottoBingoController = new LottoBingoController(lottoBingoService);
 

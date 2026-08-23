@@ -7,11 +7,12 @@ import { PlayersRepository } from "../modules/players/PlayersRepository";
 
 const APPLY_ARGUMENT = "--apply";
 const PLAYERS_COLLECTION = "players";
-const LEGACY_INDEX_NAMES = ["projectId_1_aliasKeys_1", "projectId_1_nicknameKey_1"];
+const LEGACY_INDEX_NAMES = ["projectId_1_aliasKeys_1"];
 
 interface PlayerAliasMigrationCandidate {
   id: ObjectId;
   aliases: PlayerAlias[];
+  nicknameKey: string;
   needsUpdate: boolean;
 }
 
@@ -45,20 +46,21 @@ function isCurrentAliasShape(value: unknown, expected: PlayerAlias[]): boolean {
   });
 }
 
-function findAliasConflicts(players: Document[], candidates: PlayerAliasMigrationCandidate[]): Array<{ projectId: string; key: string; playerIds: string[] }> {
-  const playerIdsByAlias = new Map<string, Set<string>>();
+function findCurrentNicknameConflicts(
+  players: Document[],
+  candidates: PlayerAliasMigrationCandidate[],
+): Array<{ projectId: string; key: string; playerIds: string[] }> {
+  const playerIdsByNickname = new Map<string, Set<string>>();
   const projectByPlayerId = new Map(players.map((player) => [player._id.toHexString(), player.projectId]));
   for (const candidate of candidates) {
     const projectId = projectByPlayerId.get(candidate.id.toHexString());
-    if (typeof projectId !== "string") continue;
-    for (const alias of candidate.aliases) {
-      const mapKey = `${projectId}\u0000${alias.key}`;
-      const playerIds = playerIdsByAlias.get(mapKey) ?? new Set<string>();
-      playerIds.add(candidate.id.toHexString());
-      playerIdsByAlias.set(mapKey, playerIds);
-    }
+    if (typeof projectId !== "string" || !candidate.nicknameKey) continue;
+    const mapKey = `${projectId}\u0000${candidate.nicknameKey}`;
+    const playerIds = playerIdsByNickname.get(mapKey) ?? new Set<string>();
+    playerIds.add(candidate.id.toHexString());
+    playerIdsByNickname.set(mapKey, playerIds);
   }
-  return [...playerIdsByAlias.entries()]
+  return [...playerIdsByNickname.entries()]
     .flatMap(([mapKey, playerIds]) => {
       if (playerIds.size < 2) return [];
       const [projectId, key] = mapKey.split("\u0000");
@@ -79,22 +81,25 @@ async function run(): Promise<void> {
     const players = await collection.find({}).toArray();
     const candidates = players.map((player) => {
       const aliases = aliasesFromDocument(player);
+      const nickname = typeof player.nickname === "string" ? normalizePlayerNickname(player.nickname) : "";
+      const nicknameKey = toPlayerNicknameKey(nickname);
       return {
         id: player._id,
         aliases,
+        nicknameKey,
         needsUpdate:
-          !isCurrentAliasShape(player.aliases, aliases) || "aliasKeys" in player || "nicknameKey" in player,
+          !isCurrentAliasShape(player.aliases, aliases) || "aliasKeys" in player || player.nicknameKey !== nicknameKey,
       };
     });
-    const invalidPlayers = candidates.filter((candidate) => !candidate.aliases.length).map((candidate) => candidate.id.toHexString());
-    const conflicts = findAliasConflicts(players, candidates);
+    const invalidPlayers = candidates.filter((candidate) => !candidate.nicknameKey).map((candidate) => candidate.id.toHexString());
+    const conflicts = findCurrentNicknameConflicts(players, candidates);
     const indexes = await collection.listIndexes().toArray();
     const report = {
       database: connection.getDatabaseName(),
       players: players.length,
       playersToConvert: candidates.filter((candidate) => candidate.needsUpdate).length,
       invalidPlayers,
-      aliasConflicts: conflicts,
+      currentNicknameConflicts: conflicts,
       legacyIndexes: indexes.map((index) => index.name).filter((name) => LEGACY_INDEX_NAMES.includes(name)),
       applied: false,
     };
@@ -110,7 +115,7 @@ async function run(): Promise<void> {
       return;
     }
     if (invalidPlayers.length || conflicts.length) {
-      throw new Error("Refusing alias migration because invalid players or duplicate project alias keys were found.");
+      throw new Error("Refusing alias migration because invalid players or duplicate current nicknames were found.");
     }
 
     const now = new Date().toISOString();
@@ -118,18 +123,15 @@ async function run(): Promise<void> {
       await collection.updateOne(
         { _id: candidate.id },
         {
-          $set: { aliases: candidate.aliases, updatedAt: now },
+          $set: { aliases: candidate.aliases, nicknameKey: candidate.nicknameKey, updatedAt: now },
         },
       );
     }
-    await playersRepository.ensureIndexes();
     for (const name of LEGACY_INDEX_NAMES) {
       if (indexes.some((index) => index.name === name)) await collection.dropIndex(name);
     }
-    await collection.updateMany(
-      { $or: [{ aliasKeys: { $exists: true } }, { nicknameKey: { $exists: true } }] },
-      { $unset: { aliasKeys: "", nicknameKey: "" } },
-    );
+    await playersRepository.ensureIndexes();
+    await collection.updateMany({ aliasKeys: { $exists: true } }, { $unset: { aliasKeys: "" } });
 
     console.log(JSON.stringify({ ...report, applied: true }, null, 2));
   } finally {

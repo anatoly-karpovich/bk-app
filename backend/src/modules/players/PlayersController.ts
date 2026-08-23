@@ -31,4 +31,10 @@ export class PlayersController {
     const player = await this.playersService.update(req.authUser!, projectId, playerId, nickname);
     return res.status(200).json({ success: true, data: player });
   };
+
+  delete = async (req: Request, res: Response) => {
+    const { projectId, playerId } = parseRequest(playerParamsSchema, req.params, "Invalid player id");
+    await this.playersService.delete(req.authUser!, projectId, playerId);
+    return res.status(200).json({ success: true });
+  };
 }

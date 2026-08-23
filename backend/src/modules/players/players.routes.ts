@@ -8,5 +8,6 @@ export function createPlayersRouter(playersController: PlayersController): Route
   router.post("/players", asyncHandler(playersController.create));
   router.get("/players/:playerId", asyncHandler(playersController.getById));
   router.put("/players/:playerId", asyncHandler(playersController.update));
+  router.delete("/players/:playerId", asyncHandler(playersController.delete));
   return router;
 }

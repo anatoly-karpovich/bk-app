@@ -153,7 +153,7 @@ async function run(): Promise<void> {
 
     if (!apply) {
       for (const candidate of orderedCandidates) {
-        const existing = await playersRepository.findByProjectIdAndAliasKey(candidate.projectId, candidate.nicknameKey);
+        const existing = await playersRepository.findByProjectIdAndNicknameKey(candidate.projectId, candidate.nicknameKey);
         if (!existing) continue;
         existingPlayers += 1;
         existingAliasesToAdd += [...candidate.aliases].filter(

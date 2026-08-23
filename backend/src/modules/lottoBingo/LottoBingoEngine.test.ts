@@ -48,8 +48,8 @@ function startedGame() {
     rules,
     resources: [],
   });
-  game = value.addPlayer(game, "Alpha", host);
-  game = value.addPlayer(game, "Beta", host);
+  game = value.addPlayer(game, { nickname: "Alpha", playerRefId: "player-alpha" }, host);
+  game = value.addPlayer(game, { nickname: "Beta", playerRefId: "player-beta" }, host);
   game.players[0].ticket.grid = grid(1);
   game.players[1].ticket.grid = grid(1);
   game = value.startGame(game, host);
@@ -75,6 +75,25 @@ test("confirms several current candidates atomically and uses the same resolved 
     [[{ resourceId: "coins", amount: 10 }], [{ resourceId: "coins", amount: 10 }]],
   );
   assert.equal(confirmed.audit.at(-1)?.type, "winner_confirmed");
+});
+
+test("rejects the same Player identity even when an alias is supplied", () => {
+  const value = engine();
+  const game = value.createGame({
+    projectId: "project",
+    configId: "config",
+    configName: "Config",
+    hostUserId: "host",
+    hostSnapshot: host,
+    rules,
+    resources: [],
+  });
+  const withPlayer = value.addPlayer(game, { nickname: "Alpha", playerRefId: "player-1" }, host);
+
+  assert.throws(
+    () => value.addPlayer(withPlayer, { nickname: "Other Alpha", playerRefId: "player-1" }, host),
+    { code: "lotto_bingo_invalid_operation" },
+  );
 });
 
 test("never draws an excluded barrel after the planned order is exhausted", () => {

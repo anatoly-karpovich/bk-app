@@ -42,10 +42,17 @@ export type LottoBingoPlayerAward =
 
 export interface LottoBingoPlayer {
   id: string;
+  /** Stable project-scoped Player identity; optional while historical games are migrated. */
+  playerRefId?: string;
   nickname: string;
   ticket: LottoBingoTicket;
   status: LottoBingoPlayerStatus;
   award: LottoBingoPlayerAward | null;
+}
+
+export interface LottoBingoPlayerIdentity {
+  nickname: string;
+  playerRefId: string;
 }
 
 export interface LottoBingoDrawState {

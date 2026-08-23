@@ -2,6 +2,7 @@ import { AppError } from "../../common/errors";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import type { CurrentUser } from "../auth/domain/types";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
+import { PlayersService, type PlayerReferenceInput } from "../players/PlayersService";
 import { collectResourceIdsFromRules } from "../gameConfigs/domain/resourceReferences";
 import { LottoBingoEngine } from "./LottoBingoEngine";
 import { LottoBingoReadModelFactory } from "./LottoBingoReadModelFactory";
@@ -16,6 +17,7 @@ export class LottoBingoService {
     private readonly readModels: LottoBingoReadModelFactory,
     private readonly gameConfigs: GameConfigsService,
     private readonly updates: LottoBingoUpdatePublisher,
+    private readonly players: PlayersService,
   ) {}
 
   async createGame(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<LottoBingoGameView> {
@@ -55,9 +57,15 @@ export class LottoBingoService {
       });
     return this.readModels.create(game, actor);
   }
-  async addPlayer(actor: CurrentUser, projectId: string, gameId: string, nickname: string, expectedRevision: number) {
-    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
-      this.engine.addPlayer(game, nickname, host),
+  async addPlayer(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    participant: PlayerReferenceInput,
+    expectedRevision: number,
+  ) {
+    return this.mutate(actor, projectId, gameId, expectedRevision, async (game, host) =>
+      this.engine.addPlayer(game, await this.players.resolveOrCreate(actor, projectId, participant), host),
     );
   }
   async removePlayer(
@@ -146,7 +154,10 @@ export class LottoBingoService {
     projectId: string,
     gameId: string,
     expectedRevision: number,
-    operation: (game: LottoBingoGameDocument, host: ReturnType<typeof getHostSnapshot>) => LottoBingoGameDocument,
+    operation: (
+      game: LottoBingoGameDocument,
+      host: ReturnType<typeof getHostSnapshot>,
+    ) => LottoBingoGameDocument | Promise<LottoBingoGameDocument>,
   ): Promise<LottoBingoGameView> {
     assertProjectAccess(actor, projectId);
     const current = await this.requireGame(projectId, gameId);
@@ -156,7 +167,7 @@ export class LottoBingoService {
         statusCode: 409,
         code: "lotto_bingo_revision_conflict",
       });
-    const next = operation(current, this.actorSnapshot(actor, projectId));
+    const next = await operation(current, this.actorSnapshot(actor, projectId));
     const updated = await this.repository.update(gameId, projectId, expectedRevision, next);
     if (!updated)
       throw new AppError("Lotto Bingo game was changed by another operation", {
