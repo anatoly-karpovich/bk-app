@@ -5,7 +5,7 @@ import { ProjectNotFoundError } from "../projects/errors";
 import { ProjectsRepository } from "../projects/ProjectsRepository";
 import { normalizePlayerNickname, toPlayerNicknameKey } from "./domain/normalizePlayerNickname";
 import type { Player, PlayerAlias, PlayerView } from "./domain/types";
-import { PlayerInUseError, PlayerNicknameConflictError, PlayerNicknameMismatchError, PlayerNotFoundError } from "./errors";
+import { PlayerDeletionDisabledError, PlayerInUseError, PlayerNicknameConflictError, PlayerNicknameMismatchError, PlayerNotFoundError } from "./errors";
 import { PlayerReadModelFactory } from "./PlayerReadModelFactory";
 import { PlayerReferencesRepository } from "./PlayerReferencesRepository";
 import { PlayersRepository } from "./PlayersRepository";
@@ -137,6 +137,7 @@ export class PlayersService {
     await this.assertProjectExistsAndAccessible(actor, projectId);
     const player = await this.repository.findByIdAndProjectId(playerId, projectId);
     if (!player) throw new PlayerNotFoundError(projectId, playerId);
+    if (!PLAYER_DELETION_ENABLED) throw new PlayerDeletionDisabledError(projectId, playerId);
     if (await this.referencesRepository.hasSavedGameReference(projectId, playerId, player.nickname))
       throw new PlayerInUseError(projectId, playerId);
     if (!(await this.repository.delete(playerId, projectId))) throw new PlayerNotFoundError(projectId, playerId);
@@ -163,3 +164,5 @@ export class PlayersService {
     return { nickname, key: toPlayerNicknameKey(nickname) };
   }
 }
+
+const PLAYER_DELETION_ENABLED = false;

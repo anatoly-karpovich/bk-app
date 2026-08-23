@@ -20,6 +20,8 @@ export type LottoRulesInput = Partial<LottoRules> & {
 };
 export interface LottoPlayer {
   id: string;
+  /** Stable project-scoped Player identity; optional while reading older games. */
+  playerRefId?: string;
   nickname: string;
   status: LottoPlayerStatus;
   removedAt: string | null;
@@ -58,7 +60,7 @@ export interface LottoGame {
   payouts: LottoPayout[];
   events: LottoEvent[];
 }
-export interface LottoPlayerReadModel extends LottoPlayer {
+export interface LottoPlayerReadModel extends Omit<LottoPlayer, "playerRefId"> {
   matchedNumbers: number[];
   remainingNumbers: number[];
   remainingCount: number;
@@ -107,5 +109,12 @@ export interface LottoGameListItemReadModel {
 }
 export interface LottoCreatePlayerInput {
   nickname: string;
+  playerRefId?: string | null;
+  cardNumbers: number[];
+}
+
+export interface LottoResolvedCreatePlayerInput {
+  nickname: string;
+  playerRefId: string;
   cardNumbers: number[];
 }

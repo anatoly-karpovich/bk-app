@@ -1,6 +1,7 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
+import { PlayersService } from "../players/PlayersService";
 import { LottoEngine } from "./LottoEngine";
 import { LottoReadModelFactory } from "./LottoReadModelFactory";
 import { LottoRepository, type LottoGameDocument } from "./LottoRepository";
@@ -24,6 +25,7 @@ export class LottoService {
     private readonly engine: LottoEngine,
     private readonly readModelFactory: LottoReadModelFactory,
     private readonly gameConfigsService: GameConfigsService,
+    private readonly playersService: PlayersService,
   ) {}
 
   async createLottoGameSnapshotInProject(
@@ -34,7 +36,13 @@ export class LottoService {
     const hostSnapshot = getHostSnapshot(actor, projectId);
     const gameConfigContext = await this.gameConfigsService.getLottoGameConfigContext(projectId, payload.gameConfigId);
 
-    const nextGame = this.engine.createGame(payload.players, {
+    const players = await Promise.all(
+      payload.players.map(async (player) => ({
+        ...(await this.playersService.resolveOrCreate(actor, projectId, player)),
+        cardNumbers: player.cardNumbers,
+      })),
+    );
+    const nextGame = this.engine.createGame(players, {
       rules: gameConfigContext.config.rules,
       resources: gameConfigContext.projectResources,
       djName: hostSnapshot.nickname,

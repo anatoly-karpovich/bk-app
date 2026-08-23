@@ -1,6 +1,7 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
+import { PlayersService, type PlayerReferenceInput } from "../players/PlayersService";
 import { JourneyForumMovesImporter, type JourneyForumMovesPreview } from "./JourneyForumMovesImporter";
 import { JourneyForumPlayersImporter } from "./JourneyForumPlayersImporter";
 import { JourneyV2Engine } from "./JourneyV2Engine";
@@ -22,7 +23,7 @@ export type JourneyGameResponse = JourneyGameView;
 export type JourneyGameListResponse = JourneyGameListItemReadModel[];
 
 interface CreateJourneyGamePayload {
-  nicknames: string[];
+  players: PlayerReferenceInput[];
   configId: string;
   djName?: string;
   forumTopicId?: number;
@@ -43,6 +44,7 @@ export class JourneyService {
     private readonly forumStateFormatter: JourneyForumStateFormatter,
     private readonly forumMovesImporter: JourneyForumMovesImporter,
     private readonly forumPlayersImporter: JourneyForumPlayersImporter,
+    private readonly playersService: PlayersService,
   ) {}
 
   async createJourneyGameSnapshotInProject(
@@ -56,7 +58,10 @@ export class JourneyService {
       payload.gameConfigId,
     );
 
-    const nextGame = this.v2Engine.createGame(payload.nicknames, {
+    const players = await Promise.all(
+      payload.players.map((player) => this.playersService.resolveOrCreate(actor, projectId, player)),
+    );
+    const nextGame = this.v2Engine.createGame(players, {
       rules: gameConfigContext.config.rules,
       resources: gameConfigContext.projectResources,
       djName: hostSnapshot.nickname,

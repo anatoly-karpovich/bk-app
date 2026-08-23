@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { RequestValidationError } from "../../common/errors";
+import { AppError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { GameConfigNotFoundError } from "../gameConfigs/errors";
 import { ProjectNotFoundError } from "../projects/errors";
@@ -41,9 +41,9 @@ export class BattleshipsController {
         req.params,
         "Route parameter 'projectId' must be a valid project id",
       );
-      const { playerName } = parseRequest(
+      const { playerName, playerRefId } = parseRequest(
         createBattleshipsGamePlayerNameSchema,
-        { playerName: req.body?.playerName },
+        { playerName: req.body?.playerName, playerRefId: req.body?.playerRefId },
         "Body field 'playerName' must be a non-empty string",
       );
       const { gameConfigId } = parseRequest(
@@ -52,7 +52,7 @@ export class BattleshipsController {
         "Body field 'gameConfigId' must be a valid game config id",
       );
       const game = await this.battleshipsService.createBattleshipsGameSnapshotInProject(req.authUser!, projectId, {
-        playerName,
+        player: { nickname: playerName, playerRefId },
         gameConfigId,
       });
 
@@ -73,6 +73,15 @@ export class BattleshipsController {
           success: false,
           message: "Failed to create battleships game",
           error: error.message,
+        });
+      }
+
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: "Failed to create battleships game",
+          error: error.message,
+          code: error.code,
         });
       }
 

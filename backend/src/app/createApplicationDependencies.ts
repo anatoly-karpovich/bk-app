@@ -184,6 +184,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     battleshipsEngine,
     battleshipsReadModelFactory,
     gameConfigsService,
+    playersService,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
   const journeyResourceInventoryService = new JourneyResourceInventoryService();
@@ -210,12 +211,19 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyForumStateFormatter,
     journeyForumMovesImporter,
     journeyForumPlayersImporter,
+    playersService,
   );
   const journeyController = new JourneyController(journeyService);
 
   const lottoEngine = new LottoEngine(rewardGrantService, new LottoPayoutDistributor());
   const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
-  const lottoService = new LottoService(lottoRepository, lottoEngine, lottoReadModelFactory, gameConfigsService);
+  const lottoService = new LottoService(
+    lottoRepository,
+    lottoEngine,
+    lottoReadModelFactory,
+    gameConfigsService,
+    playersService,
+  );
   const lottoController = new LottoController(lottoService);
   const lottoBingoEngine = new LottoBingoEngine(new LottoBingoTicketGenerator(), rewardGrantService);
   const lottoBingoReadModelFactory = new LottoBingoReadModelFactory(lottoBingoEngine);

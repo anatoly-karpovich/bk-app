@@ -1,6 +1,7 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
+import { PlayersService, type PlayerReferenceInput } from "../players/PlayersService";
 import { BattleshipsEngine } from "./BattleshipsEngine";
 import { BattleshipsReadModelFactory } from "./BattleshipsReadModelFactory";
 import { BattleshipsRepository, type BattleshipsGameDocument } from "./BattleshipsRepository";
@@ -18,7 +19,7 @@ export type BattleshipsGameResponse = BattleshipsGameReadModel;
 export type BattleshipsGameListResponse = BattleshipsGameListItemReadModel[];
 
 interface CreateBattleshipsGamePayload {
-  playerName: string;
+  player: PlayerReferenceInput;
   configId: string;
   djName?: string;
 }
@@ -29,6 +30,7 @@ export class BattleshipsService {
     private readonly engine: BattleshipsEngine,
     private readonly readModelFactory: BattleshipsReadModelFactory,
     private readonly gameConfigsService: GameConfigsService,
+    private readonly playersService: PlayersService,
   ) {}
 
   async createBattleshipsGameSnapshotInProject(
@@ -42,7 +44,8 @@ export class BattleshipsService {
       payload.gameConfigId,
     );
 
-    const nextGame = this.engine.createGame(payload.playerName, {
+    const player = await this.playersService.resolveOrCreate(actor, projectId, payload.player);
+    const nextGame = this.engine.createGame(player, {
       rules: gameConfigContext.config.rules,
       resources: gameConfigContext.projectResources,
       djName: hostSnapshot.nickname,

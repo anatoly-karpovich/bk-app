@@ -7,6 +7,7 @@ export const battleshipsGameIdParamsSchema = z.object({
 
 export const createBattleshipsGamePlayerNameSchema = z.object({
   playerName: z.string().trim().min(1),
+  playerRefId: objectIdSchema.nullable().optional(),
 });
 
 export const createBattleshipsGameConfigSchema = z.object({

@@ -81,3 +81,14 @@ test("undo uses persisted reward outcomes without resolving a pool again", () =>
 
   assert.equal(resolutions, 1);
 });
+
+test("stores the resolved Player reference when creating a game", () => {
+  const engine = new BattleshipsEngine(new RewardGrantService({ succeeds: () => true, pickWeightedIndex: () => 0 }));
+  const created = engine.createGame(
+    { nickname: "Player", playerRefId: "player-1" },
+    { rules, resources, projectId: "project", configId: "config", configName: "Config" },
+  );
+
+  assert.equal(created.playerName, "Player");
+  assert.equal(created.playerRefId, "player-1");
+});

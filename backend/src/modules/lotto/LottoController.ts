@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { RequestValidationError } from "../../common/errors";
+import { AppError, RequestValidationError } from "../../common/errors";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { GameConfigNotFoundError } from "../gameConfigs/errors";
 import { ProjectNotFoundError } from "../projects/errors";
@@ -73,6 +73,15 @@ export class LottoController {
           success: false,
           message: "Failed to create lotto game",
           error: error.message,
+        });
+      }
+
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: "Failed to create lotto game",
+          error: error.message,
+          code: error.code,
         });
       }
 

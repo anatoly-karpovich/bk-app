@@ -3,11 +3,11 @@ import { type ResourceSnapshot, RewardGrantService } from "../rewards";
 import { normalizeLottoRules } from "./domain/config";
 import { LottoPayoutDistributor } from "./domain/LottoPayoutDistributor";
 import type {
-  LottoCreatePlayerInput,
   LottoEvent,
   LottoGame,
   LottoPlayer,
   LottoPlayerReadModel,
+  LottoResolvedCreatePlayerInput,
   LottoRules,
 } from "./domain/types";
 import { LottoValidationError } from "./errors";
@@ -51,7 +51,7 @@ export class LottoEngine {
   }
 
   createGame(
-    players: LottoCreatePlayerInput[],
+    players: LottoResolvedCreatePlayerInput[],
     options: {
       rules: LottoRules;
       resources: ResourceSnapshot[];
@@ -155,8 +155,9 @@ export class LottoEngine {
     const matchedNumbers = player.cardNumbers.filter((number) => drawnNumbers.includes(number));
     const remainingNumbers = player.cardNumbers.filter((number) => !drawnNumbers.includes(number));
 
+    const { playerRefId: _playerRefId, ...publicPlayer } = this.clone(player);
     return {
-      ...this.clone(player),
+      ...publicPlayer,
       matchedNumbers,
       remainingNumbers,
       remainingCount: remainingNumbers.length,
@@ -197,18 +198,26 @@ export class LottoEngine {
     return this.getPlayerViews(game).filter((player) => player.status === "winner_second");
   }
 
-  private createPlayers(players: LottoCreatePlayerInput[], rules: LottoRules): LottoPlayer[] {
+  private createPlayers(players: LottoResolvedCreatePlayerInput[], rules: LottoRules): LottoPlayer[] {
     if (!players.length) {
       throw new LottoValidationError("Lotto create failed: at least one player is required");
     }
 
     const normalizedNicknames = new Set<string>();
+    const playerRefIds = new Set<string>();
 
     return players.map((player) => {
       const nickname = player.nickname.trim();
+      const playerRefId = player.playerRefId.trim();
 
       if (!nickname) {
         throw new LottoValidationError("Lotto create failed: player nickname must not be empty");
+      }
+      if (!playerRefId) {
+        throw new LottoValidationError("Lotto create failed: player reference must not be empty");
+      }
+      if (playerRefIds.has(playerRefId)) {
+        throw new LottoValidationError(`Lotto create failed: duplicate player reference "${playerRefId}"`);
       }
 
       const nicknameKey = nickname.toLocaleLowerCase("ru");
@@ -218,9 +227,11 @@ export class LottoEngine {
       }
 
       normalizedNicknames.add(nicknameKey);
+      playerRefIds.add(playerRefId);
 
       return {
         id: randomUUID(),
+        playerRefId,
         nickname,
         status: "active",
         removedAt: null,
@@ -251,6 +262,7 @@ export class LottoEngine {
       return {
         ...player,
         id: player.id.trim() || randomUUID(),
+        playerRefId: player.playerRefId?.trim() || undefined,
         nickname,
         status: player.status ?? "active",
         removedAt: player.removedAt ?? null,

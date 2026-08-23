@@ -14,6 +14,17 @@ export const createJourneyGameNicknamesSchema = z.object({
   nicknames: z.array(z.string()).min(1),
 });
 
+export const createJourneyGamePlayersSchema = z.object({
+  players: z
+    .array(
+      z.object({
+        nickname: z.string().trim().min(1),
+        playerRefId: objectIdSchema.nullable().optional(),
+      }),
+    )
+    .min(1),
+});
+
 export const createJourneyGameConfigSchema = z.object({
   configId: objectIdSchema,
 });

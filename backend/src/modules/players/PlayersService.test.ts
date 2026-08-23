@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ObjectId, type WithId } from "mongodb";
 import type { CurrentUser } from "../auth/domain/types";
-import { PlayerInUseError, PlayerNicknameConflictError, PlayerNicknameMismatchError, PlayerNotFoundError } from "./errors";
+import { PlayerDeletionDisabledError, PlayerNicknameConflictError, PlayerNicknameMismatchError } from "./errors";
 import { PlayerReadModelFactory } from "./PlayerReadModelFactory";
 import { PlayerReferencesRepository } from "./PlayerReferencesRepository";
 import { PlayersRepository } from "./PlayersRepository";
@@ -121,24 +121,22 @@ test("rejects an explicit Player reference paired with a different current nickn
   );
 });
 
-test("deletes a Player that has no saved-game references", async () => {
+test("temporarily blocks Player deletion even without saved-game references", async () => {
   const service = createService();
   const created = await service.create(actor, "project", "Удаляемый");
 
-  await service.delete(actor, "project", created.id);
-
   await assert.rejects(
-    service.getById(actor, "project", created.id),
-    (error: unknown) => error instanceof PlayerNotFoundError,
+    service.delete(actor, "project", created.id),
+    (error: unknown) => error instanceof PlayerDeletionDisabledError,
   );
 });
 
-test("does not delete a Player used by a saved game", async () => {
+test("temporarily blocks Player deletion before checking saved-game references", async () => {
   const service = createService(true);
   const created = await service.create(actor, "project", "Занятый");
 
   await assert.rejects(
     service.delete(actor, "project", created.id),
-    (error: unknown) => error instanceof PlayerInUseError,
+    (error: unknown) => error instanceof PlayerDeletionDisabledError,
   );
 });
