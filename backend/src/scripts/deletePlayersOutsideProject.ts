@@ -21,10 +21,14 @@ function string(value: unknown): string {
 function collectPlayerReferenceIds(game: Document, collection: (typeof GAME_COLLECTIONS)[number]): string[] {
   if (collection === "battleships_games") return string(game.playerRefId) ? [string(game.playerRefId)] : [];
   if (collection === "journey_games") return asRecords(asRecord(game.stateV2)?.players).map((player) => string(player.playerRefId)).filter(Boolean);
-  if (collection === "quizEvents")
-    return asRecords(game.questions).flatMap((question) =>
-      asRecords(question.selectedAnswers).map((answer) => string(answer.playerRefId)).filter(Boolean),
-    );
+  if (collection === "quizEvents") {
+    const questionReferences = asRecords(game.questions).flatMap((question) => [
+      ...asRecords(question.selectedAnswers).map((answer) => string(answer.playerRefId)),
+      ...asRecords(question.awards).map((award) => string(award.playerRefId)),
+    ]);
+    return [...questionReferences, ...asRecords(asRecord(game.summary)?.players).map((player) => string(player.playerRefId))]
+      .filter(Boolean);
+  }
   return asRecords(game.players).map((player) => string(player.playerRefId)).filter(Boolean);
 }
 

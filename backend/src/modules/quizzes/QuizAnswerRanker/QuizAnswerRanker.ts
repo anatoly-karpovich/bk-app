@@ -2,6 +2,7 @@ import type { QuizChatMessage, QuizSelectedAnswer } from "../domain/types";
 
 export interface RankedQuizAnswer {
   playerName: string;
+  playerRefId?: string;
   selectedMessageId: string;
   timestamp: string | null;
   effectiveOrder: number;
@@ -20,6 +21,7 @@ export class QuizAnswerRanker {
         if (!message || message.from !== selection.playerName) throw new Error("Недопустимый выбранный ответ игрока");
         return {
           playerName: selection.playerName,
+          playerRefId: selection.playerRefId,
           selectedMessageId: message.id,
           timestamp: message.timestamp,
           effectiveOrder: message.effectiveOrder,

@@ -171,6 +171,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizEventsRepository,
     quizzesRepository,
     projectsRepository,
+    playersService,
     quizEventEngine,
     new ChatParser(),
     new QuizMessageCandidateFilter(chatMessageIdentity),

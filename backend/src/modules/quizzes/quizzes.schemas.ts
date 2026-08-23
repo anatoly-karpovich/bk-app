@@ -57,6 +57,7 @@ export const saveQuizQuestionChatSchema = quizEventRevisionSchema.extend({ rawTe
 export const saveQuizQuestionResultSchema = quizEventRevisionSchema.extend({
   selections: z.array(z.object({
     playerName: z.string().trim().min(1).max(500),
+    playerRefId: objectIdSchema.nullable().optional(),
     selectedMessageId: z.string().uuid(),
   })),
 });

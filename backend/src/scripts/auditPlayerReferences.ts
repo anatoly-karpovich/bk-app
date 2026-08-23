@@ -50,8 +50,8 @@ function referencesFromPlayers(collection: GameCollectionName, game: Document, p
 function referencesFromQuiz(game: Document): PlayerReference[] {
   const gameId = documentId(game);
   const projectId = string(game.projectId);
-  return asRecords(game.questions).flatMap((question) =>
-    asRecords(question.selectedAnswers).flatMap((selection) => {
+  const questionReferences = asRecords(game.questions).flatMap((question) => [
+    ...asRecords(question.selectedAnswers).flatMap((selection) => {
       const playerRefId = string(selection.playerRefId);
       if (!playerRefId) return [];
       return [
@@ -65,7 +65,36 @@ function referencesFromQuiz(game: Document): PlayerReference[] {
         },
       ];
     }),
-  );
+    ...asRecords(question.awards).flatMap((award) => {
+      const playerRefId = string(award.playerRefId);
+      if (!playerRefId) return [];
+      return [
+        {
+          collection: "quizEvents" as const,
+          gameId,
+          projectId,
+          participantId: `award:${string(award.id)}`,
+          nickname: string(award.playerName),
+          playerRefId,
+        },
+      ];
+    }),
+  ]);
+  const summaryReferences = asRecords(asRecord(game.summary)?.players).flatMap((player) => {
+    const playerRefId = string(player.playerRefId);
+    if (!playerRefId) return [];
+    return [
+      {
+        collection: "quizEvents" as const,
+        gameId,
+        projectId,
+        participantId: `summary:${toPlayerNicknameKey(string(player.playerName))}`,
+        nickname: string(player.playerName),
+        playerRefId,
+      },
+    ];
+  });
+  return [...questionReferences, ...summaryReferences];
 }
 
 const GAME_SOURCES: GameSource[] = [

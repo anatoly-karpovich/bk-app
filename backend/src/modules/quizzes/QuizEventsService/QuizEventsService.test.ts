@@ -82,21 +82,35 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
       return { ...event, _id: documentId };
     },
   };
+  const resolvedPlayerInputs: Array<{ nickname: string; playerRefId?: string | null }> = [];
+  const playersService = {
+    resolveOrCreate: async (_actor: CurrentUser, _projectId: string, input: { nickname: string; playerRefId?: string | null }) => {
+      resolvedPlayerInputs.push(input);
+      return { nickname: input.nickname, playerRefId: input.playerRefId ?? `player:${input.nickname}` };
+    },
+  };
   const identity = new ChatMessageIdentity();
   const service = new QuizEventsService(
     repository as never,
     {} as never,
     {} as never,
+    playersService as never,
     engine,
     new ChatParser(),
     new QuizMessageCandidateFilter(identity),
     new QuizEventReadModelFactory(ranker),
   );
-  return { service, questionId: event.questions[0].id, questionIds: event.questions.map((question) => question.id) };
+  return {
+    service,
+    resolvedPlayerInputs,
+    persistedEvent: () => event,
+    questionId: event.questions[0].id,
+    questionIds: event.questions.map((question) => question.id),
+  };
 }
 
-test("saves a complete chat, preserves ids on equivalent saves, and saves the final result", async () => {
-  const { service, questionId } = setup();
+test("resolves players after validating chat selections and persists their references", async () => {
+  const { service, questionId, resolvedPlayerInputs, persistedEvent } = setup();
   const raw = "21:00 [Alice] private [Dark] Минск";
   const first = await service.saveQuestionChat(actor, "project", "event", questionId, raw, 0);
   assert.equal(first.event.state.questions[0].workflow.conductedOrder, 1);
@@ -114,6 +128,30 @@ test("saves a complete chat, preserves ids on equivalent saves, and saves the fi
   );
   assert.ok(result.result.reviewedAt);
   assert.equal(result.event.state.questions[0].result.awards.length, 1);
+  assert.deepEqual(resolvedPlayerInputs, [{ nickname: "Alice", playerRefId: undefined }]);
+  const persistedQuestion = persistedEvent().questions[0]!;
+  assert.equal(persistedQuestion.selectedAnswers[0]?.playerRefId, "player:Alice");
+  assert.equal(persistedQuestion.awards[0]?.playerRefId, "player:Alice");
+  assert.equal(persistedEvent().summary?.players[0]?.playerRefId, "player:Alice");
+  assert.doesNotMatch(JSON.stringify(result.event), /playerRefId/);
+});
+
+test("does not resolve or create players for an invalid chat selection", async () => {
+  const { service, questionId, resolvedPlayerInputs } = setup();
+  const chat = await service.saveQuestionChat(actor, "project", "event", questionId, "21:00 [Alice] private [Dark] answer", 0);
+
+  await assert.rejects(
+    () =>
+      service.saveQuestionResult(
+        actor,
+        "project",
+        "event",
+        questionId,
+        [{ playerName: "Alice", selectedMessageId: "00000000-0000-4000-8000-000000000000" }],
+        chat.event.meta.revision,
+      ),
+  );
+  assert.deepEqual(resolvedPlayerInputs, []);
 });
 
 test("preserves separate to and private answers from the same player", async () => {

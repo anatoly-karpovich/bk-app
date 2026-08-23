@@ -25,6 +25,10 @@ export interface QuizChatMutationInput {
   actorId: string;
 }
 
+export interface ResolvedQuizSelectedAnswer extends QuizSelectedAnswer {
+  playerRefId: string;
+}
+
 export class QuizEventEngine {
   constructor(
     private readonly answerRanker: QuizAnswerRanker,
@@ -73,7 +77,7 @@ export class QuizEventEngine {
   saveQuestionResult(
     event: QuizEventDocument,
     questionId: string,
-    selections: QuizSelectedAnswer[],
+    selections: ResolvedQuizSelectedAnswer[],
     actorId: string,
   ): QuizEventDocument {
     this.assertOpen(event);
@@ -81,7 +85,7 @@ export class QuizEventEngine {
     if (current.conductedOrder === null) {
       throw new QuizConflictError("Сначала сохраните непустой чат вопроса");
     }
-    this.assertSelections(current, selections);
+    this.assertResolvedSelections(current, selections);
     const now = new Date().toISOString();
     const reviewed = {
       ...current,
@@ -241,6 +245,22 @@ export class QuizEventEngine {
     return question;
   }
 
+  validateSelectionInputs(question: QuizEventQuestion, selections: QuizSelectedAnswer[]): void {
+    const players = new Set<string>();
+    const messages = new Set<string>();
+    for (const selection of selections) {
+      if (players.has(selection.playerName)) throw new QuizPlayerAnswerSelectionError("duplicate_player_selection");
+      players.add(selection.playerName);
+      if (messages.has(selection.selectedMessageId))
+        throw new QuizPlayerAnswerSelectionError("duplicate_message_selection");
+      messages.add(selection.selectedMessageId);
+      const message = question.chat.messages.find((candidate) => candidate.id === selection.selectedMessageId);
+      if (!message) throw new QuizChatMessageNotFoundError(selection.selectedMessageId);
+      if (message.from !== selection.playerName)
+        throw new QuizPlayerAnswerSelectionError("selected_message_wrong_player");
+    }
+  }
+
   private createQuestion(question: QuizQuestion, now: string): QuizEventQuestion {
     return {
       id: randomUUID(),
@@ -302,7 +322,7 @@ export class QuizEventEngine {
         )
         .flatMap((candidate) => candidate.awards)
         .filter((award) => award.source.kind === "bonus_position")
-        .map((award) => award.playerName),
+        .map((award) => award.playerRefId ?? award.playerName),
     );
     return this.awardCalculator.calculate(event.quizSnapshot, question, ranking, awardedAt, priorBonusRecipients);
   }
@@ -317,19 +337,13 @@ export class QuizEventEngine {
     );
   }
 
-  private assertSelections(question: QuizEventQuestion, selections: QuizSelectedAnswer[]): void {
-    const players = new Set<string>();
-    const messages = new Set<string>();
+  private assertResolvedSelections(question: QuizEventQuestion, selections: ResolvedQuizSelectedAnswer[]): void {
+    this.validateSelectionInputs(question, selections);
+    const playerRefs = new Set<string>();
     for (const selection of selections) {
-      if (players.has(selection.playerName)) throw new QuizPlayerAnswerSelectionError("duplicate_player_selection");
-      players.add(selection.playerName);
-      if (messages.has(selection.selectedMessageId))
-        throw new QuizPlayerAnswerSelectionError("duplicate_message_selection");
-      messages.add(selection.selectedMessageId);
-      const message = question.chat.messages.find((candidate) => candidate.id === selection.selectedMessageId);
-      if (!message) throw new QuizChatMessageNotFoundError(selection.selectedMessageId);
-      if (message.from !== selection.playerName)
-        throw new QuizPlayerAnswerSelectionError("selected_message_wrong_player");
+      if (!selection.playerRefId.trim()) throw new QuizPlayerAnswerSelectionError("missing_player_reference");
+      if (playerRefs.has(selection.playerRefId)) throw new QuizPlayerAnswerSelectionError("duplicate_player_reference");
+      playerRefs.add(selection.playerRefId);
     }
   }
 

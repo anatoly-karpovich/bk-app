@@ -25,6 +25,8 @@ export class PlayerReferencesRepository {
           projectId,
           $or: [
             { "questions.selectedAnswers.playerRefId": playerRefId },
+            { "questions.awards.playerRefId": playerRefId },
+            { "summary.players.playerRefId": playerRefId },
             { "questions.selectedAnswers.playerName": nickname },
             { "questions.awards.playerName": nickname },
             { "summary.players.playerName": nickname },

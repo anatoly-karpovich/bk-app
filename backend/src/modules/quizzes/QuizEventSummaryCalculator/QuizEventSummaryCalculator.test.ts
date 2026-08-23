@@ -73,3 +73,26 @@ test("includes only reviewed conducted questions and their persisted awards", ()
     [["Alice", [{ resourceId: "coins", amount: 5 }]]],
   );
 });
+
+test("groups current answers by Player reference while keeping the first historical nickname", () => {
+  const first = question({
+    id: "first",
+    conductedOrder: 1,
+    reviewedAt: "now",
+    selectedAnswers: [{ playerName: "Старый ник", playerRefId: "player-alice", selectedMessageId: "message-1" }],
+    awards: [],
+  });
+  const second = question({
+    id: "second",
+    conductedOrder: 2,
+    reviewedAt: "now",
+    selectedAnswers: [{ playerName: "Новый ник", playerRefId: "player-alice", selectedMessageId: "message-2" }],
+    awards: [],
+  });
+
+  const summary = new QuizEventSummaryCalculator().calculate([first, second], "2026-08-04T12:00:00.000Z");
+
+  assert.deepEqual(summary.players.map((player) => [player.playerName, player.playerRefId, player.correctAnswers]), [
+    ["Старый ник", "player-alice", 2],
+  ]);
+});

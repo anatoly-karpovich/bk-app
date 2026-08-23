@@ -249,6 +249,22 @@ Frontend must not contain:
 
 If a rule affects the final game result, it belongs to the backend.
 
+## Player identities
+
+`Player` is a project-scoped game participant, not an application `User`. A saved participant keeps both its local game `id` and immutable `nickname` snapshot plus `playerRefId`, which points to `players._id`. Never replace the local game id with `playerRefId`, and never render an old game from the mutable current Player nickname.
+
+New Lotto Bingo, Lotto, Journey, and Battleships game participants must be resolved by `PlayersService.resolveOrCreate` before reaching an engine. The dependency flow is:
+
+```text
+Game Controller -> Game Service -> PlayersService.resolveOrCreate -> Engine -> Repository
+```
+
+Engines receive a required resolved identity and must reject duplicate `playerRefId` values within a multi-player game. Engines must not query MongoDB, create Players, or resolve aliases. Existing persisted games may omit `playerRefId` only for tolerant reads of old backups.
+
+Public read models must not expose `playerRefId` unless a product requirement explicitly changes that rule. Lotto, Journey, and Battleships retain their current frontend-compatible request shapes while accepting an optional reference: Lotto player inputs include `playerRefId?`, Journey accepts legacy `nicknames` as well as player objects, and Battleships retains `playerName` with optional `playerRefId`.
+
+`PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, and Battleships `playerRefId` alongside temporary historical nickname fallback. Physical Player deletion is currently disabled; do not re-enable it without a race-safe reference-integrity design for concurrent game creation and deletion.
+
 ---
 
 ## Journey module expectations

@@ -86,7 +86,7 @@ export class QuizAwardCalculator {
           rule.position,
         ),
       );
-      awardedPlayers.add(recipient.playerName);
+      awardedPlayers.add(this.playerKey(recipient));
     }
     return awards;
   }
@@ -98,12 +98,12 @@ export class QuizAwardCalculator {
   ): RankedQuizAnswer | null {
     const afterConfiguredPosition = ranking
       .slice(configuredPosition - 1)
-      .find((answer) => !awardedPlayers.has(answer.playerName));
+      .find((answer) => !awardedPlayers.has(this.playerKey(answer)));
     return (
       afterConfiguredPosition ??
       [...ranking.slice(0, configuredPosition - 1)]
         .reverse()
-        .find((answer) => !awardedPlayers.has(answer.playerName)) ??
+        .find((answer) => !awardedPlayers.has(this.playerKey(answer))) ??
       null
     );
   }
@@ -134,10 +134,15 @@ export class QuizAwardCalculator {
       id: [question.id, answer.selectedMessageId, kind, source.position ?? "all", bonusRuleId ?? "regular"].join(":"),
       selectedMessageId: answer.selectedMessageId,
       playerName: answer.playerName,
+      playerRefId: answer.playerRefId,
       questionIndex: question.questionIndex,
       source,
       rewards: structuredClone(rewards),
       awardedAt,
     };
+  }
+
+  private playerKey(answer: Pick<RankedQuizAnswer, "playerName" | "playerRefId">): string {
+    return answer.playerRefId ?? answer.playerName;
   }
 }
