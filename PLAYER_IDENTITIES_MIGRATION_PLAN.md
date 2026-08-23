@@ -26,7 +26,7 @@
 - `playerRefId` уже записывается во все новые Lotto Bingo, Lotto, Journey и Battleships игры. Их engines принимают только заранее разрешённую identity с обязательным `playerRefId`.
 - На момент подключения Lotto, Journey и Battleships в единственном проекте не было сохранённых партий. Поэтому историческая миграция для этих трёх коллекций не требуется и не запускается.
 - Чтение старых документов остаётся tolerant: поле в сохранённой сущности временно необязательно, чтобы не ломать импорт старых backup.
-- Физическое удаление Player временно отключено. Его нельзя включать до отдельного решения о ссылочной целостности и конкурентных создании игры/удалении игрока.
+- Физическое удаление Player временно отключено до этапа lifecycle текущих ссылок. Участие в удалённой тестовой игре не должно навсегда блокировать удаление Player: удаление разрешено, когда на Player больше не ссылается ни один сохранённый game/Event.
 
 ## Целевая модель идентичности
 
@@ -129,7 +129,7 @@ Game Controller / Quiz Event Controller → Game Service → PlayersService.reso
 
 Lotto, Journey и Battleships не должны обращаться к `PlayersRepository` напрямую: их services вызывают `PlayersService.resolveOrCreate`, затем передают результат в engine. В Lotto и Journey дубликаты по nickname и `playerRefId` запрещены; Battleships хранит одну identity на уровне игры.
 
-`PlayerReferencesRepository` уже ищет ссылки по `playerRefId` в `journey_games.stateV2.players`, `lotto_games.players`, `lotto_bingo_games.players` и корневом поле `battleships_games.playerRefId`. Пока удаление Player отключено, эти запросы остаются подготовленной защитой для будущего включения операции.
+`PlayerReferencesRepository` уже ищет ссылки по `playerRefId` в `journey_games.stateV2.players`, `lotto_games.players`, `lotto_bingo_games.players`, корневом поле `battleships_games.playerRefId` и всех трёх местах Quiz Event. Он остаётся защитой legacy-данных и инструментом аудита, но не является race-safe механизмом физического удаления.
 
 ## План реализации Quiz Events
 
@@ -230,13 +230,21 @@ QuizEventsController
 
 1. Сохранить обязательный `playerRefId` для всех новых игровых сущностей и входов engines; это уже сделано для Lotto Bingo, Lotto, Journey и Battleships.
 2. Сохранить tolerant-read только для backup до их отдельного импорта.
-3. Отдельно спроектировать безопасное включение `DELETE /players/:playerId`: проверка сохранённых ссылок должна быть защищена от гонки с созданием игры.
+3. Реализовать lifecycle текущих ссылок и безопасно включить `DELETE /players/:playerId`:
+   - добавить Player поле-счётчик, например `activeGameReferences`; это количество текущих уникальных `(Player, game/Event)` ссылок, а не историческое участие и не количество Quiz selections/awards;
+   - каждая операция, добавляющая или убирающая `playerRefId`, в одной MongoDB-транзакции сохраняет game/Event и применяет diff уникальных refs к Player-счётчикам;
+   - для Quiz Event diff вычисляется из полного previous/next Event, поэтому несколько ответов одного Player в одном Event учитываются один раз;
+   - удаление Player — условная транзакционная операция только при `activeGameReferences: 0`; операция, одновременно создающая ссылку, пишет тот же Player и не может оставить ссылку на удалённого Player;
+   - отдельная миграция строит начальные счётчики по текущим сохранённым ссылкам всех игр и Quiz Events; `PlayerReferencesRepository` остаётся audit/fallback для legacy, а не источником конкурентной целостности.
 4. Добавить проверки и тесты на:
    - совпадение `projectId` игрока и игры;
    - создание нового игрока по неизвестному нику;
    - создание нового игрока при нике, который совпадает только с историческим алиасом другого `Player`;
    - запрет одного `playerRefId` дважды в одной партии;
    - корректное восстановление истории после смены ника.
+   - удаление Player после удаления единственной тестовой игры/Event;
+   - запрет удаления при хотя бы одной текущей ссылке;
+   - конкурентные создание ссылки и удаление Player без orphan references.
 
 ## Критерий готовности
 
@@ -244,3 +252,4 @@ QuizEventsController
 - Все новые партии и новые участники получают `playerRefId` до вызова игрового engine.
 - Аналитика может агрегировать участие, победы и награды по `Player._id` внутри одного проекта.
 - Ники остаются историческими снимками и не меняются при редактировании `Player.nickname`.
+- После rollout lifecycle Player удаляется тогда и только тогда, когда `activeGameReferences` равно нулю; удалённые games/Events корректно освобождают их текущие ссылки.
