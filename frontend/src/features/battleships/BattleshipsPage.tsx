@@ -28,7 +28,9 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
     game,
     gameConfigs,
     selectedGameConfigId,
-    playerName,
+    player,
+    projectPlayers,
+    projectPlayersError,
     savedGames,
     currentGameId,
     deletingSavedGame,
@@ -115,7 +117,10 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
               />
             ) : (
               <BattleshipsSetupCard
-                playerName={playerName}
+                player={player}
+                projectPlayers={projectPlayers}
+                projectPlayersError={projectPlayersError}
+                projectPlayersLoading={loading.isLoadingProjectPlayers}
                 boardConfig={boardConfig}
                 resources={resolvedResources}
                 fleetSummary={fleetSummary}
@@ -123,7 +128,7 @@ export default function BattleshipsPage({ djName, selectedProject }: Battleships
                 canStartGame={canStartGame}
                 isStartingGame={loading.isStartingGame}
                 onStartGame={actions.startGame}
-                onPlayerNameChange={actions.setPlayerName}
+                onPlayerChange={actions.setPlayer}
               />
             )}
 

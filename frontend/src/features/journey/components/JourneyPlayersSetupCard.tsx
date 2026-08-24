@@ -6,14 +6,18 @@ import { Card, CardContent, CardHeader, IconButton, Stack, Typography } from "@m
 import AddPlayerButton from "../../../components/AddPlayerButton";
 import GameActionButton from "../../../components/GameActionButton";
 import GameStartButton from "../../../components/GameStartButton";
-import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
+import ProjectPlayerAutocomplete from "../../../components/players/ProjectPlayerAutocomplete";
 import AppChip from "../../../components/ui/AppChip";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import { journeyTexts } from "../../../texts/journeyTexts";
+import type { PlayerReferenceInput, ProjectPlayer } from "../../players/types";
 import JourneyActionPanel from "./JourneyActionPanel";
 
 interface JourneyPlayersSetupCardProps {
-  playerNames: string[];
+  players: PlayerReferenceInput[];
+  projectPlayers: ProjectPlayer[];
+  projectPlayersError: string | null;
+  projectPlayersLoading: boolean;
   playerNameErrors: string[];
   validPlayersCount: number;
   forumTopicId: string;
@@ -24,7 +28,7 @@ interface JourneyPlayersSetupCardProps {
   isImportingPlayersFromForum: boolean;
   onStartGame: () => void;
   onForumTopicIdChange: (value: string) => void;
-  onPlayerNameChange: (index: number, value: string) => void;
+  onPlayerChange: (index: number, value: PlayerReferenceInput) => void;
   onRemovePlayerField: (index: number) => void;
   onAddPlayerField: () => void;
   onOpenImport: () => void;
@@ -32,7 +36,10 @@ interface JourneyPlayersSetupCardProps {
 }
 
 export default function JourneyPlayersSetupCard({
-  playerNames,
+  players,
+  projectPlayers,
+  projectPlayersError,
+  projectPlayersLoading,
   playerNameErrors,
   validPlayersCount,
   forumTopicId,
@@ -43,7 +50,7 @@ export default function JourneyPlayersSetupCard({
   isImportingPlayersFromForum,
   onStartGame,
   onForumTopicIdChange,
-  onPlayerNameChange,
+  onPlayerChange,
   onRemovePlayerField,
   onAddPlayerField,
   onOpenImport,
@@ -98,14 +105,16 @@ export default function JourneyPlayersSetupCard({
       />
       <CardContent>
         <Stack spacing={2}>
-          {playerNames.map((playerName, index) => (
+          {players.map((player, index) => (
             <Stack key={index} direction="row" spacing={1} alignItems="center">
-              <GamePlayerNameInput
+              <ProjectPlayerAutocomplete
                 label={`${journeyTexts.fields.playerPrefix} ${index + 1}`}
-                value={playerName}
-                onChange={(nextValue) => onPlayerNameChange(index, nextValue)}
+                value={player}
+                players={projectPlayers}
+                loading={projectPlayersLoading}
+                loadError={projectPlayersError}
                 errorText={playerNameErrors[index] || null}
-                helperTextMode="hidden"
+                onChange={(nextValue) => onPlayerChange(index, nextValue)}
                 disabled={actionsDisabled}
               />
               <IconButton color="error" onClick={() => onRemovePlayerField(index)} disabled={actionsDisabled}>

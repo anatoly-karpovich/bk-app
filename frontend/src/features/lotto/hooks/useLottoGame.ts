@@ -3,6 +3,8 @@ import { useGameRoute } from "../../../hooks/useGameRoute";
 import { getLottoGameConfigsRequest, getSelectedGameConfigStorageKey } from "../../projects/api/projects.client";
 import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
 import type { LottoGameConfig, Project } from "../../projects/types";
+import { useProjectPlayers } from "../../players/hooks/useProjectPlayers";
+import type { PlayerReferenceInput } from "../../players/types";
 import {
   createLottoGameRequest,
   deleteLottoGameRequest,
@@ -41,6 +43,7 @@ function createEmptyPlayerInput(): LottoSetupPlayerInput {
   return {
     id: crypto.randomUUID(),
     nickname: "",
+    playerRefId: null,
     cardNumbers: "",
   };
 }
@@ -93,6 +96,7 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
   const { gameId, openGame, openSetup } = useGameRoute("/lotto");
   const [game, setGame] = useState<LottoPersistedGame | null>(null);
   const [players, setPlayers] = useState<LottoSetupPlayerInput[]>([createEmptyPlayerInput()]);
+  const projectPlayers = useProjectPlayers(selectedProject?.id);
   const [savedGames, setSavedGames] = useState<LottoSavedGameSummary[]>([]);
   const [savedGamesDialogOpen, setSavedGamesDialogOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
@@ -424,6 +428,7 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
         projectId: selectedProject.id,
         players: players.map((player) => ({
           nickname: player.nickname.trim(),
+          playerRefId: player.playerRefId,
           cardNumbers: parseLottoNumbersInput(player.cardNumbers),
         })),
         gameConfigId: selectedLottoGameConfig.id,
@@ -450,9 +455,9 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
     setPlayers((current) => [...current, createEmptyPlayerInput()]);
   }
 
-  function changePlayerName(index: number, value: string) {
+  function changePlayer(index: number, value: PlayerReferenceInput) {
     setPlayers((current) =>
-      current.map((player, playerIndex) => (playerIndex === index ? { ...player, nickname: value } : player)),
+      current.map((player, playerIndex) => (playerIndex === index ? { ...player, ...value } : player)),
     );
   }
 
@@ -547,6 +552,8 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
     gameConfigs,
     selectedGameConfigId,
     players,
+    projectPlayers: projectPlayers.players,
+    projectPlayersError: projectPlayers.error,
     playerErrors,
     savedGames,
     currentGameId: game?.id ?? null,
@@ -570,6 +577,7 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
       isRestoringGame,
       isLoadingSavedGames,
       isLoadingGameConfigs,
+      isLoadingProjectPlayers: projectPlayers.isLoading,
       isDeletingSavedGame,
       isRefreshingGame,
       isResettingGame,
@@ -590,7 +598,7 @@ export function useLottoGame({ djName, selectedProject }: UseLottoGameParams) {
       startGame,
       restartGame,
       addPlayerField,
-      changePlayerName,
+      changePlayer,
       changePlayerNumbers,
       removePlayerField,
       generatePlayerCard,

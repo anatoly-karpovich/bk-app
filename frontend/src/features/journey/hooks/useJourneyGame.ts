@@ -3,6 +3,8 @@ import { useGameRoute } from "../../../hooks/useGameRoute";
 import { getJourneyGameConfigsRequest, getSelectedGameConfigStorageKey } from "../../projects/api/projects.client";
 import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
 import type { JourneyGameConfig, Project } from "../../projects/types";
+import { useProjectPlayers } from "../../players/hooks/useProjectPlayers";
+import type { PlayerReferenceInput } from "../../players/types";
 import {
   createJourneyGameRequest,
   deleteJourneyGameRequest,
@@ -67,24 +69,33 @@ function resolveSelectedGameConfigId(gameConfigs: JourneyGameConfig[]) {
   );
 }
 
-function mergeUniquePlayerNames(...nameGroups: string[][]): string[] {
-  const namesByNormalizedName = new Map<string, string>();
+function mergeUniquePlayers(currentPlayers: PlayerReferenceInput[], importedNames: string[]): PlayerReferenceInput[] {
+  const playersByNormalizedName = new Map<string, PlayerReferenceInput>();
 
-  for (const name of nameGroups.flat()) {
-    const trimmedName = name.trim();
+  for (const player of currentPlayers) {
+    const trimmedName = player.nickname.trim();
     const normalizedName = trimmedName.toLocaleLowerCase("ru-RU");
-    if (trimmedName && !namesByNormalizedName.has(normalizedName)) {
-      namesByNormalizedName.set(normalizedName, trimmedName);
+    if (trimmedName && !playersByNormalizedName.has(normalizedName)) {
+      playersByNormalizedName.set(normalizedName, { ...player, nickname: trimmedName });
     }
   }
 
-  return [...namesByNormalizedName.values()];
+  for (const name of importedNames) {
+    const trimmedName = name.trim();
+    const normalizedName = trimmedName.toLocaleLowerCase("ru-RU");
+    if (trimmedName && !playersByNormalizedName.has(normalizedName)) {
+      playersByNormalizedName.set(normalizedName, { nickname: trimmedName, playerRefId: null });
+    }
+  }
+
+  return [...playersByNormalizedName.values()];
 }
 
 export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams) {
   const { gameId, openGame, openSetup } = useGameRoute("/journey");
   const [game, setGame] = useState<JourneyPageGame | null>(null);
-  const [playerNames, setPlayerNames] = useState([""]);
+  const [players, setPlayers] = useState<PlayerReferenceInput[]>([{ nickname: "", playerRefId: null }]);
+  const projectPlayers = useProjectPlayers(selectedProject?.id);
   const [forumTopicId, setForumTopicId] = useState("");
   const [playersImportText, setPlayersImportText] = useState("");
   const [movesImportText, setMovesImportText] = useState("");
@@ -240,7 +251,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     }
   }, [game, openSetup, selectedProject?.id]);
 
-  const playerNameErrors = useMemo(() => getPlayerNameErrors(playerNames), [playerNames]);
+  const playerNameErrors = useMemo(() => getPlayerNameErrors(players.map((player) => player.nickname)), [players]);
   const validPlayersCount = playerNameErrors.filter((error) => !error).length;
   const selectedJourneyGameConfig = useMemo(
     () => gameConfigs.find((gameConfig) => gameConfig.id === selectedGameConfigId) ?? null,
@@ -253,7 +264,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   const canStartGame =
     Boolean(selectedProject?.id) &&
     Boolean(selectedJourneyGameConfig) &&
-    playerNames.length > 0 &&
+    players.length > 0 &&
     playerNameErrors.every((error) => !error);
   const canImportPlayersFromForum = Boolean(
     selectedProject?.id && djName.trim() && Number.isSafeInteger(Number(forumTopicId)) && Number(forumTopicId) > 0,
@@ -382,7 +393,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
 
   function resetJourneyPageState() {
     setGame(null);
-    setPlayerNames([""]);
+    setPlayers([{ nickname: "", playerRefId: null }]);
     setForumTopicId("");
     setPlayersImportText("");
     setForumState(null);
@@ -516,8 +527,8 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   }
 
   async function startGame() {
-    const cleanNames = playerNames.map((name) => name.trim()).filter(Boolean);
-    if (!cleanNames.length || !selectedProject?.id || !selectedJourneyGameConfig) {
+    const gamePlayers = players.map((player) => ({ ...player, nickname: player.nickname.trim() })).filter((player) => player.nickname);
+    if (!gamePlayers.length || !selectedProject?.id || !selectedJourneyGameConfig) {
       return;
     }
 
@@ -534,7 +545,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       const nextGame = await createJourneyGameRequest({
         projectId: selectedProject.id,
         gameConfigId: selectedJourneyGameConfig.id,
-        nicknames: cleanNames,
+        players: gamePlayers,
         forumTopicId: parsedForumTopicId,
       });
 
@@ -559,11 +570,11 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   }
 
   function addPlayerField() {
-    setPlayerNames((current) => [...current, ""]);
+    setPlayers((current) => [...current, { nickname: "", playerRefId: null }]);
   }
 
-  function changePlayerName(index: number, value: string) {
-    setPlayerNames((current) => current.map((name, nameIndex) => (nameIndex === index ? value : name)));
+  function changePlayer(index: number, value: PlayerReferenceInput) {
+    setPlayers((current) => current.map((player, playerIndex) => (playerIndex === index ? value : player)));
   }
 
   function changeForumTopicId(value: string) {
@@ -571,12 +582,12 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
   }
 
   function removePlayerField(index: number) {
-    setPlayerNames((current) => {
+    setPlayers((current) => {
       if (current.length === 1) {
-        return [""];
+        return [{ nickname: "", playerRefId: null }];
       }
 
-      return current.filter((_, nameIndex) => nameIndex !== index);
+      return current.filter((_, playerIndex) => playerIndex !== index);
     });
   }
 
@@ -596,7 +607,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
         return false;
       }
 
-      setPlayerNames((current) => mergeUniquePlayerNames(current, importedNames));
+      setPlayers((current) => mergeUniquePlayers(current, importedNames));
 
       return true;
     } catch (error) {
@@ -625,7 +636,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
         return;
       }
 
-      setPlayerNames((current) => mergeUniquePlayerNames(current, importedNames));
+      setPlayers((current) => mergeUniquePlayers(current, importedNames));
     } catch (error) {
       setRequestError(getErrorMessage(error));
     } finally {
@@ -833,7 +844,9 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
     game,
     gameConfigs,
     selectedGameConfigId,
-    playerNames,
+    players,
+    projectPlayers: projectPlayers.players,
+    projectPlayersError: projectPlayers.error,
     playerNameErrors,
     validPlayersCount,
     forumTopicId,
@@ -878,6 +891,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       isRestoringGame,
       isLoadingSavedGames,
       isLoadingGameConfigs,
+      isLoadingProjectPlayers: projectPlayers.isLoading,
       isDeletingSavedGame,
       isRefreshingGame,
       isResettingGame,
@@ -912,7 +926,7 @@ export function useJourneyGame({ djName, selectedProject }: UseJourneyGameParams
       changeForumTopicId,
       restartGame,
       addPlayerField,
-      changePlayerName,
+      changePlayer,
       removePlayerField,
       importPlayers,
       importPlayersFromForum,

@@ -2,31 +2,38 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { Box, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import AddPlayerButton from "../../../components/AddPlayerButton";
 import GameStartButton from "../../../components/GameStartButton";
-import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
+import ProjectPlayerAutocomplete from "../../../components/players/ProjectPlayerAutocomplete";
+import type { PlayerReferenceInput, ProjectPlayer } from "../../players/types";
 import type { LottoBingoPlayer } from "../types";
 
 interface Props {
   players: LottoBingoPlayer[];
-  playerName: string;
+  player: PlayerReferenceInput;
+  projectPlayers: ProjectPlayer[];
+  projectPlayersLoading: boolean;
+  projectPlayersError: string | null;
   busy: boolean;
   canAddPlayer: boolean;
   canStart: boolean;
-  onPlayerNameChange: (next: string) => void;
+  onPlayerChange: (next: PlayerReferenceInput) => void;
   onAddPlayer: () => void;
   onStart: () => void;
 }
 
 export default function LottoBingoRegistrationPanel({
   players,
-  playerName,
+  player,
+  projectPlayers,
+  projectPlayersLoading,
+  projectPlayersError,
   busy,
   canAddPlayer,
   canStart,
-  onPlayerNameChange,
+  onPlayerChange,
   onAddPlayer,
   onStart,
 }: Props) {
-  const normalizedPlayerName = playerName.trim().toLocaleLowerCase();
+  const normalizedPlayerName = player.nickname.trim().toLocaleLowerCase();
   const isDuplicatePlayer =
     normalizedPlayerName.length > 0 &&
     players.some((player) => player.nickname.trim().toLocaleLowerCase() === normalizedPlayerName);
@@ -50,20 +57,20 @@ export default function LottoBingoRegistrationPanel({
       <CardContent sx={{ px: { xs: 2.25, md: 2.5 }, pt: 2, pb: { xs: 2.25, md: 2.5 } }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <GamePlayerNameInput
+            <ProjectPlayerAutocomplete
               label="Ник игрока"
-              value={playerName}
-              onChange={onPlayerNameChange}
+              value={player}
+              players={projectPlayers}
+              loading={projectPlayersLoading}
+              loadError={projectPlayersError}
+              onChange={onPlayerChange}
               disabled={busy || !canAddPlayer}
               errorText={isDuplicatePlayer ? "Игрок уже добавлен" : null}
-              showErrorInLabel
-              helperTextMode="hidden"
-              placeholder="Ник игрока"
             />
           </Box>
           <AddPlayerButton
             variant="contained"
-            disabled={busy || !canAddPlayer || !playerName.trim() || isDuplicatePlayer}
+            disabled={busy || !canAddPlayer || !player.nickname.trim() || isDuplicatePlayer}
             onClick={onAddPlayer}
             sx={{ minWidth: { sm: 140 } }}
           />

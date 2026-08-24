@@ -4,6 +4,7 @@ import { ApiError } from "../../../lib/apiClient";
 import { getLottoBingoGameConfigsRequest, getSelectedGameConfigStorageKey } from "../../projects/api/projects.client";
 import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
 import type { LottoBingoGameConfig, Project } from "../../projects/types";
+import type { PlayerReferenceInput } from "../../players/types";
 import { lottoBingoApi } from "../api/lottoBingo.client";
 import type { LottoBingoPageModel, LottoBingoSavedGame, LottoBingoPlayer } from "../types";
 
@@ -244,9 +245,9 @@ export function useLottoBingoGame({ selectedProject }: UseLottoBingoGameParams) 
       deleteGame,
       setLiveObservation,
       resetUi,
-      addPlayer: (nickname: string) =>
+      addPlayer: (player: PlayerReferenceInput) =>
         runMutation((current) =>
-          lottoBingoApi.addPlayer(current.meta.projectId, current.id, nickname, current.meta.revision),
+          lottoBingoApi.addPlayer(current.meta.projectId, current.id, player, current.meta.revision),
         ),
       removePlayer: (player: LottoBingoPlayer) =>
         runMutation((current) =>

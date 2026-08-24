@@ -1,16 +1,20 @@
 import DirectionsBoatRoundedIcon from "@mui/icons-material/DirectionsBoatRounded";
 import { Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import GameStartButton from "../../../components/GameStartButton";
-import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
+import ProjectPlayerAutocomplete from "../../../components/players/ProjectPlayerAutocomplete";
 import AppChip from "../../../components/ui/AppChip";
 import AppInfoAlert from "../../../components/ui/AppInfoAlert";
+import type { PlayerReferenceInput, ProjectPlayer } from "../../players/types";
 import { formatRewardPool } from "../../rewards/resourceAmounts";
 import type { ResourceDefinition } from "../../rewards/types";
 import { battleshipsTexts } from "../../../texts/battleshipsTexts";
 import type { BattleshipsBoardRules } from "../types";
 
 interface BattleshipsSetupCardProps {
-  playerName: string;
+  player: PlayerReferenceInput;
+  projectPlayers: ProjectPlayer[];
+  projectPlayersError: string | null;
+  projectPlayersLoading: boolean;
   boardConfig: BattleshipsBoardRules | null;
   resources: ResourceDefinition[];
   fleetSummary: string[];
@@ -18,11 +22,14 @@ interface BattleshipsSetupCardProps {
   canStartGame: boolean;
   isStartingGame: boolean;
   onStartGame: () => void;
-  onPlayerNameChange: (nextValue: string) => void;
+  onPlayerChange: (nextValue: PlayerReferenceInput) => void;
 }
 
 export default function BattleshipsSetupCard({
-  playerName,
+  player,
+  projectPlayers,
+  projectPlayersError,
+  projectPlayersLoading,
   boardConfig,
   resources,
   fleetSummary,
@@ -30,7 +37,7 @@ export default function BattleshipsSetupCard({
   canStartGame,
   isStartingGame,
   onStartGame,
-  onPlayerNameChange,
+  onPlayerChange,
 }: BattleshipsSetupCardProps) {
   return (
     <Card>
@@ -50,10 +57,13 @@ export default function BattleshipsSetupCard({
       />
       <CardContent>
         <Stack spacing={2}>
-          <GamePlayerNameInput
-            label="Ник игрока"
-            value={playerName}
-            onChange={onPlayerNameChange}
+          <ProjectPlayerAutocomplete
+            label={battleshipsTexts.fields.playerNickname}
+            value={player}
+            players={projectPlayers}
+            loading={projectPlayersLoading}
+            loadError={projectPlayersError}
+            onChange={onPlayerChange}
             disabled={actionsDisabled}
           />
 

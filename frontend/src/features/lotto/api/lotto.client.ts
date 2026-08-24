@@ -9,6 +9,7 @@ export async function createLottoGameRequest(payload: {
   projectId: string;
   players: Array<{
     nickname: string;
+    playerRefId: string | null;
     cardNumbers: number[];
   }>;
   gameConfigId: string;

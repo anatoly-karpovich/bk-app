@@ -7,6 +7,7 @@ import type {
   JourneyPageGame,
   JourneySavedGameSummary,
 } from "../types";
+import type { PlayerReferenceInput } from "../../players/types";
 import { apiClient } from "../../../lib/apiClient";
 
 const JOURNEY_API_BASE_URL = "/api/journey";
@@ -18,7 +19,7 @@ function getProjectJourneyApiBaseUrl(projectId: string) {
 export async function createJourneyGameRequest(payload: {
   projectId: string;
   gameConfigId: string;
-  nicknames: string[];
+  players: PlayerReferenceInput[];
   forumTopicId?: number;
 }): Promise<JourneyPageGame> {
   const { projectId, ...body } = payload;

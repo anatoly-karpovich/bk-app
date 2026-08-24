@@ -15,6 +15,8 @@ import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import AppInfoAlert from "../../components/ui/AppInfoAlert";
 import AppResponsiveGrid from "../../components/ui/AppResponsiveGrid";
 import { lottoBingoTexts } from "../../texts/lottoBingoTexts";
+import { useProjectPlayers } from "../players/hooks/useProjectPlayers";
+import type { PlayerReferenceInput } from "../players/types";
 import type { Project } from "../projects/types";
 import LottoBingoCandidatePanel from "./components/LottoBingoCandidatePanel";
 import LottoBingoDrawWorkspace from "./components/LottoBingoDrawWorkspace";
@@ -55,7 +57,8 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
   } = useLottoBingoGame({
     selectedProject,
   });
-  const [playerName, setPlayerName] = useState("");
+  const [player, setPlayer] = useState<PlayerReferenceInput>({ nickname: "", playerRefId: null });
+  const projectPlayers = useProjectPlayers(selectedProject?.id);
   const [savedOpen, setSavedOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [confirm, setConfirm] = useState<Confirmation>(null);
@@ -69,12 +72,14 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
     await actions.loadSavedGames();
   };
   const addPlayer = async () => {
-    if (!playerName.trim()) return;
-    const saved = await actions.addPlayer(playerName.trim());
-    if (saved) setPlayerName("");
+    if (!player.nickname.trim()) return;
+    const saved = await actions.addPlayer({ ...player, nickname: player.nickname.trim() });
+    if (saved) {
+      setPlayer({ nickname: "", playerRefId: null });
+    }
   };
   const resetUi = () => {
-    setPlayerName("");
+    setPlayer({ nickname: "", playerRefId: null });
     setSelectedWinnerIds([]);
     setTargetPlayer(null);
     setOpenedTicket(null);
@@ -293,11 +298,14 @@ export default function LottoBingoPage({ selectedProject }: { selectedProject: P
               <AppResponsiveGrid columns={{ xs: 1, lg: 3 }} gap={3}>
                 <LottoBingoRegistrationPanel
                   players={game.state.players}
-                  playerName={playerName}
+                  player={player}
+                  projectPlayers={projectPlayers.players}
+                  projectPlayersLoading={projectPlayers.isLoading}
+                  projectPlayersError={projectPlayers.error}
                   busy={busy}
                   canAddPlayer={access.canAddPlayer}
                   canStart={access.canStart}
-                  onPlayerNameChange={setPlayerName}
+                  onPlayerChange={setPlayer}
                   onAddPlayer={() => void addPlayer()}
                   onStart={() => setConfirm("start")}
                 />

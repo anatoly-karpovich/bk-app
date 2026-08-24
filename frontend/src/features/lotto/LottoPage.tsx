@@ -36,6 +36,8 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
     gameConfigs,
     selectedGameConfigId,
     players,
+    projectPlayers,
+    projectPlayersError,
     playerErrors,
     savedGames,
     currentGameId,
@@ -116,13 +118,16 @@ export default function LottoPage({ djName, selectedProject }: LottoPageProps) {
             {!game ? (
               <LottoSetupCard
                 players={players}
+                projectPlayers={projectPlayers}
+                projectPlayersError={projectPlayersError}
+                projectPlayersLoading={loading.isLoadingProjectPlayers}
                 playerErrors={playerErrors}
                 rules={resolvedRules}
                 actionsDisabled={setupActionsDisabled}
                 canStartGame={canStartGame}
                 isStartingGame={loading.isStartingGame}
                 onStartGame={actions.startGame}
-                onPlayerNameChange={actions.changePlayerName}
+                onPlayerChange={actions.changePlayer}
                 onPlayerNumbersChange={actions.changePlayerNumbers}
                 onGenerateCard={actions.generatePlayerCard}
                 onRemovePlayerField={actions.removePlayerField}

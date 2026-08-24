@@ -1,5 +1,6 @@
 import { apiClient } from "../../../lib/apiClient";
 import { lottoBingoViewMapper } from "../mappers/LottoBingoViewMapper";
+import type { PlayerReferenceInput } from "../../players/types";
 import type { LottoBingoGameView, LottoBingoPageModel, LottoBingoSavedGame } from "../types";
 
 const base = (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}/lotto-bingo/games`;
@@ -11,9 +12,13 @@ export const lottoBingoApi = {
     map(await apiClient.get<LottoBingoGameView>(`${base(projectId)}/${encodeURIComponent(gameId)}`)),
   create: async (projectId: string, gameConfigId: string) =>
     map(await apiClient.post<LottoBingoGameView>(base(projectId), { gameConfigId })),
-  addPlayer: async (projectId: string, gameId: string, nickname: string, expectedRevision: number) =>
+  addPlayer: async (projectId: string, gameId: string, player: PlayerReferenceInput, expectedRevision: number) =>
     map(
-      await apiClient.post<LottoBingoGameView>(`${base(projectId)}/${gameId}/players`, { nickname, expectedRevision }),
+      await apiClient.post<LottoBingoGameView>(`${base(projectId)}/${gameId}/players`, {
+        nickname: player.nickname,
+        playerRefId: player.playerRefId,
+        expectedRevision,
+      }),
     ),
   removePlayer: async (projectId: string, gameId: string, playerId: string, expectedRevision: number) =>
     map(
