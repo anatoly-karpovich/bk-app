@@ -11,6 +11,7 @@ import { LottoBingoReadModelFactory } from "./LottoBingoReadModelFactory";
 import { LottoBingoRepository, type LottoBingoGameDocument } from "./LottoBingoRepository";
 import { LottoBingoUpdatePublisher, type LottoBingoUpdatedEvent } from "./LottoBingoUpdatePublisher";
 import type { LottoBingoGameListItemView, LottoBingoGameView } from "./domain/types";
+import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 
 export class LottoBingoService {
   constructor(
@@ -21,6 +22,7 @@ export class LottoBingoService {
     private readonly updates: LottoBingoUpdatePublisher,
     private readonly players: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
   ) {}
 
   async createGame(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<LottoBingoGameView> {
@@ -150,6 +152,7 @@ export class LottoBingoService {
         statusCode: 409,
         code: "lotto_bingo_revision_conflict",
       });
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
   }
   async subscribe(
     actor: CurrentUser,

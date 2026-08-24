@@ -10,6 +10,7 @@ import type { LottoCreatePlayerInput, LottoGameListItemReadModel, LottoGameReadM
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import { LottoGameNotFoundError, LottoGamesNotFoundError } from "./errors";
+import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 
 export type LottoGameResponse = LottoGameReadModel;
 export type LottoGameListResponse = LottoGameListItemReadModel[];
@@ -28,6 +29,7 @@ export class LottoService {
     private readonly gameConfigsService: GameConfigsService,
     private readonly playersService: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
   ) {}
 
   async createLottoGameSnapshotInProject(
@@ -159,6 +161,7 @@ export class LottoService {
     if (!deleted) {
       throw new LottoGameNotFoundError(gameId);
     }
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
   }
 
   private serializeLottoGame(document: WithId<LottoGameDocument>): LottoGameResponse {

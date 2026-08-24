@@ -75,6 +75,7 @@ import { AnalyticsController } from "../modules/analytics/AnalyticsController";
 import { AnalyticsIntegrityService } from "../modules/analytics/AnalyticsIntegrityService";
 import { AnalyticsProjectionRepository } from "../modules/analytics/AnalyticsProjectionRepository";
 import { AnalyticsProjectionService } from "../modules/analytics/AnalyticsProjectionService";
+import { BestEffortAnalyticsProjectionInvalidator } from "../modules/analytics/AnalyticsProjectionInvalidator";
 import { AnalyticsReadModelFactory } from "../modules/analytics/AnalyticsReadModelFactory";
 import { AnalyticsReadService } from "../modules/analytics/AnalyticsReadService";
 import { AnalyticsService } from "../modules/analytics/AnalyticsService";
@@ -128,6 +129,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const lottoRepository = new LottoRepository();
   const lottoBingoRepository = new LottoBingoRepository();
   const analyticsProjectionRepository = new AnalyticsProjectionRepository(mongoDatabase);
+  const analyticsInvalidator = new BestEffortAnalyticsProjectionInvalidator(analyticsProjectionRepository);
   const analyticsAdapters = [
     new JourneyAnalyticsAdapter(journeyRepository),
     new BattleshipsAnalyticsAdapter(battleshipsRepository),
@@ -164,6 +166,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizzesRepository,
     quizEventsRepository,
     playersRepository,
+    analyticsInvalidator,
   );
   const projectsController = new ProjectsController(projectsService);
   const playersController = new PlayersController(playersService);
@@ -215,6 +218,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new QuizMessageCandidateFilter(chatMessageIdentity),
     quizEventReadModelFactory,
     mongoDatabase,
+    analyticsInvalidator,
   );
   const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
@@ -226,6 +230,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigsService,
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
   const journeyResourceInventoryService = new JourneyResourceInventoryService();
@@ -254,6 +259,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyForumPlayersImporter,
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
   );
   const journeyController = new JourneyController(journeyService);
 
@@ -266,6 +272,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigsService,
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
   );
   const lottoController = new LottoController(lottoService);
   const lottoBingoEngine = new LottoBingoEngine(new LottoBingoTicketGenerator(), rewardGrantService);
@@ -278,6 +285,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new LottoBingoUpdatePublisher(),
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
   );
   const lottoBingoController = new LottoBingoController(lottoBingoService);
 

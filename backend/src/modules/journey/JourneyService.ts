@@ -19,6 +19,7 @@ import type {
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import { JourneyGameNotFoundError, JourneyGamesNotFoundError } from "./errors";
+import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 
 export type JourneyGameResponse = JourneyGameView;
 export type JourneyGameListResponse = JourneyGameListItemReadModel[];
@@ -47,6 +48,7 @@ export class JourneyService {
     private readonly forumPlayersImporter: JourneyForumPlayersImporter,
     private readonly playersService: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
   ) {}
 
   async createJourneyGameSnapshotInProject(
@@ -214,6 +216,7 @@ export class JourneyService {
     if (!deleted) {
       throw new JourneyGameNotFoundError(gameId);
     }
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
   }
 
   parseJourneyPlayers(text: string, djName = ""): string[] {

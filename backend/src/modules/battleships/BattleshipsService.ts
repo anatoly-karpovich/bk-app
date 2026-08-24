@@ -15,6 +15,7 @@ import type {
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import { BattleshipsGameNotFoundError, BattleshipsGamesNotFoundError } from "./errors";
+import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 
 export type BattleshipsGameResponse = BattleshipsGameReadModel;
 export type BattleshipsGameListResponse = BattleshipsGameListItemReadModel[];
@@ -33,6 +34,7 @@ export class BattleshipsService {
     private readonly gameConfigsService: GameConfigsService,
     private readonly playersService: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
   ) {}
 
   async createBattleshipsGameSnapshotInProject(
@@ -151,6 +153,10 @@ export class BattleshipsService {
       throw new BattleshipsGameNotFoundError(gameId);
     }
 
+    if (currentGame.status === "finished" && nextGame.status === "in_progress") {
+      await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
+    }
+
     return updatedGame;
   }
 
@@ -164,6 +170,7 @@ export class BattleshipsService {
     if (!deleted) {
       throw new BattleshipsGameNotFoundError(gameId);
     }
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
   }
 
   private serializeBattleshipsGame(document: WithId<BattleshipsGameDocument>): BattleshipsGameResponse {
