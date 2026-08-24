@@ -26,6 +26,7 @@ import type {
   JourneyAchievement,
   JourneyCommentReference,
   JourneyCommentTemplateKind,
+  JourneyFinalRewards,
   JourneyAchievementProgress,
   JourneyAwardedBonus,
   JourneyHistoryEntryView,
@@ -103,6 +104,7 @@ export class JourneyV2Engine {
           position: 0,
           balance: clone(initial),
           initialRewards: clone(initialRewards),
+          finalRewards: null,
           achievementNames: [],
         };
       });
@@ -306,7 +308,23 @@ export class JourneyV2Engine {
     balanceEntries: ResourceAmount[];
     bonuses: JourneyAwardedBonus[];
   } {
-    const baseRewards = [...this.initialRewardsFor(player, game)];
+    const initialRewards = this.initialRewardsFor(player, game);
+    const finalRewards = this.collectFinalRewards(game, player);
+    const baseRewardEntries = addResourceAmounts(initialRewards, finalRewards.regular);
+    const bonusRewardEntries = finalRewards.bonus;
+    return {
+      baseRewardEntries,
+      bonusRewardEntries,
+      balanceEntries: addResourceAmounts(baseRewardEntries, bonusRewardEntries),
+      bonuses: finalRewards.bonuses,
+    };
+  }
+
+  private collectFinalRewards(
+    game: JourneyV2Game,
+    player: JourneyV2Player,
+  ): JourneyFinalRewards & { bonuses: JourneyAwardedBonus[] } {
+    const regularRewards: ResourceAmount[] = [];
     const bonuses: JourneyAwardedBonus[] = [];
 
     game.stateV2.rounds.forEach((round) => {
@@ -319,7 +337,7 @@ export class JourneyV2Engine {
           if (turn.moveType === MOVE_TYPES.JACKPOT) {
             bonuses.push(this.awardedBonus(game, JOURNEY_ACHIEVEMENT_NAMES.JACKPOT, "jackpot", turn.appliedRewards));
           } else {
-            baseRewards.push(...turn.appliedRewards);
+            regularRewards.push(...turn.appliedRewards);
           }
           turn.achievementEffects.forEach((effect) => {
             bonuses.push(this.awardedBonus(game, effect.name, "achievement", effect.appliedRewards));
@@ -327,12 +345,12 @@ export class JourneyV2Engine {
         });
     });
 
-    const baseRewardEntries = addResourceAmounts(baseRewards);
-    const bonusRewardEntries = addResourceAmounts(bonuses.flatMap((bonus) => bonus.appliedRewards));
+    const regular = addResourceAmounts(regularRewards);
+    const bonus = addResourceAmounts(bonuses.flatMap((entry) => entry.appliedRewards));
     return {
-      baseRewardEntries,
-      bonusRewardEntries,
-      balanceEntries: addResourceAmounts(baseRewardEntries, bonusRewardEntries),
+      regular,
+      bonus,
+      total: addResourceAmounts(regular, bonus),
       bonuses,
     };
   }
@@ -687,6 +705,12 @@ export class JourneyV2Engine {
     game.stateV2.status = "finished";
     const finishedAt = now();
     game.finishedAt = finishedAt;
+    game.stateV2.players
+      .filter((player) => player.status !== "removed")
+      .forEach((player) => {
+        const { bonuses: _bonuses, ...finalRewards } = this.collectFinalRewards(game, player);
+        player.finalRewards = finalRewards;
+      });
     game.stateV2.forumLog.push(
       "",
       JOURNEY_GAME_RESULTS_MARKER,

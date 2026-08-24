@@ -89,6 +89,7 @@ export class JourneyReadModelFactory {
         status: player.status,
         position: player.position,
         balanceEntries: entries(this.engine.getPlayerRewardSummary(game, player).balanceEntries, game.resources),
+        finalRewards: clone(player.finalRewards),
       })),
     };
   }
@@ -102,6 +103,7 @@ export class JourneyReadModelFactory {
       baseRewardEntries: entries(rewards.baseRewardEntries, game.resources),
       bonusRewardEntries: entries(rewards.bonusRewardEntries, game.resources),
       balanceEntries: entries(rewards.balanceEntries, game.resources),
+      finalRewards: clone(player.finalRewards),
       bonuses: clone(rewards.bonuses),
     };
   }
