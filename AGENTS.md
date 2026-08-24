@@ -123,6 +123,16 @@ Do not add an artificial `state` to editor/configuration entities. Use `content`
 
 Persisted document types and public DTO/read-model types must stay separate. Frontend API clients consume the DTO and map it to page models; they must not infer persistence structure or depend on storage-only fields.
 
+### Player reference lifecycle
+
+В текущем single-operator rollout Player можно физически удалить, только если `PlayerReferencesRepository` не находит его `playerRefId` ни в одной сохранённой игре или Quiz Event. Проверка намеренно не использует nickname fallback. Она не защищена от конкурентной записи новой ссылки и допустима только пока параллельные изменения игр/Events исключены. Ниже описан дизайн для отдельного future rollout с конкурентно-безопасным lifecycle.
+
+- В отдельном rollout хранить у Player счётчик текущих ссылок, например `activeGameReferences`; это не история участия и не число ответов или наград.
+- Одна игра или один Quiz Event дают не более одной активной ссылки на одного Player, даже если он выбран в нескольких вопросах Event.
+- Любая мутация, добавляющая или убирающая `playerRefId`, должна в одной MongoDB-транзакции сохранить контейнер игры/Event и применить разницу уникальных Player references к их счётчикам.
+- Удаление Player делает условный delete только при `activeGameReferences: 0`. Создание ссылки и удаление должны конфликтовать через запись того же Player и не могут оставлять ссылку на удалённого Player.
+- Для импортированной истории отдельная миграция и audit восстанавливают счётчики по текущим сохранённым ссылкам. Поисковый `PlayerReferencesRepository` остаётся защитой legacy-данных и инструментом аудита, но не заменяет транзакционный счётчик.
+
 ---
 
 ## Frontend responsibility

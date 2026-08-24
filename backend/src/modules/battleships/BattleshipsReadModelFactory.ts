@@ -28,7 +28,7 @@ export class BattleshipsReadModelFactory {
 
     const boardConfig = getBattleshipsBoardConfig(normalizedGame.rules);
     const shots = normalizedGame.shots.map((shot) => this.buildShotReadModel(shot, boardConfig.boardSize));
-    const { board: _rawBoard, shots: _rawShots, ...publicGame } = normalizedGame;
+    const { board: _rawBoard, shots: _rawShots, playerRefId: _playerRefId, ...publicGame } = normalizedGame;
 
     return {
       id: _id.toHexString(),

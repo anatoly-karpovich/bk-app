@@ -1,4 +1,4 @@
-import { ObjectId, type WithId } from "mongodb";
+import { ObjectId, type ClientSession, type WithId } from "mongodb";
 import { getDefaultMongoDatabase } from "../../infrastructure/mongo/defaultMongo";
 import type { JourneyGameStatus, JourneyV2Game } from "./domain/types";
 import { InvalidJourneyGameIdError } from "./errors";
@@ -41,11 +41,11 @@ export class JourneyRepository {
       .toArray();
   }
 
-  async create(game: JourneyGameDocument): Promise<WithId<JourneyGameDocument> | null> {
+  async create(game: JourneyGameDocument, session?: ClientSession): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
-    const insertResult = await collection.insertOne(game);
+    const insertResult = await collection.insertOne(game, { session });
 
-    return collection.findOne({ _id: insertResult.insertedId });
+    return collection.findOne({ _id: insertResult.insertedId }, { session });
   }
 
   async update(gameId: string, projectId: string, game: JourneyGameDocument): Promise<WithId<JourneyGameDocument> | null> {

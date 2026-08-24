@@ -1,12 +1,31 @@
 services:
   mongo:
-    image: mongo:7
+    image: mongo:8.0.29
     container_name: bk-app-mongo
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
       - bk-app-mongo-data:/data/db
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mongo-replica-init:
+    image: mongo:8.0.29
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mongosh --host mongo --quiet --eval
+        "try { rs.status(); } catch (error) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }); }"
 
 volumes:
   bk-app-mongo-data:

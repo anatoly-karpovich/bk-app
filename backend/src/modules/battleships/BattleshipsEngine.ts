@@ -3,6 +3,7 @@ import { getBattleshipsBoardConfig, normalizeBattleshipsRules } from "./domain/c
 import type {
   BattleshipsBoardRules,
   BattleshipsGame,
+  BattleshipsPlayerIdentity,
   BattleshipsRules,
   BattleshipsShip,
   BattleshipsShipCell,
@@ -23,6 +24,7 @@ export class BattleshipsEngine {
     const normalizedGame: BattleshipsGame = {
       ...this.clone(game),
       playerName: game.playerName.trim(),
+      playerRefId: game.playerRefId?.trim() || undefined,
       djName: game.djName.trim(),
       projectId: game.projectId?.trim() ?? "",
       configId: game.configId.trim(),
@@ -38,7 +40,7 @@ export class BattleshipsEngine {
   }
 
   createGame(
-    playerName: string,
+    participant: BattleshipsPlayerIdentity,
     options: {
       randomFn?: RandomFn;
       rules: BattleshipsRules;
@@ -56,12 +58,17 @@ export class BattleshipsEngine {
     const resources = this.clone(options.resources);
     const boardConfig = getBattleshipsBoardConfig(rules);
     const { board, ships } = this.generateBoard(boardConfig, options.randomFn);
+    const playerName = participant.nickname.trim();
+    const playerRefId = participant.playerRefId.trim();
+    if (!playerName) throw new BattleshipsShotValidationError("Battleships create failed: player nickname must not be empty");
+    if (!playerRefId) throw new BattleshipsShotValidationError("Battleships create failed: player reference must not be empty");
 
     return {
       createdAt: now,
       updatedAt: now,
       status: "in_progress",
-      playerName: playerName.trim(),
+      playerName,
+      playerRefId,
       djName: options.djName?.trim() ?? "",
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId?.trim() ?? "",

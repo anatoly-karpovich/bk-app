@@ -1,9 +1,7 @@
 import type { HostSnapshot } from "../../auth/domain/types";
 import type { ResourceSnapshot } from "../../rewards";
 import type {
-  QuizAward,
   QuizConfigRulesSnapshot,
-  QuizEventSummary,
   QuizMessageTemplates,
   QuizPlayerMessageGroupView,
   QuizQuestion,
@@ -14,6 +12,35 @@ import type {
   QuizBonusRewardRule,
   QuizValidationIssue,
 } from "./types";
+
+export interface QuizAwardView {
+  id: string;
+  selectedMessageId: string;
+  playerName: string;
+  questionIndex: number;
+  source: import("./types").QuizAwardSource;
+  rewards: import("../../rewards").ResourceAmount[];
+  awardedAt: string;
+}
+
+export interface QuizPlayerSummaryView {
+  playerName: string;
+  correctAnswers: number;
+  regularRewards: import("../../rewards").ResourceAmount[];
+  bonusRewards: import("../../rewards").ResourceAmount[];
+  totalRewards: import("../../rewards").ResourceAmount[];
+}
+
+export interface QuizEventSummaryView {
+  players: QuizPlayerSummaryView[];
+  totalPreparedQuestions: number;
+  totalConductedQuestions: number;
+  totalReviewedQuestions: number;
+  totalSelectedAnswers: number;
+  totalUniquePlayers: number;
+  totalRewards: import("../../rewards").ResourceAmount[];
+  generatedAt: string;
+}
 
 export interface QuizConfigView {
   id: string;
@@ -81,7 +108,7 @@ export interface QuizEventQuestionView {
     updatedByUserId: string | null;
     playerGroups: QuizPlayerMessageGroupView[];
   };
-  result: { ranking: QuizRankedAnswerView[]; awards: QuizAward[] };
+  result: { ranking: QuizRankedAnswerView[]; awards: QuizAwardView[] };
 }
 
 export interface QuizEventView {
@@ -117,6 +144,6 @@ export interface QuizEventView {
       firstUnconductedQuestionId: string | null;
     };
     questions: QuizEventQuestionView[];
-    summary: QuizEventSummary | null;
+    summary: QuizEventSummaryView | null;
   };
 }

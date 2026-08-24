@@ -155,3 +155,45 @@ test("uses higher-ranked eligible players only after no player exists below the 
     [["Bob", 2, 3]],
   );
 });
+
+test("uses Player references for the one-bonus-per-player limit", () => {
+  const calculator = new QuizAwardCalculator();
+  const limitedSnapshot: QuizSnapshot = structuredClone(snapshot);
+  limitedSnapshot.configRulesSnapshot.limitOneBonusPerPlayer = true;
+  limitedSnapshot.configRulesSnapshot.bonusRules = [{ id: "first", questionIndex: 1, position: 1, rewardPool: pool(3) }];
+  const ranking = [
+    { playerName: "Старый ник", playerRefId: "player-alice", selectedMessageId: "message-1", timestamp: "21:00", effectiveOrder: 1, position: 1 },
+    { playerName: "Bob", playerRefId: "player-bob", selectedMessageId: "message-2", timestamp: "21:01", effectiveOrder: 2, position: 2 },
+  ];
+
+  const awards = calculator.calculate(
+    limitedSnapshot,
+    question,
+    ranking,
+    "2026-08-04T12:01:00.000Z",
+    new Set(["player-alice"]),
+  );
+
+  assert.equal(awards.find((award) => award.source.kind === "bonus_position")?.playerName, "Bob");
+});
+
+test("keeps the nickname fallback when a legacy bonus precedes a resolved answer", () => {
+  const calculator = new QuizAwardCalculator();
+  const limitedSnapshot: QuizSnapshot = structuredClone(snapshot);
+  limitedSnapshot.configRulesSnapshot.limitOneBonusPerPlayer = true;
+  limitedSnapshot.configRulesSnapshot.bonusRules = [{ id: "first", questionIndex: 1, position: 1, rewardPool: pool(3) }];
+  const ranking = [
+    { playerName: "Alice", playerRefId: "player-alice", selectedMessageId: "message-1", timestamp: "21:00", effectiveOrder: 1, position: 1 },
+    { playerName: "Bob", playerRefId: "player-bob", selectedMessageId: "message-2", timestamp: "21:01", effectiveOrder: 2, position: 2 },
+  ];
+
+  const awards = calculator.calculate(
+    limitedSnapshot,
+    question,
+    ranking,
+    "2026-08-04T12:01:00.000Z",
+    new Set(["nickname:alice"]),
+  );
+
+  assert.equal(awards.find((award) => award.source.kind === "bonus_position")?.playerName, "Bob");
+});

@@ -100,6 +100,7 @@ export interface LottoStatusChip {
 export interface LottoSetupPlayerInput {
   id: string;
   nickname: string;
+  playerRefId: string | null;
   cardNumbers: string;
 }
 

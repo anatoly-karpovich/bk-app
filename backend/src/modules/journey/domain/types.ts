@@ -142,6 +142,8 @@ export interface JourneyMapCell {
 
 export interface JourneyV2Player {
   id: string;
+  /** Stable project-scoped Player identity; optional while reading older games. */
+  playerRefId?: string;
   nickname: string;
   status: JourneyPlayerStatus;
   removedAt: string | null;
@@ -150,6 +152,10 @@ export interface JourneyV2Player {
   balance: ResourceHoldings;
   initialRewards?: ResourceAmount[];
   achievementNames: string[];
+}
+export interface JourneyV2PlayerIdentity {
+  nickname: string;
+  playerRefId: string;
 }
 export interface JourneyV2AchievementEffect {
   name: string;

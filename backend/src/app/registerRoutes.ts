@@ -8,6 +8,7 @@ import { createJourneyRouter } from "../modules/journey/journey.routes";
 import { createLottoRouter } from "../modules/lotto/lotto.routes";
 import { createLottoBingoRouter } from "../modules/lottoBingo/lottoBingo.routes";
 import { createProjectsRouter } from "../modules/projects/projects.routes";
+import { createPlayersRouter } from "../modules/players/players.routes";
 import { createAuthRouter } from "../modules/auth/auth.routes";
 import { createRequireAuth } from "../modules/auth/auth.middleware";
 import { createUsersRouter } from "../modules/users/users.routes";
@@ -22,6 +23,7 @@ export function registerRoutes(app: Express, dependencies: ApplicationDependenci
   app.use("/api/users", createUsersRouter(dependencies.usersController));
   app.use("/api/forum/topic", createForumTopicRouter(dependencies.forumTopicController));
   app.use("/api/projects", createProjectsRouter(dependencies.projectsController));
+  app.use("/api/projects/:projectId", createPlayersRouter(dependencies.playersController));
   app.use("/api/projects/:projectId/game-configs", createGameConfigsRouter(dependencies.gameConfigsController));
   app.use(
     "/api/projects/:projectId",

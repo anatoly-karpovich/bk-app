@@ -14,6 +14,7 @@ import {
   createJourneyGameForumTopicSchema,
   importJourneyPlayersFromForumSchema,
   createJourneyGameNicknamesSchema,
+  createJourneyGamePlayersSchema,
   createJourneyGamePresetSchema,
   createJourneyGameProjectParamsSchema,
   journeyGameIdParamsSchema,
@@ -49,11 +50,18 @@ export class JourneyController {
         req.params,
         "Route parameter 'projectId' must be a valid project id",
       );
-      const { nicknames } = parseRequest(
-        createJourneyGameNicknamesSchema,
-        { nicknames: req.body?.nicknames },
-        "Body field 'nicknames' must be a non-empty string array",
-      );
+      const players =
+        req.body?.players !== undefined
+          ? parseRequest(
+              createJourneyGamePlayersSchema,
+              { players: req.body.players },
+              "Body field 'players' must be a non-empty player array",
+            ).players
+          : parseRequest(
+              createJourneyGameNicknamesSchema,
+              { nicknames: req.body?.nicknames },
+              "Body field 'nicknames' must be a non-empty string array",
+            ).nicknames.map((nickname) => ({ nickname }));
       const { gameConfigId } = parseRequest(
         createJourneyGamePresetSchema,
         { gameConfigId: req.body?.gameConfigId },
@@ -65,7 +73,7 @@ export class JourneyController {
         "Body field 'forumTopicId' must be a positive integer when provided",
       );
       const game = await this.journeyService.createJourneyGameSnapshotInProject(req.authUser!, projectId, {
-        nicknames,
+        players,
         gameConfigId,
         forumTopicId,
       });
@@ -87,6 +95,15 @@ export class JourneyController {
           success: false,
           message: "Failed to create journey game",
           error: error.message,
+        });
+      }
+
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: "Failed to create journey game",
+          error: error.message,
+          code: error.code,
         });
       }
 

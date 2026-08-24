@@ -162,6 +162,8 @@ export interface QuizQuestionChat {
 
 export interface QuizSelectedAnswer {
   playerName: string;
+  /** Stable project-scoped Player identity; optional while reading older events. */
+  playerRefId?: string;
   selectedMessageId: string;
 }
 
@@ -190,6 +192,8 @@ export interface QuizAward {
   id: string;
   selectedMessageId: string;
   playerName: string;
+  /** Copied from the selected answer; optional while reading older events. */
+  playerRefId?: string;
   questionIndex: number;
   source: QuizAwardSource;
   rewards: ResourceAmount[];
@@ -214,6 +218,8 @@ export interface QuizEventQuestion {
 
 export interface QuizPlayerSummary {
   playerName: string;
+  /** Copied from selected answers; optional while reading older events. */
+  playerRefId?: string;
   correctAnswers: number;
   regularRewards: ResourceAmount[];
   bonusRewards: ResourceAmount[];

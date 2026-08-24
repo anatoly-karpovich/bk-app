@@ -249,6 +249,29 @@ Frontend must not contain:
 
 If a rule affects the final game result, it belongs to the backend.
 
+## Player identities
+
+`Player` is a project-scoped game participant, not an application `User`. A saved participant keeps both its local game `id` and immutable `nickname` snapshot plus `playerRefId`, which points to `players._id`. Never replace the local game id with `playerRefId`, and never render an old game from the mutable current Player nickname.
+
+New Lotto Bingo, Lotto, Journey, and Battleships game participants must be resolved by `PlayersService.resolveOrCreate` before reaching an engine. The dependency flow is:
+
+```text
+Game Controller -> Game Service -> PlayersService.resolveOrCreate -> Engine -> Repository
+```
+
+Engines receive a required resolved identity and must reject duplicate `playerRefId` values within a multi-player game. Engines must not query MongoDB, create Players, or resolve aliases. Existing persisted games may omit `playerRefId` only for tolerant reads of old backups.
+
+Public read models must not expose `playerRefId` unless a product requirement explicitly changes that rule. Lotto, Journey, and Battleships retain their current frontend-compatible request shapes while accepting an optional reference: Lotto player inputs include `playerRefId?`, Journey accepts legacy `nicknames` as well as player objects, and Battleships retains `playerName` with optional `playerRefId`.
+
+`PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, Battleships `playerRefId`, and Quiz Event `questions.selectedAnswers`, `questions.awards`, and `summary.players` references.
+
+The current single-operator rollout enables Player deletion after `PlayerReferencesRepository` finds no persisted `playerRefId` in any game/Event. It intentionally has no nickname fallback and is not safe against concurrent creation of a new reference; do not rely on it when parallel game/Event mutations are possible. A separate future rollout must replace this with the current-reference lifecycle below.
+
+- Store a current-reference count such as `activeGameReferences` on Player. Count one reference per `(Player, game-or-event)` pair, not every Quiz answer, award, or summary row.
+- Every mutation that changes a persisted Player reference must run in a MongoDB transaction and atomically persist both the game/Event and the Player count delta. Event changes calculate the delta from the unique references of the complete previous and next Event documents.
+- Player deletion must be a conditional transactional delete for `activeGameReferences: 0`. Reference creation/update and deletion must write the same Player document, so a concurrent operation retries and cannot create an orphan reference.
+- Existing documents need a dedicated migration to initialize the count from their currently persisted references. Keep `PlayerReferencesRepository` as a legacy fallback and audit/reconciliation tool, not the race-safety mechanism.
+
 ---
 
 ## Journey module expectations

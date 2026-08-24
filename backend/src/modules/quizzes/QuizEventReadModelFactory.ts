@@ -1,6 +1,6 @@
 import { buildQuizMessage } from "./domain/messageBuilder";
-import type { QuizEventView } from "./domain/readModels";
-import type { QuizEventDocument, QuizEventQuestion, QuizPlayerMessageGroupView } from "./domain/types";
+import type { QuizAwardView, QuizEventSummaryView, QuizEventView } from "./domain/readModels";
+import type { QuizAward, QuizEventDocument, QuizEventQuestion, QuizEventSummary, QuizPlayerMessageGroupView } from "./domain/types";
 import { QuizAnswerRanker } from "./QuizAnswerRanker/QuizAnswerRanker";
 
 export class QuizEventReadModelFactory {
@@ -31,8 +31,8 @@ export class QuizEventReadModelFactory {
           playerGroups: this.playerGroups(normalizedQuestion),
         },
         result: {
-          ranking: this.answerRanker.rank(normalizedQuestion.chat.messages, normalizedQuestion.selectedAnswers),
-          awards: clone(normalizedQuestion.awards),
+          ranking: this.rankingView(normalizedQuestion),
+          awards: normalizedQuestion.awards.map((award) => this.awardView(award)),
         },
       };
     });
@@ -69,7 +69,7 @@ export class QuizEventReadModelFactory {
           firstUnconductedQuestionId: questions.find((question) => question.workflow.conductedOrder === null)?.id ?? null,
         },
         questions,
-        summary: clone(event.summary),
+        summary: event.summary ? this.summaryView(event.summary) : null,
       },
     };
   }
@@ -116,6 +116,47 @@ export class QuizEventReadModelFactory {
     return [...groups.values()]
       .map((group) => ({ ...group, messages: [...group.messages].sort((left, right) => this.compareMessages(left, right)) }))
       .sort((left, right) => this.compareMessages(left.messages[0]!, right.messages[0]!));
+  }
+
+  private awardView(award: QuizAward): QuizAwardView {
+    return {
+      id: award.id,
+      selectedMessageId: award.selectedMessageId,
+      playerName: award.playerName,
+      questionIndex: award.questionIndex,
+      source: clone(award.source),
+      rewards: clone(award.rewards),
+      awardedAt: award.awardedAt,
+    };
+  }
+
+  private rankingView(question: QuizEventQuestion) {
+    return this.answerRanker.rank(question.chat.messages, question.selectedAnswers).map((answer) => ({
+      playerName: answer.playerName,
+      selectedMessageId: answer.selectedMessageId,
+      timestamp: answer.timestamp,
+      effectiveOrder: answer.effectiveOrder,
+      position: answer.position,
+    }));
+  }
+
+  private summaryView(summary: QuizEventSummary): QuizEventSummaryView {
+    return {
+      players: summary.players.map((player) => ({
+        playerName: player.playerName,
+        correctAnswers: player.correctAnswers,
+        regularRewards: clone(player.regularRewards),
+        bonusRewards: clone(player.bonusRewards),
+        totalRewards: clone(player.totalRewards),
+      })),
+      totalPreparedQuestions: summary.totalPreparedQuestions,
+      totalConductedQuestions: summary.totalConductedQuestions,
+      totalReviewedQuestions: summary.totalReviewedQuestions,
+      totalSelectedAnswers: summary.totalSelectedAnswers,
+      totalUniquePlayers: summary.totalUniquePlayers,
+      totalRewards: clone(summary.totalRewards),
+      generatedAt: summary.generatedAt,
+    };
   }
 
   private compareMessages(left: { timestamp: string | null; effectiveOrder: number }, right: { timestamp: string | null; effectiveOrder: number }): number {

@@ -8,6 +8,7 @@ function getProjectBattleshipsApiBaseUrl(projectId: string) {
 export async function createBattleshipsGameRequest(payload: {
   projectId: string;
   playerName: string;
+  playerRefId: string | null;
   gameConfigId: string;
 }): Promise<BattleshipsPersistedGame> {
   const { projectId, ...body } = payload;

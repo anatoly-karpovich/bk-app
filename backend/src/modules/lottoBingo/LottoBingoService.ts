@@ -1,7 +1,10 @@
+import type { ClientSession } from "mongodb";
 import { AppError } from "../../common/errors";
+import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import type { CurrentUser } from "../auth/domain/types";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
+import { PlayersService, type PlayerReferenceInput } from "../players/PlayersService";
 import { collectResourceIdsFromRules } from "../gameConfigs/domain/resourceReferences";
 import { LottoBingoEngine } from "./LottoBingoEngine";
 import { LottoBingoReadModelFactory } from "./LottoBingoReadModelFactory";
@@ -16,6 +19,8 @@ export class LottoBingoService {
     private readonly readModels: LottoBingoReadModelFactory,
     private readonly gameConfigs: GameConfigsService,
     private readonly updates: LottoBingoUpdatePublisher,
+    private readonly players: PlayersService,
+    private readonly mongoDatabase: MongoDatabase,
   ) {}
 
   async createGame(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<LottoBingoGameView> {
@@ -55,10 +60,26 @@ export class LottoBingoService {
       });
     return this.readModels.create(game, actor);
   }
-  async addPlayer(actor: CurrentUser, projectId: string, gameId: string, nickname: string, expectedRevision: number) {
-    return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
-      this.engine.addPlayer(game, nickname, host),
-    );
+  async addPlayer(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    participant: PlayerReferenceInput,
+    expectedRevision: number,
+  ) {
+    const updated = await this.mongoDatabase.withTransaction(async (session) => {
+      assertProjectAccess(actor, projectId);
+      const current = await this.requireGame(projectId, gameId, session);
+      assertOwnedByUser(actor, current.hostUserId);
+      if (current.revision !== expectedRevision) this.throwRevisionConflict();
+      const player = await this.players.resolveOrCreate(actor, projectId, participant, session);
+      const next = this.engine.addPlayer(current, player, this.actorSnapshot(actor, projectId));
+      const saved = await this.repository.update(gameId, projectId, expectedRevision, next, session);
+      if (!saved) this.throwRevisionConflict();
+      return saved;
+    });
+    this.updates.publish(gameId, updated.revision);
+    return this.readModels.create(updated, actor);
   }
   async removePlayer(
     actor: CurrentUser,
@@ -146,23 +167,18 @@ export class LottoBingoService {
     projectId: string,
     gameId: string,
     expectedRevision: number,
-    operation: (game: LottoBingoGameDocument, host: ReturnType<typeof getHostSnapshot>) => LottoBingoGameDocument,
+    operation: (
+      game: LottoBingoGameDocument,
+      host: ReturnType<typeof getHostSnapshot>,
+    ) => LottoBingoGameDocument | Promise<LottoBingoGameDocument>,
   ): Promise<LottoBingoGameView> {
     assertProjectAccess(actor, projectId);
     const current = await this.requireGame(projectId, gameId);
     assertOwnedByUser(actor, current.hostUserId);
-    if (current.revision !== expectedRevision)
-      throw new AppError("Lotto Bingo game was changed by another operation", {
-        statusCode: 409,
-        code: "lotto_bingo_revision_conflict",
-      });
-    const next = operation(current, this.actorSnapshot(actor, projectId));
+    if (current.revision !== expectedRevision) this.throwRevisionConflict();
+    const next = await operation(current, this.actorSnapshot(actor, projectId));
     const updated = await this.repository.update(gameId, projectId, expectedRevision, next);
-    if (!updated)
-      throw new AppError("Lotto Bingo game was changed by another operation", {
-        statusCode: 409,
-        code: "lotto_bingo_revision_conflict",
-      });
+    if (!updated) this.throwRevisionConflict();
     this.updates.publish(gameId, updated.revision);
     return this.readModels.create(updated, actor);
   }
@@ -175,10 +191,17 @@ export class LottoBingoService {
   private async requireGame(
     projectId: string,
     gameId: string,
+    session?: ClientSession,
   ): Promise<LottoBingoGameDocument & { _id: import("mongodb").ObjectId }> {
-    const game = await this.repository.findByIdAndProjectId(gameId, projectId);
+    const game = await this.repository.findByIdAndProjectId(gameId, projectId, session);
     if (!game)
       throw new AppError("Lotto Bingo game not found", { statusCode: 404, code: "lotto_bingo_game_not_found" });
     return game;
+  }
+  private throwRevisionConflict(): never {
+    throw new AppError("Lotto Bingo game was changed by another operation", {
+      statusCode: 409,
+      code: "lotto_bingo_revision_conflict",
+    });
   }
 }

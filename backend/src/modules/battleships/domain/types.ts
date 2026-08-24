@@ -65,6 +65,8 @@ export interface BattleshipsGame {
   updatedAt: string;
   status: BattleshipsGameStatus;
   playerName: string;
+  /** Stable project-scoped Player identity; optional while reading older games. */
+  playerRefId?: string;
   djName: string;
   projectId: string;
   configId: string;
@@ -100,7 +102,7 @@ export interface BattleshipsGameDerivedData {
   fleetSummary: string[];
   lastShot: BattleshipsShotReadModel | null;
 }
-export type BattleshipsGameReadModel = Omit<BattleshipsGame, "board" | "shots"> & {
+export type BattleshipsGameReadModel = Omit<BattleshipsGame, "board" | "shots" | "playerRefId"> & {
   id: string;
   board: BattleshipsBoardCellReadModel[][];
   shots: BattleshipsShotReadModel[];
@@ -127,4 +129,9 @@ export interface BattleshipsGameListItemReadModel {
 export interface BattleshipsShotInput {
   row: number;
   column: number;
+}
+
+export interface BattleshipsPlayerIdentity {
+  nickname: string;
+  playerRefId: string;
 }

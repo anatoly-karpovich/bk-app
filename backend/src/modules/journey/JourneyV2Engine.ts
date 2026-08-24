@@ -36,6 +36,7 @@ import type {
   JourneyRules,
   JourneyV2Game,
   JourneyV2Player,
+  JourneyV2PlayerIdentity,
   JourneyV2Round,
   JourneyV2Turn,
   RandomFn,
@@ -56,7 +57,7 @@ export class JourneyV2Engine {
   ) {}
 
   createGame(
-    nicknames: string[],
+    participants: JourneyV2PlayerIdentity[],
     options: {
       randomFn?: RandomFn;
       rules?: JourneyRules;
@@ -77,19 +78,34 @@ export class JourneyV2Engine {
     const initialApplication = this.inventory.apply({}, this.rewardGrantService.resolve(rules.initialRewardPool));
     const initialRewards = initialApplication.rewards.map((entry) => entry.applied);
     const initial = initialApplication.holdings;
-    const players = [...new Set(nicknames.map((name) => name.trim()).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, ["ru-RU", "en-US"], { sensitivity: "base" }))
-      .map((nickname) => ({
-        id: globalThis.crypto?.randomUUID?.() ?? `${nickname}-${Date.now()}-${Math.random()}`,
-        nickname,
-        status: "active" as const,
-        removedAt: null,
-        removedReason: null,
-        position: 0,
-        balance: clone(initial),
-        initialRewards: clone(initialRewards),
-        achievementNames: [],
-      }));
+    const playerRefIds = new Set<string>();
+    const nicknameKeys = new Set<string>();
+    const players = participants
+      .map((participant) => ({ nickname: participant.nickname.trim(), playerRefId: participant.playerRefId.trim() }))
+      .sort((left, right) => left.nickname.localeCompare(right.nickname, ["ru-RU", "en-US"], { sensitivity: "base" }))
+      .map(({ nickname, playerRefId }) => {
+        if (!nickname) throw new JourneyRoundValidationError("Journey create failed: player nickname must not be empty");
+        if (!playerRefId) throw new JourneyRoundValidationError("Journey create failed: player reference must not be empty");
+        const nicknameKey = nickname.toLocaleLowerCase("ru");
+        if (nicknameKeys.has(nicknameKey))
+          throw new JourneyRoundValidationError(`Journey create failed: duplicate player nickname "${nickname}"`);
+        if (playerRefIds.has(playerRefId))
+          throw new JourneyRoundValidationError(`Journey create failed: duplicate player reference "${playerRefId}"`);
+        nicknameKeys.add(nicknameKey);
+        playerRefIds.add(playerRefId);
+        return {
+          id: globalThis.crypto?.randomUUID?.() ?? `${nickname}-${Date.now()}-${Math.random()}`,
+          playerRefId,
+          nickname,
+          status: "active" as const,
+          removedAt: null,
+          removedReason: null,
+          position: 0,
+          balance: clone(initial),
+          initialRewards: clone(initialRewards),
+          achievementNames: [],
+        };
+      });
     return {
       storageFormat: "v2",
       createdAt,

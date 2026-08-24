@@ -40,7 +40,9 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
     game,
     gameConfigs,
     selectedGameConfigId,
-    playerNames,
+    players,
+    projectPlayers,
+    projectPlayersError,
     playerNameErrors,
     validPlayersCount,
     forumTopicId,
@@ -200,7 +202,10 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
               />
             ) : (
               <JourneyPlayersSetupCard
-                playerNames={playerNames}
+                players={players}
+                projectPlayers={projectPlayers}
+                projectPlayersError={projectPlayersError}
+                projectPlayersLoading={loading.isLoadingProjectPlayers}
                 playerNameErrors={playerNameErrors}
                 validPlayersCount={validPlayersCount}
                 forumTopicId={forumTopicId}
@@ -211,7 +216,7 @@ export default function JourneyPage({ djName, selectedProject }: JourneyPageProp
                 isImportingPlayersFromForum={loading.isImportingPlayersFromForum}
                 onStartGame={actions.startGame}
                 onForumTopicIdChange={actions.changeForumTopicId}
-                onPlayerNameChange={actions.changePlayerName}
+                onPlayerChange={actions.changePlayer}
                 onRemovePlayerField={actions.removePlayerField}
                 onAddPlayerField={actions.addPlayerField}
                 onOpenImport={() => actions.setPlayersImportOpen(true)}

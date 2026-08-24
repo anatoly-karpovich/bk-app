@@ -27,6 +27,7 @@ export const createLottoGameDjNameSchema = z.object({
 
 export const createLottoGamePlayerSchema = z.object({
   nickname: z.string().trim().min(1),
+  playerRefId: objectIdSchema.nullable().optional(),
   cardNumbers: z.array(z.number().int()).min(1),
 });
 

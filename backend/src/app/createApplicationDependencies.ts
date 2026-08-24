@@ -39,6 +39,11 @@ import { LottoBingoTicketGenerator } from "../modules/lottoBingo/domain/LottoBin
 import { ProjectsController } from "../modules/projects/ProjectsController";
 import { ProjectsRepository } from "../modules/projects/ProjectsRepository";
 import { ProjectsService } from "../modules/projects/ProjectsService";
+import { PlayersController } from "../modules/players/PlayersController";
+import { PlayerReadModelFactory } from "../modules/players/PlayerReadModelFactory";
+import { PlayerReferencesRepository } from "../modules/players/PlayerReferencesRepository";
+import { PlayersRepository } from "../modules/players/PlayersRepository";
+import { PlayersService } from "../modules/players/PlayersService";
 import { AuthController } from "../modules/auth/AuthController";
 import { AuthService } from "../modules/auth/AuthService";
 import { PasswordHasher } from "../modules/auth/PasswordHasher";
@@ -77,6 +82,7 @@ export interface ApplicationDependencies {
   lottoController: LottoController;
   lottoBingoController: LottoBingoController;
   projectsController: ProjectsController;
+  playersController: PlayersController;
   quizConfigsController: QuizConfigsController;
   quizzesController: QuizzesController;
   quizEventsController: QuizEventsController;
@@ -93,6 +99,13 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const authController = new AuthController(authService);
 
   const projectsRepository = new ProjectsRepository(mongoDatabase);
+  const playersRepository = new PlayersRepository(mongoDatabase);
+  const playersService = new PlayersService(
+    playersRepository,
+    projectsRepository,
+    new PlayerReadModelFactory(),
+    new PlayerReferencesRepository(mongoDatabase),
+  );
   const quizConfigsRepository = new QuizConfigsRepository(mongoDatabase);
   const quizzesRepository = new QuizzesRepository(mongoDatabase);
   const quizEventsRepository = new QuizEventsRepository(mongoDatabase);
@@ -112,8 +125,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizConfigsRepository,
     quizzesRepository,
     quizEventsRepository,
+    playersRepository,
   );
   const projectsController = new ProjectsController(projectsService);
+  const playersController = new PlayersController(playersService);
   const usersController = new UsersController(
     new UsersService(usersRepository, sessionsRepository, passwordHasher, projectsRepository),
   );
@@ -156,10 +171,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizEventsRepository,
     quizzesRepository,
     projectsRepository,
+    playersService,
     quizEventEngine,
     new ChatParser(),
     new QuizMessageCandidateFilter(chatMessageIdentity),
     quizEventReadModelFactory,
+    mongoDatabase,
   );
   const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
@@ -169,6 +186,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     battleshipsEngine,
     battleshipsReadModelFactory,
     gameConfigsService,
+    playersService,
+    mongoDatabase,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
   const journeyResourceInventoryService = new JourneyResourceInventoryService();
@@ -195,12 +214,21 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyForumStateFormatter,
     journeyForumMovesImporter,
     journeyForumPlayersImporter,
+    playersService,
+    mongoDatabase,
   );
   const journeyController = new JourneyController(journeyService);
 
   const lottoEngine = new LottoEngine(rewardGrantService, new LottoPayoutDistributor());
   const lottoReadModelFactory = new LottoReadModelFactory(lottoEngine);
-  const lottoService = new LottoService(lottoRepository, lottoEngine, lottoReadModelFactory, gameConfigsService);
+  const lottoService = new LottoService(
+    lottoRepository,
+    lottoEngine,
+    lottoReadModelFactory,
+    gameConfigsService,
+    playersService,
+    mongoDatabase,
+  );
   const lottoController = new LottoController(lottoService);
   const lottoBingoEngine = new LottoBingoEngine(new LottoBingoTicketGenerator(), rewardGrantService);
   const lottoBingoReadModelFactory = new LottoBingoReadModelFactory(lottoBingoEngine);
@@ -210,6 +238,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     lottoBingoReadModelFactory,
     gameConfigsService,
     new LottoBingoUpdatePublisher(),
+    playersService,
+    mongoDatabase,
   );
   const lottoBingoController = new LottoBingoController(lottoBingoService);
 
@@ -225,6 +255,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     lottoController,
     lottoBingoController,
     projectsController,
+    playersController,
     quizConfigsController,
     quizzesController,
     quizEventsController,

@@ -21,6 +21,7 @@ import { QuizConfigsRepository } from "../quizzes/QuizConfigsRepository";
 import { QuizzesRepository } from "../quizzes/QuizzesRepository";
 import { QuizEventsRepository } from "../quizzes/QuizEventsRepository";
 import { collectResourceIds as collectQuizResourceIds } from "../quizzes/domain/validation";
+import { PlayersRepository } from "../players/PlayersRepository";
 
 const DEFAULT_ADMIN_PROJECT_NICKNAME = "Геральт из Ривии";
 
@@ -36,6 +37,7 @@ export class ProjectsService {
     private readonly quizConfigsRepository: QuizConfigsRepository,
     private readonly quizzesRepository: QuizzesRepository,
     private readonly quizEventsRepository: QuizEventsRepository,
+    private readonly playersRepository: PlayersRepository,
   ) {}
 
   async listProjects(actor: CurrentUser): Promise<ProjectReadModel[]> {
@@ -170,6 +172,7 @@ export class ProjectsService {
       this.quizConfigsRepository.deleteByProjectId(projectId),
       this.quizzesRepository.deleteByProjectId(projectId),
       this.quizEventsRepository.deleteByProjectId(projectId),
+      this.playersRepository.deleteByProjectId(projectId),
       this.usersRepository.removeProjectProfiles(projectId),
     ]);
 

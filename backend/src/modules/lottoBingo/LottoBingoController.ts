@@ -38,7 +38,7 @@ export class LottoBingoController {
         req.authUser!,
         this.projectId(req),
         this.gameId(req),
-        body.nickname,
+        { nickname: body.nickname, playerRefId: body.playerRefId },
         body.expectedRevision,
       ),
     );

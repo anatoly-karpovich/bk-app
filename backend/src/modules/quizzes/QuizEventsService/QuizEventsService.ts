@@ -1,9 +1,12 @@
 import type { CurrentUser } from "../../auth/domain/types";
+import type { ClientSession } from "mongodb";
+import type { MongoDatabase } from "../../../infrastructure/mongo/MongoDatabase";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../../auth/authorization";
 import { ChatParser } from "../../chat/ChatParser";
 import { ChatTransport } from "../../chat/domain/types";
 import { ProjectNotFoundError } from "../../projects/errors";
 import { ProjectsRepository } from "../../projects/ProjectsRepository";
+import { PlayersService } from "../../players/PlayersService";
 import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMessageCandidateFilter";
 import {
   QuizConflictError,
@@ -14,7 +17,7 @@ import {
   QuizQuestionResultsLockedError,
   QuizValidationError,
 } from "../errors";
-import { QuizEventEngine } from "../QuizEventEngine/QuizEventEngine";
+import { QuizEventEngine, type ResolvedQuizSelectedAnswer } from "../QuizEventEngine/QuizEventEngine";
 import { QuizEventsRepository } from "../QuizEventsRepository";
 import { QuizEventReadModelFactory } from "../QuizEventReadModelFactory";
 import { QuizzesRepository } from "../QuizzesRepository";
@@ -41,16 +44,23 @@ export interface SaveQuizQuestionResult {
     reviewedAt: string;
   };
 }
+export interface QuizSelectedAnswerInput {
+  playerName: string;
+  playerRefId?: string | null;
+  selectedMessageId: string;
+}
 
 export class QuizEventsService {
   constructor(
     private readonly repository: QuizEventsRepository,
     private readonly quizzesRepository: QuizzesRepository,
     private readonly projectsRepository: ProjectsRepository,
+    private readonly playersService: PlayersService,
     private readonly engine: QuizEventEngine,
     private readonly chatParser: ChatParser,
     private readonly candidateFilter: QuizMessageCandidateFilter,
     private readonly readModels: QuizEventReadModelFactory,
+    private readonly mongoDatabase: MongoDatabase,
   ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizEventView[]> {
@@ -187,26 +197,47 @@ export class QuizEventsService {
     projectId: string,
     eventId: string,
     questionId: string,
-    selections: QuizSelectedAnswer[],
+    selections: QuizSelectedAnswerInput[],
     expectedRevision: number,
   ): Promise<SaveQuizQuestionResult> {
-    const event = await this.editableEvent(actor, projectId, eventId);
-    this.assertExpectedRevision(event, eventId, expectedRevision);
-    this.assertQuestionResultCanBeChanged(event, questionId);
-    this.assertPreviousConductedResultsReviewed(event, questionId);
-    const updated = this.engine.saveQuestionResult(structuredClone(event), questionId, selections, actor.id);
-    const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
+    const saved = await this.mongoDatabase.withTransaction(async (session) => {
+      const event = await this.editableEvent(actor, projectId, eventId, session);
+      this.assertExpectedRevision(event, eventId, expectedRevision);
+      this.assertQuestionResultCanBeChanged(event, questionId);
+      this.assertPreviousConductedResultsReviewed(event, questionId);
+      const eventQuestion = this.engine.getQuestion(event, questionId);
+      this.engine.validateSelectionInputs(
+        eventQuestion,
+        selections.map(({ playerName, selectedMessageId }) => ({ playerName, selectedMessageId })),
+      );
+      const resolvedSelections: ResolvedQuizSelectedAnswer[] = [];
+      for (const selection of selections) {
+        const resolved = await this.playersService.resolveOrCreate(
+          actor,
+          projectId,
+          { nickname: selection.playerName, playerRefId: selection.playerRefId },
+          session,
+        );
+        resolvedSelections.push({
+          playerName: selection.playerName,
+          selectedMessageId: selection.selectedMessageId,
+          playerRefId: resolved.playerRefId,
+        });
+      }
+      const updated = this.engine.saveQuestionResult(structuredClone(event), questionId, resolvedSelections, actor.id);
+      return this.repository.update(eventId, projectId, expectedRevision, updated, session);
+    });
     if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     const view = this.readModels.create(eventId, saved);
-    const question = view.state.questions.find((candidate) => candidate.id === questionId);
-    if (!question || question.workflow.conductedOrder === null || question.workflow.reviewedAt === null)
+    const viewQuestion = view.state.questions.find((candidate) => candidate.id === questionId);
+    if (!viewQuestion || viewQuestion.workflow.conductedOrder === null || viewQuestion.workflow.reviewedAt === null)
       throw new Error("Saved quiz question result was not found");
     return {
       event: view,
       result: {
-        conductedOrder: question.workflow.conductedOrder,
-        awardsCount: question.result.awards.length,
-        reviewedAt: question.workflow.reviewedAt,
+        conductedOrder: viewQuestion.workflow.conductedOrder,
+        awardsCount: viewQuestion.result.awards.length,
+        reviewedAt: viewQuestion.workflow.reviewedAt,
       },
     };
   }
@@ -230,9 +261,9 @@ export class QuizEventsService {
     return this.readModels.create(eventId, updated);
   }
 
-  private async editableEvent(actor: CurrentUser, projectId: string, eventId: string) {
+  private async editableEvent(actor: CurrentUser, projectId: string, eventId: string, session?: ClientSession) {
     assertProjectAccess(actor, projectId);
-    const event = await this.repository.findByIdAndProjectId(eventId, projectId);
+    const event = await this.repository.findByIdAndProjectId(eventId, projectId, session);
     if (!event) throw new QuizEventNotFoundError(eventId);
     assertOwnedByUser(actor, event.hostUserId);
     return event;

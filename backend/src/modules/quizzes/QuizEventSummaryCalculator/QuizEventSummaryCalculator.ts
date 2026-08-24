@@ -1,4 +1,5 @@
 import { addResourceAmounts } from "../../rewards";
+import { toPlayerNicknameKey } from "../../players/domain/normalizePlayerNickname";
 import type { QuizEventQuestion, QuizEventSummary } from "../domain/types";
 
 /** Aggregates persisted reviewed outcomes. It never ranks answers or creates awards. */
@@ -10,6 +11,8 @@ export class QuizEventSummaryCalculator {
     const players = new Map<
       string,
       {
+        playerName: string;
+        playerRefId?: string;
         correctAnswers: number;
         regularRewards: import("../../rewards").ResourceAmount[];
         bonusRewards: import("../../rewards").ResourceAmount[];
@@ -18,7 +21,14 @@ export class QuizEventSummaryCalculator {
 
     for (const question of reviewedQuestions) {
       for (const selection of question.selectedAnswers) {
-        const entry = players.get(selection.playerName) ?? { correctAnswers: 0, regularRewards: [], bonusRewards: [] };
+        const key = selection.playerRefId ?? `legacy:${toPlayerNicknameKey(selection.playerName)}`;
+        const entry = players.get(key) ?? {
+          playerName: selection.playerName,
+          playerRefId: selection.playerRefId,
+          correctAnswers: 0,
+          regularRewards: [],
+          bonusRewards: [],
+        };
         entry.correctAnswers += 1;
         for (const award of question.awards.filter(
           (candidate) => candidate.selectedMessageId === selection.selectedMessageId,
@@ -26,13 +36,14 @@ export class QuizEventSummaryCalculator {
           if (award.source.kind === "bonus_position") entry.bonusRewards.push(...award.rewards);
           else entry.regularRewards.push(...award.rewards);
         }
-        players.set(selection.playerName, entry);
+        players.set(key, entry);
       }
     }
 
     const playerSummaries = [...players.entries()]
-      .map(([playerName, entry]) => ({
-        playerName,
+      .map(([, entry]) => ({
+        playerName: entry.playerName,
+        playerRefId: entry.playerRefId,
         correctAnswers: entry.correctAnswers,
         regularRewards: addResourceAmounts(entry.regularRewards),
         bonusRewards: addResourceAmounts(entry.bonusRewards),

@@ -8,7 +8,10 @@ export const lottoBingoPlayerParamsSchema = z.object({
 });
 export const createLottoBingoGameSchema = z.object({ gameConfigId: objectIdSchema });
 export const revisionSchema = z.object({ expectedRevision: z.number().int().nonnegative() });
-export const addLottoBingoPlayerSchema = revisionSchema.extend({ nickname: z.string().trim().min(1) });
+export const addLottoBingoPlayerSchema = revisionSchema.extend({
+  nickname: z.string().trim().min(1),
+  playerRefId: objectIdSchema.nullable().optional(),
+});
 export const confirmLottoBingoWinnersSchema = revisionSchema.extend({
   playerIds: z.array(z.string().trim().min(1)).min(1),
 });

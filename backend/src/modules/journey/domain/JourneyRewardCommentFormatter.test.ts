@@ -32,6 +32,8 @@ const randomizer: Randomizer = {
 };
 
 const all = (...rewards: Array<{ resourceId: string; amount: number }>) => ({ mode: "all" as const, rewards });
+const players = (...nicknames: string[]) =>
+  nicknames.map((nickname) => ({ nickname, playerRefId: `player-${nickname.toLocaleLowerCase("ru")}` }));
 
 function rules(overrides: Partial<JourneyRules> = {}): JourneyRules {
   return {
@@ -66,6 +68,15 @@ function createEngine(): JourneyV2Engine {
   );
 }
 
+test("rejects duplicate Player references when creating a Journey game", () => {
+  const engine = createEngine();
+
+  assert.throws(
+    () => engine.createGame([{ nickname: "Анатолий", playerRefId: "player-1" }, { nickname: "Борис", playerRefId: "player-1" }]),
+    /duplicate player reference/,
+  );
+});
+
 test("formats aggregated gains, losses, and limited amounts by resource id", () => {
   const formatter = new JourneyRewardCommentFormatter();
 
@@ -85,9 +96,9 @@ test("formats aggregated gains, losses, and limited amounts by resource id", () 
       ],
     ),
     {
-      resolvedGain: "15 монет и 1 ключ",
+      resolvedGain: "15 монет и ключ ×1",
       resolvedLoss: "4 unknown",
-      gained: "7 монет и 1 ключ",
+      gained: "7 монет и ключ ×1",
       lost: "2 unknown",
       unappliedGain: "8 монет",
       unappliedLoss: "2 unknown",
@@ -158,10 +169,10 @@ test("lists saved achievement and jackpot grants in the forum state", () => {
     [
       "==================== Текущее положение ====================",
       "",
-      "Анатолий: Итоговая награда: [10 монет, 1 ключ], Клетка: [5]",
+      "Анатолий: Итоговая награда: [10 монет, ключ ×1], Клетка: [5]",
       "   Бонусы:",
       "   - Сокровище: [без дополнительной награды]",
-      "   - Достижение «Счастливчик»: [5 монет, 1 ключ]",
+      "   - Достижение «Счастливчик»: [5 монет, ключ ×1]",
     ].join("\n"),
   );
 });
@@ -185,7 +196,7 @@ test("rotates every template in a group before it repeats and restores by templa
 
 test("stores selected comment template references in a new Journey round", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], { resources, rules: rules() });
+  const game = engine.createGame(players("Анатолий"), { resources, rules: rules() });
   game.stateV2.map = {
     1: { id: "bonus", kind: "bonus", rewardPool: all({ resourceId: "coins", amount: 1 }) },
   };
@@ -206,7 +217,7 @@ test("stores selected comment template references in a new Journey round", () =>
 
 test("writes a limited cell reward with only its move comment", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], {
+  const game = engine.createGame(players("Анатолий"), {
     resources,
     rules: rules({
       initialRewardPool: all({ resourceId: "coins", amount: 5 }),
@@ -234,7 +245,7 @@ test("writes a limited cell reward with only its move comment", () => {
 
   const [roundTitle, moveComment] = next.stateV2.forumLog.slice(-2);
   assert.equal(roundTitle, buildJourneyRoundMarker(1));
-  assert.match(moveComment, /5 монет и 1 ключ/);
+  assert.match(moveComment, /5 монет и ключ ×1/);
   assert.ok(!moveComment.includes("["));
   assert.equal(
     next.stateV2.rounds[0].turns[0].kind === "move" ? next.stateV2.rounds[0].turns[0].commentRefs.length : 0,
@@ -244,7 +255,7 @@ test("writes a limited cell reward with only its move comment", () => {
 
 test("uses shared forum markers for the game start and each move", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], { resources, rules: rules() });
+  const game = engine.createGame(players("Анатолий"), { resources, rules: rules() });
   game.stateV2.map = {};
   const player = game.stateV2.players[0];
 
@@ -256,7 +267,7 @@ test("uses shared forum markers for the game start and each move", () => {
 
 test("keeps and publishes the game map after the final move", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], { resources, rules: rules({ mapSize: 1 }) });
+  const game = engine.createGame(players("Анатолий"), { resources, rules: rules({ mapSize: 1 }) });
   const player = game.stateV2.players[0];
   game.stateV2.map = {
     1: { id: "bonus", kind: "bonus", rewardPool: all({ resourceId: "coins", amount: 5 }) },
@@ -274,7 +285,7 @@ test("keeps and publishes the game map after the final move", () => {
 
 test("uses moveType to distinguish won, empty, and already claimed jackpots", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий", "Борис"], { resources, rules: rules() });
+  const game = engine.createGame(players("Анатолий", "Борис"), { resources, rules: rules() });
   game.stateV2.map = {
     1: {
       id: "jackpot",
@@ -290,7 +301,7 @@ test("uses moveType to distinguish won, empty, and already claimed jackpots", ()
   const won = engine.makeRound(game, [{ playerId: anatoliy.id, dice: 1 }], [boris.id]);
   assert.ok(won.stateV2.forumLog.some((comment) => comment.includes("5 монет") && !comment.includes("[")));
 
-  const claimedGame = engine.createGame(["Анатолий", "Борис"], { resources, rules: rules() });
+  const claimedGame = engine.createGame(players("Анатолий", "Борис"), { resources, rules: rules() });
   claimedGame.stateV2.map = {
     1: {
       id: "jackpot",
@@ -309,7 +320,7 @@ test("uses moveType to distinguish won, empty, and already claimed jackpots", ()
 
 test("does not apply a base-reward limit to a jackpot", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], {
+  const game = engine.createGame(players("Анатолий"), {
     resources,
     rules: rules({
       initialRewardPool: all({ resourceId: "coins", amount: 5 }),
@@ -337,7 +348,7 @@ test("does not apply a base-reward limit to a jackpot", () => {
 
 test("keeps base rewards limited separately from saved jackpot rewards in the game view and forum state", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], {
+  const game = engine.createGame(players("Анатолий"), {
     resources,
     rules: rules({
       initialRewardPool: all({ resourceId: "coins", amount: 5 }),
@@ -388,12 +399,12 @@ test("keeps base rewards limited separately from saved jackpot rewards in the ga
   } as any);
   assert.deepEqual(view.state.players[0].balanceEntries, summary.balanceEntries);
   assert.deepEqual(view.state.players[0].bonuses, summary.bonuses);
-  assert.match(new JourneyForumStateFormatter().create(view).text, /12 монет, 1 ключ/);
+  assert.match(new JourneyForumStateFormatter().create(view).text, /12 монет, ключ ×1/);
 });
 
 test("reports an empty weighted jackpot as a won jackpot without a reward", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], { resources, rules: rules() });
+  const game = engine.createGame(players("Анатолий"), { resources, rules: rules() });
   game.stateV2.map = {
     1: {
       id: "jackpot",
@@ -412,7 +423,7 @@ test("reports an empty weighted jackpot as a won jackpot without a reward", () =
 
 test("does not apply a base-reward limit to an achievement reward", () => {
   const engine = createEngine();
-  const game = engine.createGame(["Анатолий"], {
+  const game = engine.createGame(players("Анатолий"), {
     resources,
     rules: rules({
       resourceLimits: [{ resourceId: "coins", min: 0, max: 5 }],

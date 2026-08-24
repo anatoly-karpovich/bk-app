@@ -4,22 +4,26 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { Box, Card, CardContent, CardHeader, IconButton, Stack, Typography } from "@mui/material";
 import AddPlayerButton from "../../../components/AddPlayerButton";
 import GameStartButton from "../../../components/GameStartButton";
-import GamePlayerNameInput from "../../../components/players/GamePlayerNameInput";
+import ProjectPlayerAutocomplete from "../../../components/players/ProjectPlayerAutocomplete";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import { lottoTexts } from "../../../texts/lottoTexts";
+import type { PlayerReferenceInput, ProjectPlayer } from "../../players/types";
 import { getLottoCardPlaceholder } from "../mappers/lotto.mapper";
 import type { LottoRules, LottoSetupPlayerInput, LottoSetupPlayerInputError } from "../types";
 
 interface LottoSetupCardProps {
   players: LottoSetupPlayerInput[];
+  projectPlayers: ProjectPlayer[];
+  projectPlayersError: string | null;
+  projectPlayersLoading: boolean;
   playerErrors: LottoSetupPlayerInputError[];
   rules: LottoRules | null;
   actionsDisabled: boolean;
   canStartGame: boolean;
   isStartingGame: boolean;
   onStartGame: () => void;
-  onPlayerNameChange: (index: number, value: string) => void;
+  onPlayerChange: (index: number, value: PlayerReferenceInput) => void;
   onPlayerNumbersChange: (index: number, value: string) => void;
   onGenerateCard: (index: number) => void;
   onRemovePlayerField: (index: number) => void;
@@ -28,13 +32,16 @@ interface LottoSetupCardProps {
 
 export default function LottoSetupCard({
   players,
+  projectPlayers,
+  projectPlayersError,
+  projectPlayersLoading,
   playerErrors,
   rules,
   actionsDisabled,
   canStartGame,
   isStartingGame,
   onStartGame,
-  onPlayerNameChange,
+  onPlayerChange,
   onPlayerNumbersChange,
   onGenerateCard,
   onRemovePlayerField,
@@ -82,12 +89,14 @@ export default function LottoSetupCard({
                       backgroundColor: "rgba(248, 250, 252, 0.92)",
                     }}
                   >
-                    <GamePlayerNameInput
+                    <ProjectPlayerAutocomplete
                       label="Игрок"
-                      value={player.nickname}
-                      onChange={(nextValue) => onPlayerNameChange(index, nextValue)}
+                      value={{ nickname: player.nickname, playerRefId: player.playerRefId }}
+                      players={projectPlayers}
+                      loading={projectPlayersLoading}
+                      loadError={projectPlayersError}
                       errorText={errors?.nickname ?? null}
-                      helperTextMode="hidden"
+                      onChange={(nextValue) => onPlayerChange(index, nextValue)}
                       disabled={actionsDisabled}
                     />
 

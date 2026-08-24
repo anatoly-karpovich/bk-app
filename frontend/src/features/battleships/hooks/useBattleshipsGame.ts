@@ -3,6 +3,8 @@ import { useGameRoute } from "../../../hooks/useGameRoute";
 import { getBattleshipsGameConfigsRequest, getSelectedGameConfigStorageKey } from "../../projects/api/projects.client";
 import { loadSelectedGameConfigId, saveSelectedGameConfigId } from "../../projects/storage";
 import type { BattleshipsGameConfig, Project } from "../../projects/types";
+import { useProjectPlayers } from "../../players/hooks/useProjectPlayers";
+import type { PlayerReferenceInput } from "../../players/types";
 import {
   createBattleshipsGameRequest,
   deleteBattleshipsGameRequest,
@@ -45,7 +47,8 @@ function resolveSelectedGameConfigId(gameConfigs: BattleshipsGameConfig[]) {
 export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGameParams) {
   const { gameId, openGame, openSetup } = useGameRoute("/battleship");
   const [game, setGame] = useState<BattleshipsPersistedGame | null>(null);
-  const [playerName, setPlayerName] = useState("");
+  const [player, setPlayer] = useState<PlayerReferenceInput>({ nickname: "", playerRefId: null });
+  const projectPlayers = useProjectPlayers(selectedProject?.id);
   const [savedGames, setSavedGames] = useState<BattleshipsSavedGameSummary[]>([]);
   const [savedGamesDialogOpen, setSavedGamesDialogOpen] = useState(false);
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false);
@@ -150,7 +153,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
         }
 
         setGame(restoredGame);
-        setPlayerName(restoredGame.playerName);
+        setPlayer({ nickname: restoredGame.playerName, playerRefId: null });
         setSelectedGameConfigId(restoredGame.configId);
       } catch (error) {
         if (!cancelled) {
@@ -199,7 +202,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     [boardConfig, game],
   );
   const canStartGame =
-    Boolean(selectedProject?.id) && Boolean(selectedBattleshipsRules) && Boolean(playerName.trim()) && !game;
+    Boolean(selectedProject?.id) && Boolean(selectedBattleshipsRules) && Boolean(player.nickname.trim()) && !game;
   const pageStatusChips = useMemo(
     () =>
       createBattleshipsStatusChips({
@@ -240,7 +243,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
 
   function resetBattleshipsPageState() {
     setGame(null);
-    setPlayerName("");
+    setPlayer({ nickname: "", playerRefId: null });
   }
 
   function selectGameConfig(nextGameConfigId: string) {
@@ -288,7 +291,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
       }
 
       setGame(restoredGame);
-      setPlayerName(restoredGame.playerName);
+      setPlayer({ nickname: restoredGame.playerName, playerRefId: null });
       setSavedGamesDialogOpen(false);
       openGame(restoredGame.id);
 
@@ -320,7 +323,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
       }
 
       setGame(refreshedGame);
-      setPlayerName(refreshedGame.playerName);
+      setPlayer({ nickname: refreshedGame.playerName, playerRefId: null });
     } catch (error) {
       setRequestError(getErrorMessage(error));
     } finally {
@@ -366,7 +369,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
   }
 
   async function startGame() {
-    if (!playerName.trim() || !selectedProject?.id || !selectedBattleshipsGameConfig || !selectedBattleshipsRules) {
+    if (!player.nickname.trim() || !selectedProject?.id || !selectedBattleshipsGameConfig || !selectedBattleshipsRules) {
       return;
     }
 
@@ -376,12 +379,13 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     try {
       const nextGame = await createBattleshipsGameRequest({
         projectId: selectedProject.id,
-        playerName: playerName.trim(),
+        playerName: player.nickname.trim(),
+        playerRefId: player.playerRefId,
         gameConfigId: selectedBattleshipsGameConfig.id,
       });
 
       setGame(nextGame);
-      setPlayerName(nextGame.playerName);
+      setPlayer({ nickname: nextGame.playerName, playerRefId: null });
       openGame(nextGame.id);
     } catch (error) {
       setRequestError(getErrorMessage(error));
@@ -438,7 +442,9 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
     game,
     gameConfigs,
     selectedGameConfigId,
-    playerName,
+    player,
+    projectPlayers: projectPlayers.players,
+    projectPlayersError: projectPlayers.error,
     savedGames,
     currentGameId: game?.id ?? null,
     deletingSavedGame,
@@ -461,6 +467,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
       isRestoringGame,
       isLoadingSavedGames,
       isLoadingGameConfigs,
+      isLoadingProjectPlayers: projectPlayers.isLoading,
       isDeletingSavedGame,
       isRefreshingGame,
       isResettingGame,
@@ -468,7 +475,7 @@ export function useBattleshipsGame({ djName, selectedProject }: UseBattleshipsGa
       isUndoingShot,
     },
     actions: {
-      setPlayerName,
+      setPlayer,
       setSavedGamesDialogOpen,
       setRulesDialogOpen,
       setRequestError,
