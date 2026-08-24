@@ -96,9 +96,9 @@ test("formats aggregated gains, losses, and limited amounts by resource id", () 
       ],
     ),
     {
-      resolvedGain: "15 монет и 1 ключ",
+      resolvedGain: "15 монет и ключ ×1",
       resolvedLoss: "4 unknown",
-      gained: "7 монет и 1 ключ",
+      gained: "7 монет и ключ ×1",
       lost: "2 unknown",
       unappliedGain: "8 монет",
       unappliedLoss: "2 unknown",
@@ -169,10 +169,10 @@ test("lists saved achievement and jackpot grants in the forum state", () => {
     [
       "==================== Текущее положение ====================",
       "",
-      "Анатолий: Итоговая награда: [10 монет, 1 ключ], Клетка: [5]",
+      "Анатолий: Итоговая награда: [10 монет, ключ ×1], Клетка: [5]",
       "   Бонусы:",
       "   - Сокровище: [без дополнительной награды]",
-      "   - Достижение «Счастливчик»: [5 монет, 1 ключ]",
+      "   - Достижение «Счастливчик»: [5 монет, ключ ×1]",
     ].join("\n"),
   );
 });
@@ -245,7 +245,7 @@ test("writes a limited cell reward with only its move comment", () => {
 
   const [roundTitle, moveComment] = next.stateV2.forumLog.slice(-2);
   assert.equal(roundTitle, buildJourneyRoundMarker(1));
-  assert.match(moveComment, /5 монет и 1 ключ/);
+  assert.match(moveComment, /5 монет и ключ ×1/);
   assert.ok(!moveComment.includes("["));
   assert.equal(
     next.stateV2.rounds[0].turns[0].kind === "move" ? next.stateV2.rounds[0].turns[0].commentRefs.length : 0,
@@ -399,7 +399,7 @@ test("keeps base rewards limited separately from saved jackpot rewards in the ga
   } as any);
   assert.deepEqual(view.state.players[0].balanceEntries, summary.balanceEntries);
   assert.deepEqual(view.state.players[0].bonuses, summary.bonuses);
-  assert.match(new JourneyForumStateFormatter().create(view).text, /12 монет, 1 ключ/);
+  assert.match(new JourneyForumStateFormatter().create(view).text, /12 монет, ключ ×1/);
 });
 
 test("reports an empty weighted jackpot as a won jackpot without a reward", () => {

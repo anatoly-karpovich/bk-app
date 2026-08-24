@@ -26,7 +26,7 @@
 - `playerRefId` уже записывается во все новые Lotto Bingo, Lotto, Journey и Battleships игры. Их engines принимают только заранее разрешённую identity с обязательным `playerRefId`.
 - На момент подключения Lotto, Journey и Battleships в единственном проекте не было сохранённых партий. Поэтому историческая миграция для этих трёх коллекций не требуется и не запускается.
 - Чтение старых документов остаётся tolerant: поле в сохранённой сущности временно необязательно, чтобы не ломать импорт старых backup.
-- Физическое удаление Player временно отключено до этапа lifecycle текущих ссылок. Участие в удалённой тестовой игре не должно навсегда блокировать удаление Player: удаление разрешено, когда на Player больше не ссылается ни один сохранённый game/Event.
+- В текущем single-operator rollout удаление Player разрешено, когда `PlayerReferencesRepository` не находит его `playerRefId` ни в одном сохранённом game/Event. Проверка не использует nickname fallback и не защищает от конкурентного добавления ссылки. Transactional lifecycle текущих ссылок остаётся отдельным будущим этапом.
 
 ## Целевая модель идентичности
 
@@ -230,7 +230,7 @@ QuizEventsController
 
 1. Сохранить обязательный `playerRefId` для всех новых игровых сущностей и входов engines; это уже сделано для Lotto Bingo, Lotto, Journey и Battleships.
 2. Сохранить tolerant-read только для backup до их отдельного импорта.
-3. Реализовать lifecycle текущих ссылок и безопасно включить `DELETE /players/:playerId`:
+3. Заменить временный single-operator `DELETE /players/:playerId` на lifecycle текущих ссылок, безопасный при конкурентных мутациях:
    - добавить Player поле-счётчик, например `activeGameReferences`; это количество текущих уникальных `(Player, game/Event)` ссылок, а не историческое участие и не количество Quiz selections/awards;
    - каждая операция, добавляющая или убирающая `playerRefId`, в одной MongoDB-транзакции сохраняет game/Event и применяет diff уникальных refs к Player-счётчикам;
    - для Quiz Event diff вычисляется из полного previous/next Event, поэтому несколько ответов одного Player в одном Event учитываются один раз;

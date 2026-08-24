@@ -263,9 +263,9 @@ Engines receive a required resolved identity and must reject duplicate `playerRe
 
 Public read models must not expose `playerRefId` unless a product requirement explicitly changes that rule. Lotto, Journey, and Battleships retain their current frontend-compatible request shapes while accepting an optional reference: Lotto player inputs include `playerRefId?`, Journey accepts legacy `nicknames` as well as player objects, and Battleships retains `playerName` with optional `playerRefId`.
 
-`PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, Battleships `playerRefId`, and Quiz Event `questions.selectedAnswers`, `questions.awards`, and `summary.players` references alongside temporary historical nickname fallback.
+`PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, Battleships `playerRefId`, and Quiz Event `questions.selectedAnswers`, `questions.awards`, and `summary.players` references.
 
-Physical Player deletion remains disabled. Do not enable it in the current rollout. A separate future rollout may enable it only after the current-reference lifecycle is implemented: a Player may then be deleted when no saved game/Event currently references it, and participation in a later deleted test game must not leave a permanent deletion block.
+The current single-operator rollout enables Player deletion after `PlayerReferencesRepository` finds no persisted `playerRefId` in any game/Event. It intentionally has no nickname fallback and is not safe against concurrent creation of a new reference; do not rely on it when parallel game/Event mutations are possible. A separate future rollout must replace this with the current-reference lifecycle below.
 
 - Store a current-reference count such as `activeGameReferences` on Player. Count one reference per `(Player, game-or-event)` pair, not every Quiz answer, award, or summary row.
 - Every mutation that changes a persisted Player reference must run in a MongoDB transaction and atomically persist both the game/Event and the Player count delta. Event changes calculate the delta from the unique references of the complete previous and next Event documents.
