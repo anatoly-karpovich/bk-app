@@ -40,6 +40,11 @@ export class LottoRepository {
       .toArray();
   }
 
+  async findFinishedByProjectId(projectId: string): Promise<Array<WithId<LottoGameDocument>>> {
+    const collection = await this.getCollection();
+    return collection.find({ projectId, status: "finished" }).toArray();
+  }
+
   async create(game: LottoGame, session?: ClientSession): Promise<WithId<LottoGameDocument> | null> {
     const collection = await this.getCollection();
     const insertResult = await collection.insertOne(game, { session });

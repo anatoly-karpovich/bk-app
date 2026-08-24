@@ -197,6 +197,8 @@ export interface JourneyV2Game {
   storageFormat: "v2";
   createdAt: string;
   updatedAt: string;
+  /** Set on the first transition to finished; absent in older persisted games. */
+  finishedAt?: string | null;
   djName: string;
   projectId: string;
   configId: string;

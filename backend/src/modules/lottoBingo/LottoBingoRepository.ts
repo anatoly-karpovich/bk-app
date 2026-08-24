@@ -22,6 +22,9 @@ export class LottoBingoRepository {
   async findByProjectId(projectId: string): Promise<Array<WithId<LottoBingoGameDocument>>> {
     return (await this.collection()).find({ projectId }, { sort: { updatedAt: -1, createdAt: -1 } }).toArray();
   }
+  async findFinishedByProjectId(projectId: string): Promise<Array<WithId<LottoBingoGameDocument>>> {
+    return (await this.collection()).find({ projectId, status: "finished" }).toArray();
+  }
   async findLatest(
     projectId: string,
     statuses: LottoBingoGame["status"][] = ["preparing", "in_progress"],

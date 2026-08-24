@@ -63,6 +63,8 @@ export interface BattleshipsShot {
 export interface BattleshipsGame {
   createdAt: string;
   updatedAt: string;
+  /** Set while the game is finished; absent in older persisted games. */
+  finishedAt?: string | null;
   status: BattleshipsGameStatus;
   playerName: string;
   /** Stable project-scoped Player identity; optional while reading older games. */

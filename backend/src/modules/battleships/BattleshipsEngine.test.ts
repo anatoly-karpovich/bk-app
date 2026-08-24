@@ -27,6 +27,7 @@ function game(): BattleshipsGame {
   return {
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
+    finishedAt: null,
     status: "in_progress",
     playerName: "Player",
     djName: "DJ",
@@ -91,4 +92,22 @@ test("stores the resolved Player reference when creating a game", () => {
 
   assert.equal(created.playerName, "Player");
   assert.equal(created.playerRefId, "player-1");
+  assert.equal(created.finishedAt, null);
+});
+
+test("sets finishedAt on completion and clears it when undo returns the game to progress", () => {
+  const engine = new BattleshipsEngine(new RewardGrantService({ succeeds: () => true, pickWeightedIndex: () => 0 }));
+  const oneShotRules = structuredClone(rules);
+  oneShotRules.boards["2"].maxShots = 1;
+
+  const finished = engine.makeShot({ ...game(), rules: oneShotRules }, { row: 1, column: 1 });
+
+  assert.equal(finished.status, "finished");
+  assert.ok(finished.finishedAt);
+  assert.equal(finished.finishedAt, finished.updatedAt);
+
+  const reopened = engine.undoLastShot(finished);
+
+  assert.equal(reopened.status, "in_progress");
+  assert.equal(reopened.finishedAt, null);
 });

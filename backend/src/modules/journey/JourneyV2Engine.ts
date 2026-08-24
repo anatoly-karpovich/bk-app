@@ -110,6 +110,7 @@ export class JourneyV2Engine {
       storageFormat: "v2",
       createdAt,
       updatedAt: createdAt,
+      finishedAt: null,
       djName: options.djName?.trim() ?? "",
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId ?? "",
@@ -684,6 +685,8 @@ export class JourneyV2Engine {
   private finishGame(game: JourneyV2Game): JourneyV2Game {
     if (game.stateV2.status === "finished") return game;
     game.stateV2.status = "finished";
+    const finishedAt = now();
+    game.finishedAt = finishedAt;
     game.stateV2.forumLog.push(
       "",
       JOURNEY_GAME_RESULTS_MARKER,
@@ -693,7 +696,7 @@ export class JourneyV2Engine {
       "",
       ...this.buildForumMap(game),
     );
-    game.updatedAt = now();
+    game.updatedAt = finishedAt;
     return game;
   }
 

@@ -77,6 +77,25 @@ test("rejects duplicate Player references when creating a Journey game", () => {
   );
 });
 
+test("records the first completion timestamp and preserves it for an already finished Journey game", () => {
+  const engine = createEngine();
+  const created = engine.createGame(players("Анатолий"), {
+    rules: rules({ mapSize: 1, minDice: 2, maxDice: 2 }),
+    resources,
+  });
+
+  assert.equal(created.finishedAt, null);
+
+  const finished = engine.makeRound(created, [{ playerId: created.stateV2.players[0].id, dice: 2 }]);
+
+  assert.equal(finished.stateV2.status, "finished");
+  assert.ok(finished.finishedAt);
+  assert.equal(finished.finishedAt, finished.updatedAt);
+
+  const repeatedFinish = engine.makeRound(finished, []);
+  assert.equal(repeatedFinish.finishedAt, finished.finishedAt);
+});
+
 test("formats aggregated gains, losses, and limited amounts by resource id", () => {
   const formatter = new JourneyRewardCommentFormatter();
 

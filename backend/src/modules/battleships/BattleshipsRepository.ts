@@ -43,6 +43,11 @@ export class BattleshipsRepository {
       .toArray();
   }
 
+  async findFinishedByProjectId(projectId: string): Promise<Array<WithId<BattleshipsGameDocument>>> {
+    const collection = await this.getCollection();
+    return collection.find({ projectId, status: "finished" }).toArray();
+  }
+
   async create(game: BattleshipsGame, session?: ClientSession): Promise<WithId<BattleshipsGameDocument> | null> {
     const collection = await this.getCollection();
     const insertResult = await collection.insertOne(game, { session });
