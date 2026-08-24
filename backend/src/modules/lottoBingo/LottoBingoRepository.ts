@@ -1,4 +1,4 @@
-import { ObjectId, type WithId } from "mongodb";
+import { ObjectId, type ClientSession, type WithId } from "mongodb";
 import { getDefaultMongoDatabase } from "../../infrastructure/mongo/defaultMongo";
 import { AppError } from "../../common/errors";
 import type { LottoBingoGame } from "./domain/types";
@@ -12,8 +12,12 @@ export class LottoBingoRepository {
     const result = await collection.insertOne(game);
     return collection.findOne({ _id: result.insertedId });
   }
-  async findByIdAndProjectId(gameId: string, projectId: string): Promise<WithId<LottoBingoGameDocument> | null> {
-    return (await this.collection()).findOne({ _id: this.id(gameId), projectId });
+  async findByIdAndProjectId(
+    gameId: string,
+    projectId: string,
+    session?: ClientSession,
+  ): Promise<WithId<LottoBingoGameDocument> | null> {
+    return (await this.collection()).findOne({ _id: this.id(gameId), projectId }, { session });
   }
   async findByProjectId(projectId: string): Promise<Array<WithId<LottoBingoGameDocument>>> {
     return (await this.collection()).find({ projectId }, { sort: { updatedAt: -1, createdAt: -1 } }).toArray();
@@ -32,13 +36,14 @@ export class LottoBingoRepository {
     projectId: string,
     expectedRevision: number,
     game: LottoBingoGame,
+    session?: ClientSession,
   ): Promise<WithId<LottoBingoGameDocument> | null> {
     const result = await (
       await this.collection()
     ).findOneAndUpdate(
       { _id: this.id(gameId), projectId, revision: expectedRevision },
       { $set: this.persist(game) },
-      { returnDocument: "after" },
+      { returnDocument: "after", session },
     );
     return result;
   }

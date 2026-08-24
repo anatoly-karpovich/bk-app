@@ -1,5 +1,6 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
+import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
 import { PlayersService } from "../players/PlayersService";
 import { LottoEngine } from "./LottoEngine";
@@ -26,6 +27,7 @@ export class LottoService {
     private readonly readModelFactory: LottoReadModelFactory,
     private readonly gameConfigsService: GameConfigsService,
     private readonly playersService: PlayersService,
+    private readonly mongoDatabase: MongoDatabase,
   ) {}
 
   async createLottoGameSnapshotInProject(
@@ -36,24 +38,27 @@ export class LottoService {
     const hostSnapshot = getHostSnapshot(actor, projectId);
     const gameConfigContext = await this.gameConfigsService.getLottoGameConfigContext(projectId, payload.gameConfigId);
 
-    const players = await Promise.all(
-      payload.players.map(async (player) => ({
-        ...(await this.playersService.resolveOrCreate(actor, projectId, player)),
-        cardNumbers: player.cardNumbers,
-      })),
-    );
-    const nextGame = this.engine.createGame(players, {
-      rules: gameConfigContext.config.rules,
-      resources: gameConfigContext.projectResources,
-      djName: hostSnapshot.nickname,
-      hostUserId: actor.id,
-      hostSnapshot,
-      projectId,
-      configId: payload.gameConfigId,
-      configName: gameConfigContext.config.name,
-    });
+    const createdGame = await this.mongoDatabase.withTransaction(async (session) => {
+      const players = [];
+      for (const player of payload.players) {
+        players.push({
+          ...(await this.playersService.resolveOrCreate(actor, projectId, player, session)),
+          cardNumbers: player.cardNumbers,
+        });
+      }
+      const nextGame = this.engine.createGame(players, {
+        rules: gameConfigContext.config.rules,
+        resources: gameConfigContext.projectResources,
+        djName: hostSnapshot.nickname,
+        hostUserId: actor.id,
+        hostSnapshot,
+        projectId,
+        configId: payload.gameConfigId,
+        configName: gameConfigContext.config.name,
+      });
 
-    const createdGame = await this.repository.create(nextGame);
+      return this.repository.create(nextGame, session);
+    });
 
     if (!createdGame) {
       throw new AppError("Failed to load created lotto game", {

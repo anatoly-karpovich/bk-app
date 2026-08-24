@@ -1,4 +1,4 @@
-import { ObjectId, type WithId } from "mongodb";
+import { ObjectId, type ClientSession, type WithId } from "mongodb";
 import { getDefaultMongoDatabase } from "../../infrastructure/mongo/defaultMongo";
 import type { BattleshipsGame } from "./domain/types";
 import { InvalidBattleshipsGameIdError } from "./errors";
@@ -43,11 +43,11 @@ export class BattleshipsRepository {
       .toArray();
   }
 
-  async create(game: BattleshipsGame): Promise<WithId<BattleshipsGameDocument> | null> {
+  async create(game: BattleshipsGame, session?: ClientSession): Promise<WithId<BattleshipsGameDocument> | null> {
     const collection = await this.getCollection();
-    const insertResult = await collection.insertOne(game);
+    const insertResult = await collection.insertOne(game, { session });
 
-    return collection.findOne({ _id: insertResult.insertedId });
+    return collection.findOne({ _id: insertResult.insertedId }, { session });
   }
 
   async update(gameId: string, projectId: string, game: BattleshipsGame): Promise<WithId<BattleshipsGameDocument> | null> {

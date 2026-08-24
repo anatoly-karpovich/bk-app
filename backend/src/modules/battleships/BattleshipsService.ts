@@ -1,5 +1,6 @@
 import type { WithId } from "mongodb";
 import { AppError } from "../../common/errors";
+import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
 import type { GameConfigsService } from "../gameConfigs/GameConfigsService";
 import { PlayersService, type PlayerReferenceInput } from "../players/PlayersService";
 import { BattleshipsEngine } from "./BattleshipsEngine";
@@ -31,6 +32,7 @@ export class BattleshipsService {
     private readonly readModelFactory: BattleshipsReadModelFactory,
     private readonly gameConfigsService: GameConfigsService,
     private readonly playersService: PlayersService,
+    private readonly mongoDatabase: MongoDatabase,
   ) {}
 
   async createBattleshipsGameSnapshotInProject(
@@ -44,19 +46,21 @@ export class BattleshipsService {
       payload.gameConfigId,
     );
 
-    const player = await this.playersService.resolveOrCreate(actor, projectId, payload.player);
-    const nextGame = this.engine.createGame(player, {
-      rules: gameConfigContext.config.rules,
-      resources: gameConfigContext.projectResources,
-      djName: hostSnapshot.nickname,
-      hostUserId: actor.id,
-      hostSnapshot,
-      projectId,
-      configId: payload.gameConfigId,
-      configName: gameConfigContext.config.name,
-    });
+    const createdGame = await this.mongoDatabase.withTransaction(async (session) => {
+      const player = await this.playersService.resolveOrCreate(actor, projectId, payload.player, session);
+      const nextGame = this.engine.createGame(player, {
+        rules: gameConfigContext.config.rules,
+        resources: gameConfigContext.projectResources,
+        djName: hostSnapshot.nickname,
+        hostUserId: actor.id,
+        hostSnapshot,
+        projectId,
+        configId: payload.gameConfigId,
+        configName: gameConfigContext.config.name,
+      });
 
-    const createdGame = await this.repository.create(nextGame);
+      return this.repository.create(nextGame, session);
+    });
 
     if (!createdGame) {
       throw new AppError("Failed to load created battleships game", {

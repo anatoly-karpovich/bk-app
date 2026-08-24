@@ -1,4 +1,4 @@
-import { ObjectId, type WithId } from "mongodb";
+import { ObjectId, type ClientSession, type WithId } from "mongodb";
 import { getDefaultMongoDatabase } from "../../infrastructure/mongo/defaultMongo";
 import type { LottoGame } from "./domain/types";
 import { InvalidLottoGameIdError } from "./errors";
@@ -40,11 +40,11 @@ export class LottoRepository {
       .toArray();
   }
 
-  async create(game: LottoGame): Promise<WithId<LottoGameDocument> | null> {
+  async create(game: LottoGame, session?: ClientSession): Promise<WithId<LottoGameDocument> | null> {
     const collection = await this.getCollection();
-    const insertResult = await collection.insertOne(game);
+    const insertResult = await collection.insertOne(game, { session });
 
-    return collection.findOne({ _id: insertResult.insertedId });
+    return collection.findOne({ _id: insertResult.insertedId }, { session });
   }
 
   async update(gameId: string, projectId: string, game: LottoGame): Promise<WithId<LottoGameDocument> | null> {
