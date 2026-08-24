@@ -13,6 +13,7 @@ import { createAuthRouter } from "../modules/auth/auth.routes";
 import { createRequireAuth } from "../modules/auth/auth.middleware";
 import { createUsersRouter } from "../modules/users/users.routes";
 import { createQuizzesRouter } from "../modules/quizzes/quizzes.routes";
+import { createAnalyticsRouter } from "../modules/analytics/analytics.routes";
 
 export function registerRoutes(app: Express, dependencies: ApplicationDependencies): void {
   app.get("/api/health", (_request, response) => {
@@ -23,6 +24,7 @@ export function registerRoutes(app: Express, dependencies: ApplicationDependenci
   app.use("/api/users", createUsersRouter(dependencies.usersController));
   app.use("/api/forum/topic", createForumTopicRouter(dependencies.forumTopicController));
   app.use("/api/projects", createProjectsRouter(dependencies.projectsController));
+  app.use("/api/projects/:projectId/analytics", createAnalyticsRouter(dependencies.analyticsController));
   app.use("/api/projects/:projectId", createPlayersRouter(dependencies.playersController));
   app.use("/api/projects/:projectId/game-configs", createGameConfigsRouter(dependencies.gameConfigsController));
   app.use(

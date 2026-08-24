@@ -71,8 +71,21 @@ import { QuizMessageCandidateFilter } from "../modules/quizzes/QuizMessageCandid
 import { QuizEventReadModelFactory } from "../modules/quizzes/QuizEventReadModelFactory";
 import { QuizEventsService } from "../modules/quizzes/QuizEventsService/QuizEventsService";
 import { QuizEventsController } from "../modules/quizzes/QuizEventsController";
+import { AnalyticsController } from "../modules/analytics/AnalyticsController";
+import { AnalyticsIntegrityService } from "../modules/analytics/AnalyticsIntegrityService";
+import { AnalyticsProjectionRepository } from "../modules/analytics/AnalyticsProjectionRepository";
+import { AnalyticsProjectionService } from "../modules/analytics/AnalyticsProjectionService";
+import { AnalyticsReadModelFactory } from "../modules/analytics/AnalyticsReadModelFactory";
+import { AnalyticsReadService } from "../modules/analytics/AnalyticsReadService";
+import { AnalyticsService } from "../modules/analytics/AnalyticsService";
+import { BattleshipsAnalyticsAdapter } from "../modules/analytics/adapters/BattleshipsAnalyticsAdapter";
+import { JourneyAnalyticsAdapter } from "../modules/analytics/adapters/JourneyAnalyticsAdapter";
+import { LottoAnalyticsAdapter } from "../modules/analytics/adapters/LottoAnalyticsAdapter";
+import { LottoBingoAnalyticsAdapter } from "../modules/analytics/adapters/LottoBingoAnalyticsAdapter";
+import { QuizEventAnalyticsAdapter } from "../modules/analytics/adapters/QuizEventAnalyticsAdapter";
 
 export interface ApplicationDependencies {
+  analyticsController: AnalyticsController;
   authController: AuthController;
   authService: AuthService;
   battleshipsController: BattleshipsController;
@@ -114,6 +127,31 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const journeyRepository = new JourneyRepository();
   const lottoRepository = new LottoRepository();
   const lottoBingoRepository = new LottoBingoRepository();
+  const analyticsProjectionRepository = new AnalyticsProjectionRepository(mongoDatabase);
+  const analyticsAdapters = [
+    new JourneyAnalyticsAdapter(journeyRepository),
+    new BattleshipsAnalyticsAdapter(battleshipsRepository),
+    new LottoAnalyticsAdapter(lottoRepository),
+    new LottoBingoAnalyticsAdapter(lottoBingoRepository),
+    new QuizEventAnalyticsAdapter(quizEventsRepository),
+  ];
+  const analyticsIntegrityService = new AnalyticsIntegrityService(analyticsProjectionRepository, analyticsAdapters);
+  const analyticsProjectionService = new AnalyticsProjectionService(
+    analyticsProjectionRepository,
+    analyticsIntegrityService,
+    analyticsAdapters,
+  );
+  const analyticsReadService = new AnalyticsReadService(
+    analyticsProjectionRepository,
+    analyticsIntegrityService,
+    projectsRepository,
+  );
+  const analyticsService = new AnalyticsService(
+    analyticsProjectionService,
+    analyticsIntegrityService,
+    analyticsReadService,
+  );
+  const analyticsController = new AnalyticsController(analyticsService, new AnalyticsReadModelFactory());
   const projectsService = new ProjectsService(
     projectsRepository,
     gameConfigsRepository,
@@ -246,6 +284,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const forumTopicController = new ForumTopicController(forumTopicService);
 
   return {
+    analyticsController,
     authController,
     authService,
     battleshipsController,
