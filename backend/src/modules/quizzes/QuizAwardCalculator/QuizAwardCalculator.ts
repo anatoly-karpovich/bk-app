@@ -1,4 +1,5 @@
 import type { ResourceAmount } from "../../rewards";
+import { quizPlayerIdentityKeys } from "../domain/quizPlayerIdentity";
 import type { QuizAward, QuizEventQuestion, QuizSnapshot } from "../domain/types";
 import type { RankedQuizAnswer } from "../QuizAnswerRanker/QuizAnswerRanker";
 
@@ -86,7 +87,7 @@ export class QuizAwardCalculator {
           rule.position,
         ),
       );
-      awardedPlayers.add(this.playerKey(recipient));
+      this.addPlayerKeys(awardedPlayers, recipient);
     }
     return awards;
   }
@@ -98,12 +99,12 @@ export class QuizAwardCalculator {
   ): RankedQuizAnswer | null {
     const afterConfiguredPosition = ranking
       .slice(configuredPosition - 1)
-      .find((answer) => !awardedPlayers.has(this.playerKey(answer)));
+      .find((answer) => !this.hasPlayerKey(awardedPlayers, answer));
     return (
       afterConfiguredPosition ??
       [...ranking.slice(0, configuredPosition - 1)]
         .reverse()
-        .find((answer) => !awardedPlayers.has(this.playerKey(answer))) ??
+        .find((answer) => !this.hasPlayerKey(awardedPlayers, answer)) ??
       null
     );
   }
@@ -142,7 +143,19 @@ export class QuizAwardCalculator {
     };
   }
 
-  private playerKey(answer: Pick<RankedQuizAnswer, "playerName" | "playerRefId">): string {
-    return answer.playerRefId ?? answer.playerName;
+  private hasPlayerKey(
+    awardedPlayers: ReadonlySet<string>,
+    answer: Pick<RankedQuizAnswer, "playerName" | "playerRefId">,
+  ): boolean {
+    return [...quizPlayerIdentityKeys(answer), answer.playerRefId, answer.playerName]
+      .filter((key): key is string => Boolean(key))
+      .some((key) => awardedPlayers.has(key));
+  }
+
+  private addPlayerKeys(
+    awardedPlayers: Set<string>,
+    answer: Pick<RankedQuizAnswer, "playerName" | "playerRefId">,
+  ): void {
+    for (const key of quizPlayerIdentityKeys(answer)) awardedPlayers.add(key);
   }
 }

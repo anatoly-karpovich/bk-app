@@ -18,6 +18,7 @@ import { QuizAnswerRanker, type RankedQuizAnswer } from "../QuizAnswerRanker/Qui
 import { QuizAwardCalculator } from "../QuizAwardCalculator/QuizAwardCalculator";
 import { QuizEventSummaryCalculator } from "../QuizEventSummaryCalculator/QuizEventSummaryCalculator";
 import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
+import { quizPlayerIdentityKeys } from "../domain/quizPlayerIdentity";
 
 export interface QuizChatMutationInput {
   rawText: string;
@@ -322,7 +323,7 @@ export class QuizEventEngine {
         )
         .flatMap((candidate) => candidate.awards)
         .filter((award) => award.source.kind === "bonus_position")
-        .map((award) => award.playerRefId ?? award.playerName),
+        .flatMap((award) => quizPlayerIdentityKeys(award)),
     );
     return this.awardCalculator.calculate(event.quizSnapshot, question, ranking, awardedAt, priorBonusRecipients);
   }

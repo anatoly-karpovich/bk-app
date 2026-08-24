@@ -1,4 +1,6 @@
 import type { CurrentUser } from "../../auth/domain/types";
+import type { ClientSession } from "mongodb";
+import type { MongoDatabase } from "../../../infrastructure/mongo/MongoDatabase";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../../auth/authorization";
 import { ChatParser } from "../../chat/ChatParser";
 import { ChatTransport } from "../../chat/domain/types";
@@ -58,6 +60,7 @@ export class QuizEventsService {
     private readonly chatParser: ChatParser,
     private readonly candidateFilter: QuizMessageCandidateFilter,
     private readonly readModels: QuizEventReadModelFactory,
+    private readonly mongoDatabase: MongoDatabase,
   ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizEventView[]> {
@@ -197,29 +200,33 @@ export class QuizEventsService {
     selections: QuizSelectedAnswerInput[],
     expectedRevision: number,
   ): Promise<SaveQuizQuestionResult> {
-    const event = await this.editableEvent(actor, projectId, eventId);
-    this.assertExpectedRevision(event, eventId, expectedRevision);
-    this.assertQuestionResultCanBeChanged(event, questionId);
-    this.assertPreviousConductedResultsReviewed(event, questionId);
-    const eventQuestion = this.engine.getQuestion(event, questionId);
-    this.engine.validateSelectionInputs(
-      eventQuestion,
-      selections.map(({ playerName, selectedMessageId }) => ({ playerName, selectedMessageId })),
-    );
-    const resolvedSelections: ResolvedQuizSelectedAnswer[] = await Promise.all(
-      selections.map(async (selection) => ({
-        playerName: selection.playerName,
-        selectedMessageId: selection.selectedMessageId,
-        playerRefId: (
-          await this.playersService.resolveOrCreate(actor, projectId, {
-            nickname: selection.playerName,
-            playerRefId: selection.playerRefId,
-          })
-        ).playerRefId,
-      })),
-    );
-    const updated = this.engine.saveQuestionResult(structuredClone(event), questionId, resolvedSelections, actor.id);
-    const saved = await this.repository.update(eventId, projectId, expectedRevision, updated);
+    const saved = await this.mongoDatabase.withTransaction(async (session) => {
+      const event = await this.editableEvent(actor, projectId, eventId, session);
+      this.assertExpectedRevision(event, eventId, expectedRevision);
+      this.assertQuestionResultCanBeChanged(event, questionId);
+      this.assertPreviousConductedResultsReviewed(event, questionId);
+      const eventQuestion = this.engine.getQuestion(event, questionId);
+      this.engine.validateSelectionInputs(
+        eventQuestion,
+        selections.map(({ playerName, selectedMessageId }) => ({ playerName, selectedMessageId })),
+      );
+      const resolvedSelections: ResolvedQuizSelectedAnswer[] = [];
+      for (const selection of selections) {
+        const resolved = await this.playersService.resolveOrCreate(
+          actor,
+          projectId,
+          { nickname: selection.playerName, playerRefId: selection.playerRefId },
+          session,
+        );
+        resolvedSelections.push({
+          playerName: selection.playerName,
+          selectedMessageId: selection.selectedMessageId,
+          playerRefId: resolved.playerRefId,
+        });
+      }
+      const updated = this.engine.saveQuestionResult(structuredClone(event), questionId, resolvedSelections, actor.id);
+      return this.repository.update(eventId, projectId, expectedRevision, updated, session);
+    });
     if (!saved) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     const view = this.readModels.create(eventId, saved);
     const viewQuestion = view.state.questions.find((candidate) => candidate.id === questionId);
@@ -254,9 +261,9 @@ export class QuizEventsService {
     return this.readModels.create(eventId, updated);
   }
 
-  private async editableEvent(actor: CurrentUser, projectId: string, eventId: string) {
+  private async editableEvent(actor: CurrentUser, projectId: string, eventId: string, session?: ClientSession) {
     assertProjectAccess(actor, projectId);
-    const event = await this.repository.findByIdAndProjectId(eventId, projectId);
+    const event = await this.repository.findByIdAndProjectId(eventId, projectId, session);
     if (!event) throw new QuizEventNotFoundError(eventId);
     assertOwnedByUser(actor, event.hostUserId);
     return event;

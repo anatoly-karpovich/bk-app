@@ -1,4 +1,4 @@
-import { MongoServerError } from "mongodb";
+import { MongoServerError, type ClientSession } from "mongodb";
 import { assertProjectAccess } from "../auth/authorization";
 import type { CurrentUser } from "../auth/domain/types";
 import { ProjectNotFoundError } from "../projects/errors";
@@ -43,11 +43,16 @@ export class PlayersService {
     return this.readModelFactory.create(player);
   }
 
-  async create(actor: CurrentUser, projectId: string, nicknameInput: string): Promise<PlayerView> {
+  async create(
+    actor: CurrentUser,
+    projectId: string,
+    nicknameInput: string,
+    session?: ClientSession,
+  ): Promise<PlayerView> {
     await this.assertProjectExistsAndAccessible(actor, projectId);
     const nickname = normalizePlayerNickname(nicknameInput);
     const alias = this.toAlias(nickname);
-    await this.assertNicknameAvailable(projectId, alias.key, nickname);
+    await this.assertNicknameAvailable(projectId, alias.key, nickname, session);
 
     const now = new Date().toISOString();
     const player: Player = {
@@ -60,7 +65,7 @@ export class PlayersService {
     };
 
     try {
-      return this.readModelFactory.create(await this.repository.create(player));
+      return this.readModelFactory.create(await this.repository.create(player, session));
     } catch (error) {
       this.rethrowDuplicateNickname(error, projectId, nickname);
       throw error;
@@ -71,13 +76,14 @@ export class PlayersService {
     actor: CurrentUser,
     projectId: string,
     input: PlayerReferenceInput,
+    session?: ClientSession,
   ): Promise<ResolvedPlayerIdentity> {
     await this.assertProjectExistsAndAccessible(actor, projectId);
     const nickname = normalizePlayerNickname(input.nickname);
     const nicknameKey = toPlayerNicknameKey(nickname);
 
     if (input.playerRefId !== undefined && input.playerRefId !== null) {
-      const player = await this.repository.findByIdAndProjectId(input.playerRefId, projectId);
+      const player = await this.repository.findByIdAndProjectId(input.playerRefId, projectId, session);
       if (!player) throw new PlayerNotFoundError(projectId, input.playerRefId);
       if (player.nicknameKey !== nicknameKey) {
         throw new PlayerNicknameMismatchError(projectId, input.playerRefId, nickname);
@@ -85,15 +91,15 @@ export class PlayersService {
       return { nickname, playerRefId: player._id.toHexString() };
     }
 
-    const existing = await this.repository.findByProjectIdAndNicknameKey(projectId, nicknameKey);
+    const existing = await this.repository.findByProjectIdAndNicknameKey(projectId, nicknameKey, session);
     if (existing) return { nickname, playerRefId: existing._id.toHexString() };
 
     try {
-      const created = await this.create(actor, projectId, nickname);
+      const created = await this.create(actor, projectId, nickname, session);
       return { nickname, playerRefId: created.id };
     } catch (error) {
       if (!(error instanceof PlayerNicknameConflictError)) throw error;
-      const concurrent = await this.repository.findByProjectIdAndNicknameKey(projectId, nicknameKey);
+      const concurrent = await this.repository.findByProjectIdAndNicknameKey(projectId, nicknameKey, session);
       if (!concurrent) throw error;
       return { nickname, playerRefId: concurrent._id.toHexString() };
     }
@@ -148,8 +154,13 @@ export class PlayersService {
     if (!(await this.projectsRepository.findById(projectId))) throw new ProjectNotFoundError(projectId);
   }
 
-  private async assertNicknameAvailable(projectId: string, nicknameKey: string, nickname: string): Promise<void> {
-    if (await this.repository.findByProjectIdAndNicknameKey(projectId, nicknameKey)) {
+  private async assertNicknameAvailable(
+    projectId: string,
+    nicknameKey: string,
+    nickname: string,
+    session?: ClientSession,
+  ): Promise<void> {
+    if (await this.repository.findByProjectIdAndNicknameKey(projectId, nicknameKey, session)) {
       throw new PlayerNicknameConflictError(projectId, nickname);
     }
   }

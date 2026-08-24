@@ -1,6 +1,7 @@
 services:
   mongo:
     image: mongo:8.0.29
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     restart: unless-stopped
     ports:
       - "${MONGO_PORT:-27017}:27017"
@@ -13,12 +14,27 @@ services:
       retries: 12
       start_period: 5s
 
+  mongo-replica-init:
+    image: mongo:8.0.29
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mongosh --host mongo --quiet --eval
+        "try { rs.status(); } catch (error) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }); }" &&
+        mongosh --host mongo --quiet --eval
+        "while (!db.hello().isWritablePrimary) { sleep(100); }"
+
   backend:
     build:
       context: ./backend
     restart: unless-stopped
     environment:
-      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
       MONGODB_DB_NAME: bk-app-local
       PORT: "3004"
       BK_APP_SEED_EMPTY_DB: "true"
@@ -28,8 +44,8 @@ services:
     ports:
       - "${BACKEND_PORT:-3004}:3004"
     depends_on:
-      mongo:
-        condition: service_healthy
+      mongo-replica-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3004/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 5s

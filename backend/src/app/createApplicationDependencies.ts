@@ -176,6 +176,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new ChatParser(),
     new QuizMessageCandidateFilter(chatMessageIdentity),
     quizEventReadModelFactory,
+    mongoDatabase,
   );
   const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);

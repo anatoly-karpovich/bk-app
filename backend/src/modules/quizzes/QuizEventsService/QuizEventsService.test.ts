@@ -89,6 +89,9 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
       return { nickname: input.nickname, playerRefId: input.playerRefId ?? `player:${input.nickname}` };
     },
   };
+  const mongoDatabase = {
+    withTransaction: async <T>(operation: (session: never) => Promise<T>) => operation(undefined as never),
+  };
   const identity = new ChatMessageIdentity();
   const service = new QuizEventsService(
     repository as never,
@@ -99,6 +102,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     new ChatParser(),
     new QuizMessageCandidateFilter(identity),
     new QuizEventReadModelFactory(ranker),
+    mongoDatabase as never,
   );
   return {
     service,

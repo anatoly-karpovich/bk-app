@@ -1,4 +1,4 @@
-import { MongoServerError, ObjectId, type WithId } from "mongodb";
+import { MongoServerError, ObjectId, type ClientSession, type WithId } from "mongodb";
 import type { MongoDatabase } from "../../infrastructure/mongo/MongoDatabase";
 import type { Player, PlayerAlias } from "./domain/types";
 
@@ -20,17 +20,25 @@ export class PlayersRepository {
     return (await this.getCollection()).find({ projectId }).toArray();
   }
 
-  async findByIdAndProjectId(playerId: string, projectId: string): Promise<WithId<Player> | null> {
+  async findByIdAndProjectId(
+    playerId: string,
+    projectId: string,
+    session?: ClientSession,
+  ): Promise<WithId<Player> | null> {
     if (!ObjectId.isValid(playerId)) return null;
-    return (await this.getCollection()).findOne({ _id: new ObjectId(playerId), projectId });
+    return (await this.getCollection()).findOne({ _id: new ObjectId(playerId), projectId }, { session });
   }
 
-  async findByProjectIdAndNicknameKey(projectId: string, nicknameKey: string): Promise<WithId<Player> | null> {
-    return (await this.getCollection()).findOne({ projectId, nicknameKey });
+  async findByProjectIdAndNicknameKey(
+    projectId: string,
+    nicknameKey: string,
+    session?: ClientSession,
+  ): Promise<WithId<Player> | null> {
+    return (await this.getCollection()).findOne({ projectId, nicknameKey }, { session });
   }
 
-  async create(player: Player): Promise<WithId<Player>> {
-    const result = await (await this.getCollection()).insertOne(player);
+  async create(player: Player, session?: ClientSession): Promise<WithId<Player>> {
+    const result = await (await this.getCollection()).insertOne(player, { session });
     return { _id: result.insertedId, ...player };
   }
 
