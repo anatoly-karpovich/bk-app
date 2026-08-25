@@ -19,6 +19,8 @@ import type {
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import { JourneyGameNotFoundError, JourneyGamesNotFoundError } from "./errors";
+import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
+import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
 export type JourneyGameResponse = JourneyGameView;
 export type JourneyGameListResponse = JourneyGameListItemReadModel[];
@@ -47,6 +49,8 @@ export class JourneyService {
     private readonly forumPlayersImporter: JourneyForumPlayersImporter,
     private readonly playersService: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
+    private readonly analyticsSubmitter: AnalyticsProjectionSubmitter,
   ) {}
 
   async createJourneyGameSnapshotInProject(
@@ -177,7 +181,8 @@ export class JourneyService {
       throw new JourneyGameNotFoundError(gameId);
     }
 
-    return updatedGame;
+    await this.submitFinishedJourneyGame(currentGame, updatedGame);
+    return this.serializeJourneyGame(updatedGame);
   }
 
   async removeJourneyPlayerFromSnapshot(
@@ -201,7 +206,8 @@ export class JourneyService {
       throw new JourneyGameNotFoundError(gameId);
     }
 
-    return updatedGame;
+    await this.submitFinishedJourneyGame(currentGame, updatedGame);
+    return this.serializeJourneyGame(updatedGame);
   }
 
   async deleteJourneyGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<void> {
@@ -214,6 +220,7 @@ export class JourneyService {
     if (!deleted) {
       throw new JourneyGameNotFoundError(gameId);
     }
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
   }
 
   parseJourneyPlayers(text: string, djName = ""): string[] {
@@ -232,9 +239,16 @@ export class JourneyService {
     projectId: string,
     gameId: string,
     game: JourneyGameDocument,
-  ): Promise<JourneyGameResponse | null> {
-    const updateResult = await this.repository.update(gameId, projectId, game);
+  ): Promise<WithId<JourneyGameDocument> | null> {
+    return this.repository.update(gameId, projectId, game);
+  }
 
-    return updateResult ? this.serializeJourneyGame(updateResult) : null;
+  private async submitFinishedJourneyGame(
+    previous: JourneyGameDocument,
+    saved: WithId<JourneyGameDocument>,
+  ): Promise<void> {
+    if (previous.stateV2.status !== "finished" && saved.stateV2.status === "finished") {
+      await this.analyticsSubmitter.submitJourneyGame(saved);
+    }
   }
 }

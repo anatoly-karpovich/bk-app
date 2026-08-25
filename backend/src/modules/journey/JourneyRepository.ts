@@ -41,6 +41,11 @@ export class JourneyRepository {
       .toArray();
   }
 
+  async findFinishedByProjectId(projectId: string): Promise<Array<WithId<JourneyGameDocument>>> {
+    const collection = await this.getCollection();
+    return collection.find({ projectId, "stateV2.status": "finished" }).toArray();
+  }
+
   async create(game: JourneyGameDocument, session?: ClientSession): Promise<WithId<JourneyGameDocument> | null> {
     const collection = await this.getCollection();
     const insertResult = await collection.insertOne(game, { session });

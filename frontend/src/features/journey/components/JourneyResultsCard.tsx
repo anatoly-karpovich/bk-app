@@ -1,7 +1,7 @@
 import { Alert, Box, Card, CardContent, CardHeader, Stack, Typography } from "@mui/material";
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import { journeyTexts } from "../../../texts/journeyTexts";
-import { getJourneyPlayerBalanceLabel } from "../journey-page.helpers";
+import { formatJourneyResourceAmounts, getJourneyPlayerFinalRewardsLabel } from "../journey-page.helpers";
 import type { JourneyPlayerReadModel, JourneyResourceDefinition } from "../types";
 
 interface JourneyResultsCardProps {
@@ -40,9 +40,18 @@ export default function JourneyResultsCard({
                 }}
               >
                 <Typography fontWeight={700}>{player.nickname}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  [{getJourneyPlayerBalanceLabel(player, resources)}]
-                </Typography>
+                {player.finalRewards ? (
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      {journeyTexts.table.rewards}: [{getJourneyPlayerFinalRewardsLabel(player, resources)}]
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {journeyTexts.table.regular}: {formatJourneyResourceAmounts(player.finalRewards.regular, resources, { includeZero: true })}
+                      {" · "}
+                      {journeyTexts.table.bonus}: {formatJourneyResourceAmounts(player.finalRewards.bonus, resources, { includeZero: true })}
+                    </Typography>
+                  </>
+                ) : null}
               </Box>
             ))}
           </Stack>

@@ -19,6 +19,13 @@ export const navigationGroups = [
     ],
   },
   {
+    id: "analytics",
+    label: appHeaderTexts.nav.analytics,
+    items: [
+      { key: "analytics", label: appHeaderTexts.nav.analytics, to: "/analytics" },
+    ],
+  },
+  {
     id: "settings",
     label: appHeaderTexts.nav.settings,
     items: [

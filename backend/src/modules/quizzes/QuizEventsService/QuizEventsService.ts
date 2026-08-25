@@ -24,6 +24,8 @@ import { QuizzesRepository } from "../QuizzesRepository";
 import { validateQuiz } from "../domain/validation";
 import type { QuizEventDocument, QuizMessageKind, QuizSelectedAnswer, QuizSnapshot } from "../domain/types";
 import type { QuizEventView } from "../domain/readModels";
+import type { AnalyticsProjectionInvalidator } from "../../analytics/AnalyticsProjectionInvalidator";
+import type { AnalyticsProjectionSubmitter } from "../../analytics/AnalyticsProjectionSubmitter";
 
 export interface SaveQuizQuestionChatResult {
   event: QuizEventView;
@@ -61,6 +63,8 @@ export class QuizEventsService {
     private readonly candidateFilter: QuizMessageCandidateFilter,
     private readonly readModels: QuizEventReadModelFactory,
     private readonly mongoDatabase: MongoDatabase,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
+    private readonly analyticsSubmitter: AnalyticsProjectionSubmitter,
   ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizEventView[]> {
@@ -108,13 +112,16 @@ export class QuizEventsService {
     if (!(await this.repository.delete(eventId, projectId, expectedRevision))) {
       throw new QuizEventRevisionConflictError(eventId, expectedRevision);
     }
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "quiz_event", id: eventId });
     await this.quizzesRepository.clearEvent(event.quizId, projectId, eventId);
   }
   async complete(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number) {
     return this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.completeEvent(event));
   }
   async reopen(actor: CurrentUser, projectId: string, eventId: string, expectedRevision: number) {
-    return this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.reopenEvent(event));
+    const updated = await this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.reopenEvent(event));
+    await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "quiz_event", id: eventId });
+    return updated;
   }
   async markAsNotConducted(
     actor: CurrentUser,
@@ -258,6 +265,9 @@ export class QuizEventsService {
       mutation(structuredClone(event)),
     );
     if (!updated) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+    if (event.status !== "completed" && updated.status === "completed") {
+      await this.analyticsSubmitter.submitQuizEvent(updated);
+    }
     return this.readModels.create(eventId, updated);
   }
 

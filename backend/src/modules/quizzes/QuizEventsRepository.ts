@@ -14,6 +14,9 @@ export class QuizEventsRepository {
     ]);
   }
   async findByProjectId(projectId: string): Promise<Array<WithId<QuizEventDocument>>> { return (await this.collection()).find({ projectId }).sort({ updatedAt: -1 }).toArray(); }
+  async findCompletedByProjectId(projectId: string): Promise<Array<WithId<QuizEventDocument>>> {
+    return (await this.collection()).find({ projectId, status: "completed" }).toArray();
+  }
   async findByIdAndProjectId(
     id: string,
     projectId: string,

@@ -22,6 +22,7 @@ import { QuizzesRepository } from "../quizzes/QuizzesRepository";
 import { QuizEventsRepository } from "../quizzes/QuizEventsRepository";
 import { collectResourceIds as collectQuizResourceIds } from "../quizzes/domain/validation";
 import { PlayersRepository } from "../players/PlayersRepository";
+import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 
 const DEFAULT_ADMIN_PROJECT_NICKNAME = "Геральт из Ривии";
 
@@ -38,6 +39,7 @@ export class ProjectsService {
     private readonly quizzesRepository: QuizzesRepository,
     private readonly quizEventsRepository: QuizEventsRepository,
     private readonly playersRepository: PlayersRepository,
+    private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
   ) {}
 
   async listProjects(actor: CurrentUser): Promise<ProjectReadModel[]> {
@@ -180,6 +182,7 @@ export class ProjectsService {
     if (!deleted) {
       throw new ProjectNotFoundError(projectId);
     }
+    await this.analyticsInvalidator.deleteProjectFacts(projectId);
   }
 
   private async assertUsedResourcesAreNotRemoved(

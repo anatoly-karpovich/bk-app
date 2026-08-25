@@ -71,8 +71,23 @@ import { QuizMessageCandidateFilter } from "../modules/quizzes/QuizMessageCandid
 import { QuizEventReadModelFactory } from "../modules/quizzes/QuizEventReadModelFactory";
 import { QuizEventsService } from "../modules/quizzes/QuizEventsService/QuizEventsService";
 import { QuizEventsController } from "../modules/quizzes/QuizEventsController";
+import { AnalyticsController } from "../modules/analytics/AnalyticsController";
+import { AnalyticsIntegrityService } from "../modules/analytics/AnalyticsIntegrityService";
+import { AnalyticsProjectionRepository } from "../modules/analytics/AnalyticsProjectionRepository";
+import { AnalyticsProjectionService } from "../modules/analytics/AnalyticsProjectionService";
+import { BestEffortAnalyticsProjectionInvalidator } from "../modules/analytics/AnalyticsProjectionInvalidator";
+import { BestEffortAnalyticsProjectionSubmitter } from "../modules/analytics/AnalyticsProjectionSubmitter";
+import { AnalyticsReadModelFactory } from "../modules/analytics/AnalyticsReadModelFactory";
+import { AnalyticsReadService } from "../modules/analytics/AnalyticsReadService";
+import { AnalyticsService } from "../modules/analytics/AnalyticsService";
+import { BattleshipsAnalyticsAdapter } from "../modules/analytics/adapters/BattleshipsAnalyticsAdapter";
+import { JourneyAnalyticsAdapter } from "../modules/analytics/adapters/JourneyAnalyticsAdapter";
+import { LottoAnalyticsAdapter } from "../modules/analytics/adapters/LottoAnalyticsAdapter";
+import { LottoBingoAnalyticsAdapter } from "../modules/analytics/adapters/LottoBingoAnalyticsAdapter";
+import { QuizEventAnalyticsAdapter } from "../modules/analytics/adapters/QuizEventAnalyticsAdapter";
 
 export interface ApplicationDependencies {
+  analyticsController: AnalyticsController;
   authController: AuthController;
   authService: AuthService;
   battleshipsController: BattleshipsController;
@@ -114,6 +129,44 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const journeyRepository = new JourneyRepository();
   const lottoRepository = new LottoRepository();
   const lottoBingoRepository = new LottoBingoRepository();
+  const analyticsProjectionRepository = new AnalyticsProjectionRepository(mongoDatabase);
+  const analyticsInvalidator = new BestEffortAnalyticsProjectionInvalidator(analyticsProjectionRepository);
+  const journeyAnalyticsAdapter = new JourneyAnalyticsAdapter(journeyRepository);
+  const battleshipsAnalyticsAdapter = new BattleshipsAnalyticsAdapter(battleshipsRepository);
+  const lottoAnalyticsAdapter = new LottoAnalyticsAdapter(lottoRepository);
+  const lottoBingoAnalyticsAdapter = new LottoBingoAnalyticsAdapter(lottoBingoRepository);
+  const quizEventAnalyticsAdapter = new QuizEventAnalyticsAdapter(quizEventsRepository);
+  const analyticsAdapters = [
+    journeyAnalyticsAdapter,
+    battleshipsAnalyticsAdapter,
+    lottoAnalyticsAdapter,
+    lottoBingoAnalyticsAdapter,
+    quizEventAnalyticsAdapter,
+  ];
+  const analyticsIntegrityService = new AnalyticsIntegrityService(analyticsProjectionRepository, analyticsAdapters);
+  const analyticsProjectionService = new AnalyticsProjectionService(
+    analyticsProjectionRepository,
+    analyticsIntegrityService,
+    analyticsAdapters,
+  );
+  const analyticsSubmitter = new BestEffortAnalyticsProjectionSubmitter(analyticsProjectionService, {
+    journey: journeyAnalyticsAdapter,
+    battleships: battleshipsAnalyticsAdapter,
+    lotto: lottoAnalyticsAdapter,
+    lottoBingo: lottoBingoAnalyticsAdapter,
+    quizEvent: quizEventAnalyticsAdapter,
+  });
+  const analyticsReadService = new AnalyticsReadService(
+    analyticsProjectionRepository,
+    analyticsIntegrityService,
+    projectsRepository,
+  );
+  const analyticsService = new AnalyticsService(
+    analyticsProjectionService,
+    analyticsIntegrityService,
+    analyticsReadService,
+  );
+  const analyticsController = new AnalyticsController(analyticsService, new AnalyticsReadModelFactory());
   const projectsService = new ProjectsService(
     projectsRepository,
     gameConfigsRepository,
@@ -126,6 +179,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizzesRepository,
     quizEventsRepository,
     playersRepository,
+    analyticsInvalidator,
   );
   const projectsController = new ProjectsController(projectsService);
   const playersController = new PlayersController(playersService);
@@ -177,6 +231,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new QuizMessageCandidateFilter(chatMessageIdentity),
     quizEventReadModelFactory,
     mongoDatabase,
+    analyticsInvalidator,
+    analyticsSubmitter,
   );
   const quizEventsController = new QuizEventsController(quizEventsService);
   const battleshipsEngine = new BattleshipsEngine(rewardGrantService);
@@ -188,6 +244,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigsService,
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
+    analyticsSubmitter,
   );
   const battleshipsController = new BattleshipsController(battleshipsService);
   const journeyResourceInventoryService = new JourneyResourceInventoryService();
@@ -216,6 +274,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     journeyForumPlayersImporter,
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
+    analyticsSubmitter,
   );
   const journeyController = new JourneyController(journeyService);
 
@@ -228,6 +288,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
     gameConfigsService,
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
+    analyticsSubmitter,
   );
   const lottoController = new LottoController(lottoService);
   const lottoBingoEngine = new LottoBingoEngine(new LottoBingoTicketGenerator(), rewardGrantService);
@@ -240,12 +302,15 @@ export function createApplicationDependencies(): ApplicationDependencies {
     new LottoBingoUpdatePublisher(),
     playersService,
     mongoDatabase,
+    analyticsInvalidator,
+    analyticsSubmitter,
   );
   const lottoBingoController = new LottoBingoController(lottoBingoService);
 
   const forumTopicController = new ForumTopicController(forumTopicService);
 
   return {
+    analyticsController,
     authController,
     authService,
     battleshipsController,

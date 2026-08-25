@@ -114,6 +114,15 @@ export function getJourneyPlayerBalanceLabel(
   return formatJourneyResourceAmounts(getJourneyPlayerBalanceEntries(player), resources, { includeZero: true });
 }
 
+export function getJourneyPlayerFinalRewardsLabel(
+  player: JourneyPlayerReadModel,
+  resources: readonly JourneyResourceDefinition[],
+): string | null {
+  return player.finalRewards
+    ? formatJourneyResourceAmounts(player.finalRewards.total, resources, { includeZero: true })
+    : null;
+}
+
 export function hasPositiveJourneyRewards(values: readonly JourneyResourceAmount[] = []): boolean {
   return values.some((value) => value.amount > 0);
 }

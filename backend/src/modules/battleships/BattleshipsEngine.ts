@@ -66,6 +66,7 @@ export class BattleshipsEngine {
     return {
       createdAt: now,
       updatedAt: now,
+      finishedAt: null,
       status: "in_progress",
       playerName,
       playerRefId,
@@ -185,6 +186,11 @@ export class BattleshipsEngine {
   private finalizeGame(game: BattleshipsGame): BattleshipsGame {
     game.updatedAt = new Date().toISOString();
     game.status = this.computeStatus(game);
+    if (game.status === "finished") {
+      game.finishedAt ??= game.updatedAt;
+    } else {
+      game.finishedAt = null;
+    }
     return game;
   }
 

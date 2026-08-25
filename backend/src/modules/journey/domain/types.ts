@@ -151,7 +151,14 @@ export interface JourneyV2Player {
   position: number;
   balance: ResourceHoldings;
   initialRewards?: ResourceAmount[];
+  /** Immutable result snapshot written once when the whole game is finalized. Initial balance is excluded. */
+  finalRewards: JourneyFinalRewards | null;
   achievementNames: string[];
+}
+export interface JourneyFinalRewards {
+  regular: ResourceAmount[];
+  bonus: ResourceAmount[];
+  total: ResourceAmount[];
 }
 export interface JourneyV2PlayerIdentity {
   nickname: string;
@@ -197,6 +204,8 @@ export interface JourneyV2Game {
   storageFormat: "v2";
   createdAt: string;
   updatedAt: string;
+  /** Set on the first transition to finished; absent in older persisted games. */
+  finishedAt?: string | null;
   djName: string;
   projectId: string;
   configId: string;
@@ -224,6 +233,7 @@ export interface JourneyGameViewPlayer {
   baseRewardEntries: ResourceAmount[];
   bonusRewardEntries: ResourceAmount[];
   balanceEntries: ResourceAmount[];
+  finalRewards: JourneyFinalRewards | null;
   bonuses: JourneyAwardedBonus[];
 }
 export interface JourneyHistoryEntryView {
@@ -291,6 +301,7 @@ export interface JourneyGameListItemReadModel {
     status: JourneyPlayerStatus;
     position: number;
     balanceEntries: ResourceAmount[];
+    finalRewards: JourneyFinalRewards | null;
   }>;
   hostUserId?: string;
 }

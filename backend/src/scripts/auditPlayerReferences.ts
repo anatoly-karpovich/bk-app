@@ -2,22 +2,10 @@ import type { Document, ObjectId } from "mongodb";
 import { loadEnvironment } from "../bootstrap/loadEnvironment";
 import { getDefaultMongoConnection } from "../infrastructure/mongo/defaultMongo";
 import { toPlayerNicknameKey } from "../modules/players/domain/normalizePlayerNickname";
-
-type GameCollectionName = "journey_games" | "battleships_games" | "lotto_games" | "lotto_bingo_games" | "quizEvents";
-
-interface PlayerReference {
-  playerRefId: string;
-  projectId: string;
-  collection: GameCollectionName;
-  gameId: string;
-  participantId: string;
-  nickname: string;
-}
-
-interface GameSource {
-  collection: GameCollectionName;
-  extractReferences(game: Document): PlayerReference[];
-}
+import {
+  PLAYER_REFERENCE_AUDIT_SOURCES,
+  type PlayerReference,
+} from "../modules/players/PlayerReferenceAudit";
 
 function asRecord(value: unknown): Document | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Document) : null;
@@ -37,87 +25,7 @@ function documentId(document: Document): string {
     : String(document._id ?? "unknown");
 }
 
-function referencesFromPlayers(collection: GameCollectionName, game: Document, players: Document[]): PlayerReference[] {
-  const gameId = documentId(game);
-  const projectId = string(game.projectId);
-  return players.flatMap((player) => {
-    const playerRefId = string(player.playerRefId);
-    if (!playerRefId) return [];
-    return [{ collection, gameId, projectId, participantId: string(player.id), nickname: string(player.nickname), playerRefId }];
-  });
-}
-
-function referencesFromQuiz(game: Document): PlayerReference[] {
-  const gameId = documentId(game);
-  const projectId = string(game.projectId);
-  const questionReferences = asRecords(game.questions).flatMap((question) => [
-    ...asRecords(question.selectedAnswers).flatMap((selection) => {
-      const playerRefId = string(selection.playerRefId);
-      if (!playerRefId) return [];
-      return [
-        {
-          collection: "quizEvents" as const,
-          gameId,
-          projectId,
-          participantId: string(selection.selectedMessageId),
-          nickname: string(selection.playerName),
-          playerRefId,
-        },
-      ];
-    }),
-    ...asRecords(question.awards).flatMap((award) => {
-      const playerRefId = string(award.playerRefId);
-      if (!playerRefId) return [];
-      return [
-        {
-          collection: "quizEvents" as const,
-          gameId,
-          projectId,
-          participantId: `award:${string(award.id)}`,
-          nickname: string(award.playerName),
-          playerRefId,
-        },
-      ];
-    }),
-  ]);
-  const summaryReferences = asRecords(asRecord(game.summary)?.players).flatMap((player) => {
-    const playerRefId = string(player.playerRefId);
-    if (!playerRefId) return [];
-    return [
-      {
-        collection: "quizEvents" as const,
-        gameId,
-        projectId,
-        participantId: `summary:${toPlayerNicknameKey(string(player.playerName))}`,
-        nickname: string(player.playerName),
-        playerRefId,
-      },
-    ];
-  });
-  return [...questionReferences, ...summaryReferences];
-}
-
-const GAME_SOURCES: GameSource[] = [
-  {
-    collection: "journey_games",
-    extractReferences: (game) => referencesFromPlayers("journey_games", game, asRecords(asRecord(game.stateV2)?.players)),
-  },
-  {
-    collection: "battleships_games",
-    extractReferences: (game) => {
-      const playerRefId = string(game.playerRefId);
-      return playerRefId
-        ? [{ collection: "battleships_games", gameId: documentId(game), projectId: string(game.projectId), participantId: "game-player", nickname: string(game.playerName), playerRefId }]
-        : [];
-    },
-  },
-  { collection: "lotto_games", extractReferences: (game) => referencesFromPlayers("lotto_games", game, asRecords(game.players)) },
-  {
-    collection: "lotto_bingo_games",
-    extractReferences: (game) => referencesFromPlayers("lotto_bingo_games", game, asRecords(game.players)),
-  },
-  { collection: "quizEvents", extractReferences: referencesFromQuiz },
-];
+const GAME_SOURCES = PLAYER_REFERENCE_AUDIT_SOURCES;
 
 const PROJECT_ID_ARGUMENT = "--project-id=";
 const QUIZ_DATE_ARGUMENT = "--quiz-date=";
@@ -134,12 +42,13 @@ function requestedQuizDate(): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
 }
 
-async function run(): Promise<void> {
+async function run(): Promise<boolean> {
   loadEnvironment();
   const connection = getDefaultMongoConnection();
   const client = await connection.getClient();
   const database = client.db(connection.getDatabaseName());
   const summaryOnly = process.argv.includes("--summary");
+  const strict = process.argv.includes("--strict");
   const projectIdFilter = requestedProjectId();
   const quizDateFilter = requestedQuizDate();
 
@@ -155,6 +64,9 @@ async function run(): Promise<void> {
     ]);
     const referencesByPlayerId = new Map<string, PlayerReference[]>();
     const gamesByCollection = Object.fromEntries(sourceGames.map(({ source, games }) => [source.collection, games.length]));
+    const missingPlayerReferences = sourceGames.flatMap(({ source, games }) =>
+      games.flatMap((game) => source.extractMissingReferences(game)),
+    );
 
     for (const { source, games } of sourceGames) {
       for (const game of games) {
@@ -250,6 +162,15 @@ async function run(): Promise<void> {
         return [{ projectId, nicknameKey, players: group.map(playerView) }];
       })
       .sort((left, right) => left.projectId.localeCompare(right.projectId) || left.nicknameKey.localeCompare(right.nicknameKey, "ru"));
+    const unresolvedProjectIds = [
+      ...new Set(
+        [
+          ...missingPlayerReferences.map((reference) => reference.projectId),
+          ...orphanedReferences.flatMap((reference) => reference.references.map((entry) => entry.projectId)),
+        ].filter(Boolean),
+      ),
+    ].sort();
+    const analyticsBackfillReady = missingPlayerReferences.length === 0 && orphanedReferences.length === 0;
     const quizEventParticipants = quizDateFilter
       ? sourceGames
           .find(({ source }) => source.collection === "quizEvents")!
@@ -333,6 +254,15 @@ async function run(): Promise<void> {
                 })
                 .sort((left, right) => left.nickname.localeCompare(right.nickname, "ru"))
             : undefined,
+          analyticsBackfillPreflight: {
+            scope: "all_persisted_game_and_quiz_event_participants",
+            strict,
+            ready: analyticsBackfillReady,
+            unresolvedProjectIds,
+            missingPlayerReferenceCount: missingPlayerReferences.length,
+            missingPlayerReferences,
+            orphanedReferenceGroupCount: orphanedReferences.length,
+          },
           orphanedReferences,
           duplicateCurrentNicknames,
         },
@@ -340,12 +270,17 @@ async function run(): Promise<void> {
         2,
       ),
     );
+    return analyticsBackfillReady;
   } finally {
     await client.close();
   }
 }
 
-run().catch((error) => {
-  console.error("Player reference audit failed", error);
-  process.exit(1);
-});
+run()
+  .then((analyticsBackfillReady) => {
+    if (process.argv.includes("--strict") && !analyticsBackfillReady) process.exitCode = 1;
+  })
+  .catch((error) => {
+    console.error("Player reference audit failed", error);
+    process.exitCode = 1;
+  });

@@ -75,6 +75,12 @@ export interface JourneyAwardedBonus {
   appliedRewards: JourneyResourceAmount[];
 }
 
+export interface JourneyFinalRewards {
+  regular: JourneyResourceAmount[];
+  bonus: JourneyResourceAmount[];
+  total: JourneyResourceAmount[];
+}
+
 export type JourneyAchievementsMap = Record<"JACKPOT" | "UNLUCKY" | "CAREFUL" | "COLLECTOR" | "LUCKY", JourneyAchievement>;
 
 export interface JourneyMapCell {
@@ -94,6 +100,7 @@ export interface JourneyPlayerReadModel {
   baseRewardEntries: JourneyResourceAmount[];
   bonusRewardEntries: JourneyResourceAmount[];
   balanceEntries: JourneyResourceAmount[];
+  finalRewards: JourneyFinalRewards | null;
   bonuses: JourneyAwardedBonus[];
 }
 

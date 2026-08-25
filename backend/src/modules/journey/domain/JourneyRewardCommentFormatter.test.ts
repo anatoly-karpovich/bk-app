@@ -77,6 +77,66 @@ test("rejects duplicate Player references when creating a Journey game", () => {
   );
 });
 
+test("records the first completion timestamp and preserves it for an already finished Journey game", () => {
+  const engine = createEngine();
+  const created = engine.createGame(players("Анатолий"), {
+    rules: rules({ mapSize: 1, minDice: 2, maxDice: 2 }),
+    resources,
+  });
+
+  assert.equal(created.finishedAt, null);
+
+  const finished = engine.makeRound(created, [{ playerId: created.stateV2.players[0].id, dice: 2 }]);
+
+  assert.equal(finished.stateV2.status, "finished");
+  assert.ok(finished.finishedAt);
+  assert.equal(finished.finishedAt, finished.updatedAt);
+
+  const repeatedFinish = engine.makeRound(finished, []);
+  assert.equal(repeatedFinish.finishedAt, finished.finishedAt);
+});
+
+test("persists immutable final rewards without the initial balance when Journey finishes", () => {
+  const engine = createEngine();
+  const game = engine.createGame(players("Анатолий"), {
+    resources,
+    rules: rules({
+      initialRewardPool: all({ resourceId: "coins", amount: 50 }),
+      resourceLimits: [],
+      mapSize: 2,
+      jackpot: {
+        countMode: "fixed",
+        count: 1,
+        playersPerJackpot: 1,
+        rewardPool: all({ resourceId: "coins", amount: 7 }),
+      },
+    }),
+  });
+  game.stateV2.map = {
+    1: { id: "bonus", kind: "bonus", rewardPool: all({ resourceId: "coins", amount: 2 }) },
+    2: {
+      id: "jackpot",
+      kind: "bonus",
+      isJackpot: true,
+      rewardPool: all({ resourceId: "coins", amount: 7 }),
+      winner: null,
+    },
+  };
+  const playerId = game.stateV2.players[0].id;
+
+  const afterRegular = engine.makeRound(game, [{ playerId, dice: 1 }]);
+  const afterJackpot = engine.makeRound(afterRegular, [{ playerId, dice: 1 }]);
+  const finished = engine.makeRound(afterJackpot, [{ playerId, dice: 1 }]);
+
+  assert.deepEqual(finished.stateV2.players[0].finalRewards, {
+    regular: [{ resourceId: "coins", amount: 2 }],
+    bonus: [{ resourceId: "coins", amount: 7 }],
+    total: [{ resourceId: "coins", amount: 9 }],
+  });
+  assert.equal(finished.stateV2.players[0].balance.coins, 59);
+  assert.deepEqual(engine.makeRound(finished, []).stateV2.players[0].finalRewards, finished.stateV2.players[0].finalRewards);
+});
+
 test("formats aggregated gains, losses, and limited amounts by resource id", () => {
   const formatter = new JourneyRewardCommentFormatter();
 

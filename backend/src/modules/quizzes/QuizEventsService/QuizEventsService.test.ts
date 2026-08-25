@@ -76,6 +76,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
   const documentId = new ObjectId();
   const repository = {
     findByIdAndProjectId: async () => ({ ...event, _id: documentId }),
+    delete: async () => true,
     update: async (_id: string, _project: string, revision: number, next: QuizEventDocument) => {
       if (event.revision !== revision) return null;
       event = { ...next, revision: revision + 1 };
@@ -92,10 +93,18 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
   const mongoDatabase = {
     withTransaction: async <T>(operation: (session: never) => Promise<T>) => operation(undefined as never),
   };
+  const invalidatedSources: Array<{ projectId: string; kind: string; id: string }> = [];
+  const analyticsInvalidator = {
+    async deleteSourceFact(projectId: string, source: { kind: string; id: string }) {
+      invalidatedSources.push({ projectId, ...source });
+    },
+    async deleteProjectFacts() {},
+  };
   const identity = new ChatMessageIdentity();
+  const quizzesRepository = { clearEvent: async () => true };
   const service = new QuizEventsService(
     repository as never,
-    {} as never,
+    quizzesRepository as never,
     {} as never,
     playersService as never,
     engine,
@@ -103,6 +112,8 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     new QuizMessageCandidateFilter(identity),
     new QuizEventReadModelFactory(ranker),
     mongoDatabase as never,
+    analyticsInvalidator as never,
+    { async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {}, async submitQuizEvent() {} } as never,
   );
   return {
     service,
@@ -110,6 +121,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     persistedEvent: () => event,
     questionId: event.questions[0].id,
     questionIds: event.questions.map((question) => question.id),
+    invalidatedSources,
   };
 }
 
@@ -138,6 +150,14 @@ test("resolves players after validating chat selections and persists their refer
   assert.equal(persistedQuestion.awards[0]?.playerRefId, "player:Alice");
   assert.equal(persistedEvent().summary?.players[0]?.playerRefId, "player:Alice");
   assert.doesNotMatch(JSON.stringify(result.event), /playerRefId/);
+});
+
+test("invalidates the quiz analytics fact after a successfully deleted event", async () => {
+  const { service, invalidatedSources } = setup();
+
+  await service.delete(actor, "project", "event", 0);
+
+  assert.deepEqual(invalidatedSources, [{ projectId: "project", kind: "quiz_event", id: "event" }]);
 });
 
 test("does not resolve or create players for an invalid chat selection", async () => {

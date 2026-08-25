@@ -261,7 +261,7 @@ Game Controller -> Game Service -> PlayersService.resolveOrCreate -> Engine -> R
 
 Engines receive a required resolved identity and must reject duplicate `playerRefId` values within a multi-player game. Engines must not query MongoDB, create Players, or resolve aliases. Existing persisted games may omit `playerRefId` only for tolerant reads of old backups.
 
-Public read models must not expose `playerRefId` unless a product requirement explicitly changes that rule. Lotto, Journey, and Battleships retain their current frontend-compatible request shapes while accepting an optional reference: Lotto player inputs include `playerRefId?`, Journey accepts legacy `nicknames` as well as player objects, and Battleships retains `playerName` with optional `playerRefId`.
+Public read models may expose `playerRefId` when a stable player identity is useful to the client, including in analytics leaderboards. Lotto, Journey, and Battleships retain their current frontend-compatible request shapes while accepting an optional reference: Lotto player inputs include `playerRefId?`, Journey accepts legacy `nicknames` as well as player objects, and Battleships retains `playerName` with optional `playerRefId`.
 
 `PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, Battleships `playerRefId`, and Quiz Event `questions.selectedAnswers`, `questions.awards`, and `summary.players` references.
 
