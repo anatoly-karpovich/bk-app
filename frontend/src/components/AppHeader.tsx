@@ -34,6 +34,7 @@ import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
+import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
 import { NavLink, useLocation } from "react-router-dom";
 import type { Project } from "../features/projects/types";
 import { navigationGroups, type NavigationGroupId, type NavigationItemKey } from "../navigation";
@@ -60,12 +61,14 @@ const navigationItemIcons: Record<NavigationItemKey, JSX.Element> = {
   quizConfigs: <QuizRoundedIcon />,
   users: <PeopleAltRoundedIcon />,
   quizzes: <QuizRoundedIcon />,
+  analytics: <AssessmentRoundedIcon />,
 };
 
 const navigationGroupIcons: Record<NavigationGroupId, JSX.Element> = {
   games: <SportsEsportsRoundedIcon />,
   settings: <TuneRoundedIcon />,
   quizzes: <QuizRoundedIcon />,
+  analytics: <AssessmentRoundedIcon />,
 };
 
 function isGroupActive(groupId: NavigationGroupId, pathname: string): boolean {

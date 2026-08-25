@@ -134,6 +134,19 @@ test("builds an overview from filtered facts without mixing sources, resources, 
     { date: "2026-08-05", conductedSources: 1, participations: 1 },
     { date: "2026-08-06", conductedSources: 1, participations: 2 },
   ]);
+  assert.deepEqual(overview.rewardsByDay, [
+    {
+      date: "2026-08-05",
+      rewardsByResource: [
+        { resourceId: "coins", rewards: { regular: 4, bonus: 0, total: 4 } },
+        { resourceId: "key", rewards: { regular: 0, bonus: 1, total: 1 } },
+      ],
+    },
+    {
+      date: "2026-08-06",
+      rewardsByResource: [{ resourceId: "coins", rewards: { regular: 5, bonus: 0, total: 5 } }],
+    },
+  ]);
   assert.equal(overview.integrity, freshIntegrity);
 });
 
@@ -184,6 +197,24 @@ test("uses the first current currency by default and provides stable score/playe
   ]);
   assert.equal(secondPage.players[0].playerRefId, "player-2");
   assert.equal(secondPage.players[0].rewards.total, 6);
+});
+
+test("sorts player leaderboard by the selected saved reward category", async () => {
+  const service = createService([
+    fact("one", "journey", "2026-08-01T10:00:00.000Z", [participant("player-1", "Regular", [{ resourceId: "coins", amount: 10 }], [{ resourceId: "coins", amount: 1 }])]),
+    fact("two", "quiz", "2026-08-02T10:00:00.000Z", [participant("player-2", "Bonus", [{ resourceId: "coins", amount: 2 }], [{ resourceId: "coins", amount: 20 }])]),
+    fact("three", "lotto", "2026-08-03T10:00:00.000Z", [participant("player-3", "No reward")]),
+  ]);
+
+  const regular = await service.getPlayerLeaderboard("project-a", { rewardCategory: "regular" });
+  const bonus = await service.getPlayerLeaderboard("project-a", { rewardCategory: "bonus" });
+
+  assert.equal(regular.rewardCategory, "regular");
+  assert.equal(regular.players[0].playerRefId, "player-1");
+  assert.equal(bonus.rewardCategory, "bonus");
+  assert.equal(bonus.players[0].playerRefId, "player-2");
+  assert.equal(regular.players.some((player) => player.playerRefId === "player-3"), false);
+  assert.equal(bonus.players.some((player) => player.playerRefId === "player-3"), false);
 });
 
 test("validates non-mixed resource selection and internal read-query bounds", async () => {

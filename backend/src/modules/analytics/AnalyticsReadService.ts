@@ -19,10 +19,13 @@ export interface AnalyticsReadQuery {
 
 export interface AnalyticsPlayerLeaderboardQuery extends AnalyticsReadQuery {
   resourceId?: string;
+  rewardCategory?: AnalyticsLeaderboardRewardCategory;
   cursor?: string;
   limit?: number;
   search?: string;
 }
+
+export type AnalyticsLeaderboardRewardCategory = "total" | "regular" | "bonus";
 
 export interface AnalyticsReadPeriod {
   from: string;
@@ -44,6 +47,10 @@ export interface AnalyticsOverviewReadModel {
   rewardsByResource: Array<{ resourceId: string; rewards: AnalyticsRewardTotals }>;
   sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number }>;
   activityByDay: Array<{ date: string; conductedSources: number; participations: number }>;
+  rewardsByDay: Array<{
+    date: string;
+    rewardsByResource: Array<{ resourceId: string; rewards: AnalyticsRewardTotals }>;
+  }>;
   integrity: AnalyticsIntegrityReport;
 }
 
@@ -63,6 +70,7 @@ export interface AnalyticsResourcesReadModel {
 
 export interface AnalyticsPlayerLeaderboardReadModel {
   period: AnalyticsReadPeriod;
+  rewardCategory: AnalyticsLeaderboardRewardCategory;
   resource: { resource: ResourceSnapshot; catalogStatus: AnalyticsResourceCatalogStatus };
   players: Array<{
     playerRefId: string;
@@ -88,6 +96,7 @@ interface PlayerAggregate {
 interface DecodedCursor {
   score: number;
   playerRefId: string;
+  rewardCategory: AnalyticsLeaderboardRewardCategory;
 }
 
 /** Builds query-ready analytics read models only from project-scoped materialized facts. */
@@ -109,6 +118,7 @@ export class AnalyticsReadService {
     const sourceBreakdown = this.emptySourceBreakdown();
     const rewardsByResource = new Map<string, AnalyticsRewardTotals>();
     const activityByDay = new Map<string, { conductedSources: number; participations: number }>();
+    const rewardsByDay = new Map<string, Map<string, AnalyticsRewardTotals>>();
     const resolvedPlayerIds = new Set<string>();
     let participations = 0;
 
@@ -122,12 +132,16 @@ export class AnalyticsReadService {
       activity.conductedSources += 1;
       activity.participations += fact.participants.length;
       activityByDay.set(date, activity);
+      const dailyRewardsByResource = rewardsByDay.get(date) ?? new Map<string, AnalyticsRewardTotals>();
 
       for (const participant of fact.participants) {
         if (participant.playerRefId) resolvedPlayerIds.add(participant.playerRefId);
         this.addRewardsByResource(rewardsByResource, participant.rewards.regular, "regular");
         this.addRewardsByResource(rewardsByResource, participant.rewards.bonus, "bonus");
+        this.addRewardsByResource(dailyRewardsByResource, participant.rewards.regular, "regular");
+        this.addRewardsByResource(dailyRewardsByResource, participant.rewards.bonus, "bonus");
       }
+      rewardsByDay.set(date, dailyRewardsByResource);
     }
 
     return {
@@ -139,6 +153,9 @@ export class AnalyticsReadService {
       sourceBreakdown,
       activityByDay: Array.from(activityByDay.entries())
         .map(([date, activity]) => ({ date, ...activity }))
+        .sort((left, right) => left.date.localeCompare(right.date)),
+      rewardsByDay: Array.from(rewardsByDay.entries())
+        .map(([date, dailyRewards]) => ({ date, rewardsByResource: this.toSortedResourceTotals(dailyRewards) }))
         .sort((left, right) => left.date.localeCompare(right.date)),
       integrity,
     };
@@ -177,19 +194,22 @@ export class AnalyticsReadService {
     ]);
     const resourceCatalog = this.collectResourceCatalog(project.resources, facts);
     const selectedResource = this.selectResource(resourceCatalog, query.resourceId);
+    const rewardCategory = this.normalizeRewardCategory(query.rewardCategory);
     const aggregates = this.collectPlayerAggregates(this.filterFacts(facts, normalizedQuery), selectedResource.resource.id);
     const search = this.normalizeSearch(query.search);
-    const cursor = query.cursor ? this.decodeCursor(query.cursor) : undefined;
+    const cursor = query.cursor ? this.decodeCursor(query.cursor, rewardCategory) : undefined;
     const limit = this.normalizePageLimit(query.limit);
     const orderedPlayers = Array.from(aggregates.values())
+      .filter((player) => this.rewardScore(player, rewardCategory) > 0)
       .filter((player) => !search || player.nicknameSnapshot.toLocaleLowerCase("ru").includes(search))
-      .sort((left, right) => right.regular + right.bonus - (left.regular + left.bonus) || left.playerRefId.localeCompare(right.playerRefId));
-    const afterCursor = cursor ? orderedPlayers.filter((player) => this.isAfterCursor(player, cursor)) : orderedPlayers;
+      .sort((left, right) => this.rewardScore(right, rewardCategory) - this.rewardScore(left, rewardCategory) || left.playerRefId.localeCompare(right.playerRefId));
+    const afterCursor = cursor ? orderedPlayers.filter((player) => this.isAfterCursor(player, cursor, rewardCategory)) : orderedPlayers;
     const page = afterCursor.slice(0, limit);
     const nextPlayer = afterCursor[limit];
 
     return {
       period: normalizedQuery,
+      rewardCategory,
       resource: selectedResource,
       players: page.map((player) => ({
         playerRefId: player.playerRefId,
@@ -197,7 +217,7 @@ export class AnalyticsReadService {
         participations: player.participations,
         rewards: this.toRewardTotals(player.regular, player.bonus),
       })),
-      nextCursor: nextPlayer ? this.encodeCursor(page.at(-1)!) : null,
+      nextCursor: nextPlayer ? this.encodeCursor(page.at(-1)!, rewardCategory) : null,
       integrity,
     };
   }
@@ -343,19 +363,27 @@ export class AnalyticsReadService {
     return limit;
   }
 
-  private encodeCursor(player: PlayerAggregate): string {
-    return Buffer.from(JSON.stringify({ score: player.regular + player.bonus, playerRefId: player.playerRefId })).toString("base64url");
+  private normalizeRewardCategory(category: AnalyticsLeaderboardRewardCategory | undefined): AnalyticsLeaderboardRewardCategory {
+    if (category === undefined) return "total";
+    if (category === "total" || category === "regular" || category === "bonus") return category;
+    throw new AnalyticsInvalidQueryError("invalid_reward_category");
   }
 
-  private decodeCursor(cursor: string): DecodedCursor {
+  private encodeCursor(player: PlayerAggregate, rewardCategory: AnalyticsLeaderboardRewardCategory): string {
+    return Buffer.from(JSON.stringify({ score: this.rewardScore(player, rewardCategory), playerRefId: player.playerRefId, rewardCategory })).toString("base64url");
+  }
+
+  private decodeCursor(cursor: string, rewardCategory: AnalyticsLeaderboardRewardCategory): DecodedCursor {
     try {
       const value: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
       if (
         !value ||
         typeof value !== "object" ||
-        !Number.isFinite((value as DecodedCursor).score) ||
-        typeof (value as DecodedCursor).playerRefId !== "string" ||
-        !(value as DecodedCursor).playerRefId
+          !Number.isFinite((value as DecodedCursor).score) ||
+          typeof (value as DecodedCursor).playerRefId !== "string" ||
+          !(value as DecodedCursor).playerRefId ||
+          ((value as DecodedCursor).rewardCategory !== "total" && (value as DecodedCursor).rewardCategory !== "regular" && (value as DecodedCursor).rewardCategory !== "bonus") ||
+          (value as DecodedCursor).rewardCategory !== rewardCategory
       ) {
         throw new Error("Invalid cursor shape");
       }
@@ -365,9 +393,13 @@ export class AnalyticsReadService {
     }
   }
 
-  private isAfterCursor(player: PlayerAggregate, cursor: DecodedCursor): boolean {
-    const score = player.regular + player.bonus;
+  private isAfterCursor(player: PlayerAggregate, cursor: DecodedCursor, rewardCategory: AnalyticsLeaderboardRewardCategory): boolean {
+    const score = this.rewardScore(player, rewardCategory);
     return score < cursor.score || (score === cursor.score && player.playerRefId > cursor.playerRefId);
+  }
+
+  private rewardScore(player: PlayerAggregate, rewardCategory: AnalyticsLeaderboardRewardCategory): number {
+    return rewardCategory === "regular" ? player.regular : rewardCategory === "bonus" ? player.bonus : player.regular + player.bonus;
   }
 
   private toSortedResourceTotals(rewardsByResource: ReadonlyMap<string, AnalyticsRewardTotals>) {

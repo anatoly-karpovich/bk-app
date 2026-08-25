@@ -27,6 +27,7 @@ import QuizCreatePage from "./features/utilities/quizzes/QuizCreatePage";
 import QuizEditorPage from "./features/utilities/quizzes/QuizEditorPage";
 import QuizEventsPage from "./features/utilities/quizzes/QuizEventsPage";
 import QuizEventPage from "./features/utilities/quizzes/QuizEventPage";
+import AnalyticsPage from "./features/analytics/AnalyticsPage";
 
 export default function App() {
   return (
@@ -93,6 +94,7 @@ function AuthenticatedApp() {
           <Route path="/quizzes/create" element={<QuizCreatePage selectedProject={selectedProject} />} />
           <Route path="/quizzes/events" element={<QuizEventsPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/events/:eventId" element={<QuizEventPage selectedProject={selectedProject} />} />
+          <Route path="/analytics" element={<AnalyticsPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/:quizId/edit" element={<QuizEditorPage selectedProject={selectedProject} />} />
           <Route
             path="/project"

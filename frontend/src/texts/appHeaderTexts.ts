@@ -6,6 +6,7 @@ export const appHeaderTexts = {
   projectLabel: "Проект",
   nav: {
     games: "Игры",
+    analytics: "Аналитика",
     settings: "Настройки",
     journey: "Карта Мародёров",
     lotto: "Лото",

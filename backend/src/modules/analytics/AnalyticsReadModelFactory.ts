@@ -57,6 +57,13 @@ export class AnalyticsReadModelFactory {
       })),
       sourceBreakdown: { ...model.sourceBreakdown },
       activityByDay: model.activityByDay.map((entry) => ({ ...entry })),
+      rewardsByDay: model.rewardsByDay.map((entry) => ({
+        date: entry.date,
+        rewardsByResource: entry.rewardsByResource.map((resource) => ({
+          resourceId: resource.resourceId,
+          rewards: this.createRewardTotals(resource.rewards),
+        })),
+      })),
       integrity: this.createIntegrity(model.integrity),
     };
   }
@@ -76,6 +83,7 @@ export class AnalyticsReadModelFactory {
   createPlayerLeaderboard(model: AnalyticsPlayerLeaderboardReadModel) {
     return {
       period: { ...model.period, sourceTypes: [...model.period.sourceTypes] },
+      rewardCategory: model.rewardCategory,
       resource: {
         resource: this.createResourceSnapshot(model.resource.resource),
         catalogStatus: model.resource.catalogStatus,

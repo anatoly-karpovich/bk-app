@@ -31,6 +31,7 @@ export const analyticsReadQuerySchema = z.object({
 
 export const analyticsPlayersQuerySchema = analyticsReadQuerySchema.extend({
   resourceId: z.string().trim().min(1).max(80).optional(),
+  rewardCategory: z.enum(["total", "regular", "bonus"]).optional(),
   cursor: z.string().min(1).max(4_096).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().trim().max(100).optional(),
