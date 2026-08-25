@@ -78,6 +78,7 @@ export class AnalyticsIntegrityService {
       expected.kind === actual.kind &&
       expected.type === actual.type &&
       expected.id === actual.id &&
+      expected.titleSnapshot === actual.titleSnapshot &&
       expected.quizId === actual.quizId &&
       expected.revision === actual.revision &&
       expected.updatedAt === actual.updatedAt

@@ -1,7 +1,6 @@
 import { Box, Typography } from "@mui/material";
-import type { AnalyticsOverview, AnalyticsResources } from "../types";
-
-const colors = ["#4f46e5", "#0891b2", "#8b5cf6"];
+import type { AnalyticsOverview, AnalyticsPlayerDetails, AnalyticsResources } from "../types";
+import { getResourceColor } from "./analyticsColors";
 
 function calendarDays(from: string, to: string): string[] {
   const dates: string[] = [];
@@ -15,8 +14,9 @@ function calendarDays(from: string, to: string): string[] {
 }
 
 interface AnalyticsRewardsChartProps {
-  overview: AnalyticsOverview;
-  resources: AnalyticsResources;
+  overview?: AnalyticsOverview;
+  resources?: AnalyticsResources;
+  playerDetails?: AnalyticsPlayerDetails;
 }
 
 function getNiceMaximum(value: number): number {
@@ -29,22 +29,29 @@ function formatTickDate(date: string): string {
   return new Date(`${date}T00:00:00.000Z`).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
-function formatDayLabel(date: string): string {
-  return new Date(`${date}T00:00:00.000Z`).toLocaleDateString("ru-RU", { day: "numeric" });
-}
-
-export default function AnalyticsRewardsChart({ overview, resources }: AnalyticsRewardsChartProps) {
-  const visibleResources = resources.resources.filter((entry) => entry.rewards.total !== 0).slice(0, 3);
-  const days = calendarDays(overview.period.from, overview.period.to);
-  const dailyRewards = new Map(overview.rewardsByDay.map((entry) => [entry.date, entry.rewardsByResource]));
-  const series = visibleResources.map((entry, index) => ({
-    ...entry,
-    color: colors[index],
-    values: days.map((date) => dailyRewards.get(date)?.find((item) => item.resourceId === entry.resource.id)?.rewards.total ?? 0),
-  }));
+export default function AnalyticsRewardsChart({ overview, resources, playerDetails }: AnalyticsRewardsChartProps) {
+  const period = playerDetails?.period ?? overview?.period;
+  const days = period ? calendarDays(period.from, period.to) : [];
+  const series = playerDetails
+    ? [{
+        resource: playerDetails.resource.resource,
+        color: getResourceColor(0),
+        values: days.map((date) => playerDetails.rewardsByDay.find((entry) => entry.date === date)?.rewards.total ?? 0),
+      }]
+    : (resources?.resources.filter((entry) => entry.rewards.total !== 0).slice(0, 3).map((entry, index) => {
+        const dailyRewards = new Map(overview?.rewardsByDay.map((day) => [day.date, day.rewardsByResource]));
+        return {
+          resource: entry.resource,
+          color: getResourceColor(index),
+          values: days.map((date) => dailyRewards.get(date)?.find((item) => item.resourceId === entry.resource.id)?.rewards.total ?? 0),
+        };
+      }) ?? []);
   const max = getNiceMaximum(Math.max(1, ...series.flatMap((entry) => entry.values)));
-  const labelStep = days.length <= 31 ? 1 : days.length <= 60 ? 2 : 3;
+  const labelStep = days.length <= 14 ? 1 : days.length <= 31 ? 4 : days.length <= 60 ? 7 : 14;
   const tickIndexes = days.map((_, index) => index).filter((index) => index % labelStep === 0 || index === days.length - 1);
+  const yAxisLabel = playerDetails
+    ? `Получено, ${series[0].resource.label}`
+    : "Выдано, количество";
   const chartLeft = 48;
   const chartRight = 790;
   const chartTop = 16;
@@ -60,6 +67,9 @@ export default function AnalyticsRewardsChart({ overview, resources }: Analytics
 
   return (
     <>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+        {yAxisLabel}
+      </Typography>
       <Box sx={{ height: 286, border: "1px solid", borderColor: "divider", borderRadius: (theme) => theme.customRadii.md, p: 1.5, overflow: "hidden" }}>
         <svg viewBox="0 0 800 240" role="img" aria-label="Столбчатый график выданных наград по дням" width="100%" height="100%" preserveAspectRatio="none">
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
@@ -79,17 +89,20 @@ export default function AnalyticsRewardsChart({ overview, resources }: Analytics
             const height = (value / max) * (chartBottom - chartTop);
             return (
               <rect key={`${entry.resource.id}-${days[dayIndex]}`} x={x} y={chartBottom - height} width={barWidth} height={height} rx="2" fill={entry.color}>
-                <title>{`${formatTickDate(days[dayIndex])}: ${value}`}</title>
+            <title>{`${formatTickDate(days[dayIndex])}: ${value} ${entry.resource.label}`}</title>
               </rect>
             );
           }))}
           {tickIndexes.map((index) => {
             const x = chartLeft + groupWidth * index + groupWidth / 2;
-            return <text key={days[index]} x={x} y="218" textAnchor="middle" fill="#64748b" fontSize="10">{formatDayLabel(days[index])}</text>;
+            return <text key={days[index]} x={x} y="218" textAnchor="middle" fill="#64748b" fontSize="10">{formatTickDate(days[index])}</text>;
           })}
         </svg>
       </Box>
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1.25 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75, textAlign: "center" }}>
+        Дата проведения
+      </Typography>
+      <Box sx={{ display: series.length > 1 ? "flex" : "none", gap: 2, flexWrap: "wrap", mt: 1.25 }}>
         {series.map((entry) => (
           <Typography key={entry.resource.id} variant="caption" color="text.secondary" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
             <Box component="span" sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: entry.color }} />

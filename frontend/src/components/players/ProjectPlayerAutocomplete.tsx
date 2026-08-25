@@ -1,5 +1,5 @@
 import { Autocomplete, CircularProgress, ListItemText, Typography } from "@mui/material";
-import type { SyntheticEvent } from "react";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import { playerTexts } from "../../texts/playerTexts";
 import type { PlayerReferenceInput, ProjectPlayer } from "../../features/players/types";
 import AppTextInput from "../ui/AppTextInput";
@@ -19,6 +19,7 @@ interface ProjectPlayerAutocompleteProps {
   loadError?: string | null;
   errorText?: string | null;
   disabled?: boolean;
+  allowCreation?: boolean;
   onChange: (nextValue: PlayerReferenceInput) => void;
 }
 
@@ -56,11 +57,24 @@ export default function ProjectPlayerAutocomplete({
   loadError = null,
   errorText = null,
   disabled = false,
+  allowCreation = true,
   onChange,
 }: ProjectPlayerAutocompleteProps) {
   const selectedPlayer = value.playerRefId ? players.find((player) => player.id === value.playerRefId) ?? null : null;
+  const [searchValue, setSearchValue] = useState(value.nickname);
+
+  useEffect(() => {
+    if (!allowCreation) {
+      setSearchValue(selectedPlayer?.content.nickname ?? "");
+    }
+  }, [allowCreation, selectedPlayer?.content.nickname]);
 
   function handleInputChange(_event: SyntheticEvent, nextInputValue: string, reason: string) {
+    if (!allowCreation) {
+      setSearchValue(nextInputValue);
+      return;
+    }
+
     if (reason === "input" || reason === "clear") {
       onChange({ nickname: nextInputValue, playerRefId: null });
     }
@@ -68,30 +82,32 @@ export default function ProjectPlayerAutocomplete({
 
   function handleOptionChange(_event: SyntheticEvent, nextOption: PlayerOption | string | null) {
     if (typeof nextOption === "string") {
-      onChange({ nickname: nextOption, playerRefId: null });
+      if (allowCreation) onChange({ nickname: nextOption, playerRefId: null });
       return;
     }
 
     if (!nextOption) {
+      if (!allowCreation) setSearchValue("");
       onChange({ nickname: "", playerRefId: null });
       return;
     }
 
     if (isCreatePlayerOption(nextOption)) {
-      onChange({ nickname: nextOption.nickname, playerRefId: null });
+      if (allowCreation) onChange({ nickname: nextOption.nickname, playerRefId: null });
       return;
     }
 
+    if (!allowCreation) setSearchValue(nextOption.content.nickname);
     onChange({ nickname: nextOption.content.nickname, playerRefId: nextOption.id });
   }
 
   return (
-    <Autocomplete<PlayerOption, false, false, true>
-      freeSolo
+    <Autocomplete<PlayerOption, false, false, boolean>
+      freeSolo={allowCreation}
       fullWidth
       options={players}
       value={selectedPlayer}
-      inputValue={value.nickname}
+      inputValue={allowCreation ? value.nickname : searchValue}
       loading={loading}
       disabled={disabled}
       getOptionLabel={(option) => (typeof option === "string" ? option : isCreatePlayerOption(option) ? option.nickname : option.content.nickname)}
@@ -112,7 +128,7 @@ export default function ProjectPlayerAutocomplete({
           (option) => !isCreatePlayerOption(option) && nicknameKey(option.content.nickname) === queryKey,
         );
 
-        return hasExactMatch ? matches : [...matches, { type: "create", nickname: query }];
+        return allowCreation && !hasExactMatch ? [...matches, { type: "create", nickname: query }] : matches;
       }}
       noOptionsText={playerTexts.autocomplete.empty}
       loadingText={playerTexts.autocomplete.loading}

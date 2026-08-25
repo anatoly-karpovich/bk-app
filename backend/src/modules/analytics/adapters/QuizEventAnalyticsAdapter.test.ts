@@ -145,6 +145,7 @@ test("uses updatedAt only as the historical fallback when a completed Quiz Event
     kind: "quiz_event",
     type: "quiz",
     id: event._id.toHexString(),
+    titleSnapshot: "Викторина «Quiz event»",
     quizId: "quiz-1",
     revision: 7,
     updatedAt: "2026-08-25T10:05:00.000Z",
@@ -182,7 +183,7 @@ test("publishes every legacy Quiz award without a player reference as a separate
       { code: "missing_player_reference", nicknameSnapshot: "Historical nickname" },
     ],
     computedAt,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 });
 

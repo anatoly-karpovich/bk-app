@@ -127,9 +127,9 @@ test("builds an overview from filtered facts without mixing sources, resources, 
     { resourceId: "coins", rewards: { regular: 9, bonus: 0, total: 9 } },
     { resourceId: "key", rewards: { regular: 0, bonus: 1, total: 1 } },
   ]);
-  assert.deepEqual(overview.sourceBreakdown.journey, { conductedSources: 1, participations: 1 });
-  assert.deepEqual(overview.sourceBreakdown.quiz, { conductedSources: 1, participations: 2 });
-  assert.deepEqual(overview.sourceBreakdown.lotto, { conductedSources: 0, participations: 0 });
+  assert.deepEqual(overview.sourceBreakdown.journey, { conductedSources: 1, participations: 1, uniquePlayers: 1 });
+  assert.deepEqual(overview.sourceBreakdown.quiz, { conductedSources: 1, participations: 2, uniquePlayers: 1 });
+  assert.deepEqual(overview.sourceBreakdown.lotto, { conductedSources: 0, participations: 0, uniquePlayers: 0 });
   assert.deepEqual(overview.activityByDay, [
     { date: "2026-08-05", conductedSources: 1, participations: 1 },
     { date: "2026-08-06", conductedSources: 1, participations: 2 },
@@ -224,4 +224,48 @@ test("validates non-mixed resource selection and internal read-query bounds", as
   await assert.rejects(service.getOverview("project-a", { from: "2026-09-01T00:00:00.000Z", to: "2026-09-01T00:00:00.000Z" }), AnalyticsInvalidQueryError);
   await assert.rejects(service.getPlayerLeaderboard("project-a", { limit: 101 }), AnalyticsInvalidQueryError);
   await assert.rejects(service.getPlayerLeaderboard("project-a", { cursor: "not-a-cursor" }), AnalyticsInvalidQueryError);
+});
+
+test("builds a player detail view from saved facts with resource totals, ranks, and cursor history", async () => {
+  const journey = fact("journey-1", "journey", "2026-08-05T10:00:00.000Z", [
+    participant("player-1", "Player", [{ resourceId: "coins", amount: 5 }, { resourceId: "key", amount: 1 }]),
+    participant("player-2", "Other", [{ resourceId: "coins", amount: 8 }]),
+  ]);
+  journey.source.titleSnapshot = "Карта Мародёров";
+  journey.meta.schemaVersion = 2;
+  const quiz = fact("quiz-1", "quiz", "2026-08-06T10:00:00.000Z", [
+    participant("player-1", "Player", [], [{ resourceId: "coins", amount: 3 }]),
+    participant("player-3", "Third", [{ resourceId: "coins", amount: 1 }]),
+  ]);
+  quiz.source.titleSnapshot = "Викторина «Киномания»";
+  quiz.meta.schemaVersion = 2;
+  const lotto = fact("lotto-1", "lotto", "2026-08-07T10:00:00.000Z", [participant("player-1", "Player")]);
+  lotto.source.titleSnapshot = "Лото";
+  lotto.meta.schemaVersion = 2;
+
+  const details = await createService([journey, quiz, lotto]).getPlayerDetails("project-a", "player-1", {
+    from: "2026-08-01T00:00:00.000Z",
+    to: "2026-09-01T00:00:00.000Z",
+    resourceId: "coins",
+    historyLimit: 2,
+  });
+
+  assert.equal(details.participations, 3);
+  assert.equal(details.player.nicknameSnapshot, "Player");
+  assert.deepEqual(details.rewardsByResource.map((entry) => ({ id: entry.resource.id, rewards: entry.rewards })), [
+    { id: "coins", rewards: { regular: 5, bonus: 3, total: 8 } },
+    { id: "key", rewards: { regular: 1, bonus: 0, total: 1 } },
+  ]);
+  assert.deepEqual(details.rewardsByDay, [
+    { date: "2026-08-05", rewards: { regular: 5, bonus: 0, total: 5 } },
+    { date: "2026-08-06", rewards: { regular: 0, bonus: 3, total: 3 } },
+    { date: "2026-08-07", rewards: { regular: 0, bonus: 0, total: 0 } },
+  ]);
+  assert.deepEqual(details.positionsBySourceType, [
+    { sourceType: "journey", participations: 1, rewards: { regular: 5, bonus: 0, total: 5 }, rank: 2, rankedPlayers: 2 },
+    { sourceType: "lotto", participations: 1, rewards: { regular: 0, bonus: 0, total: 0 }, rank: null, rankedPlayers: 0 },
+    { sourceType: "quiz", participations: 1, rewards: { regular: 0, bonus: 3, total: 3 }, rank: 1, rankedPlayers: 2 },
+  ]);
+  assert.deepEqual(details.history.entries.map((entry) => entry.source.titleSnapshot), ["Лото", "Викторина «Киномания»"]);
+  assert.ok(details.history.nextCursor);
 });

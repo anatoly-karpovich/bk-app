@@ -5,6 +5,7 @@ import { AnalyticsIntegrityService } from "./AnalyticsIntegrityService";
 import { AnalyticsProjectionService } from "./AnalyticsProjectionService";
 import {
   AnalyticsReadService,
+  type AnalyticsPlayerDetailsQuery,
   type AnalyticsPlayerLeaderboardQuery,
   type AnalyticsReadQuery,
 } from "./AnalyticsReadService";
@@ -43,5 +44,10 @@ export class AnalyticsService {
   async getPlayerLeaderboard(actor: CurrentUser, projectId: string, query: AnalyticsPlayerLeaderboardQuery) {
     assertProjectAccess(actor, projectId);
     return this.readService.getPlayerLeaderboard(projectId, query);
+  }
+
+  async getPlayerDetails(actor: CurrentUser, projectId: string, playerId: string, query: AnalyticsPlayerDetailsQuery) {
+    assertProjectAccess(actor, projectId);
+    return this.readService.getPlayerDetails(projectId, playerId, query);
   }
 }

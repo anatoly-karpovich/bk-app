@@ -141,6 +141,7 @@ test("uses updatedAt only as the historical fallback when a finished Lotto Bingo
     kind: "game",
     type: "lotto_bingo",
     id: game._id.toHexString(),
+    titleSnapshot: "Лото Бинго",
     revision: 7,
     updatedAt: "2026-08-25T10:05:00.000Z",
   });
@@ -187,7 +188,7 @@ test("publishes legacy Lotto Bingo participants without player references as par
       },
     ],
     computedAt,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 });
 

@@ -3,7 +3,7 @@ import { analyticsApiClient } from "../api/analytics.client";
 import type { AnalyticsLeaderboard, AnalyticsOverview, AnalyticsQuery, AnalyticsResources, AnalyticsRewardCategory, AnalyticsSourceType } from "../types";
 
 const ALL_SOURCE_TYPES: AnalyticsSourceType[] = ["journey", "battleships", "lotto", "lotto_bingo", "quiz"];
-const LEADERBOARD_PAGE_SIZE = 7;
+const LEADERBOARD_PAGE_SIZE = 5;
 
 function currentMonthQuery(): AnalyticsQuery {
   const now = new Date();

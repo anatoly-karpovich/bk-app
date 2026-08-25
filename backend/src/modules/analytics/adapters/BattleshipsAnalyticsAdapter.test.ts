@@ -65,6 +65,7 @@ test("builds a Battleships fact from saved hit and destroy grants without counti
       kind: "game",
       type: "battleships",
       id: game._id.toHexString(),
+      titleSnapshot: "Морской бой",
       revision: null,
       updatedAt: "2026-08-25T10:05:00.000Z",
     },
@@ -86,7 +87,7 @@ test("builds a Battleships fact from saved hit and destroy grants without counti
       status: "ready",
       issues: [],
       computedAt,
-      schemaVersion: 1,
+      schemaVersion: 2,
     },
   });
 });
@@ -119,7 +120,7 @@ test("publishes a partial fact for a legacy player without a stable reference", 
     status: "partial",
     issues: [{ code: "missing_player_reference", nicknameSnapshot: "Historical nickname" }],
     computedAt,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 });
 

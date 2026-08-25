@@ -23,6 +23,10 @@ export const analyticsProjectParamsSchema = z.object({
   projectId: objectIdSchema,
 });
 
+export const analyticsPlayerDetailsParamsSchema = analyticsProjectParamsSchema.extend({
+  playerId: objectIdSchema,
+});
+
 export const analyticsReadQuerySchema = z.object({
   from: z.string().datetime({ offset: true }).optional(),
   to: z.string().datetime({ offset: true }).optional(),
@@ -35,4 +39,10 @@ export const analyticsPlayersQuerySchema = analyticsReadQuerySchema.extend({
   cursor: z.string().min(1).max(4_096).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().trim().max(100).optional(),
+});
+
+export const analyticsPlayerDetailsQuerySchema = analyticsReadQuerySchema.extend({
+  resourceId: z.string().trim().min(1).max(80).optional(),
+  historyCursor: z.string().min(1).max(4_096).optional(),
+  historyLimit: z.coerce.number().int().min(1).max(100).optional(),
 });

@@ -5,6 +5,8 @@ export interface AnalyticsSourceStamp {
   kind: AnalyticsSourceKind;
   type: AnalyticsSourceType;
   id: string;
+  /** Safe historical label used by analytics participation history. Absent only in V1 facts before backfill. */
+  titleSnapshot?: string;
   quizId?: string;
   revision: number | null;
   updatedAt: string;
@@ -38,6 +40,6 @@ export interface AnalyticsFactDocument {
     status: "ready" | "partial";
     issues: AnalyticsFactIssue[];
     computedAt: string;
-    schemaVersion: 1;
+    schemaVersion: 1 | 2;
   };
 }

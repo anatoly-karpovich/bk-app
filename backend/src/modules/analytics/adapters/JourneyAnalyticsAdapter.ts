@@ -37,6 +37,7 @@ export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAn
         kind: "game",
         type: this.sourceType,
         id: source._id.toHexString(),
+        titleSnapshot: "Карта Мародёров",
         revision: null,
         updatedAt: source.updatedAt,
       },
@@ -65,7 +66,7 @@ export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAn
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 1,
+        schemaVersion: 2,
       },
     };
   }

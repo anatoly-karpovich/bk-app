@@ -9,6 +9,7 @@ export function createAnalyticsRouter(analyticsController: AnalyticsController):
   router.get("/status", asyncHandler(analyticsController.getStatus));
   router.post("/refresh", requireRole("admin"), asyncHandler(analyticsController.refresh));
   router.get("/overview", asyncHandler(analyticsController.getOverview));
+  router.get("/players/:playerId", asyncHandler(analyticsController.getPlayerDetails));
   router.get("/players", asyncHandler(analyticsController.getPlayerLeaderboard));
   router.get("/resources", asyncHandler(analyticsController.getResources));
 

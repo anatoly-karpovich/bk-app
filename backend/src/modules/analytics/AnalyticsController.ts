@@ -2,7 +2,13 @@ import type { Request, Response } from "express";
 import { parseRequest } from "../../common/validation/parseRequest";
 import { AnalyticsReadModelFactory } from "./AnalyticsReadModelFactory";
 import { AnalyticsService } from "./AnalyticsService";
-import { analyticsPlayersQuerySchema, analyticsProjectParamsSchema, analyticsReadQuerySchema } from "./analytics.schemas";
+import {
+  analyticsPlayerDetailsParamsSchema,
+  analyticsPlayerDetailsQuerySchema,
+  analyticsPlayersQuerySchema,
+  analyticsProjectParamsSchema,
+  analyticsReadQuerySchema,
+} from "./analytics.schemas";
 
 export class AnalyticsController {
   constructor(
@@ -41,6 +47,13 @@ export class AnalyticsController {
     const query = parseRequest(analyticsPlayersQuerySchema, req.query, "Invalid analytics players query");
     const players = await this.analyticsService.getPlayerLeaderboard(req.authUser!, projectId, query);
     return res.status(200).json({ success: true, data: this.readModelFactory.createPlayerLeaderboard(players) });
+  };
+
+  getPlayerDetails = async (req: Request, res: Response) => {
+    const { projectId, playerId } = parseRequest(analyticsPlayerDetailsParamsSchema, req.params, "Invalid analytics player route parameters");
+    const query = parseRequest(analyticsPlayerDetailsQuerySchema, req.query, "Invalid analytics player query");
+    const details = await this.analyticsService.getPlayerDetails(req.authUser!, projectId, playerId, query);
+    return res.status(200).json({ success: true, data: this.readModelFactory.createPlayerDetails(details) });
   };
 
   private getProjectParams(req: Request) {

@@ -35,7 +35,7 @@ export interface AnalyticsOverview {
   participations: number;
   uniqueResolvedPlayers: number;
   rewardsByResource: Array<{ resourceId: string; rewards: AnalyticsRewardTotals }>;
-  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number }>;
+  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number; uniquePlayers: number }>;
   activityByDay: Array<{ date: string; conductedSources: number; participations: number }>;
   rewardsByDay: Array<{
     date: string;
@@ -68,8 +68,45 @@ export interface AnalyticsLeaderboard {
   integrity: AnalyticsIntegrity;
 }
 
+export interface AnalyticsPlayerDetails {
+  period: AnalyticsPeriod;
+  player: { playerRefId: string; nicknameSnapshot: string | null };
+  resource: { resource: AnalyticsResource; catalogStatus: "current" | "historical" };
+  participations: number;
+  rewardsByResource: Array<{
+    resource: AnalyticsResource;
+    catalogStatus: "current" | "historical";
+    rewards: AnalyticsRewardTotals;
+  }>;
+  rewardsByDay: Array<{ date: string; rewards: AnalyticsRewardTotals }>;
+  rewardsBySourceType: Record<AnalyticsSourceType, { participations: number; rewards: AnalyticsRewardTotals }>;
+  positionsBySourceType: Array<{
+    sourceType: AnalyticsSourceType;
+    participations: number;
+    rewards: AnalyticsRewardTotals;
+    rank: number | null;
+    rankedPlayers: number;
+  }>;
+  history: {
+    entries: Array<{
+      occurredAt: string;
+      source: { type: AnalyticsSourceType; titleSnapshot: string };
+      rewards: Array<{ resourceId: string; amount: number }>;
+    }>;
+    nextCursor: string | null;
+  };
+  integrity: AnalyticsIntegrity;
+}
+
 export interface AnalyticsQuery {
   from: string;
   to: string;
   sourceTypes: AnalyticsSourceType[];
+}
+
+export interface AnalyticsRefreshResult {
+  factsBuilt: number;
+  factsReplaced: number;
+  orphanFactsDeleted: number;
+  integrity: AnalyticsIntegrity;
 }

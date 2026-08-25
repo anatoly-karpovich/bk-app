@@ -37,6 +37,7 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
         kind: "quiz_event",
         type: this.sourceType,
         id: source._id.toHexString(),
+        titleSnapshot: `Викторина «${source.name || source.quizSnapshot.quizName}»`,
         quizId: source.quizId,
         revision: source.revision,
         updatedAt: source.updatedAt,
@@ -64,7 +65,7 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 1,
+        schemaVersion: 2,
       },
     };
   }

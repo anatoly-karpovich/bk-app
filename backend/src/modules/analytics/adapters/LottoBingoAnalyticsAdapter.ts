@@ -43,6 +43,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
         kind: "game",
         type: this.sourceType,
         id: source._id.toHexString(),
+        titleSnapshot: "Лото Бинго",
         revision: source.revision,
         updatedAt: source.updatedAt,
       },
@@ -72,7 +73,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 1,
+        schemaVersion: 2,
       },
     };
   }

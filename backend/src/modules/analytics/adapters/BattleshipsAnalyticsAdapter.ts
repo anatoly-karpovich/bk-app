@@ -28,6 +28,7 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
         kind: "game",
         type: this.sourceType,
         id: source._id.toHexString(),
+        titleSnapshot: "Морской бой",
         revision: null,
         updatedAt: source.updatedAt,
       },
@@ -62,7 +63,7 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
           ? [{ code: "missing_player_reference", nicknameSnapshot: source.playerName }]
           : [],
         computedAt: this.now(),
-        schemaVersion: 1,
+        schemaVersion: 2,
       },
     };
   }

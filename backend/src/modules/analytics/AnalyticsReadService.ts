@@ -25,6 +25,12 @@ export interface AnalyticsPlayerLeaderboardQuery extends AnalyticsReadQuery {
   search?: string;
 }
 
+export interface AnalyticsPlayerDetailsQuery extends AnalyticsReadQuery {
+  resourceId?: string;
+  historyCursor?: string;
+  historyLimit?: number;
+}
+
 export type AnalyticsLeaderboardRewardCategory = "total" | "regular" | "bonus";
 
 export interface AnalyticsReadPeriod {
@@ -45,7 +51,7 @@ export interface AnalyticsOverviewReadModel {
   participations: number;
   uniqueResolvedPlayers: number;
   rewardsByResource: Array<{ resourceId: string; rewards: AnalyticsRewardTotals }>;
-  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number }>;
+  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number; uniquePlayers: number }>;
   activityByDay: Array<{ date: string; conductedSources: number; participations: number }>;
   rewardsByDay: Array<{
     date: string;
@@ -82,6 +88,41 @@ export interface AnalyticsPlayerLeaderboardReadModel {
   integrity: AnalyticsIntegrityReport;
 }
 
+export interface AnalyticsPlayerDetailsReadModel {
+  period: AnalyticsReadPeriod;
+  player: { playerRefId: string; nicknameSnapshot: string | null };
+  resource: { resource: ResourceSnapshot; catalogStatus: AnalyticsResourceCatalogStatus };
+  participations: number;
+  rewardsByResource: Array<{
+    resource: ResourceSnapshot;
+    catalogStatus: AnalyticsResourceCatalogStatus;
+    rewards: AnalyticsRewardTotals;
+  }>;
+  rewardsByDay: Array<{ date: string; rewards: AnalyticsRewardTotals }>;
+  rewardsBySourceType: Record<AnalyticsSourceType, { participations: number; rewards: AnalyticsRewardTotals }>;
+  positionsBySourceType: Array<{
+    sourceType: AnalyticsSourceType;
+    participations: number;
+    rewards: AnalyticsRewardTotals;
+    rank: number | null;
+    rankedPlayers: number;
+  }>;
+  history: {
+    entries: Array<{
+      occurredAt: string;
+      source: { type: AnalyticsSourceType; titleSnapshot: string };
+      rewards: AnalyticsRewardTotalsByResource[];
+    }>;
+    nextCursor: string | null;
+  };
+  integrity: AnalyticsIntegrityReport;
+}
+
+export interface AnalyticsRewardTotalsByResource {
+  resourceId: string;
+  amount: number;
+}
+
 interface NormalizedReadQuery extends AnalyticsReadPeriod {}
 
 interface PlayerAggregate {
@@ -97,6 +138,16 @@ interface DecodedCursor {
   score: number;
   playerRefId: string;
   rewardCategory: AnalyticsLeaderboardRewardCategory;
+}
+
+interface DecodedHistoryCursor {
+  occurredAt: string;
+  sourceId: string;
+}
+
+interface PlayerFactParticipant {
+  fact: AnalyticsFactDocument;
+  participant: AnalyticsFactDocument["participants"][number];
 }
 
 /** Builds query-ready analytics read models only from project-scoped materialized facts. */
@@ -120,6 +171,13 @@ export class AnalyticsReadService {
     const activityByDay = new Map<string, { conductedSources: number; participations: number }>();
     const rewardsByDay = new Map<string, Map<string, AnalyticsRewardTotals>>();
     const resolvedPlayerIds = new Set<string>();
+    const uniquePlayerIdsByType: Record<AnalyticsSourceType, Set<string>> = {
+      journey: new Set(),
+      battleships: new Set(),
+      lotto: new Set(),
+      lotto_bingo: new Set(),
+      quiz: new Set(),
+    };
     let participations = 0;
 
     for (const fact of filteredFacts) {
@@ -135,13 +193,20 @@ export class AnalyticsReadService {
       const dailyRewardsByResource = rewardsByDay.get(date) ?? new Map<string, AnalyticsRewardTotals>();
 
       for (const participant of fact.participants) {
-        if (participant.playerRefId) resolvedPlayerIds.add(participant.playerRefId);
+        if (participant.playerRefId) {
+          resolvedPlayerIds.add(participant.playerRefId);
+          uniquePlayerIdsByType[fact.source.type].add(participant.playerRefId);
+        }
         this.addRewardsByResource(rewardsByResource, participant.rewards.regular, "regular");
         this.addRewardsByResource(rewardsByResource, participant.rewards.bonus, "bonus");
         this.addRewardsByResource(dailyRewardsByResource, participant.rewards.regular, "regular");
         this.addRewardsByResource(dailyRewardsByResource, participant.rewards.bonus, "bonus");
       }
       rewardsByDay.set(date, dailyRewardsByResource);
+    }
+
+    for (const sourceType of Object.keys(sourceBreakdown) as AnalyticsSourceType[]) {
+      sourceBreakdown[sourceType].uniquePlayers = uniquePlayerIdsByType[sourceType].size;
     }
 
     return {
@@ -218,6 +283,50 @@ export class AnalyticsReadService {
         rewards: this.toRewardTotals(player.regular, player.bonus),
       })),
       nextCursor: nextPlayer ? this.encodeCursor(page.at(-1)!, rewardCategory) : null,
+      integrity,
+    };
+  }
+
+  async getPlayerDetails(
+    projectId: string,
+    playerRefId: string,
+    query: AnalyticsPlayerDetailsQuery = {},
+  ): Promise<AnalyticsPlayerDetailsReadModel> {
+    const normalizedQuery = this.normalizeQuery(query);
+    const [project, facts, integrity] = await Promise.all([
+      this.getProjectOrThrow(projectId),
+      this.projectionRepository.findByProjectId(projectId),
+      this.integrityService.inspectProject(projectId),
+    ]);
+    const resourceCatalog = this.collectResourceCatalog(project.resources, facts);
+    const selectedResource = this.selectResource(resourceCatalog, query.resourceId);
+    const playerFacts = this.collectPlayerFacts(this.filterFacts(facts, normalizedQuery), playerRefId);
+    const rewardsByResource = this.collectPlayerRewardsByResource(playerFacts);
+    const nicknameSnapshot = playerFacts
+      .slice()
+      .sort((left, right) => right.fact.occurredAt.localeCompare(left.fact.occurredAt))[0]
+      ?.participant.nicknameSnapshot ?? null;
+    const rewardsByDay = this.collectPlayerRewardsByDay(playerFacts, selectedResource.resource.id);
+    const rewardsBySourceType = this.collectPlayerRewardsBySourceType(playerFacts, selectedResource.resource.id);
+
+    return {
+      period: normalizedQuery,
+      player: { playerRefId, nicknameSnapshot },
+      resource: selectedResource,
+      participations: playerFacts.length,
+      rewardsByResource: resourceCatalog.map((entry) => ({
+        ...entry,
+        rewards: rewardsByResource.get(entry.resource.id) ?? this.emptyRewardTotals(),
+      })),
+      rewardsByDay,
+      rewardsBySourceType,
+      positionsBySourceType: this.collectPlayerPositions(
+        this.filterFacts(facts, normalizedQuery),
+        playerRefId,
+        selectedResource.resource.id,
+        rewardsBySourceType,
+      ),
+      history: this.createPlayerHistory(playerFacts, query.historyCursor, query.historyLimit),
       integrity,
     };
   }
@@ -344,6 +453,141 @@ export class AnalyticsReadService {
     return players;
   }
 
+  private collectPlayerFacts(facts: ReadonlyArray<AnalyticsFactDocument>, playerRefId: string): PlayerFactParticipant[] {
+    return facts.flatMap((fact) => {
+      const participant = fact.participants.find((entry) => entry.playerRefId === playerRefId);
+      return participant ? [{ fact, participant }] : [];
+    });
+  }
+
+  private collectPlayerRewardsByResource(playerFacts: ReadonlyArray<PlayerFactParticipant>): Map<string, AnalyticsRewardTotals> {
+    const rewards = new Map<string, AnalyticsRewardTotals>();
+    for (const { participant } of playerFacts) {
+      this.addRewardsByResource(rewards, participant.rewards.regular, "regular");
+      this.addRewardsByResource(rewards, participant.rewards.bonus, "bonus");
+    }
+    return rewards;
+  }
+
+  private collectPlayerRewardsByDay(
+    playerFacts: ReadonlyArray<PlayerFactParticipant>,
+    resourceId: string,
+  ): Array<{ date: string; rewards: AnalyticsRewardTotals }> {
+    const byDay = new Map<string, AnalyticsRewardTotals>();
+    for (const { fact, participant } of playerFacts) {
+      const date = new Date(fact.occurredAt).toISOString().slice(0, 10);
+      const current = byDay.get(date) ?? this.emptyRewardTotals();
+      current.regular += this.amountForResource(participant.rewards.regular, resourceId);
+      current.bonus += this.amountForResource(participant.rewards.bonus, resourceId);
+      current.total = current.regular + current.bonus;
+      byDay.set(date, current);
+    }
+    return Array.from(byDay.entries())
+      .map(([date, rewards]) => ({ date, rewards }))
+      .sort((left, right) => left.date.localeCompare(right.date));
+  }
+
+  private collectPlayerRewardsBySourceType(
+    playerFacts: ReadonlyArray<PlayerFactParticipant>,
+    resourceId: string,
+  ): AnalyticsPlayerDetailsReadModel["rewardsBySourceType"] {
+    const result = Object.fromEntries(
+      ANALYTICS_SOURCE_TYPES.map((sourceType) => [sourceType, { participations: 0, rewards: this.emptyRewardTotals() }]),
+    ) as AnalyticsPlayerDetailsReadModel["rewardsBySourceType"];
+    for (const { fact, participant } of playerFacts) {
+      const current = result[fact.source.type];
+      current.participations += 1;
+      current.rewards.regular += this.amountForResource(participant.rewards.regular, resourceId);
+      current.rewards.bonus += this.amountForResource(participant.rewards.bonus, resourceId);
+      current.rewards.total = current.rewards.regular + current.rewards.bonus;
+    }
+    return result;
+  }
+
+  private collectPlayerPositions(
+    facts: ReadonlyArray<AnalyticsFactDocument>,
+    playerRefId: string,
+    resourceId: string,
+    rewardsBySourceType: AnalyticsPlayerDetailsReadModel["rewardsBySourceType"],
+  ): AnalyticsPlayerDetailsReadModel["positionsBySourceType"] {
+    return ANALYTICS_SOURCE_TYPES.flatMap((sourceType) => {
+      const rewards = rewardsBySourceType[sourceType];
+      if (rewards.participations === 0) return [];
+      const players = Array.from(this.collectPlayerAggregates(facts.filter((fact) => fact.source.type === sourceType), resourceId).values())
+        .filter((player) => this.rewardScore(player, "total") > 0)
+        .sort((left, right) => this.rewardScore(right, "total") - this.rewardScore(left, "total") || left.playerRefId.localeCompare(right.playerRefId));
+      const rank = players.findIndex((player) => player.playerRefId === playerRefId);
+      return [{
+        sourceType,
+        participations: rewards.participations,
+        rewards: { ...rewards.rewards },
+        rank: rank === -1 ? null : rank + 1,
+        rankedPlayers: players.length,
+      }];
+    });
+  }
+
+  private createPlayerHistory(
+    playerFacts: ReadonlyArray<PlayerFactParticipant>,
+    cursorInput: string | undefined,
+    limitInput: number | undefined,
+  ): AnalyticsPlayerDetailsReadModel["history"] {
+    const cursor = cursorInput ? this.decodeHistoryCursor(cursorInput) : undefined;
+    const limit = this.normalizePageLimit(limitInput);
+    const ordered = playerFacts
+      .slice()
+      .sort((left, right) => right.fact.occurredAt.localeCompare(left.fact.occurredAt) || right.fact.source.id.localeCompare(left.fact.source.id));
+    const afterCursor = cursor
+      ? ordered.filter(({ fact }) => fact.occurredAt < cursor.occurredAt || (fact.occurredAt === cursor.occurredAt && fact.source.id < cursor.sourceId))
+      : ordered;
+    const entries = afterCursor.slice(0, limit).map(({ fact, participant }) => ({
+      occurredAt: fact.occurredAt,
+      source: { type: fact.source.type, titleSnapshot: fact.source.titleSnapshot ?? this.defaultSourceTitle(fact.source.type) },
+      rewards: this.combineParticipantRewards(participant),
+    }));
+    const next = afterCursor[limit];
+    return {
+      entries,
+      nextCursor: next ? this.encodeHistoryCursor(afterCursor[limit - 1].fact) : null,
+    };
+  }
+
+  private combineParticipantRewards(participant: AnalyticsFactDocument["participants"][number]): AnalyticsRewardTotalsByResource[] {
+    const amounts = new Map<string, number>();
+    for (const reward of [...participant.rewards.regular, ...participant.rewards.bonus]) {
+      amounts.set(reward.resourceId, (amounts.get(reward.resourceId) ?? 0) + reward.amount);
+    }
+    return Array.from(amounts.entries())
+      .map(([resourceId, amount]) => ({ resourceId, amount }))
+      .sort((left, right) => left.resourceId.localeCompare(right.resourceId));
+  }
+
+  private encodeHistoryCursor(fact: AnalyticsFactDocument): string {
+    return Buffer.from(JSON.stringify({ occurredAt: fact.occurredAt, sourceId: fact.source.id })).toString("base64url");
+  }
+
+  private decodeHistoryCursor(cursor: string): DecodedHistoryCursor {
+    try {
+      const value: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+      if (!value || typeof value !== "object" || !this.isValidDateTime((value as DecodedHistoryCursor).occurredAt) || !this.isNonEmptyString((value as DecodedHistoryCursor).sourceId)) {
+        throw new Error("Invalid cursor shape");
+      }
+      return value as DecodedHistoryCursor;
+    } catch {
+      throw new AnalyticsInvalidQueryError("invalid_history_cursor");
+    }
+  }
+
+  private defaultSourceTitle(sourceType: AnalyticsSourceType): string {
+    return {
+      journey: "Карта Мародёров",
+      battleships: "Морской бой",
+      lotto: "Лото",
+      lotto_bingo: "Лото Бинго",
+      quiz: "Викторина",
+    }[sourceType];
+  }
+
   private amountForResource(amounts: ReadonlyArray<{ resourceId: string; amount: number }>, resourceId: string): number {
     return amounts.reduce((total, amount) => total + (amount.resourceId === resourceId ? amount.amount : 0), 0);
   }
@@ -418,11 +662,11 @@ export class AnalyticsReadService {
 
   private emptySourceBreakdown(): AnalyticsOverviewReadModel["sourceBreakdown"] {
     return {
-      journey: { conductedSources: 0, participations: 0 },
-      battleships: { conductedSources: 0, participations: 0 },
-      lotto: { conductedSources: 0, participations: 0 },
-      lotto_bingo: { conductedSources: 0, participations: 0 },
-      quiz: { conductedSources: 0, participations: 0 },
+      journey: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
+      battleships: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
+      lotto: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
+      lotto_bingo: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
+      quiz: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
     };
   }
 
@@ -430,5 +674,13 @@ export class AnalyticsReadService {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) throw new AnalyticsInvalidQueryError(`invalid_${field}`);
     return parsed;
+  }
+
+  private isValidDateTime(value: unknown): value is string {
+    return typeof value === "string" && value.trim().length > 0 && Number.isFinite(Date.parse(value));
+  }
+
+  private isNonEmptyString(value: unknown): value is string {
+    return typeof value === "string" && value.trim().length > 0;
   }
 }

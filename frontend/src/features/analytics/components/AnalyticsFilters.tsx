@@ -1,10 +1,11 @@
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { Box, Button, Checkbox, FormControlLabel, Menu, Stack, TextField, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import type { AnalyticsQuery, AnalyticsSourceType } from "../types";
 import AnalyticsSelectionPill from "./AnalyticsSelectionPill";
+import { customRangeToQuery, formatPeriod, isSamePeriod, periodPresets, queryToInclusiveTo } from "./analyticsPeriods";
 
 const sourceLabels: Record<AnalyticsSourceType, string> = {
   quiz: "Викторины",
@@ -15,55 +16,34 @@ const sourceLabels: Record<AnalyticsSourceType, string> = {
 };
 const allSourceTypes: AnalyticsSourceType[] = ["quiz", "journey", "lotto_bingo", "lotto", "battleships"];
 
-function toIsoDate(value: Date): string {
-  return value.toISOString().slice(0, 10);
-}
-
-function dateRange(days: number) {
-  const today = new Date();
-  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - days);
-  return { from: start.toISOString(), to: end.toISOString() };
-}
-
-function monthRange(offset: number) {
-  const now = new Date();
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
-  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 1));
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
-function formatPeriod(from: string, to: string): string {
-  const start = new Date(from);
-  const end = new Date(new Date(to).getTime() - 1);
-  return `${start.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — ${end.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`;
-}
-
-function isSamePeriod(query: AnalyticsQuery, range: { from: string; to: string }): boolean {
-  return query.from === range.from && query.to === range.to;
-}
-
 interface AnalyticsFiltersProps {
   query: AnalyticsQuery;
   onQueryChange: (query: AnalyticsQuery) => void;
 }
 
+/** Right-hand filter controls: exact custom period and the conducted-source picker. */
 export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFiltersProps) {
   const [periodAnchor, setPeriodAnchor] = useState<HTMLElement | null>(null);
   const [sourcesAnchor, setSourcesAnchor] = useState<HTMLElement | null>(null);
   const [customFrom, setCustomFrom] = useState(query.from.slice(0, 10));
-  const [customTo, setCustomTo] = useState(new Date(new Date(query.to).getTime() - 1).toISOString().slice(0, 10));
+  const [customTo, setCustomTo] = useState(queryToInclusiveTo(query.to));
 
-  function setPeriod(range: { from: string; to: string }) {
-    onQueryChange({ ...query, ...range });
-  }
+  // Keep the custom-range inputs aligned with the active period (e.g. after a quick preset).
+  useEffect(() => {
+    setCustomFrom(query.from.slice(0, 10));
+    setCustomTo(queryToInclusiveTo(query.to));
+  }, [query.from, query.to]);
 
   function toggleSourceType(sourceType: AnalyticsSourceType) {
     const sourceTypes = query.sourceTypes.includes(sourceType)
       ? query.sourceTypes.filter((item) => item !== sourceType)
       : [...query.sourceTypes, sourceType];
     if (sourceTypes.length) onQueryChange({ ...query, sourceTypes });
+  }
+
+  function applyCustomPeriod() {
+    onQueryChange({ ...query, ...customRangeToQuery(customFrom, customTo) });
+    setPeriodAnchor(null);
   }
 
   return (
@@ -111,14 +91,11 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
         </Box>
       </Button>
 
-      <Menu anchorEl={periodAnchor} open={Boolean(periodAnchor)} onClose={() => setPeriodAnchor(null)} PaperProps={{ sx: { p: 1.5, width: 360 } }}>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <AnalyticsSelectionPill selected={isSamePeriod(query, monthRange(0))} onClick={() => setPeriod(monthRange(0))}>Этот месяц</AnalyticsSelectionPill>
-          <AnalyticsSelectionPill selected={isSamePeriod(query, monthRange(-1))} onClick={() => setPeriod(monthRange(-1))}>Прошлый месяц</AnalyticsSelectionPill>
-          <AnalyticsSelectionPill selected={isSamePeriod(query, dateRange(30))} onClick={() => setPeriod(dateRange(30))}>30 дней</AnalyticsSelectionPill>
-          <AnalyticsSelectionPill selected={isSamePeriod(query, dateRange(90))} onClick={() => setPeriod(dateRange(90))}>90 дней</AnalyticsSelectionPill>
-        </Stack>
-        <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+      <Menu anchorEl={periodAnchor} open={Boolean(periodAnchor)} onClose={() => setPeriodAnchor(null)} PaperProps={{ sx: { p: 1.5, width: 320 } }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", px: 0.5, mb: 1.25 }}>
+          Свой период
+        </Typography>
+        <Stack direction="row" spacing={1}>
           <TextField label="С" type="date" size="small" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
           <TextField label="По" type="date" size="small" value={customTo} onChange={(event) => setCustomTo(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
         </Stack>
@@ -127,12 +104,7 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
           variant="contained"
           sx={{ mt: 1.5 }}
           disabled={!customFrom || !customTo || customFrom > customTo}
-          onClick={() => {
-            const to = new Date(`${customTo}T00:00:00.000Z`);
-            to.setUTCDate(to.getUTCDate() + 1);
-            setPeriod({ from: `${customFrom}T00:00:00.000Z`, to: to.toISOString() });
-            setPeriodAnchor(null);
-          }}
+          onClick={applyCustomPeriod}
         >
           Применить период
         </AppPillButton>
@@ -152,46 +124,16 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
   );
 }
 
+/** Left-hand quick period presets. Custom ranges live in {@link AnalyticsFilters}. */
 export function AnalyticsQuickPeriodFilters({ query, onQueryChange }: AnalyticsFiltersProps) {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [customFrom, setCustomFrom] = useState(query.from.slice(0, 10));
-  const [customTo, setCustomTo] = useState(new Date(new Date(query.to).getTime() - 1).toISOString().slice(0, 10));
-  const quickPeriods = [
-    { label: "Этот месяц", range: monthRange(0) },
-    { label: "Прошлый месяц", range: monthRange(-1) },
-    { label: "30 дней", range: dateRange(30) },
-    { label: "90 дней", range: dateRange(90) },
-  ];
-
   return (
-    <>
-      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-        {quickPeriods.map(({ label, range }) => (
-          <AnalyticsSelectionPill key={label} selected={isSamePeriod(query, range)} onClick={() => onQueryChange({ ...query, ...range })}>{label}</AnalyticsSelectionPill>
-        ))}
-        <AnalyticsSelectionPill selected={false} onClick={(event) => setAnchor(event.currentTarget)}>Свой период</AnalyticsSelectionPill>
-      </Stack>
-      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)} PaperProps={{ sx: { p: 1.5, width: 320 } }}>
-        <Stack direction="row" spacing={1}>
-          <TextField label="С" type="date" size="small" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
-          <TextField label="По" type="date" size="small" value={customTo} onChange={(event) => setCustomTo(event.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
-        </Stack>
-        <AppPillButton
-          size="small"
-          variant="contained"
-          sx={{ mt: 1.5 }}
-          disabled={!customFrom || !customTo || customFrom > customTo}
-          onClick={() => {
-            const to = new Date(`${customTo}T00:00:00.000Z`);
-            to.setUTCDate(to.getUTCDate() + 1);
-            onQueryChange({ ...query, from: `${customFrom}T00:00:00.000Z`, to: to.toISOString() });
-            setAnchor(null);
-          }}
-        >
-          Применить период
-        </AppPillButton>
-      </Menu>
-    </>
+    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+      {periodPresets().map(({ label, range }) => (
+        <AnalyticsSelectionPill key={label} selected={isSamePeriod(query, range)} onClick={() => onQueryChange({ ...query, ...range })}>
+          {label}
+        </AnalyticsSelectionPill>
+      ))}
+    </Stack>
   );
 }
 

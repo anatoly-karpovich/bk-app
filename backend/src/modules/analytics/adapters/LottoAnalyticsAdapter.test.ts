@@ -132,6 +132,7 @@ test("uses updatedAt only as the historical fallback when a finished Lotto game 
     kind: "game",
     type: "lotto",
     id: game._id.toHexString(),
+    titleSnapshot: "Лото",
     revision: null,
     updatedAt: "2026-08-25T10:05:00.000Z",
   });
@@ -182,7 +183,7 @@ test("publishes unresolved Lotto players as partial facts without matching their
       },
     ],
     computedAt,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 });
 

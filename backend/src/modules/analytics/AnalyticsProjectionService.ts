@@ -115,7 +115,7 @@ export class AnalyticsProjectionService {
     if (fact.source.type !== adapterSourceType || !this.sameSourceStamp(fact.source, expectedSource)) {
       throw new Error("Analytics fact source does not match its canonical source descriptor");
     }
-    if (fact.meta.schemaVersion !== 1 || (fact.meta.status !== "ready" && fact.meta.status !== "partial")) {
+    if (fact.meta.schemaVersion !== 2 || (fact.meta.status !== "ready" && fact.meta.status !== "partial")) {
       throw new Error("Analytics fact has unsupported metadata");
     }
     if ((fact.meta.status === "partial") !== (fact.meta.issues.length > 0)) {
@@ -145,6 +145,7 @@ export class AnalyticsProjectionService {
       ANALYTICS_SOURCE_TYPES.includes(source.type) &&
       source.kind === expectedKind &&
       this.isNonEmptyString(source.id) &&
+      this.isNonEmptyString(source.titleSnapshot) &&
       this.isValidDateTime(source.updatedAt) &&
       (source.revision === null || (Number.isSafeInteger(source.revision) && source.revision >= 0)) &&
       (source.type === "quiz" ? this.isNonEmptyString(source.quizId) : source.quizId === undefined)
@@ -174,6 +175,7 @@ export class AnalyticsProjectionService {
       left.kind === right.kind &&
       left.type === right.type &&
       left.id === right.id &&
+      left.titleSnapshot === right.titleSnapshot &&
       left.quizId === right.quizId &&
       left.revision === right.revision &&
       left.updatedAt === right.updatedAt

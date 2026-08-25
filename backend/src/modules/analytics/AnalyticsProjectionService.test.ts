@@ -28,6 +28,7 @@ function stamp(source: TestSource): AnalyticsSourceStamp {
     kind: "game",
     type: "journey",
     id: source.id,
+    titleSnapshot: "Карта Мародёров",
     revision: null,
     updatedAt: source.updatedAt ?? "2026-08-25T10:00:00.000Z",
   };
@@ -48,7 +49,7 @@ function toFact(source: TestSource): AnalyticsFactDocument {
         ]
       : [],
     resourceSnapshot: [],
-    meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 1 },
+    meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 2 },
   };
 }
 

@@ -36,6 +36,7 @@ export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyt
         kind: "game",
         type: this.sourceType,
         id: source._id.toHexString(),
+        titleSnapshot: "Лото",
         revision: null,
         updatedAt: source.updatedAt,
       },
@@ -65,7 +66,7 @@ export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyt
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 1,
+        schemaVersion: 2,
       },
     };
   }
