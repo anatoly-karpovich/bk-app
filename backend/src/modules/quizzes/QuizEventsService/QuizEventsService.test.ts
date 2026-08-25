@@ -113,6 +113,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     new QuizEventReadModelFactory(ranker),
     mongoDatabase as never,
     analyticsInvalidator as never,
+    { async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {}, async submitQuizEvent() {} } as never,
   );
   return {
     service,

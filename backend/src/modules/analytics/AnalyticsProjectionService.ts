@@ -50,6 +50,13 @@ export class AnalyticsProjectionService {
     });
   }
 
+  /** Replaces one already-persisted completed source without refreshing the rest of its project. */
+  async submitSource<TSource>(adapter: AnalyticsSourceAdapter<TSource>, source: TSource): Promise<void> {
+    const descriptor = adapter.describe(source);
+    const fact = this.buildFact(adapter, source, descriptor.projectId);
+    await this.projectionRepository.replaceBySource(fact);
+  }
+
   /** Builds and validates a project's facts without reading or writing the projection collection. */
   async previewProject(projectId: string): Promise<AnalyticsProjectionPreviewReport> {
     return this.refreshMutex.runExclusive(projectId, async () => {

@@ -42,6 +42,7 @@ test("invalidates an analytics fact only after a finished Battleships game is sa
       },
       async deleteProjectFacts() {},
     },
+    { async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {}, async submitQuizEvent() {} },
   );
 
   await service.undoBattleshipsShot(admin, "project-a", "game-a");

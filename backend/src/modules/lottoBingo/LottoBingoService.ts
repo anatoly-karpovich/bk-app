@@ -12,6 +12,7 @@ import { LottoBingoRepository, type LottoBingoGameDocument } from "./LottoBingoR
 import { LottoBingoUpdatePublisher, type LottoBingoUpdatedEvent } from "./LottoBingoUpdatePublisher";
 import type { LottoBingoGameListItemView, LottoBingoGameView } from "./domain/types";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
+import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
 export class LottoBingoService {
   constructor(
@@ -23,6 +24,7 @@ export class LottoBingoService {
     private readonly players: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
     private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
+    private readonly analyticsSubmitter: AnalyticsProjectionSubmitter,
   ) {}
 
   async createGame(actor: CurrentUser, projectId: string, gameConfigId: string): Promise<LottoBingoGameView> {
@@ -182,6 +184,9 @@ export class LottoBingoService {
     const next = await operation(current, this.actorSnapshot(actor, projectId));
     const updated = await this.repository.update(gameId, projectId, expectedRevision, next);
     if (!updated) this.throwRevisionConflict();
+    if (current.status !== "finished" && updated.status === "finished") {
+      await this.analyticsSubmitter.submitLottoBingoGame(updated);
+    }
     this.updates.publish(gameId, updated.revision);
     return this.readModels.create(updated, actor);
   }

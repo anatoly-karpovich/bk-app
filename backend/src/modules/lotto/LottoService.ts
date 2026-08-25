@@ -11,6 +11,7 @@ import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import { LottoGameNotFoundError, LottoGamesNotFoundError } from "./errors";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
+import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
 export type LottoGameResponse = LottoGameReadModel;
 export type LottoGameListResponse = LottoGameListItemReadModel[];
@@ -30,6 +31,7 @@ export class LottoService {
     private readonly playersService: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
     private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
+    private readonly analyticsSubmitter: AnalyticsProjectionSubmitter,
   ) {}
 
   async createLottoGameSnapshotInProject(
@@ -124,7 +126,8 @@ export class LottoService {
       throw new LottoGameNotFoundError(gameId);
     }
 
-    return updatedGame;
+    await this.submitFinishedLottoGame(currentGame, updatedGame);
+    return this.serializeLottoGame(updatedGame);
   }
 
   async removeLottoPlayerFromSnapshot(
@@ -148,7 +151,8 @@ export class LottoService {
       throw new LottoGameNotFoundError(gameId);
     }
 
-    return updatedGame;
+    await this.submitFinishedLottoGame(currentGame, updatedGame);
+    return this.serializeLottoGame(updatedGame);
   }
 
   async deleteLottoGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<void> {
@@ -172,7 +176,7 @@ export class LottoService {
     projectId: string,
     gameId: string,
     game: LottoGameDocument,
-  ): Promise<LottoGameResponse | null> {
+  ): Promise<WithId<LottoGameDocument> | null> {
     const normalizedGame = this.engine.normalizeGame(game);
 
     if (!normalizedGame) {
@@ -180,6 +184,12 @@ export class LottoService {
     }
 
     const updateResult = await this.repository.update(gameId, projectId, normalizedGame);
-    return updateResult ? this.serializeLottoGame(updateResult) : null;
+    return updateResult;
+  }
+
+  private async submitFinishedLottoGame(previous: LottoGameDocument, saved: WithId<LottoGameDocument>): Promise<void> {
+    if (previous.status !== "finished" && saved.status === "finished") {
+      await this.analyticsSubmitter.submitLottoGame(saved);
+    }
   }
 }

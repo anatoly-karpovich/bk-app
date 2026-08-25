@@ -16,6 +16,7 @@ import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
 import { BattleshipsGameNotFoundError, BattleshipsGamesNotFoundError } from "./errors";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
+import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
 export type BattleshipsGameResponse = BattleshipsGameReadModel;
 export type BattleshipsGameListResponse = BattleshipsGameListItemReadModel[];
@@ -35,6 +36,7 @@ export class BattleshipsService {
     private readonly playersService: PlayersService,
     private readonly mongoDatabase: MongoDatabase,
     private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
+    private readonly analyticsSubmitter: AnalyticsProjectionSubmitter,
   ) {}
 
   async createBattleshipsGameSnapshotInProject(
@@ -134,7 +136,8 @@ export class BattleshipsService {
       throw new BattleshipsGameNotFoundError(gameId);
     }
 
-    return updatedGame;
+    await this.submitFinishedBattleshipsGame(currentGame, updatedGame);
+    return this.serializeBattleshipsGame(updatedGame);
   }
 
   async undoBattleshipsShot(actor: CurrentUser, projectId: string, gameId: string): Promise<BattleshipsGameResponse> {
@@ -157,7 +160,7 @@ export class BattleshipsService {
       await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
     }
 
-    return updatedGame;
+    return this.serializeBattleshipsGame(updatedGame);
   }
 
   async deleteBattleshipsGameSnapshot(actor: CurrentUser, projectId: string, gameId: string): Promise<void> {
@@ -181,7 +184,7 @@ export class BattleshipsService {
     projectId: string,
     gameId: string,
     game: BattleshipsGame,
-  ): Promise<BattleshipsGameResponse | null> {
+  ): Promise<WithId<BattleshipsGameDocument> | null> {
     const normalizedGame = this.engine.normalizeGame(game);
 
     if (!normalizedGame) {
@@ -190,6 +193,15 @@ export class BattleshipsService {
 
     const updateResult = await this.repository.update(gameId, projectId, normalizedGame);
 
-    return updateResult ? this.serializeBattleshipsGame(updateResult) : null;
+    return updateResult;
+  }
+
+  private async submitFinishedBattleshipsGame(
+    previous: BattleshipsGameDocument,
+    saved: WithId<BattleshipsGameDocument>,
+  ): Promise<void> {
+    if (previous.status !== "finished" && saved.status === "finished") {
+      await this.analyticsSubmitter.submitBattleshipsGame(saved);
+    }
   }
 }

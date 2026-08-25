@@ -25,6 +25,7 @@ import { validateQuiz } from "../domain/validation";
 import type { QuizEventDocument, QuizMessageKind, QuizSelectedAnswer, QuizSnapshot } from "../domain/types";
 import type { QuizEventView } from "../domain/readModels";
 import type { AnalyticsProjectionInvalidator } from "../../analytics/AnalyticsProjectionInvalidator";
+import type { AnalyticsProjectionSubmitter } from "../../analytics/AnalyticsProjectionSubmitter";
 
 export interface SaveQuizQuestionChatResult {
   event: QuizEventView;
@@ -63,6 +64,7 @@ export class QuizEventsService {
     private readonly readModels: QuizEventReadModelFactory,
     private readonly mongoDatabase: MongoDatabase,
     private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
+    private readonly analyticsSubmitter: AnalyticsProjectionSubmitter,
   ) {}
 
   async list(actor: CurrentUser, projectId: string): Promise<QuizEventView[]> {
@@ -263,6 +265,9 @@ export class QuizEventsService {
       mutation(structuredClone(event)),
     );
     if (!updated) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+    if (event.status !== "completed" && updated.status === "completed") {
+      await this.analyticsSubmitter.submitQuizEvent(updated);
+    }
     return this.readModels.create(eventId, updated);
   }
 
