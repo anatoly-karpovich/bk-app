@@ -14,6 +14,12 @@ export interface AnalyticsRefreshReport {
   integrity: AnalyticsIntegrityReport;
 }
 
+/** Internal read-only result used by controlled backfill preflight tooling. */
+export interface AnalyticsProjectionPreviewReport {
+  factsBuilt: number;
+  facts: ReadonlyArray<AnalyticsFactDocument>;
+}
+
 type AnalyticsAdapterPort = AnalyticsSourceAdapter<unknown>;
 
 /** Rebuilds one project's facts from canonical completed sources. */
@@ -41,6 +47,14 @@ export class AnalyticsProjectionService {
         orphanFactsDeleted,
         integrity: await this.integrityService.inspectProject(projectId),
       };
+    });
+  }
+
+  /** Builds and validates a project's facts without reading or writing the projection collection. */
+  async previewProject(projectId: string): Promise<AnalyticsProjectionPreviewReport> {
+    return this.refreshMutex.runExclusive(projectId, async () => {
+      const facts = await this.buildFacts(projectId);
+      return { factsBuilt: facts.length, facts };
     });
   }
 

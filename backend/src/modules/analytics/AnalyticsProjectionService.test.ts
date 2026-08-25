@@ -128,6 +128,31 @@ test("does not write or clean up any facts when a source cannot be built or vali
   assert.equal(cleanupCalls, 0);
 });
 
+test("previews validated facts without writing or inspecting the persisted projection", async () => {
+  let replacements = 0;
+  let integrityInspections = 0;
+  const service = new AnalyticsProjectionService(
+    {
+      async replaceBySource() {
+        replacements += 1;
+      },
+    } as never,
+    {
+      async inspectProject() {
+        integrityInspections += 1;
+        return freshIntegrity;
+      },
+    } as never,
+    [adapter([{ id: "source-1" }])] as never,
+  );
+  const preview = await service.previewProject("project-a");
+
+  assert.equal(preview.factsBuilt, 1);
+  assert.deepEqual(preview.facts.map((fact) => fact.source.id), ["source-1"]);
+  assert.equal(replacements, 0);
+  assert.equal(integrityInspections, 0);
+});
+
 test("rejects a concurrent refresh for the same project but releases the project after completion", async () => {
   let releaseFirstRead: (() => void) | undefined;
   let markFirstReadStarted: (() => void) | undefined;
