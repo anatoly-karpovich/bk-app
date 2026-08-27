@@ -25,6 +25,11 @@ Current migrated games in the React + backend application:
 - Battleships
 - Lotto
 
+Current project-scoped operational modules also include:
+
+- Activity Results — manually entered final results of historical, forum, or external activities;
+- Analytics — read-only projections of games, Quiz Events, and Activity Results.
+
 ---
 
 ## Main goal
@@ -94,6 +99,7 @@ The backend is the source of truth for:
 - game rules
 - parsing and resolving game actions
 - persistence
+- canonical manual Activity Results and their Analytics projection
 
 Backend modules should move toward:
 
@@ -125,11 +131,11 @@ Persisted document types and public DTO/read-model types must stay separate. Fro
 
 ### Player reference lifecycle
 
-В текущем single-operator rollout Player можно физически удалить, только если `PlayerReferencesRepository` не находит его `playerRefId` ни в одной сохранённой игре или Quiz Event. Проверка намеренно не использует nickname fallback. Она не защищена от конкурентной записи новой ссылки и допустима только пока параллельные изменения игр/Events исключены. Ниже описан дизайн для отдельного future rollout с конкурентно-безопасным lifecycle.
+В текущем single-operator rollout Player можно физически удалить, только если `PlayerReferencesRepository` не находит его `playerRefId` ни в одной сохранённой игре, Quiz Event или Activity Result. Проверка намеренно не использует nickname fallback. Она не защищена от конкурентной записи новой ссылки и допустима только пока параллельные изменения игр/Events/Activities исключены. Ниже описан дизайн для отдельного future rollout с конкурентно-безопасным lifecycle.
 
 - В отдельном rollout хранить у Player счётчик текущих ссылок, например `activeGameReferences`; это не история участия и не число ответов или наград.
-- Одна игра или один Quiz Event дают не более одной активной ссылки на одного Player, даже если он выбран в нескольких вопросах Event.
-- Любая мутация, добавляющая или убирающая `playerRefId`, должна в одной MongoDB-транзакции сохранить контейнер игры/Event и применить разницу уникальных Player references к их счётчикам.
+- Одна игра, Quiz Event или Activity Result дают не более одной активной ссылки на одного Player, даже если он выбран в нескольких вопросах Event.
+- Любая мутация, добавляющая или убирающая `playerRefId`, должна в одной MongoDB-транзакции сохранить контейнер игры/Event/Activity и применить разницу уникальных Player references к их счётчикам.
 - Удаление Player делает условный delete только при `activeGameReferences: 0`. Создание ссылки и удаление должны конфликтовать через запись того же Player и не могут оставлять ссылку на удалённого Player.
 - Для импортированной истории отдельная миграция и audit восстанавливают счётчики по текущим сохранённым ссылкам. Поисковый `PlayerReferencesRepository` остаётся защитой legacy-данных и инструментом аудита, но не заменяет транзакционный счётчик.
 
@@ -150,6 +156,15 @@ Frontend must not own final game rules or final game state.
 
 Project-level resources and preset rules must be read from project-scoped backend APIs, not recreated independently per frontend feature.
 
+### Activity Results and Analytics
+
+An Activity Result is a canonical, editable record of an already conducted manual activity; it is not a Game, Quiz Event, or reward pool. It stores direct resolved `regular` and `bonus` Resource amounts, a Player reference/nickname snapshot, a resource snapshot, a nullable calendar `conductedOn`, and a revision. Creation and every successful edit publish the Activity Analytics fact; deletion invalidates it.
+
+- Every saved Activity Result is final; do not restore the superseded draft/completed lifecycle or a `complete` endpoint.
+- The Activity type is one of the eight stable Analytics source types. Its project-defined title and availability govern new manual entries only, never native games or Quiz Events.
+- `conductedOn` is a calendar `YYYY-MM-DD`, never a timezone timestamp. When null, Analytics uses the immutable creation/finalization fallback and marks that source accordingly.
+- Activity API responses follow the explicit `meta`, `content`, and `configuration` read-model vocabulary. Frontend deletion/update uses the backend-provided revision and access capabilities.
+
 ---
 
 ## Shared rewards and game-owned payouts
@@ -162,6 +177,8 @@ Project-level resources and preset rules must be read from project-scoped backen
 - Presets may reference project resources, but games retain their resource snapshot so historical results remain interpretable after a project catalog changes.
 
 Current host-facing pages such as Journey, Battleships, Lotto, and Project Settings should stay operator-first: quick setup, clear state, visible restore/delete flows, and ready-to-copy outputs for forum/radio use.
+
+Activity Results use direct saved amounts, not `RewardPool` mechanics: do not pass their form through `RewardGrantService`, reroll rewards, or infer payouts from mutable Project resources.
 
 For Journey, Lotto, Lotto Bingo, and Battleships, the current game is identified by the URL (`/journey/:gameId`, `/lotto/:gameId`, `/lotto-bingo/:gameId`, and `/battleship/:gameId`). Starting or restoring a game must navigate to its URL; opening that URL must restore the game from the backend. Resetting the workspace or deleting its open game must return to the base game route. Do not persist current game IDs in localStorage.
 

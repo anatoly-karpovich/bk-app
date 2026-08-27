@@ -58,6 +58,14 @@ features/
     mappers/
     storage.ts
     types.ts
+  activities/
+    api/
+    components/
+    hooks/
+    mappers/
+    ActivityResultPage.tsx
+    ActivitiesPage.tsx
+    types.ts
   utilities/
     quizzes/
       api/
@@ -284,6 +292,17 @@ Specific frontend boundary reminders:
 * Lotto Bingo frontend must not generate tickets, draw barrels, calculate matched numbers/rows/halves/cards, determine candidates, validate winners, resolve rewards, infer operation availability, or infer permissions. It renders the backend `LottoBingoGameView` and sends only explicit commands with the backend-provided revision.
 * Lotto Bingo SSE is an opt-in invalidation channel for read-only observers. It receives only `lotto_bingo_updated`, compares revisions, and reloads the full game view; it must never merge partial game state or become a second source of truth.
 
+### Activities boundary
+
+Activities are final, manually entered results of historical, forum, or external events. They are not Game or Quiz Event runtime state and do not use reward-pool mechanics.
+
+- Keep Activity DTOs in `features/activities/api/activity.views.ts` and map them through `ActivityResultMapper`; components consume the page model, not API nesting or persisted data.
+- Use `/activities`, `/activities/new`, and `/activities/:activityId`. The eye action opens `/activities/:activityId?mode=view`; that query is an explicit UI read-only mode and must disable all fields and mutations even for an operator who can normally edit.
+- Direct Activity `regular` and `bonus` amounts are already resolved outcomes. Reuse player autocomplete and resource amount primitives, but never use `RewardPoolEditor`, calculate payouts, or derive resource snapshots in the browser.
+- Use API-provided `meta.revision` and `meta.access` for update/delete/view affordances; do not infer ownership, revision, or operation availability on the client.
+- Activity editor local validation may explain missing title, date, participants, duplicate Players/resources, and non-positive amounts, but backend remains authoritative. The current host UI requires a `conductedOn` before saving even though historical backend data may retain `null`.
+- The list uses project-provided activity type labels and the shared `AppMultiSelectFilter`; it intentionally has no text search. Two compact result cards appear from the `md` breakpoint and collapse to one column on narrow screens.
+
 ---
 
 ## API clients
@@ -501,6 +520,8 @@ components/ui/
 ```
 
 when adding buttons, chips, text inputs, breadcrumbs, or repeated UI primitives.
+
+`components/ui/AppMultiSelectFilter` is the shared checkbox-menu filter control. Its «Выбрать все» checkbox is a two-way toggle: all selected clears every value; a partial or empty selection restores all values. For Analytics, an empty selected list is a valid explicit empty result, while an omitted query parameter still means all types.
 
 If a repeated structure grows beyond a primitive, for example page headers, saved-game dialogs, summary cards, or other reusable feature shells, extract it into a shared component under:
 
