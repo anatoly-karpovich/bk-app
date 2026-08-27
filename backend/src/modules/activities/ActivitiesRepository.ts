@@ -10,17 +10,13 @@ export class ActivitiesRepository {
   async ensureIndexes(): Promise<void> {
     const collection = await this.collection();
     await Promise.all([
-      collection.createIndex({ projectId: 1, status: 1, conductedOn: -1 }),
+      collection.createIndex({ projectId: 1, conductedOn: -1 }),
       collection.createIndex({ projectId: 1, hostUserId: 1, updatedAt: -1 }),
     ]);
   }
 
   async findByProjectId(projectId: string): Promise<Array<WithId<ActivityResultDocument>>> {
     return (await this.collection()).find({ projectId }).sort({ updatedAt: -1, createdAt: -1 }).toArray();
-  }
-
-  async findCompletedByProjectId(projectId: string): Promise<Array<WithId<ActivityResultDocument>>> {
-    return (await this.collection()).find({ projectId, status: "completed" }).toArray();
   }
 
   async findByIdAndProjectId(

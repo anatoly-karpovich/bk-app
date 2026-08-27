@@ -30,18 +30,6 @@ export class ActivitiesController {
     return this.respond(res, 200, await this.service.update(req.authUser!, this.projectId(req), this.activityId(req), input));
   };
 
-  complete = async (req: Request, res: Response) =>
-    this.respond(
-      res,
-      200,
-      await this.service.complete(
-        req.authUser!,
-        this.projectId(req),
-        this.activityId(req),
-        parseRequest(activityResultRevisionSchema, req.body).expectedRevision,
-      ),
-    );
-
   delete = async (req: Request, res: Response) => {
     await this.service.delete(
       req.authUser!,

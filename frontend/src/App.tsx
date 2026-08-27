@@ -28,6 +28,8 @@ import QuizEditorPage from "./features/utilities/quizzes/QuizEditorPage";
 import QuizEventsPage from "./features/utilities/quizzes/QuizEventsPage";
 import QuizEventPage from "./features/utilities/quizzes/QuizEventPage";
 import AnalyticsPage from "./features/analytics/AnalyticsPage";
+import ActivitiesPage from "./features/activities/ActivitiesPage";
+import ActivityResultPage from "./features/activities/ActivityResultPage";
 
 export default function App() {
   return (
@@ -95,6 +97,9 @@ function AuthenticatedApp() {
           <Route path="/quizzes/events" element={<QuizEventsPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/events/:eventId" element={<QuizEventPage selectedProject={selectedProject} />} />
           <Route path="/analytics" element={<AnalyticsPage selectedProject={selectedProject} />} />
+          <Route path="/activities" element={<ActivitiesPage selectedProject={selectedProject} />} />
+          <Route path="/activities/new" element={<ActivityResultPage selectedProject={selectedProject} />} />
+          <Route path="/activities/:activityId" element={<ActivityResultPage selectedProject={selectedProject} />} />
           <Route path="/quizzes/:quizId/edit" element={<QuizEditorPage selectedProject={selectedProject} />} />
           <Route
             path="/project"

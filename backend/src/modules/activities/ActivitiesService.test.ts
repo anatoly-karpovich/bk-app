@@ -3,7 +3,7 @@ import test from "node:test";
 import { ObjectId } from "mongodb";
 import type { CurrentUser } from "../auth/domain/types";
 import { ActivitiesService } from "./ActivitiesService";
-import { ActivityResultCompletionError, ActivityResultTypeDisabledError } from "./errors";
+import { ActivityResultTypeDisabledError, ActivityResultValidationError } from "./errors";
 
 const actor: CurrentUser = {
   id: "host-1",
@@ -68,8 +68,8 @@ function createService(options: { disabledLotto?: boolean; activities?: unknown[
     } as never,
     { async withTransaction<T>(operation: (session: never) => Promise<T>) { return operation(undefined as never); } } as never,
     {
-      create(activity: { _id: ObjectId; status: string }) {
-        return { id: activity._id.toHexString(), meta: { status: activity.status } };
+      create(activity: { _id: ObjectId }) {
+        return { id: activity._id.toHexString(), meta: {} };
       },
     } as never,
     { async deleteSourceFact() {}, async deleteProjectFacts() {} },
@@ -90,15 +90,14 @@ const input = {
   ],
 };
 
-test("creates a draft from resolved participants and snapshots only used project resources", async () => {
-  const { service, activities } = createService();
-  const result = await service.create(actor, "66cb0df7c727752c07e779ba", input);
-  const saved = activities[0] as { status: string; resourceSnapshot: Array<{ id: string }>; participants: Array<{ playerRefId: string }> };
+test("creates a final result from resolved participants, snapshots used resources, and submits Analytics", async () => {
+  const { service, activities, submitted } = createService();
+  await service.create(actor, "66cb0df7c727752c07e779ba", input);
+  const saved = activities[0] as { resourceSnapshot: Array<{ id: string }>; participants: Array<{ playerRefId: string }> };
 
-  assert.equal(result.meta.status, "draft");
-  assert.equal(saved.status, "draft");
   assert.deepEqual(saved.resourceSnapshot.map((resource) => resource.id), ["coins", "key"]);
   assert.equal(saved.participants[0]?.playerRefId, "player:Alice");
+  assert.equal(submitted.length, 1);
 });
 
 test("rejects creation with a disabled project Activity type", async () => {
@@ -107,46 +106,24 @@ test("rejects creation with a disabled project Activity type", async () => {
   await assert.rejects(() => service.create(actor, "66cb0df7c727752c07e779ba", input), ActivityResultTypeDisabledError);
 });
 
-test("requires an awarded participant before completing a draft", async () => {
-  const { service } = createService({
-    activities: [
-      {
-        _id: new ObjectId("66cb0df7c727752c07e779bb"),
-        projectId: "66cb0df7c727752c07e779ba",
-        type: "lotto",
-        title: "Empty",
-        conductedOn: null,
-        status: "draft",
-        participants: [],
-        resourceSnapshot: [],
-        hostUserId: "host-1",
-        hostSnapshot: { userId: "host-1", displayName: "Host", nickname: "Host" },
-        revision: 0,
-        completedAt: null,
-        createdAt: "2026-08-01T00:00:00.000Z",
-        updatedAt: "2026-08-01T00:00:00.000Z",
-        schemaVersion: 1,
-      },
-    ],
-  });
+test("requires an awarded participant on creation", async () => {
+  const { service } = createService();
 
   await assert.rejects(
-    () => service.complete(actor, "66cb0df7c727752c07e779ba", "66cb0df7c727752c07e779bb", 0),
-    ActivityResultCompletionError,
+    () => service.create(actor, "66cb0df7c727752c07e779ba", { ...input, participants: [] }),
+    ActivityResultValidationError,
   );
 });
 
-test("re-submits Analytics after an edit to a completed Activity", async () => {
+test("re-submits Analytics after an Activity edit", async () => {
   const { service, activities, submitted } = createService();
   await service.create(actor, "66cb0df7c727752c07e779ba", input);
-  const draft = activities[0] as { revision: number };
-  await service.complete(actor, "66cb0df7c727752c07e779ba", "66cb0df7c727752c07e779bb", draft.revision);
-  const completed = activities[0] as { revision: number };
+  const saved = activities[0] as { revision: number };
 
   await service.update(actor, "66cb0df7c727752c07e779ba", "66cb0df7c727752c07e779bb", {
     ...input,
     title: "Исправленное Лото 2024",
-    expectedRevision: completed.revision,
+    expectedRevision: saved.revision,
   });
 
   assert.equal(submitted.length, 2);

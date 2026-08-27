@@ -34,7 +34,7 @@ const defaultLogger: AnalyticsSubmissionLogger = {
 };
 
 /**
- * Best-effort projection update for one source that has just become final.
+ * Best-effort projection update for one source that has just been saved in a final state.
  * Canonical source persistence has already succeeded when this class is called.
  */
 export class BestEffortAnalyticsProjectionSubmitter implements AnalyticsProjectionSubmitter {

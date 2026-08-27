@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { analyticsApiClient } from "../api/analytics.client";
+import { monthRange } from "../components/analyticsPeriods";
 import type { AnalyticsLeaderboard, AnalyticsOverview, AnalyticsQuery, AnalyticsResources, AnalyticsRewardCategory, AnalyticsSourceType } from "../types";
 
-const ALL_SOURCE_TYPES: AnalyticsSourceType[] = ["journey", "battleships", "lotto", "lotto_bingo", "quiz"];
+const ALL_SOURCE_TYPES: AnalyticsSourceType[] = ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"];
 const LEADERBOARD_PAGE_SIZE = 5;
 
 function currentMonthQuery(): AnalyticsQuery {
-  const now = new Date();
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-  return { from: from.toISOString(), to: to.toISOString(), sourceTypes: ALL_SOURCE_TYPES };
+  return { ...monthRange(0), sourceTypes: ALL_SOURCE_TYPES };
 }
 
 export function useAnalyticsOverview(projectId: string | undefined) {

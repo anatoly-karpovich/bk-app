@@ -19,30 +19,12 @@ export class ActivityResultRevisionConflictError extends AppError {
   }
 }
 
-export class ActivityResultCompletionError extends AppError {
-  constructor() {
-    super("Activity Result requires at least one awarded participant before completion", {
-      statusCode: 409,
-      code: "activity_result_requires_awarded_participant",
-    });
-  }
-}
-
 export class ActivityResultTypeDisabledError extends AppError {
   constructor(type: string) {
     super("This activity type is disabled for new manual results", {
       statusCode: 409,
       code: "activity_result_type_disabled",
       details: { type },
-    });
-  }
-}
-
-export class ActivityResultAlreadyCompletedError extends AppError {
-  constructor() {
-    super("Activity Result is already completed", {
-      statusCode: 409,
-      code: "activity_result_already_completed",
     });
   }
 }

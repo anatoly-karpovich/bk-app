@@ -1,4 +1,4 @@
-export const analyticsSourceTypes = ["journey", "battleships", "lotto", "lotto_bingo", "quiz"] as const;
+export const analyticsSourceTypes = ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"] as const;
 
 export type AnalyticsSourceType = (typeof analyticsSourceTypes)[number];
 export type AnalyticsRewardCategory = "total" | "regular" | "bonus";
@@ -35,7 +35,7 @@ export interface AnalyticsOverview {
   participations: number;
   uniqueResolvedPlayers: number;
   rewardsByResource: Array<{ resourceId: string; rewards: AnalyticsRewardTotals }>;
-  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number; uniquePlayers: number }>;
+  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; fallbackDateSources: number; participations: number; uniquePlayers: number }>;
   activityByDay: Array<{ date: string; conductedSources: number; participations: number }>;
   rewardsByDay: Array<{
     date: string;
@@ -89,7 +89,7 @@ export interface AnalyticsPlayerDetails {
   }>;
   history: {
     entries: Array<{
-      occurredAt: string;
+      occurredOn: string;
       source: { type: AnalyticsSourceType; titleSnapshot: string };
       rewards: Array<{ resourceId: string; amount: number }>;
     }>;

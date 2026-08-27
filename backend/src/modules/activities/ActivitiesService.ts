@@ -15,8 +15,6 @@ import { ActivitiesRepository } from "./ActivitiesRepository";
 import type { ActivityResultInput } from "./activities.schemas";
 import type { ActivityResultDocument, ActivityResultParticipant, ActivityResultView } from "./domain/types";
 import {
-  ActivityResultAlreadyCompletedError,
-  ActivityResultCompletionError,
   ActivityResultNotFoundError,
   ActivityResultRevisionConflictError,
   ActivityResultTypeDisabledError,
@@ -51,6 +49,7 @@ export class ActivitiesService {
       const project = await this.requireProject(actor, projectId);
       this.assertTypeEnabledForNewActivity(project, input.type);
       const participants = await this.resolveParticipants(actor, project, input.participants, [], session);
+      this.assertAwardedParticipants(participants);
       const now = new Date().toISOString();
       const saved = await this.repository.create(
         {
@@ -58,13 +57,11 @@ export class ActivitiesService {
           type: input.type,
           title: input.title,
           conductedOn: input.conductedOn,
-          status: "draft",
           participants,
           resourceSnapshot: this.buildResourceSnapshot(participants, project.resources, []),
           hostUserId: actor.id,
           hostSnapshot: this.actorSnapshot(actor, projectId),
           revision: 0,
-          completedAt: null,
           createdAt: now,
           updatedAt: now,
           schemaVersion: 1,
@@ -75,6 +72,7 @@ export class ActivitiesService {
       return saved;
     });
 
+    await this.analyticsSubmitter.submitActivityResult(created);
     return this.readModels.create(created, actor);
   }
 
@@ -92,7 +90,7 @@ export class ActivitiesService {
       this.assertTypeCanBeUsedForUpdate(project, current, input.type);
 
       const participants = await this.resolveParticipants(actor, project, input.participants, current.resourceSnapshot, session);
-      if (current.status === "completed") this.assertCompleteParticipants(participants);
+      this.assertAwardedParticipants(participants);
       const next: ActivityResultDocument = {
         ...current,
         type: input.type,
@@ -104,41 +102,6 @@ export class ActivitiesService {
         revision: current.revision + 1,
       };
       const updated = await this.repository.update(activityId, projectId, input.expectedRevision, next, session);
-      if (!updated) throw new ActivityResultRevisionConflictError();
-      return updated;
-    });
-
-    if (saved.status === "completed") await this.analyticsSubmitter.submitActivityResult(saved);
-    return this.readModels.create(saved, actor);
-  }
-
-  async complete(
-    actor: CurrentUser,
-    projectId: string,
-    activityId: string,
-    expectedRevision: number,
-  ): Promise<ActivityResultView> {
-    const saved = await this.mongoDatabase.withTransaction(async (session) => {
-      await this.requireProject(actor, projectId);
-      const current = await this.requireActivity(projectId, activityId, session);
-      assertOwnedByUser(actor, current.hostUserId);
-      this.assertRevision(current, expectedRevision);
-      if (current.status === "completed") throw new ActivityResultAlreadyCompletedError();
-      this.assertCompleteParticipants(current.participants);
-
-      const updated = await this.repository.update(
-        activityId,
-        projectId,
-        expectedRevision,
-        {
-          ...current,
-          status: "completed",
-          completedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          revision: current.revision + 1,
-        },
-        session,
-      );
       if (!updated) throw new ActivityResultRevisionConflictError();
       return updated;
     });
@@ -251,8 +214,10 @@ export class ActivitiesService {
     }
   }
 
-  private assertCompleteParticipants(participants: ReadonlyArray<ActivityResultParticipant>): void {
-    if (participants.length === 0) throw new ActivityResultCompletionError();
+  private assertAwardedParticipants(participants: ReadonlyArray<ActivityResultParticipant>): void {
+    if (participants.length === 0) {
+      throw new ActivityResultValidationError("Activity Result requires at least one awarded participant");
+    }
   }
 
   private resourcesForValidation(

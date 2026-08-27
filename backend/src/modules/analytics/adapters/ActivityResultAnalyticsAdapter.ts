@@ -19,13 +19,13 @@ export class ActivityResultAnalyticsAdapter implements AnalyticsSourceAdapter<Ac
   ) {}
 
   async findFinishedByProjectId(projectId: string): Promise<ReadonlyArray<ActivityAnalyticsSource>> {
-    return this.activitiesRepository.findCompletedByProjectId(projectId);
+    return this.activitiesRepository.findByProjectId(projectId);
   }
 
   describe(source: ActivityAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.completedAt ?? source.updatedAt),
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.createdAt),
       source: {
         kind: "activity",
         type: source.type,

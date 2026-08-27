@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import type { AnalyticsQuery, AnalyticsSourceType } from "../types";
 import AnalyticsSelectionPill from "./AnalyticsSelectionPill";
-import { customRangeToQuery, formatPeriod, isSamePeriod, periodPresets, queryToInclusiveTo } from "./analyticsPeriods";
+import { customRangeToQuery, formatPeriod, isSamePeriod, periodPresets } from "./analyticsPeriods";
 
 const sourceLabels: Record<AnalyticsSourceType, string> = {
   quiz: "Викторины",
@@ -13,8 +13,11 @@ const sourceLabels: Record<AnalyticsSourceType, string> = {
   lotto_bingo: "Лото Бинго",
   lotto: "Лото",
   battleships: "Морской бой",
+  memes: "Карты, Мемы, Два ствола!",
+  forum_quiz: "Форумная викторина",
+  tournament: "Турнир",
 };
-const allSourceTypes: AnalyticsSourceType[] = ["quiz", "journey", "lotto_bingo", "lotto", "battleships"];
+const allSourceTypes: AnalyticsSourceType[] = ["quiz", "journey", "lotto_bingo", "lotto", "battleships", "memes", "forum_quiz", "tournament"];
 
 interface AnalyticsFiltersProps {
   query: AnalyticsQuery;
@@ -26,12 +29,12 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
   const [periodAnchor, setPeriodAnchor] = useState<HTMLElement | null>(null);
   const [sourcesAnchor, setSourcesAnchor] = useState<HTMLElement | null>(null);
   const [customFrom, setCustomFrom] = useState(query.from.slice(0, 10));
-  const [customTo, setCustomTo] = useState(queryToInclusiveTo(query.to));
+  const [customTo, setCustomTo] = useState(query.to);
 
   // Keep the custom-range inputs aligned with the active period (e.g. after a quick preset).
   useEffect(() => {
     setCustomFrom(query.from.slice(0, 10));
-    setCustomTo(queryToInclusiveTo(query.to));
+    setCustomTo(query.to);
   }, [query.from, query.to]);
 
   function toggleSourceType(sourceType: AnalyticsSourceType) {

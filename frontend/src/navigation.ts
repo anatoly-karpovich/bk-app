@@ -19,6 +19,13 @@ export const navigationGroups = [
     ],
   },
   {
+    id: "activities",
+    label: appHeaderTexts.nav.activities,
+    items: [
+      { key: "activities", label: appHeaderTexts.nav.activities, to: "/activities" },
+    ],
+  },
+  {
     id: "analytics",
     label: appHeaderTexts.nav.analytics,
     items: [
