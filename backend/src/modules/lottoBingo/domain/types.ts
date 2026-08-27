@@ -132,6 +132,8 @@ export interface LottoBingoGame {
   updatedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  /** Calendar date of the conducted game, independent from the technical finalization timestamp. */
+  conductedOn?: string | null;
 }
 
 export interface LottoBingoGameMetaView {
@@ -144,6 +146,7 @@ export interface LottoBingoGameMetaView {
   host: HostSnapshot;
   startedAt: string | null;
   finishedAt: string | null;
+  conductedOn: string | null;
   access: {
     mode: "manage" | "read_only";
     canAddPlayer: boolean;
@@ -155,6 +158,7 @@ export interface LottoBingoGameMetaView {
     canDisqualifyPlayer: boolean;
     canRestorePlayer: boolean;
     canFinalize: boolean;
+    canUpdateConductedOn: boolean;
     canDelete: boolean;
   };
 }
@@ -253,7 +257,7 @@ export interface LottoBingoGameListItemView {
   updatedAt: string;
   meta: Pick<
     LottoBingoGameMetaView,
-    "projectId" | "configId" | "configName" | "status" | "phase" | "host" | "startedAt" | "finishedAt"
+    "projectId" | "configId" | "configName" | "status" | "phase" | "host" | "startedAt" | "finishedAt" | "conductedOn"
   >;
   state: { playersCount: number; drawnBarrelsCount: number; winners: Record<"round1" | "round2" | "round3", string[]> };
 }

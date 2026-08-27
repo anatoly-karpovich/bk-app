@@ -17,6 +17,7 @@ export function createLottoBingoRouter(controller: LottoBingoController): Router
   router.post("/games/:gameId/players/:playerId/disqualify", asyncHandler(controller.disqualify));
   router.post("/games/:gameId/players/:playerId/restore", asyncHandler(controller.restore));
   router.post("/games/:gameId/finalize", asyncHandler(controller.finalize));
+  router.patch("/games/:gameId/conducted-on", asyncHandler(controller.updateConductedOn));
   router.delete("/games/:gameId", asyncHandler(controller.delete));
   return router;
 }

@@ -148,6 +148,13 @@ test("uses updatedAt only as the historical fallback when a finished Lotto Bingo
   });
 });
 
+test("prefers an explicit Lotto Bingo conducted date over the technical finalization date", () => {
+  const descriptor = createAdapter().describe(createFinishedGame({ conductedOn: "2024-03-15" }));
+
+  assert.equal(descriptor.occurredOn, "2024-03-15");
+  assert.equal(descriptor.occurrenceDateSource, "conducted_on");
+});
+
 test("publishes legacy Lotto Bingo participants without player references as partial facts without matching their nicknames", () => {
   const game = createFinishedGame({
     players: [

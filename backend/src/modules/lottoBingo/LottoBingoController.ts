@@ -8,6 +8,7 @@ import {
   lottoBingoGameParamsSchema,
   lottoBingoPlayerParamsSchema,
   lottoBingoProjectParamsSchema,
+  lottoBingoConductedOnSchema,
   revisionSchema,
 } from "./lottoBingo.schemas";
 
@@ -100,6 +101,20 @@ export class LottoBingoController {
     this.withRevision(req, res, (revision) =>
       this.service.finalizeGame(req.authUser!, this.projectId(req), this.gameId(req), revision),
     );
+  updateConductedOn = async (req: Request, res: Response) => {
+    const body = parseRequest(lottoBingoConductedOnSchema, req.body);
+    return this.respond(
+      res,
+      200,
+      await this.service.updateConductedOn(
+        req.authUser!,
+        this.projectId(req),
+        this.gameId(req),
+        body.conductedOn,
+        body.expectedRevision,
+      ),
+    );
+  };
   events = async (req: Request, res: Response) => {
     const unsubscribe = await this.service.subscribe(req.authUser!, this.projectId(req), this.gameId(req), (event) => {
       res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);

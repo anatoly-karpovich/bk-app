@@ -39,7 +39,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
   describe(source: LottoBingoAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      ...resolveAnalyticsOccurrenceDate(undefined, source.finishedAt ?? source.updatedAt),
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
         type: this.sourceTypes[0],

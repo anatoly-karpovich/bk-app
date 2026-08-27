@@ -13,6 +13,7 @@ import { LottoBingoUpdatePublisher, type LottoBingoUpdatedEvent } from "./LottoB
 import type { LottoBingoGameListItemView, LottoBingoGameView } from "./domain/types";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
+import { LottoBingoConductedOnUnavailableError } from "./errors";
 
 export class LottoBingoService {
   constructor(
@@ -144,6 +145,33 @@ export class LottoBingoService {
     return this.mutate(actor, projectId, gameId, expectedRevision, (game, host) =>
       this.engine.finalizeGame(game, host),
     );
+  }
+  async updateConductedOn(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    conductedOn: string | null,
+    expectedRevision: number,
+  ): Promise<LottoBingoGameView> {
+    assertProjectAccess(actor, projectId);
+    const current = await this.requireGame(projectId, gameId);
+    assertOwnedByUser(actor, current.hostUserId);
+    if (current.status !== "finished") throw new LottoBingoConductedOnUnavailableError();
+    if (current.revision !== expectedRevision) this.throwRevisionConflict();
+
+    const updated = await this.repository.update(gameId, projectId, expectedRevision, {
+      ...current,
+      // Preserve the historical fallback before changing updatedAt, so clearing the explicit date is stable.
+      finishedAt: current.finishedAt ?? current.updatedAt,
+      conductedOn,
+      updatedAt: new Date().toISOString(),
+      revision: current.revision + 1,
+    });
+    if (!updated) this.throwRevisionConflict();
+
+    await this.analyticsSubmitter.submitLottoBingoGame(updated);
+    this.updates.publish(gameId, updated.revision);
+    return this.readModels.create(updated, actor);
   }
   async deleteGame(actor: CurrentUser, projectId: string, gameId: string, expectedRevision: number): Promise<void> {
     const game = await this.requireGame(projectId, gameId);
