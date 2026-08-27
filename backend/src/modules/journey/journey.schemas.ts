@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
+import { isAnalyticsCalendarDate } from "../analytics/domain/occurrenceDate";
 
 export const journeyGameIdParamsSchema = z.object({
   gameId: z.string().trim().min(1),
@@ -60,6 +61,10 @@ export const journeyRoundMovesSchema = z.object({
 
 export const journeyRoundSkippedPlayerIdsSchema = z.object({
   skippedPlayerIds: z.array(z.string()).optional(),
+});
+
+export const journeyConductedOnSchema = z.object({
+  conductedOn: z.string().trim().refine(isAnalyticsCalendarDate, "Expected YYYY-MM-DD calendar date").nullable(),
 });
 
 export const latestJourneyGameQuerySchema = z.object({
