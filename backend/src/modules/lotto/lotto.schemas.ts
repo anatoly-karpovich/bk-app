@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
+import { isAnalyticsCalendarDate } from "../analytics/domain/occurrenceDate";
 
 export const lottoGameIdParamsSchema = z.object({
   gameId: z.string().trim().min(1),
@@ -33,6 +34,10 @@ export const createLottoGamePlayerSchema = z.object({
 
 export const createLottoGamePlayersSchema = z.object({
   players: z.array(createLottoGamePlayerSchema).min(1),
+});
+
+export const lottoConductedOnSchema = z.object({
+  conductedOn: z.string().trim().refine(isAnalyticsCalendarDate, "Expected YYYY-MM-DD calendar date").nullable(),
 });
 
 export const latestLottoGameQuerySchema = z.object({

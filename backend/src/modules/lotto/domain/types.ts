@@ -45,6 +45,8 @@ export interface LottoGame {
   createdAt: string;
   updatedAt: string;
   finishedAt: string | null;
+  /** Operator-selected calendar date of conduct; absent in older persisted games. */
+  conductedOn?: string | null;
   status: LottoGameStatus;
   djName: string;
   projectId: string;
@@ -96,6 +98,7 @@ export interface LottoGameListItemReadModel {
   createdAt: string;
   updatedAt: string;
   finishedAt: string | null;
+  conductedOn: string | null;
   status: LottoGameStatus;
   djName: string;
   projectId: string;

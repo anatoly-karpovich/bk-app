@@ -9,7 +9,7 @@ import { LottoRepository, type LottoGameDocument } from "./LottoRepository";
 import type { LottoCreatePlayerInput, LottoGameListItemReadModel, LottoGameReadModel } from "./domain/types";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
-import { LottoGameNotFoundError, LottoGamesNotFoundError } from "./errors";
+import { LottoConductedOnUnavailableError, LottoGameNotFoundError, LottoGamesNotFoundError } from "./errors";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
@@ -152,6 +152,38 @@ export class LottoService {
     }
 
     await this.submitFinishedLottoGame(currentGame, updatedGame);
+    return this.serializeLottoGame(updatedGame);
+  }
+
+  async updateLottoConductedOn(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    conductedOn: string | null,
+  ): Promise<LottoGameResponse> {
+    assertProjectAccess(actor, projectId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
+
+    if (!currentGame) {
+      throw new LottoGameNotFoundError(gameId);
+    }
+    assertOwnedByUser(actor, currentGame.hostUserId);
+    if (currentGame.status !== "finished") {
+      throw new LottoConductedOnUnavailableError();
+    }
+
+    const updatedGame = await this.saveLottoGameDocument(projectId, gameId, {
+      ...currentGame,
+      finishedAt: currentGame.finishedAt ?? currentGame.updatedAt,
+      conductedOn,
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (!updatedGame) {
+      throw new LottoGameNotFoundError(gameId);
+    }
+
+    await this.analyticsSubmitter.submitLottoGame(updatedGame);
     return this.serializeLottoGame(updatedGame);
   }
 

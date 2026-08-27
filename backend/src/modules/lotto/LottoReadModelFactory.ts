@@ -51,6 +51,7 @@ export class LottoReadModelFactory {
       createdAt: normalizedGame.createdAt,
       updatedAt: normalizedGame.updatedAt,
       finishedAt: normalizedGame.finishedAt,
+      conductedOn: normalizedGame.conductedOn ?? null,
       status: normalizedGame.status,
       djName: normalizedGame.djName,
       projectId: normalizedGame.projectId,
