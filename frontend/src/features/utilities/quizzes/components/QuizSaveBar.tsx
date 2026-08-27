@@ -1,14 +1,25 @@
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Box, Stack, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 import AppPillButton from "../../../../components/ui/AppPillButton";
 
 interface QuizSaveBarProps {
   dirty: boolean;
   loading?: boolean;
+  disabled?: boolean;
+  saveLabel?: string;
+  actions?: ReactNode;
   onSave: () => void;
 }
 
-export default function QuizSaveBar({ dirty, loading = false, onSave }: QuizSaveBarProps) {
+export default function QuizSaveBar({
+  dirty,
+  loading = false,
+  disabled = false,
+  saveLabel = "Сохранить викторину",
+  actions,
+  onSave,
+}: QuizSaveBarProps) {
   return (
     <Stack
       direction={{ xs: "column", sm: "row" }}
@@ -35,9 +46,12 @@ export default function QuizSaveBar({ dirty, loading = false, onSave }: QuizSave
           {dirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
         </Typography>
       </Stack>
-      <AppPillButton variant="contained" startIcon={<SaveRoundedIcon />} onClick={onSave} loading={loading} disabled={!dirty}>
-        Сохранить викторину
-      </AppPillButton>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+        {actions}
+        <AppPillButton variant="contained" startIcon={<SaveRoundedIcon />} onClick={onSave} loading={loading} disabled={!dirty || disabled}>
+          {saveLabel}
+        </AppPillButton>
+      </Stack>
     </Stack>
   );
 }

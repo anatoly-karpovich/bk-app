@@ -10,6 +10,11 @@ export class ActivityResultMapper {
       conductedOn: source.content.conductedOn,
       recipientsCount: source.content.participants.length,
       hostNickname: source.meta.host.nickname,
+      revision: source.meta.revision,
+      access: {
+        canUpdate: source.meta.access.canUpdate,
+        canDelete: source.meta.access.canDelete,
+      },
       updatedAt: source.updatedAt,
     };
   }

@@ -346,7 +346,6 @@ export class AnalyticsReadService {
 
     const sourceTypes = query.sourceTypes ? [...query.sourceTypes] : [...ANALYTICS_SOURCE_TYPES];
     if (
-      sourceTypes.length === 0 ||
       sourceTypes.some((sourceType) => !ANALYTICS_SOURCE_TYPES.includes(sourceType)) ||
       new Set(sourceTypes).size !== sourceTypes.length
     ) {

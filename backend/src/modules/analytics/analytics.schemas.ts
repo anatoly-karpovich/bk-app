@@ -9,14 +9,15 @@ const analyticsCalendarDateSchema = z.string().trim().refine(isAnalyticsCalendar
 function normalizeSourceTypes(value: unknown): unknown {
   if (value === undefined) return undefined;
   const values = Array.isArray(value) ? value : [value];
-  return values.flatMap((entry) => (typeof entry === "string" ? entry.split(",").map((item) => item.trim()) : [entry]));
+  return values.flatMap((entry) =>
+    typeof entry === "string" ? entry.split(",").map((item) => item.trim()).filter(Boolean) : [entry],
+  );
 }
 
 const sourceTypesQuerySchema = z.preprocess(
   normalizeSourceTypes,
   z
     .array(analyticsSourceTypeSchema)
-    .min(1)
     .refine((sourceTypes) => new Set(sourceTypes).size === sourceTypes.length, "sourceTypes must be unique")
     .optional(),
 );

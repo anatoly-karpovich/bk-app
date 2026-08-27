@@ -182,6 +182,20 @@ test("uses inclusive calendar-date filters and reads legacy timestamps only as a
   assert.deepEqual(overview.activityByDay, [{ date: "2026-08-10", conductedSources: 2, participations: 2 }]);
 });
 
+test("accepts an explicit empty source-type selection and returns an empty period", async () => {
+  const overview = await createService([
+    fact("journey-1", "journey", "2026-08-10T10:00:00.000Z", [participant("player-1", "Journey")]),
+  ]).getOverview("project-a", {
+    from: "2026-08-10",
+    to: "2026-08-10",
+    sourceTypes: [],
+  });
+
+  assert.deepEqual(overview.period.sourceTypes, []);
+  assert.equal(overview.conductedSources, 0);
+  assert.deepEqual(overview.activityByDay, []);
+});
+
 test("counts finalized-date fallbacks in the selected source-type breakdown only", async () => {
   const finalizedJourney = fact("journey-finalized", "journey", "2026-08-10T10:00:00.000Z", [participant("player-1", "Journey")]);
   finalizedJourney.occurredOn = "2026-08-10";

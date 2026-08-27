@@ -10,6 +10,7 @@ export function useActivityResults(projectId: string | undefined) {
   const [activities, setActivities] = useState<ActivityResultListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(projectId));
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
 
   useEffect(() => {
@@ -46,8 +47,27 @@ export function useActivityResults(projectId: string | undefined) {
 
   const reload = useCallback(() => setReloadVersion((current) => current + 1), []);
 
+  const remove = useCallback(
+    async (activity: ActivityResultListItem): Promise<boolean> => {
+      if (!projectId) return false;
+      setDeletingActivityId(activity.id);
+      setError(null);
+      try {
+        await activitiesApiClient.delete(projectId, activity.id, activity.revision);
+        setActivities((current) => current.filter((item) => item.id !== activity.id));
+        return true;
+      } catch (deleteError) {
+        setError(deleteError instanceof Error ? deleteError.message : "Не удалось удалить активность.");
+        return false;
+      } finally {
+        setDeletingActivityId(null);
+      }
+    },
+    [projectId],
+  );
+
   return useMemo(
-    () => ({ activities, error, isLoading, reload }),
-    [activities, error, isLoading, reload],
+    () => ({ activities, error, isLoading, deletingActivityId, reload, remove }),
+    [activities, deletingActivityId, error, isLoading, reload, remove],
   );
 }

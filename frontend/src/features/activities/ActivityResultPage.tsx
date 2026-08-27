@@ -1,13 +1,14 @@
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import { Alert, CircularProgress, Stack } from "@mui/material";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import GamePageHeader from "../../components/GamePageHeader";
 import AppConfirmDialog from "../../components/ui/AppConfirmDialog";
 import { useProjectPlayers } from "../players/hooks/useProjectPlayers";
 import type { Project } from "../projects/types";
-import { isActivityDraftDirty } from "./activityResult.helpers";
+import { getActivityDraftIssues, isActivityDraftDirty } from "./activityResult.helpers";
 import ActivityResultEditor from "./components/ActivityResultEditor";
 import { useActivityResult } from "./hooks/useActivityResult";
 
@@ -17,6 +18,7 @@ interface ActivityResultPageProps {
 
 export default function ActivityResultPage({ selectedProject }: ActivityResultPageProps) {
   const { activityId } = useParams<{ activityId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectPlayers = useProjectPlayers(selectedProject?.id);
   const { source, draft, setDraft, isLoading, isSaving, error, load, save, remove, reset } = useActivityResult(
@@ -26,7 +28,8 @@ export default function ActivityResultPage({ selectedProject }: ActivityResultPa
   );
   const [confirm, setConfirm] = useState<"reset" | "delete" | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const isDirty = isActivityDraftDirty(source, draft);
+  const readOnly = searchParams.get("mode") === "view";
+  const isDirty = !readOnly && isActivityDraftDirty(source, draft);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -42,6 +45,8 @@ export default function ActivityResultPage({ selectedProject }: ActivityResultPa
 
   const isNew = !source;
   const title = draft.title || (isNew ? "Новая активность" : "Без названия");
+  const canManage = !readOnly && (source ? source.access.canUpdate : true);
+  const saveDisabled = !canManage || isSaving || Boolean(getActivityDraftIssues(draft).length) || (!isNew && !isDirty);
   const saveActivity = async () => {
     const saved = await save();
     if (!saved) return;
@@ -67,15 +72,16 @@ export default function ActivityResultPage({ selectedProject }: ActivityResultPa
         breadcrumbPath="/activities"
         breadcrumbItems={[{ label: isNew ? "Создание" : title }]}
         title={title}
-        description="Введите только итоговые награды мероприятия. После каждого сохранения Analytics использует актуальный результат."
+        description={readOnly ? "Просмотр сохранённого результата мероприятия без возможности изменения." : "Введите только итоговые награды мероприятия. После каждого сохранения Analytics использует актуальный результат."}
         chips={[
           { label: `Проект: ${selectedProject.name}` },
           { label: source ? `Версия: ${source.revision}` : "Новая активность", color: source ? "secondary" : "warning" },
           ...(isDirty ? [{ label: "Есть изменения", color: "warning" as const }] : []),
         ]}
         actions={[
-          { key: "back", label: "К списку", icon: <ArrowBackRoundedIcon />, onClick: () => navigate("/activities"), variant: "text", color: "inherit" },
           ...(source ? [{ key: "refresh", label: "Обновить", icon: <RefreshRoundedIcon />, onClick: () => void load(), disabled: isLoading || isSaving, loading: isLoading, variant: "text" as const, color: "inherit" as const }] : []),
+          ...(source && canManage && source.access.canDelete ? [{ key: "delete", label: "Удалить", icon: <DeleteOutlineRoundedIcon />, onClick: () => setConfirm("delete"), disabled: isSaving, variant: "text" as const, color: "error" as const }] : []),
+          ...(canManage ? [{ key: "save", label: isNew ? "Сохранить активность" : "Сохранить изменения", icon: <SaveRoundedIcon />, onClick: () => void saveActivity(), disabled: saveDisabled, loading: isSaving, variant: "contained" as const }] : []),
         ]}
       />
       {savedMessage ? <Alert severity="success" onClose={() => setSavedMessage(null)}>{savedMessage}</Alert> : null}
@@ -84,6 +90,7 @@ export default function ActivityResultPage({ selectedProject }: ActivityResultPa
         project={selectedProject}
         source={source}
         draft={draft}
+        readOnly={readOnly}
         players={projectPlayers.players}
         playersLoading={projectPlayers.isLoading}
         playersError={projectPlayers.error}
@@ -91,7 +98,6 @@ export default function ActivityResultPage({ selectedProject }: ActivityResultPa
         onChange={setDraft}
         onSave={() => void saveActivity()}
         onReset={() => setConfirm("reset")}
-        onDelete={() => setConfirm("delete")}
       />
       <AppConfirmDialog
         open={confirm !== null}

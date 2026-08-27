@@ -7,6 +7,11 @@ export interface ActivityResultListItem {
   conductedOn: string | null;
   recipientsCount: number;
   hostNickname: string;
+  revision: number;
+  access: {
+    canUpdate: boolean;
+    canDelete: boolean;
+  };
   updatedAt: string;
 }
 

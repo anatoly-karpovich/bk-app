@@ -1,8 +1,8 @@
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import { Box, Button, Checkbox, FormControlLabel, Menu, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Menu, Stack, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import AppPillButton from "../../../components/ui/AppPillButton";
+import AppMultiSelectFilter from "../../../components/ui/AppMultiSelectFilter";
 import type { AnalyticsQuery, AnalyticsSourceType } from "../types";
 import AnalyticsSelectionPill from "./AnalyticsSelectionPill";
 import { customRangeToQuery, formatPeriod, isSamePeriod, periodPresets } from "./analyticsPeriods";
@@ -27,7 +27,6 @@ interface AnalyticsFiltersProps {
 /** Right-hand filter controls: exact custom period and the conducted-source picker. */
 export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFiltersProps) {
   const [periodAnchor, setPeriodAnchor] = useState<HTMLElement | null>(null);
-  const [sourcesAnchor, setSourcesAnchor] = useState<HTMLElement | null>(null);
   const [customFrom, setCustomFrom] = useState(query.from.slice(0, 10));
   const [customTo, setCustomTo] = useState(query.to);
 
@@ -36,13 +35,6 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
     setCustomFrom(query.from.slice(0, 10));
     setCustomTo(query.to);
   }, [query.from, query.to]);
-
-  function toggleSourceType(sourceType: AnalyticsSourceType) {
-    const sourceTypes = query.sourceTypes.includes(sourceType)
-      ? query.sourceTypes.filter((item) => item !== sourceType)
-      : [...query.sourceTypes, sourceType];
-    if (sourceTypes.length) onQueryChange({ ...query, sourceTypes });
-  }
 
   function applyCustomPeriod() {
     onQueryChange({ ...query, ...customRangeToQuery(customFrom, customTo) });
@@ -71,28 +63,13 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
           <Typography component="span" variant="body2" fontWeight={700}>{formatPeriod(query.from, query.to)}</Typography>
         </Box>
       </Button>
-      <Button
-        variant="outlined"
-        startIcon={<TuneRoundedIcon />}
-        onClick={(event) => setSourcesAnchor(event.currentTarget)}
-        color="inherit"
-        sx={{
-          justifyContent: "flex-start",
-          minWidth: { md: 164 },
-          px: 1.5,
-          borderRadius: (theme) => theme.customRadii.control,
-          borderColor: "divider",
-          color: "text.primary",
-          "&:hover": { borderColor: "rgba(79, 70, 229, 0.38)", backgroundColor: "rgba(79, 70, 229, 0.035)" },
-        }}
-      >
-        <Box textAlign="left">
-          <Typography component="span" display="block" variant="caption" color="text.secondary">Проведения</Typography>
-          <Typography component="span" variant="body2" fontWeight={700}>
-            {query.sourceTypes.length === allSourceTypes.length ? "Все типы" : `${query.sourceTypes.length} типа`}
-          </Typography>
-        </Box>
-      </Button>
+      <AppMultiSelectFilter
+        label="Проведения"
+        allLabel="Все типы"
+        options={allSourceTypes.map((value) => ({ value, label: sourceLabels[value] }))}
+        selectedValues={query.sourceTypes}
+        onSelectedValuesChange={(sourceTypes) => onQueryChange({ ...query, sourceTypes })}
+      />
 
       <Menu anchorEl={periodAnchor} open={Boolean(periodAnchor)} onClose={() => setPeriodAnchor(null)} PaperProps={{ sx: { p: 1.5, width: 320 } }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", px: 0.5, mb: 1.25 }}>
@@ -111,17 +88,6 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
         >
           Применить период
         </AppPillButton>
-      </Menu>
-
-      <Menu anchorEl={sourcesAnchor} open={Boolean(sourcesAnchor)} onClose={() => setSourcesAnchor(null)} PaperProps={{ sx: { p: 1 } }}>
-        {allSourceTypes.map((sourceType) => (
-          <FormControlLabel
-            key={sourceType}
-            sx={{ display: "flex", mx: 0, px: 1 }}
-            control={<Checkbox checked={query.sourceTypes.includes(sourceType)} onChange={() => toggleSourceType(sourceType)} />}
-            label={sourceLabels[sourceType]}
-          />
-        ))}
       </Menu>
     </Stack>
   );

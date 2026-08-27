@@ -10,12 +10,15 @@ export function createActivityResultDraft(activityTypes: readonly ActivityTypeSe
   return { type: initialType.type, title: initialType.defaultTitle, conductedOn: null, participants: [] };
 }
 
-export function emptyActivityParticipant() {
+export function emptyActivityParticipant(defaultResourceId = "") {
   return {
     id: participantId(),
     nickname: "",
     playerRefId: null,
-    rewards: { regular: [], bonus: [] },
+    rewards: {
+      regular: defaultResourceId ? [{ resourceId: defaultResourceId, amount: 0 }] : [],
+      bonus: [],
+    },
   };
 }
 
@@ -36,6 +39,7 @@ export function getActivityDraftIssues(draft: ActivityResultDraft): string[] {
   const issues: string[] = [];
   if (!draft.type) issues.push("Выберите формат активности.");
   if (!draft.title.trim()) issues.push("Укажите название активности.");
+  if (!draft.conductedOn) issues.push("Укажите дату проведения активности.");
   if (!draft.participants.length) issues.push("Добавьте хотя бы одного получателя награды.");
 
   const playerKeys = new Set<string>();
