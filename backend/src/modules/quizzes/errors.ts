@@ -48,6 +48,15 @@ export class QuizEventNotFoundError extends AppError {
   constructor(id: string) { super(`Quiz event ${id} was not found`, { code: "quiz_event_not_found", statusCode: 404 }); }
 }
 
+export class QuizEventConductedOnUnavailableError extends AppError {
+  constructor() {
+    super("Дату проведения можно изменить только после завершения викторины", {
+      code: "quiz_event_conducted_on_requires_completed_event",
+      statusCode: 409,
+    });
+  }
+}
+
 export class QuizQuestionNotFoundError extends AppError {
   constructor(id: string) { super(`Quiz event question ${id} was not found`, { code: "quiz_question_not_found", statusCode: 404 }); }
 }

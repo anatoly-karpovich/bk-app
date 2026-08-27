@@ -153,6 +153,13 @@ test("uses updatedAt only as the historical fallback when a completed Quiz Event
   });
 });
 
+test("prefers an explicit Quiz Event conducted date over the technical completion date", () => {
+  const descriptor = createAdapter().describe(createCompletedEvent({ conductedOn: "2024-03-15" }));
+
+  assert.equal(descriptor.occurredOn, "2024-03-15");
+  assert.equal(descriptor.occurrenceDateSource, "conducted_on");
+});
+
 test("publishes every legacy Quiz award without a player reference as a separate unresolved participant", () => {
   const event = createCompletedEvent({
     questions: [

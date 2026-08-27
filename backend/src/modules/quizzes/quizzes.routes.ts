@@ -23,6 +23,7 @@ export function createQuizzesRouter(configs: QuizConfigsController, quizzes: Qui
   router.post("/quizzes/:quizId/events", asyncHandler(events.create));
   router.post("/quiz-events/:eventId/complete", asyncHandler(events.complete));
   router.post("/quiz-events/:eventId/reopen", asyncHandler(events.reopen));
+  router.patch("/quiz-events/:eventId/conducted-on", asyncHandler(events.updateConductedOn));
   router.post("/quiz-events/:eventId/questions/:questionId/mark-not-conducted", asyncHandler(events.markAsNotConducted));
   router.post("/quiz-events/:eventId/questions/:questionId/mark-unreviewed", asyncHandler(events.markAsUnreviewed));
   router.put("/quiz-events/:eventId/questions/:questionId/chat", asyncHandler(events.saveQuestionChat));

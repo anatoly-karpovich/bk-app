@@ -33,7 +33,7 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
   describe(source: QuizEventAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      ...resolveAnalyticsOccurrenceDate(undefined, source.completedAt ?? source.updatedAt),
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.completedAt ?? source.updatedAt),
       source: {
         kind: "quiz_event",
         type: this.sourceTypes[0],
