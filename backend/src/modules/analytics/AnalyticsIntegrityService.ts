@@ -1,4 +1,4 @@
-import { createAnalyticsSourceKey, type AnalyticsSourceType } from "./domain/sourceTypes";
+import { ANALYTICS_SOURCE_TYPES, createAnalyticsSourceKey, type AnalyticsSourceType } from "./domain/sourceTypes";
 import type { AnalyticsFactIssue, AnalyticsSourceStamp } from "./domain/types";
 import { AnalyticsProjectionRepository } from "./AnalyticsProjectionRepository";
 import type { AnalyticsSourceAdapter } from "./adapters/AnalyticsSourceAdapter";
@@ -86,12 +86,8 @@ export class AnalyticsIntegrityService {
   }
 
   private countByType(types: ReadonlyArray<AnalyticsSourceType>): Record<AnalyticsSourceType, number> {
-    return {
-      journey: types.filter((type) => type === "journey").length,
-      battleships: types.filter((type) => type === "battleships").length,
-      lotto: types.filter((type) => type === "lotto").length,
-      lotto_bingo: types.filter((type) => type === "lotto_bingo").length,
-      quiz: types.filter((type) => type === "quiz").length,
-    };
+    return Object.fromEntries(
+      ANALYTICS_SOURCE_TYPES.map((type) => [type, types.filter((value) => value === type).length]),
+    ) as Record<AnalyticsSourceType, number>;
   }
 }

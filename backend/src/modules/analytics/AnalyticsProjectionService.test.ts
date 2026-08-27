@@ -15,8 +15,8 @@ interface TestSource {
 
 const freshIntegrity: AnalyticsIntegrityReport = {
   freshness: "fresh",
-  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 },
-  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 },
+  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
+  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
   missing: [],
   orphan: [],
   outdated: [],
@@ -58,7 +58,7 @@ function adapter(
   options: { onFind?: () => Promise<void>; failBuildFor?: string } = {},
 ): AnalyticsSourceAdapter<TestSource> {
   return {
-    sourceType: "journey",
+    sourceTypes: ["journey"],
     async findFinishedByProjectId(projectId: string) {
       assert.equal(projectId, "project-a");
       await options.onFind?.();
@@ -191,4 +191,45 @@ test("wraps a failing adapter build in a non-public projection error", async () 
     assert.deepEqual(error.details, { sourceType: "journey", sourceId: "bad-source" });
     return true;
   });
+});
+
+test("accepts a descriptor type declared by a multi-category adapter", async () => {
+  const source = { id: "activity-1" };
+  const descriptor: AnalyticsSourceStamp = {
+    kind: "activity",
+    type: "quiz",
+    id: source.id,
+    titleSnapshot: "Historical quiz",
+    revision: 3,
+    updatedAt: "2026-08-25T10:00:00.000Z",
+  };
+  const activityAdapter: AnalyticsSourceAdapter<TestSource> = {
+    sourceTypes: ["journey", "quiz"],
+    async findFinishedByProjectId() {
+      return [];
+    },
+    describe() {
+      return { projectId: "project-a", occurredAt: "2026-08-25T09:00:00.000Z", source: descriptor };
+    },
+    buildFact() {
+      return {
+        projectId: "project-a",
+        occurredAt: "2026-08-25T09:00:00.000Z",
+        source: descriptor,
+        participants: [],
+        resourceSnapshot: [],
+        meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 2 },
+      };
+    },
+  };
+  const replaced: AnalyticsFactDocument[] = [];
+  const service = new AnalyticsProjectionService(
+    { async replaceBySource(fact: AnalyticsFactDocument) { replaced.push(fact); } } as never,
+    { async inspectProject() { return freshIntegrity; } } as never,
+    [activityAdapter] as never,
+  );
+
+  await service.submitSource(activityAdapter, source);
+
+  assert.deepEqual(replaced.map((fact) => fact.source), [descriptor]);
 });

@@ -17,7 +17,7 @@ interface LottoParticipantAccumulator {
 
 /** Builds analytics facts from saved Lotto payouts without recalculating their distribution. */
 export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyticsSource> {
-  readonly sourceType = "lotto" as const;
+  readonly sourceTypes = ["lotto"] as const;
 
   constructor(
     private readonly lottoRepository: LottoRepository,
@@ -34,7 +34,7 @@ export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyt
       occurredAt: source.finishedAt ?? source.updatedAt,
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Лото",
         revision: null,

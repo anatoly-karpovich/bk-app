@@ -4,7 +4,7 @@ import { BestEffortAnalyticsProjectionSubmitter } from "./AnalyticsProjectionSub
 
 function adapter(sourceType: string, kind: "game" | "quiz_event") {
   return {
-    sourceType,
+    sourceTypes: [sourceType],
     async findFinishedByProjectId() {
       return [];
     },
@@ -24,8 +24,8 @@ function adapter(sourceType: string, kind: "game" | "quiz_event") {
 test("submits each completed source through its source-specific adapter", async () => {
   const submitted: Array<{ sourceType: string; id: string }> = [];
   const projectionService = {
-    async submitSource(sourceAdapter: { sourceType: string }, source: { id: string }) {
-      submitted.push({ sourceType: sourceAdapter.sourceType, id: source.id });
+    async submitSource(sourceAdapter: { sourceTypes: readonly string[] }, source: { id: string }) {
+      submitted.push({ sourceType: sourceAdapter.sourceTypes[0]!, id: source.id });
     },
   };
   const submitter = new BestEffortAnalyticsProjectionSubmitter(projectionService as never, {

@@ -104,7 +104,7 @@ test("accepts comma-separated source types and a numeric leaderboard limit", asy
           resource: { resource: { id: "coins", code: "coins", name: "Coins", label: "coins", type: "currency", valueType: "integer", precision: 0 }, catalogStatus: "current" as const },
           players: [],
           nextCursor: null,
-          integrity: { freshness: "fresh", sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 }, factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 }, missing: [], orphan: [], outdated: [], partialFacts: [] },
+          integrity: { freshness: "fresh", sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 }, factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 }, missing: [], orphan: [], outdated: [], partialFacts: [] },
         };
       },
     } as never,

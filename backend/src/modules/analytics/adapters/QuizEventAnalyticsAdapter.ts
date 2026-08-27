@@ -18,7 +18,7 @@ interface QuizParticipantAccumulator {
 
 /** Builds analytics facts from saved Quiz Event awards without recalculating results. */
 export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEventAnalyticsSource> {
-  readonly sourceType = "quiz" as const;
+  readonly sourceTypes = ["quiz"] as const;
 
   constructor(
     private readonly quizEventsRepository: QuizEventsRepository,
@@ -35,7 +35,7 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
       occurredAt: source.completedAt ?? source.updatedAt,
       source: {
         kind: "quiz_event",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: `Викторина «${source.name || source.quizSnapshot.quizName}»`,
         quizId: source.quizId,

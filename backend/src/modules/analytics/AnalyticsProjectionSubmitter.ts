@@ -72,7 +72,7 @@ export class BestEffortAnalyticsProjectionSubmitter implements AnalyticsProjecti
     adapter: AnalyticsSourceAdapter<TSource>,
     source: TSource,
   ): Promise<void> {
-    let context: Record<string, unknown> = { operation, sourceType: adapter.sourceType };
+    let context: Record<string, unknown> = { operation, sourceTypes: adapter.sourceTypes };
     try {
       const descriptor = adapter.describe(source);
       context = {

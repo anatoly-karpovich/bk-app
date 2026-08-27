@@ -9,7 +9,7 @@ type Now = () => string;
 
 /** Builds analytics facts from saved Battleships reward grants without rerolling pools. */
 export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<BattleshipsAnalyticsSource> {
-  readonly sourceType = "battleships" as const;
+  readonly sourceTypes = ["battleships"] as const;
 
   constructor(
     private readonly battleshipsRepository: BattleshipsRepository,
@@ -26,7 +26,7 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
       occurredAt: source.finishedAt ?? source.updatedAt,
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Морской бой",
         revision: null,

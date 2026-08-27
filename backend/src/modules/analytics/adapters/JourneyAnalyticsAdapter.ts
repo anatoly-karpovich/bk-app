@@ -18,7 +18,7 @@ interface JourneyParticipantAccumulator {
 
 /** Builds analytics facts from Journey's immutable final player reward snapshots. */
 export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAnalyticsSource> {
-  readonly sourceType = "journey" as const;
+  readonly sourceTypes = ["journey"] as const;
 
   constructor(
     private readonly journeyRepository: JourneyRepository,
@@ -35,7 +35,7 @@ export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAn
       occurredAt: source.finishedAt ?? source.updatedAt,
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Карта Мародёров",
         revision: null,

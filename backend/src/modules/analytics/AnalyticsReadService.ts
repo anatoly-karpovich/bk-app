@@ -171,13 +171,9 @@ export class AnalyticsReadService {
     const activityByDay = new Map<string, { conductedSources: number; participations: number }>();
     const rewardsByDay = new Map<string, Map<string, AnalyticsRewardTotals>>();
     const resolvedPlayerIds = new Set<string>();
-    const uniquePlayerIdsByType: Record<AnalyticsSourceType, Set<string>> = {
-      journey: new Set(),
-      battleships: new Set(),
-      lotto: new Set(),
-      lotto_bingo: new Set(),
-      quiz: new Set(),
-    };
+    const uniquePlayerIdsByType = Object.fromEntries(
+      ANALYTICS_SOURCE_TYPES.map((sourceType) => [sourceType, new Set<string>()]),
+    ) as Record<AnalyticsSourceType, Set<string>>;
     let participations = 0;
 
     for (const fact of filteredFacts) {
@@ -585,6 +581,9 @@ export class AnalyticsReadService {
       lotto: "Лото",
       lotto_bingo: "Лото Бинго",
       quiz: "Викторина",
+      memes: "Игра «Карты, Мемы, Два ствола!»",
+      forum_quiz: "Форумная викторина",
+      tournament: "Турнир",
     }[sourceType];
   }
 
@@ -661,13 +660,12 @@ export class AnalyticsReadService {
   }
 
   private emptySourceBreakdown(): AnalyticsOverviewReadModel["sourceBreakdown"] {
-    return {
-      journey: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
-      battleships: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
-      lotto: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
-      lotto_bingo: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
-      quiz: { conductedSources: 0, participations: 0, uniquePlayers: 0 },
-    };
+    return Object.fromEntries(
+      ANALYTICS_SOURCE_TYPES.map((sourceType) => [
+        sourceType,
+        { conductedSources: 0, participations: 0, uniquePlayers: 0 },
+      ]),
+    ) as AnalyticsOverviewReadModel["sourceBreakdown"];
   }
 
   private parseDateTime(value: string, field: "from" | "to"): Date {

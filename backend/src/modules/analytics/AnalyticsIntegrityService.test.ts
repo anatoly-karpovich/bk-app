@@ -25,7 +25,7 @@ function fact(sourceStamp: AnalyticsSourceStamp): AnalyticsFactDocument {
 
 function adapter(sources: TestSource[]): AnalyticsSourceAdapter<TestSource> {
   return {
-    sourceType: "journey",
+    sourceTypes: ["journey"],
     async findFinishedByProjectId() {
       return sources;
     },
@@ -72,8 +72,8 @@ test("separately detects missing, orphan, and outdated facts even when source an
   assert.deepEqual(report.partialFacts, [
     { source: source("orphan"), issues: [{ code: "missing_player_reference", nicknameSnapshot: "Historical name" }] },
   ]);
-  assert.deepEqual(report.sourceCountsByType, { journey: 2, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 });
-  assert.deepEqual(report.factCountsByType, { journey: 2, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 });
+  assert.deepEqual(report.sourceCountsByType, { journey: 2, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 });
+  assert.deepEqual(report.factCountsByType, { journey: 2, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 });
 });
 
 test("keeps partial facts fresh when their source stamps match", async () => {

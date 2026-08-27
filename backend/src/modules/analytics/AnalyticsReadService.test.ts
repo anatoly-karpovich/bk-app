@@ -38,8 +38,8 @@ const historicalCoin = {
 
 const freshIntegrity: AnalyticsIntegrityReport = {
   freshness: "fresh",
-  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 },
-  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 },
+  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
+  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
   missing: [],
   orphan: [],
   outdated: [],

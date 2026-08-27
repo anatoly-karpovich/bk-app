@@ -3,7 +3,7 @@ import { AnalyticsIntegrityService, type AnalyticsIntegrityReport } from "./Anal
 import { AnalyticsProjectRefreshMutex } from "./AnalyticsProjectRefreshMutex";
 import { AnalyticsProjectionRepository } from "./AnalyticsProjectionRepository";
 import type { AnalyticsSourceAdapter } from "./adapters/AnalyticsSourceAdapter";
-import { createAnalyticsSourceKey, ANALYTICS_SOURCE_KINDS, ANALYTICS_SOURCE_TYPES } from "./domain/sourceTypes";
+import { createAnalyticsSourceKey, isAnalyticsSourcePair } from "./domain/sourceTypes";
 import type { AnalyticsFactDocument, AnalyticsSourceStamp } from "./domain/types";
 import { AnalyticsProjectionBuildError } from "./errors/AnalyticsProjectionBuildError";
 
@@ -88,21 +88,23 @@ export class AnalyticsProjectionService {
 
   private buildFact(adapter: AnalyticsAdapterPort, source: unknown, projectId: string): AnalyticsFactDocument {
     let sourceId: string | undefined;
+    let sourceType: AnalyticsSourceStamp["type"] = adapter.sourceTypes[0];
     try {
       const descriptor = adapter.describe(source);
       sourceId = descriptor.source.id;
+      sourceType = descriptor.source.type;
       const fact = adapter.buildFact(source);
-      this.assertValidFact(fact, adapter.sourceType, projectId, descriptor.source);
+      this.assertValidFact(fact, adapter.sourceTypes, projectId, descriptor.source);
       return fact;
     } catch (error) {
       if (error instanceof AnalyticsProjectionBuildError) throw error;
-      throw new AnalyticsProjectionBuildError(adapter.sourceType, sourceId, error);
+      throw new AnalyticsProjectionBuildError(sourceType, sourceId, error);
     }
   }
 
   private assertValidFact(
     fact: AnalyticsFactDocument,
-    adapterSourceType: AnalyticsSourceStamp["type"],
+    adapterSourceTypes: ReadonlyArray<AnalyticsSourceStamp["type"]>,
     projectId: string,
     expectedSource: AnalyticsSourceStamp,
   ): void {
@@ -112,7 +114,7 @@ export class AnalyticsProjectionService {
     if (!this.isValidDateTime(fact.occurredAt) || !this.isValidSourceStamp(fact.source)) {
       throw new Error("Analytics fact has an invalid source timestamp or stamp");
     }
-    if (fact.source.type !== adapterSourceType || !this.sameSourceStamp(fact.source, expectedSource)) {
+    if (!adapterSourceTypes.includes(fact.source.type) || !this.sameSourceStamp(fact.source, expectedSource)) {
       throw new Error("Analytics fact source does not match its canonical source descriptor");
     }
     if (fact.meta.schemaVersion !== 2 || (fact.meta.status !== "ready" && fact.meta.status !== "partial")) {
@@ -139,16 +141,13 @@ export class AnalyticsProjectionService {
   }
 
   private isValidSourceStamp(source: AnalyticsSourceStamp): boolean {
-    const expectedKind = source.type === "quiz" ? "quiz_event" : "game";
     return (
-      ANALYTICS_SOURCE_KINDS.includes(source.kind) &&
-      ANALYTICS_SOURCE_TYPES.includes(source.type) &&
-      source.kind === expectedKind &&
+      isAnalyticsSourcePair(source.kind, source.type) &&
       this.isNonEmptyString(source.id) &&
       this.isNonEmptyString(source.titleSnapshot) &&
       this.isValidDateTime(source.updatedAt) &&
       (source.revision === null || (Number.isSafeInteger(source.revision) && source.revision >= 0)) &&
-      (source.type === "quiz" ? this.isNonEmptyString(source.quizId) : source.quizId === undefined)
+      (source.kind === "quiz_event" ? this.isNonEmptyString(source.quizId) : source.quizId === undefined)
     );
   }
 

@@ -24,7 +24,7 @@ interface LottoBingoPayoutGroups {
 
 /** Builds analytics facts from saved Lotto Bingo payouts without recalculating rewards. */
 export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoBingoAnalyticsSource> {
-  readonly sourceType = "lotto_bingo" as const;
+  readonly sourceTypes = ["lotto_bingo"] as const;
 
   constructor(
     private readonly lottoBingoRepository: LottoBingoRepository,
@@ -41,7 +41,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
       occurredAt: source.finishedAt ?? source.updatedAt,
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Лото Бинго",
         revision: source.revision,
