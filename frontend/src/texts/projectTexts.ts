@@ -1,7 +1,7 @@
 export const projectTexts = {
   page: {
     title: "Настройки проекта",
-    description: "Общие сведения проекта и каталог ресурсов, доступных новым игровым конфигам.",
+    description: "Общие сведения проекта, каталог ресурсов и форматы для новых ручных активностей.",
     projectChip: (projectName: string) => `Проект: ${projectName}`,
     resourcesChip: (resourcesCount: number) => `Ресурсов: ${resourcesCount}`,
     reset: "Сбросить",
@@ -20,6 +20,14 @@ export const projectTexts = {
     codeLabel: "Код проекта",
     codeHelper: "Код проекта неизменяем.",
     descriptionLabel: "Описание",
+  },
+  activityTypes: {
+    title: "Активности",
+    subtitle: "Названия и доступность форматов для новых ручных результатов",
+    availabilityHint: "Переключатель действует только на создание новых ручных результатов и не отключает нативные игры или Quiz Event.",
+    enabledLabel: "Доступен",
+    defaultTitleLabel: "Название по умолчанию",
+    defaultTitleRequired: "Укажите название формата.",
   },
   resource: {
     currency: "Валюта",

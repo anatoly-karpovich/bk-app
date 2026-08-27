@@ -8,6 +8,8 @@ import type {
 } from "./types";
 import { projectTexts } from "../../texts/projectTexts";
 
+export const PROJECT_ACTIVITY_TYPE_DEFAULT_TITLE_MAX_LENGTH = 160;
+
 export type ProjectCurrencyDraft = Omit<ProjectCurrency, "createdAt" | "updatedAt"> & { isNew: boolean };
 export type ProjectItemDraft = Omit<ProjectItem, "createdAt" | "updatedAt"> & { isNew: boolean };
 export type ProjectResourceDraft = ProjectCurrencyDraft | ProjectItemDraft;
@@ -84,12 +86,13 @@ export function toProjectMutationInput(project: Project, draft: ProjectDraft): P
 export function isProjectDraftValid(draft: ProjectDraft): boolean {
   const resourceIds = new Set<string>();
   const resourceCodes = new Set<string>();
+  const activityTypes = new Set<string>();
 
-  if (!draft.name.trim() || !draft.resources.length) {
+  if (!draft.name.trim() || !draft.resources.length || !draft.activityTypes.length) {
     return false;
   }
 
-  return draft.resources.every((resource) => {
+  const resourcesAreValid = draft.resources.every((resource) => {
     const id = resource.id.trim();
     const code = resource.code.trim();
     if (!id || !code || !resource.label.trim() || resourceIds.has(id) || resourceCodes.has(code)) {
@@ -104,6 +107,19 @@ export function isProjectDraftValid(draft: ProjectDraft): boolean {
       (resource.valueType === "decimal" && Number.isInteger(resource.precision) && resource.precision >= 0 && resource.precision <= 1)
     );
   });
+
+  const activityTypesAreValid = draft.activityTypes.every((activityType) => {
+    const type = activityType.type.trim();
+    const defaultTitle = activityType.defaultTitle.trim();
+    if (!type || !defaultTitle || defaultTitle.length > PROJECT_ACTIVITY_TYPE_DEFAULT_TITLE_MAX_LENGTH || activityTypes.has(type)) {
+      return false;
+    }
+
+    activityTypes.add(type);
+    return true;
+  });
+
+  return resourcesAreValid && activityTypesAreValid;
 }
 
 function configReferencesResource(config: AnyGameConfig, resourceId: string): boolean {

@@ -10,6 +10,7 @@ import { useGameConfigs } from "../configs/hooks/useGameConfigs";
 import ProjectResourceEditor from "./components/ProjectResourceEditor";
 import ProjectResourceList from "./components/ProjectResourceList";
 import ProjectResourceUsage from "./components/ProjectResourceUsage";
+import ProjectActivityTypesEditor from "./components/ProjectActivityTypesEditor";
 import {
   createCurrencyDraft,
   createItemDraft,
@@ -189,6 +190,13 @@ export default function ProjectPage({ selectedProject, canEdit, error, isSaving,
             onSelect={setSelectedResourceId}
             onAddCurrency={() => addResource(createCurrencyDraft())}
             onAddItem={() => addResource(createItemDraft())}
+          />
+
+          <ProjectActivityTypesEditor
+            activityTypes={draft.activityTypes}
+            sourceActivityTypes={selectedProject.activityTypes}
+            disabled={!canEdit || isSaving}
+            onChange={(activityTypes) => setDraft((current) => (current ? { ...current, activityTypes } : current))}
           />
         </Stack>
       </Grid>
