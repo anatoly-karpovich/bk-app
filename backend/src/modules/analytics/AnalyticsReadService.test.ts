@@ -127,9 +127,24 @@ test("builds an overview from filtered facts without mixing sources, resources, 
     { resourceId: "coins", rewards: { regular: 9, bonus: 0, total: 9 } },
     { resourceId: "key", rewards: { regular: 0, bonus: 1, total: 1 } },
   ]);
-  assert.deepEqual(overview.sourceBreakdown.journey, { conductedSources: 1, participations: 1, uniquePlayers: 1 });
-  assert.deepEqual(overview.sourceBreakdown.quiz, { conductedSources: 1, participations: 2, uniquePlayers: 1 });
-  assert.deepEqual(overview.sourceBreakdown.lotto, { conductedSources: 0, participations: 0, uniquePlayers: 0 });
+  assert.deepEqual(overview.sourceBreakdown.journey, {
+    conductedSources: 1,
+    fallbackDateSources: 0,
+    participations: 1,
+    uniquePlayers: 1,
+  });
+  assert.deepEqual(overview.sourceBreakdown.quiz, {
+    conductedSources: 1,
+    fallbackDateSources: 0,
+    participations: 2,
+    uniquePlayers: 1,
+  });
+  assert.deepEqual(overview.sourceBreakdown.lotto, {
+    conductedSources: 0,
+    fallbackDateSources: 0,
+    participations: 0,
+    uniquePlayers: 0,
+  });
   assert.deepEqual(overview.activityByDay, [
     { date: "2026-08-05", conductedSources: 1, participations: 1 },
     { date: "2026-08-06", conductedSources: 1, participations: 2 },
@@ -165,6 +180,33 @@ test("uses inclusive calendar-date filters and reads legacy timestamps only as a
   assert.deepEqual(overview.period, { from: "2026-08-10", to: "2026-08-10", sourceTypes: ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"] });
   assert.equal(overview.conductedSources, 2);
   assert.deepEqual(overview.activityByDay, [{ date: "2026-08-10", conductedSources: 2, participations: 2 }]);
+});
+
+test("counts finalized-date fallbacks in the selected source-type breakdown only", async () => {
+  const finalizedJourney = fact("journey-finalized", "journey", "2026-08-10T10:00:00.000Z", [participant("player-1", "Journey")]);
+  finalizedJourney.occurredOn = "2026-08-10";
+  finalizedJourney.occurrenceDateSource = "finalized_at";
+  finalizedJourney.occurredAt = undefined;
+
+  const finalizedQuiz = fact("quiz-finalized", "quiz", "2026-08-10T10:00:00.000Z", [participant("player-2", "Quiz")]);
+  finalizedQuiz.occurredOn = "2026-08-10";
+  finalizedQuiz.occurrenceDateSource = "finalized_at";
+  finalizedQuiz.occurredAt = undefined;
+
+  const explicitLotto = fact("lotto-conducted", "lotto", "2026-08-10T10:00:00.000Z", [participant("player-3", "Lotto")]);
+  explicitLotto.occurredOn = "2026-08-10";
+  explicitLotto.occurrenceDateSource = "conducted_on";
+  explicitLotto.occurredAt = undefined;
+
+  const overview = await createService([finalizedJourney, finalizedQuiz, explicitLotto]).getOverview("project-a", {
+    from: "2026-08-10",
+    to: "2026-08-10",
+    sourceTypes: ["journey", "lotto"],
+  });
+
+  assert.equal(overview.sourceBreakdown.journey.fallbackDateSources, 1);
+  assert.equal(overview.sourceBreakdown.lotto.fallbackDateSources, 0);
+  assert.equal(overview.sourceBreakdown.quiz.fallbackDateSources, 0);
 });
 
 test("keeps current resources selectable and exposes historical source snapshots with separate totals", async () => {

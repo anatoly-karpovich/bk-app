@@ -52,7 +52,10 @@ export interface AnalyticsOverviewReadModel {
   participations: number;
   uniqueResolvedPlayers: number;
   rewardsByResource: Array<{ resourceId: string; rewards: AnalyticsRewardTotals }>;
-  sourceBreakdown: Record<AnalyticsSourceType, { conductedSources: number; participations: number; uniquePlayers: number }>;
+  sourceBreakdown: Record<
+    AnalyticsSourceType,
+    { conductedSources: number; fallbackDateSources: number; participations: number; uniquePlayers: number }
+  >;
   activityByDay: Array<{ date: string; conductedSources: number; participations: number }>;
   rewardsByDay: Array<{
     date: string;
@@ -180,6 +183,9 @@ export class AnalyticsReadService {
     for (const fact of filteredFacts) {
       const breakdown = sourceBreakdown[fact.source.type];
       breakdown.conductedSources += 1;
+      if (fact.occurrenceDateSource === "finalized_at") {
+        breakdown.fallbackDateSources += 1;
+      }
       breakdown.participations += fact.participants.length;
       participations += fact.participants.length;
       const date = this.occurredOnForFact(fact);
@@ -669,7 +675,7 @@ export class AnalyticsReadService {
     return Object.fromEntries(
       ANALYTICS_SOURCE_TYPES.map((sourceType) => [
         sourceType,
-        { conductedSources: 0, participations: 0, uniquePlayers: 0 },
+        { conductedSources: 0, fallbackDateSources: 0, participations: 0, uniquePlayers: 0 },
       ]),
     ) as AnalyticsOverviewReadModel["sourceBreakdown"];
   }
