@@ -56,7 +56,16 @@ test("reports validated in-memory facts by source, participant, partial warning,
 
   const report = await service.inspectProject("project-a");
 
-  assert.deepEqual(report.sourceCountsByType, { journey: 1, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 1 });
+  assert.deepEqual(report.sourceCountsByType, {
+    journey: 1,
+    battleships: 0,
+    lotto: 0,
+    lotto_bingo: 0,
+    quiz: 1,
+    memes: 0,
+    forum_quiz: 0,
+    tournament: 0,
+  });
   assert.equal(report.participations, 2);
   assert.deepEqual(report.partialFacts.map((fact) => fact.source.id), ["event-1"]);
   assert.deepEqual(report.rewardsByResource, [

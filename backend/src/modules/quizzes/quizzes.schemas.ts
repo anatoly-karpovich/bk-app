@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isAnalyticsCalendarDate } from "../analytics/domain/occurrenceDate";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
 
 /** Infrastructure guardrail for raw chat payloads; no product limit is imposed on message counts. */
@@ -51,6 +52,9 @@ export const updateQuizSchema = z.object({
 
 export const createQuizEventSchema = z.object({ name: z.string().max(160).optional() });
 export const quizEventRevisionSchema = z.object({ revision: z.number().int().nonnegative() });
+export const quizEventConductedOnSchema = quizEventRevisionSchema.extend({
+  conductedOn: z.string().trim().refine(isAnalyticsCalendarDate, "Expected YYYY-MM-DD calendar date").nullable(),
+});
 export const quizMessageSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]), text: z.string().max(30_000).nullable() });
 export const quizMessageKindSchema = quizEventRevisionSchema.extend({ messageKind: z.enum(["question", "answer"]) });
 export const saveQuizQuestionChatSchema = quizEventRevisionSchema.extend({ rawText: z.string().max(QUIZ_CHAT_RAW_TEXT_MAX_LENGTH) });

@@ -206,6 +206,8 @@ export interface JourneyV2Game {
   updatedAt: string;
   /** Set on the first transition to finished; absent in older persisted games. */
   finishedAt?: string | null;
+  /** Operator-selected calendar date of conduct; absent in older persisted games. */
+  conductedOn?: string | null;
   djName: string;
   projectId: string;
   configId: string;
@@ -256,6 +258,8 @@ export interface JourneyGameView {
   meta: {
     status: JourneyGameStatus;
     isOver: boolean;
+    finishedAt: string | null;
+    conductedOn: string | null;
     roundIndex: number;
     djName: string;
     projectId: string;
@@ -289,6 +293,8 @@ export interface JourneyGameListItemReadModel {
   createdAt: string;
   updatedAt: string;
   status: JourneyGameStatus;
+  finishedAt: string | null;
+  conductedOn: string | null;
   djName: string;
   projectId: string;
   configId: string;

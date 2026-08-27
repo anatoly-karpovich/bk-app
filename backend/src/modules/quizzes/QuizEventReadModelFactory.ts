@@ -47,6 +47,7 @@ export class QuizEventReadModelFactory {
         status: event.status,
         revision: event.revision,
         completedAt: event.completedAt,
+        conductedOn: event.conductedOn ?? null,
         hostUserId: event.hostUserId,
         hostSnapshot: clone(event.hostSnapshot),
       },

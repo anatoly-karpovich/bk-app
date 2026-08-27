@@ -25,6 +25,7 @@ export class LottoEngine {
 
     const normalizedGame: LottoGame = {
       ...this.clone(game),
+      conductedOn: game.conductedOn ?? null,
       djName: game.djName.trim(),
       projectId: game.projectId?.trim() ?? "",
       configId: game.configId.trim(),
@@ -72,6 +73,7 @@ export class LottoEngine {
       createdAt: now,
       updatedAt: now,
       finishedAt: null,
+      conductedOn: null,
       status: "in_progress",
       djName: options.djName?.trim() ?? "",
       projectId: options.projectId?.trim() ?? "",

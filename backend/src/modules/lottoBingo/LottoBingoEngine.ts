@@ -57,6 +57,7 @@ export class LottoBingoEngine {
       updatedAt: now,
       startedAt: null,
       finishedAt: null,
+      conductedOn: null,
     };
     return this.withAudit(game, options.hostSnapshot, "game_created", {});
   }

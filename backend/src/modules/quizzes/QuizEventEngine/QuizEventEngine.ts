@@ -52,6 +52,7 @@ export class QuizEventEngine {
       questions: snapshot.questions.map((question) => this.createQuestion(question, now)),
       summary: null,
       completedAt: null,
+      conductedOn: null,
       createdAt: now,
       updatedAt: now,
       schemaVersion: 3,

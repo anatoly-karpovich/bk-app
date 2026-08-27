@@ -7,7 +7,7 @@ import { sourceLabels } from "./AnalyticsFilters";
 import AnalyticsRewardsChart from "./AnalyticsRewardsChart";
 
 function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 }
 
 interface AnalyticsPlayerWorkspaceProps {
@@ -66,8 +66,8 @@ export default function AnalyticsPlayerWorkspace({
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2.25 }}>Что именно игрок делал и какие награды получал.</Typography>
           {details.history.entries.length ? <Stack spacing={1}>
             {details.history.entries.map((entry) => (
-              <Box key={`${entry.occurredAt}-${entry.source.titleSnapshot}`} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr auto", md: "112px minmax(0, 1fr) auto" }, gap: 1.5, alignItems: "center", border: "1px solid", borderColor: "divider", borderRadius: (theme) => theme.customRadii.control, px: 1.5, py: 1.25 }}>
-                <Typography variant="caption" color="text.secondary">{formatDate(entry.occurredAt)}</Typography>
+              <Box key={`${entry.occurredOn}-${entry.source.titleSnapshot}`} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr auto", md: "112px minmax(0, 1fr) auto" }, gap: 1.5, alignItems: "center", border: "1px solid", borderColor: "divider", borderRadius: (theme) => theme.customRadii.control, px: 1.5, py: 1.25 }}>
+                <Typography variant="caption" color="text.secondary">{formatDate(entry.occurredOn)}</Typography>
                 <Box minWidth={0}><Typography variant="subtitle2">{entry.source.titleSnapshot}</Typography><Typography variant="caption" color="text.secondary">{sourceLabels[entry.source.type]}</Typography></Box>
                 <Typography variant="subtitle2" textAlign="right" color={entry.rewards.length ? "text.primary" : "text.secondary"}>
                   {entry.rewards.length ? entry.rewards.map((reward) => `+${formatNumber(reward.amount)} ${resourceById.get(reward.resourceId)?.label ?? reward.resourceId}`).join(" · ") : "Без награды"}

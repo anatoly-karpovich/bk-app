@@ -18,7 +18,7 @@ import type {
 } from "./domain/types";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
-import { JourneyGameNotFoundError, JourneyGamesNotFoundError } from "./errors";
+import { JourneyConductedOnUnavailableError, JourneyGameNotFoundError, JourneyGamesNotFoundError } from "./errors";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
@@ -207,6 +207,38 @@ export class JourneyService {
     }
 
     await this.submitFinishedJourneyGame(currentGame, updatedGame);
+    return this.serializeJourneyGame(updatedGame);
+  }
+
+  async updateJourneyConductedOn(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    conductedOn: string | null,
+  ): Promise<JourneyGameResponse> {
+    assertProjectAccess(actor, projectId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
+
+    if (!currentGame) {
+      throw new JourneyGameNotFoundError(gameId);
+    }
+    assertOwnedByUser(actor, currentGame.hostUserId);
+    if (currentGame.stateV2.status !== "finished") {
+      throw new JourneyConductedOnUnavailableError();
+    }
+
+    const updatedGame = await this.saveJourneyGameDocument(projectId, gameId, {
+      ...currentGame,
+      finishedAt: currentGame.finishedAt ?? currentGame.updatedAt,
+      conductedOn,
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (!updatedGame) {
+      throw new JourneyGameNotFoundError(gameId);
+    }
+
+    await this.analyticsSubmitter.submitJourneyGame(updatedGame);
     return this.serializeJourneyGame(updatedGame);
   }
 

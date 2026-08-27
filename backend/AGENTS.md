@@ -263,7 +263,7 @@ Engines receive a required resolved identity and must reject duplicate `playerRe
 
 Public read models may expose `playerRefId` when a stable player identity is useful to the client, including in analytics leaderboards. Lotto, Journey, and Battleships retain their current frontend-compatible request shapes while accepting an optional reference: Lotto player inputs include `playerRefId?`, Journey accepts legacy `nicknames` as well as player objects, and Battleships retains `playerName` with optional `playerRefId`.
 
-`PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, Battleships `playerRefId`, and Quiz Event `questions.selectedAnswers`, `questions.awards`, and `summary.players` references.
+`PlayerReferencesRepository` owns saved-game reference lookups. It must cover Journey `stateV2.players.playerRefId`, Lotto `players.playerRefId`, Lotto Bingo `players.playerRefId`, Battleships `playerRefId`, Quiz Event `questions.selectedAnswers`, `questions.awards`, and `summary.players` references, and Activity Result `participants.playerRefId` references.
 
 The current single-operator rollout enables Player deletion after `PlayerReferencesRepository` finds no persisted `playerRefId` in any game/Event. It intentionally has no nickname fallback and is not safe against concurrent creation of a new reference; do not rely on it when parallel game/Event mutations are possible. A separate future rollout must replace this with the current-reference lifecycle below.
 
@@ -495,6 +495,19 @@ The active configuration model is `Project` plus project-owned `GameConfig` pres
 - The legacy `configs` repository/types/normalizer are offline backup-import adapters only; never mount them in DI, routes, or startup bootstrap.
 
 Avoid spreading default rules or currency constants across backend and frontend.
+
+## Activities and Analytics
+
+`modules/activities` owns manual Activity Results. An Activity Result is a canonical final record of an already conducted historical, forum, or external activity; it is not a Game, Quiz Event, or generic runtime game aggregate.
+
+- Persist only final Activity Results. Do not reintroduce `status`, `completedAt`, a draft lifecycle, or a completion endpoint.
+- Activity mutations are project-scoped and revision-protected. The Service resolves Player identities transactionally, validates direct positive `regular`/`bonus` amounts and unique Player/resource references, creates a referenced-resource snapshot, and then saves conditionally by revision.
+- Read models expose `id`, audit timestamps, `meta` (project, host, revision, access), `content` (type, title, `conductedOn`, participants), and `configuration` (resource snapshot). Never expose the Mongo document.
+- `conductedOn` is nullable and strictly `YYYY-MM-DD`; the Activity Analytics adapter falls back to immutable `createdAt` when it is absent. A normal edit must never move that fallback date.
+- Every create/update submits the source through `AnalyticsProjectionSubmitter`; delete invalidates `{ kind: "activity", id }`. The adapter copies saved awards and snapshots without reward recalculation.
+- New Results accept only enabled `Project.activityTypes`; an existing Result may retain its disabled type. These settings never restrict native Games or Quiz Events.
+
+Analytics source-type filters distinguish missing `sourceTypes` (all types) from an explicitly empty selection (no types, yielding an empty result). Preserve this contract in schemas, read services, and API clients.
 
 ---
 

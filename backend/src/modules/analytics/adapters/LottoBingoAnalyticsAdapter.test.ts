@@ -136,7 +136,8 @@ test("uses updatedAt only as the historical fallback when a finished Lotto Bingo
 
   const descriptor = createAdapter().describe(game);
 
-  assert.equal(descriptor.occurredAt, "2026-08-25T10:05:00.000Z");
+  assert.equal(descriptor.occurredOn, "2026-08-25");
+  assert.equal(descriptor.occurrenceDateSource, "finalized_at");
   assert.deepEqual(descriptor.source, {
     kind: "game",
     type: "lotto_bingo",
@@ -145,6 +146,13 @@ test("uses updatedAt only as the historical fallback when a finished Lotto Bingo
     revision: 7,
     updatedAt: "2026-08-25T10:05:00.000Z",
   });
+});
+
+test("prefers an explicit Lotto Bingo conducted date over the technical finalization date", () => {
+  const descriptor = createAdapter().describe(createFinishedGame({ conductedOn: "2024-03-15" }));
+
+  assert.equal(descriptor.occurredOn, "2024-03-15");
+  assert.equal(descriptor.occurrenceDateSource, "conducted_on");
 });
 
 test("publishes legacy Lotto Bingo participants without player references as partial facts without matching their nicknames", () => {
@@ -188,7 +196,7 @@ test("publishes legacy Lotto Bingo participants without player references as par
       },
     ],
     computedAt,
-    schemaVersion: 2,
+    schemaVersion: 3,
   });
 });
 

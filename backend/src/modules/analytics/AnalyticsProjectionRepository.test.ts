@@ -49,6 +49,32 @@ test("replaces a complete fact using a project-scoped source key", async () => {
   ]);
 });
 
+test("creates a calendar-date index for refreshed Analytics facts", async () => {
+  const indexes: unknown[][] = [];
+  const repository = new AnalyticsProjectionRepository({
+    async getCollection() {
+      return {
+        async createIndex(...args: unknown[]) {
+          indexes.push(args);
+        },
+      };
+    },
+  } as never);
+
+  await repository.ensureIndexes();
+
+  assert.deepEqual(indexes, [
+    [
+      { projectId: 1, "source.kind": 1, "source.id": 1 },
+      { unique: true, name: "analytics_project_source_unique" },
+    ],
+    [
+      { projectId: 1, occurredOn: -1, "source.type": 1 },
+      { name: "analytics_project_occurred_on_source_type" },
+    ],
+  ]);
+});
+
 test("keeps orphan cleanup within one project and removes only confirmed orphan ids", async () => {
   let deleteFilter: unknown;
   const repository = new AnalyticsProjectionRepository({

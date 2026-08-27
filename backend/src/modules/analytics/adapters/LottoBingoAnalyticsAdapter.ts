@@ -3,6 +3,7 @@ import { LottoBingoRepository, type LottoBingoGameDocument } from "../../lottoBi
 import type { LottoBingoPayoutCategory } from "../../lottoBingo/domain/types";
 import type { ResourceAmount } from "../../rewards";
 import { aggregateAnalyticsResourceAmounts } from "../domain/rewardAggregation";
+import { resolveAnalyticsOccurrenceDate } from "../domain/occurrenceDate";
 import type { AnalyticsFactDocument, AnalyticsParticipantResult } from "../domain/types";
 import type { AnalyticsSourceAdapter, AnalyticsSourceDescriptor } from "./AnalyticsSourceAdapter";
 
@@ -24,7 +25,7 @@ interface LottoBingoPayoutGroups {
 
 /** Builds analytics facts from saved Lotto Bingo payouts without recalculating rewards. */
 export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoBingoAnalyticsSource> {
-  readonly sourceType = "lotto_bingo" as const;
+  readonly sourceTypes = ["lotto_bingo"] as const;
 
   constructor(
     private readonly lottoBingoRepository: LottoBingoRepository,
@@ -38,10 +39,10 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
   describe(source: LottoBingoAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      occurredAt: source.finishedAt ?? source.updatedAt,
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Лото Бинго",
         revision: source.revision,
@@ -65,7 +66,8 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
 
     return {
       projectId: descriptor.projectId,
-      occurredAt: descriptor.occurredAt,
+      occurredOn: descriptor.occurredOn,
+      occurrenceDateSource: descriptor.occurrenceDateSource,
       source: descriptor.source,
       participants: participantValues.map((participant) => this.toParticipant(participant)),
       resourceSnapshot: source.resources.map((resource) => ({ ...resource })),
@@ -73,7 +75,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 2,
+        schemaVersion: 3,
       },
     };
   }

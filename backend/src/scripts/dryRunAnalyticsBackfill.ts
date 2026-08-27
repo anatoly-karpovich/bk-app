@@ -10,6 +10,8 @@ import { JourneyAnalyticsAdapter } from "../modules/analytics/adapters/JourneyAn
 import { LottoAnalyticsAdapter } from "../modules/analytics/adapters/LottoAnalyticsAdapter";
 import { LottoBingoAnalyticsAdapter } from "../modules/analytics/adapters/LottoBingoAnalyticsAdapter";
 import { QuizEventAnalyticsAdapter } from "../modules/analytics/adapters/QuizEventAnalyticsAdapter";
+import { ActivityResultAnalyticsAdapter } from "../modules/analytics/adapters/ActivityResultAnalyticsAdapter";
+import { ActivitiesRepository } from "../modules/activities/ActivitiesRepository";
 import { AnalyticsProjectionBuildError } from "../modules/analytics/errors/AnalyticsProjectionBuildError";
 import { JourneyRepository } from "../modules/journey/JourneyRepository";
 import { LottoRepository } from "../modules/lotto/LottoRepository";
@@ -34,6 +36,7 @@ function createDryRunService(): AnalyticsBackfillDryRunService {
     new LottoAnalyticsAdapter(new LottoRepository()),
     new LottoBingoAnalyticsAdapter(new LottoBingoRepository()),
     new QuizEventAnalyticsAdapter(new QuizEventsRepository(mongoDatabase)),
+    new ActivityResultAnalyticsAdapter(new ActivitiesRepository(mongoDatabase)),
   ];
   const integrityService = new AnalyticsIntegrityService(projectionRepository, adapters);
   return new AnalyticsBackfillDryRunService(

@@ -35,6 +35,7 @@ export class LottoBingoReadModelFactory {
         host: structuredClone(game.hostSnapshot),
         startedAt: game.startedAt,
         finishedAt: game.finishedAt,
+        conductedOn: game.conductedOn ?? null,
         access: {
           mode: manage ? "manage" : "read_only",
           canAddPlayer: manage && game.status === "preparing",
@@ -46,6 +47,7 @@ export class LottoBingoReadModelFactory {
           canDisqualifyPlayer: canManageInProgress,
           canRestorePlayer: canManageInProgress,
           canFinalize: canManageInProgress && !!game.draw && game.draw.cursor === game.draw.plannedOrder.length,
+          canUpdateConductedOn: manage && game.status === "finished",
           canDelete: manage,
         },
       },
@@ -126,6 +128,7 @@ export class LottoBingoReadModelFactory {
         host: structuredClone(game.hostSnapshot),
         startedAt: game.startedAt,
         finishedAt: game.finishedAt,
+        conductedOn: game.conductedOn ?? null,
       },
       state: {
         playersCount: game.players.length,

@@ -27,11 +27,19 @@ export interface ProjectItem {
 }
 export type ProjectResource = ProjectCurrency | ProjectItem;
 
+/** Project-scoped display settings for the stable backend Analytics categories. */
+export interface ProjectActivityTypeSettings {
+  type: string;
+  defaultTitle: string;
+  enabled: boolean;
+}
+
 export interface ProjectMutationInput {
   code: string;
   name: string;
   description: string;
   resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt" | "canDelete">>;
+  activityTypes: ProjectActivityTypeSettings[];
 }
 
 export interface Project {
@@ -40,6 +48,7 @@ export interface Project {
   name: string;
   description: string;
   resources: ProjectResource[];
+  activityTypes: ProjectActivityTypeSettings[];
   /** Compatibility projection for currency-only games. */
   currencies: ProjectCurrency[];
   createdAt: string;

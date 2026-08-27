@@ -11,6 +11,7 @@ import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMe
 import {
   QuizConflictError,
   QuizEventNotFoundError,
+  QuizEventConductedOnUnavailableError,
   QuizEventRevisionConflictError,
   QuizNotFoundError,
   QuizQuestionResultOrderError,
@@ -122,6 +123,28 @@ export class QuizEventsService {
     const updated = await this.mutate(actor, projectId, eventId, expectedRevision, (event) => this.engine.reopenEvent(event));
     await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "quiz_event", id: eventId });
     return updated;
+  }
+  async updateConductedOn(
+    actor: CurrentUser,
+    projectId: string,
+    eventId: string,
+    conductedOn: string | null,
+    expectedRevision: number,
+  ): Promise<QuizEventView> {
+    const event = await this.editableEvent(actor, projectId, eventId);
+    if (event.status !== "completed") throw new QuizEventConductedOnUnavailableError();
+    this.assertExpectedRevision(event, eventId, expectedRevision);
+    const updated = await this.repository.update(eventId, projectId, expectedRevision, {
+      ...event,
+      // Preserve the legacy fallback before changing updatedAt, so clearing the date is stable.
+      completedAt: event.completedAt ?? event.updatedAt,
+      conductedOn,
+      updatedAt: new Date().toISOString(),
+    });
+    if (!updated) throw new QuizEventRevisionConflictError(eventId, expectedRevision);
+
+    await this.analyticsSubmitter.submitQuizEvent(updated);
+    return this.readModels.create(eventId, updated);
   }
   async markAsNotConducted(
     actor: CurrentUser,

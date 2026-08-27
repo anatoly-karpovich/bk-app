@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
+import { isAnalyticsCalendarDate } from "../analytics/domain/occurrenceDate";
 
 export const battleshipsGameIdParamsSchema = z.object({
   gameId: z.string().trim().min(1),
@@ -29,6 +30,10 @@ export const createBattleshipsGameDjNameSchema = z.object({
 export const battleshipsShotSchema = z.object({
   row: z.number().int().positive(),
   column: z.number().int().positive(),
+});
+
+export const battleshipsConductedOnSchema = z.object({
+  conductedOn: z.string().trim().refine(isAnalyticsCalendarDate, "Expected YYYY-MM-DD calendar date").nullable(),
 });
 
 export const latestBattleshipsGameQuerySchema = z.object({

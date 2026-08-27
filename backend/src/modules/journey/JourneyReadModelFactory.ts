@@ -17,6 +17,8 @@ export class JourneyReadModelFactory {
       meta: {
         status: game.stateV2.status,
         isOver: !activePlayerIds.length,
+        finishedAt: game.finishedAt ?? null,
+        conductedOn: game.conductedOn ?? null,
         roundIndex: game.stateV2.moveIndex,
         djName: game.djName,
         projectId: game.projectId,
@@ -77,6 +79,8 @@ export class JourneyReadModelFactory {
       createdAt: game.createdAt,
       updatedAt: game.updatedAt,
       status: game.stateV2.status,
+      finishedAt: game.finishedAt ?? null,
+      conductedOn: game.conductedOn ?? null,
       djName: game.djName,
       projectId: game.projectId,
       configId: game.configId,

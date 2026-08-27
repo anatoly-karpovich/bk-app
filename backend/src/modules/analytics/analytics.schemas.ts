@@ -1,20 +1,23 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
 import { ANALYTICS_SOURCE_TYPES } from "./domain/sourceTypes";
+import { isAnalyticsCalendarDate } from "./domain/occurrenceDate";
 
 const analyticsSourceTypeSchema = z.enum(ANALYTICS_SOURCE_TYPES);
+const analyticsCalendarDateSchema = z.string().trim().refine(isAnalyticsCalendarDate, "Expected YYYY-MM-DD calendar date");
 
 function normalizeSourceTypes(value: unknown): unknown {
   if (value === undefined) return undefined;
   const values = Array.isArray(value) ? value : [value];
-  return values.flatMap((entry) => (typeof entry === "string" ? entry.split(",").map((item) => item.trim()) : [entry]));
+  return values.flatMap((entry) =>
+    typeof entry === "string" ? entry.split(",").map((item) => item.trim()).filter(Boolean) : [entry],
+  );
 }
 
 const sourceTypesQuerySchema = z.preprocess(
   normalizeSourceTypes,
   z
     .array(analyticsSourceTypeSchema)
-    .min(1)
     .refine((sourceTypes) => new Set(sourceTypes).size === sourceTypes.length, "sourceTypes must be unique")
     .optional(),
 );
@@ -28,8 +31,8 @@ export const analyticsPlayerDetailsParamsSchema = analyticsProjectParamsSchema.e
 });
 
 export const analyticsReadQuerySchema = z.object({
-  from: z.string().datetime({ offset: true }).optional(),
-  to: z.string().datetime({ offset: true }).optional(),
+  from: analyticsCalendarDateSchema.optional(),
+  to: analyticsCalendarDateSchema.optional(),
   sourceTypes: sourceTypesQuerySchema,
 });
 

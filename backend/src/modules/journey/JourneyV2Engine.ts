@@ -113,6 +113,7 @@ export class JourneyV2Engine {
       createdAt,
       updatedAt: createdAt,
       finishedAt: null,
+      conductedOn: null,
       djName: options.djName?.trim() ?? "",
       projectId: options.projectId?.trim() ?? "",
       configId: options.configId ?? "",

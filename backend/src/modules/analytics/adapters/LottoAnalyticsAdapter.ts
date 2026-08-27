@@ -2,6 +2,7 @@ import type { WithId } from "mongodb";
 import { LottoRepository, type LottoGameDocument } from "../../lotto/LottoRepository";
 import type { ResourceAmount } from "../../rewards";
 import { aggregateAnalyticsResourceAmounts } from "../domain/rewardAggregation";
+import { resolveAnalyticsOccurrenceDate } from "../domain/occurrenceDate";
 import type { AnalyticsFactDocument, AnalyticsParticipantResult } from "../domain/types";
 import type { AnalyticsSourceAdapter, AnalyticsSourceDescriptor } from "./AnalyticsSourceAdapter";
 
@@ -17,7 +18,7 @@ interface LottoParticipantAccumulator {
 
 /** Builds analytics facts from saved Lotto payouts without recalculating their distribution. */
 export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyticsSource> {
-  readonly sourceType = "lotto" as const;
+  readonly sourceTypes = ["lotto"] as const;
 
   constructor(
     private readonly lottoRepository: LottoRepository,
@@ -31,10 +32,10 @@ export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyt
   describe(source: LottoAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      occurredAt: source.finishedAt ?? source.updatedAt,
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Лото",
         revision: null,
@@ -58,7 +59,8 @@ export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyt
 
     return {
       projectId: descriptor.projectId,
-      occurredAt: descriptor.occurredAt,
+      occurredOn: descriptor.occurredOn,
+      occurrenceDateSource: descriptor.occurrenceDateSource,
       source: descriptor.source,
       participants,
       resourceSnapshot: source.resources.map((resource) => ({ ...resource })),
@@ -66,7 +68,7 @@ export class LottoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoAnalyt
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 2,
+        schemaVersion: 3,
       },
     };
   }

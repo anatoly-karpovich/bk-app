@@ -1,5 +1,30 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
+import { ANALYTICS_SOURCE_TYPES } from "../analytics/domain/sourceTypes";
+import { PROJECT_ACTIVITY_TYPE_DEFAULT_TITLE_MAX_LENGTH } from "./domain/types";
+
+const activityTypeSchema = z.object({
+  type: z.enum(ANALYTICS_SOURCE_TYPES),
+  defaultTitle: z.string().trim().min(1).max(PROJECT_ACTIVITY_TYPE_DEFAULT_TITLE_MAX_LENGTH),
+  enabled: z.boolean(),
+});
+
+const activityTypesSchema = z
+  .array(activityTypeSchema)
+  .length(ANALYTICS_SOURCE_TYPES.length)
+  .superRefine((activityTypes, context) => {
+    const receivedTypes = new Set(activityTypes.map((activityType) => activityType.type));
+
+    if (receivedTypes.size !== activityTypes.length) {
+      context.addIssue({ code: "custom", message: "Activity types must not contain duplicates" });
+    }
+
+    for (const type of ANALYTICS_SOURCE_TYPES) {
+      if (!receivedTypes.has(type)) {
+        context.addIssue({ code: "custom", message: `Activity types must include '${type}'` });
+      }
+    }
+  });
 
 export const projectIdParamsSchema = z.object({
   projectId: objectIdSchema,
@@ -41,4 +66,5 @@ export const projectMutationSchema = z.object({
       ]),
     )
     .min(1),
+  activityTypes: activityTypesSchema,
 });

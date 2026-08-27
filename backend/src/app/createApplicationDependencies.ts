@@ -85,8 +85,14 @@ import { JourneyAnalyticsAdapter } from "../modules/analytics/adapters/JourneyAn
 import { LottoAnalyticsAdapter } from "../modules/analytics/adapters/LottoAnalyticsAdapter";
 import { LottoBingoAnalyticsAdapter } from "../modules/analytics/adapters/LottoBingoAnalyticsAdapter";
 import { QuizEventAnalyticsAdapter } from "../modules/analytics/adapters/QuizEventAnalyticsAdapter";
+import { ActivityResultAnalyticsAdapter } from "../modules/analytics/adapters/ActivityResultAnalyticsAdapter";
+import { ActivitiesRepository } from "../modules/activities/ActivitiesRepository";
+import { ActivitiesService } from "../modules/activities/ActivitiesService";
+import { ActivitiesController } from "../modules/activities/ActivitiesController";
+import { ActivityResultReadModelFactory } from "../modules/activities/ActivityResultReadModelFactory";
 
 export interface ApplicationDependencies {
+  activitiesController: ActivitiesController;
   analyticsController: AnalyticsController;
   authController: AuthController;
   authService: AuthService;
@@ -130,18 +136,21 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const lottoRepository = new LottoRepository();
   const lottoBingoRepository = new LottoBingoRepository();
   const analyticsProjectionRepository = new AnalyticsProjectionRepository(mongoDatabase);
+  const activitiesRepository = new ActivitiesRepository(mongoDatabase);
   const analyticsInvalidator = new BestEffortAnalyticsProjectionInvalidator(analyticsProjectionRepository);
   const journeyAnalyticsAdapter = new JourneyAnalyticsAdapter(journeyRepository);
   const battleshipsAnalyticsAdapter = new BattleshipsAnalyticsAdapter(battleshipsRepository);
   const lottoAnalyticsAdapter = new LottoAnalyticsAdapter(lottoRepository);
   const lottoBingoAnalyticsAdapter = new LottoBingoAnalyticsAdapter(lottoBingoRepository);
   const quizEventAnalyticsAdapter = new QuizEventAnalyticsAdapter(quizEventsRepository);
+  const activityResultAnalyticsAdapter = new ActivityResultAnalyticsAdapter(activitiesRepository);
   const analyticsAdapters = [
     journeyAnalyticsAdapter,
     battleshipsAnalyticsAdapter,
     lottoAnalyticsAdapter,
     lottoBingoAnalyticsAdapter,
     quizEventAnalyticsAdapter,
+    activityResultAnalyticsAdapter,
   ];
   const analyticsIntegrityService = new AnalyticsIntegrityService(analyticsProjectionRepository, analyticsAdapters);
   const analyticsProjectionService = new AnalyticsProjectionService(
@@ -150,6 +159,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
     analyticsAdapters,
   );
   const analyticsSubmitter = new BestEffortAnalyticsProjectionSubmitter(analyticsProjectionService, {
+    activityResult: activityResultAnalyticsAdapter,
     journey: journeyAnalyticsAdapter,
     battleships: battleshipsAnalyticsAdapter,
     lotto: lottoAnalyticsAdapter,
@@ -179,8 +189,19 @@ export function createApplicationDependencies(): ApplicationDependencies {
     quizzesRepository,
     quizEventsRepository,
     playersRepository,
+    activitiesRepository,
     analyticsInvalidator,
   );
+  const activitiesService = new ActivitiesService(
+    activitiesRepository,
+    projectsRepository,
+    playersService,
+    mongoDatabase,
+    new ActivityResultReadModelFactory(),
+    analyticsInvalidator,
+    analyticsSubmitter,
+  );
+  const activitiesController = new ActivitiesController(activitiesService);
   const projectsController = new ProjectsController(projectsService);
   const playersController = new PlayersController(playersService);
   const usersController = new UsersController(
@@ -310,6 +331,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const forumTopicController = new ForumTopicController(forumTopicService);
 
   return {
+    activitiesController,
     analyticsController,
     authController,
     authService,

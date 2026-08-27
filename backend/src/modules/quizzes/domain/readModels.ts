@@ -122,6 +122,7 @@ export interface QuizEventView {
     status: "open" | "completed";
     revision: number;
     completedAt: string | null;
+    conductedOn: string | null;
     hostUserId: string;
     hostSnapshot: HostSnapshot;
   };

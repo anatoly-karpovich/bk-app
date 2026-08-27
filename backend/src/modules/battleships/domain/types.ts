@@ -65,6 +65,8 @@ export interface BattleshipsGame {
   updatedAt: string;
   /** Set while the game is finished; absent in older persisted games. */
   finishedAt?: string | null;
+  /** Operator-selected calendar date of conduct; absent in older persisted games. */
+  conductedOn?: string | null;
   status: BattleshipsGameStatus;
   playerName: string;
   /** Stable project-scoped Player identity; optional while reading older games. */
@@ -115,6 +117,8 @@ export interface BattleshipsGameListItemReadModel {
   createdAt: string;
   updatedAt: string;
   status: BattleshipsGameStatus;
+  finishedAt: string | null;
+  conductedOn: string | null;
   playerName: string;
   djName: string;
   projectId: string;

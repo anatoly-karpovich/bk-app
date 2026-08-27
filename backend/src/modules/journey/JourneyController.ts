@@ -6,6 +6,7 @@ import { ProjectNotFoundError } from "../projects/errors";
 import type { JourneyMoveInput } from "./domain/types";
 import {
   InvalidJourneyGameIdError,
+  JourneyConductedOnUnavailableError,
   JourneyGameNotFoundError,
   JourneyGamesNotFoundError,
   JourneyRoundValidationError,
@@ -18,6 +19,7 @@ import {
   createJourneyGamePresetSchema,
   createJourneyGameProjectParamsSchema,
   journeyGameIdParamsSchema,
+  journeyConductedOnSchema,
   journeyParseMovesTextSchema,
   journeyParsePlayersSchema,
   journeyPlayerParamsSchema,
@@ -420,6 +422,37 @@ export class JourneyController {
       return res.status(500).json({
         success: false,
         message: "Failed to remove journey player",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
+  updateJourneyConductedOn = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = parseRequest(journeyGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
+      const { conductedOn } = parseRequest(journeyConductedOnSchema, req.body, "Invalid conducted date");
+      const updatedGame = await this.journeyService.updateJourneyConductedOn(
+        req.authUser!,
+        getProjectId(req),
+        gameId,
+        conductedOn,
+      );
+
+      return res.status(200).json({ success: true, data: updatedGame });
+    } catch (error) {
+      if (error instanceof RequestValidationError || error instanceof InvalidJourneyGameIdError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      if (error instanceof JourneyGameNotFoundError) {
+        return res.status(404).json({ success: false, message: "Journey game not found" });
+      }
+      if (error instanceof JourneyConductedOnUnavailableError) {
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update Journey conducted date",
         error: getErrorMessage(error),
       });
     }

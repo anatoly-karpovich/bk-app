@@ -14,6 +14,7 @@ import { QuizzesRepository } from "../modules/quizzes/QuizzesRepository";
 import { QuizEventsRepository } from "../modules/quizzes/QuizEventsRepository";
 import { PlayersRepository } from "../modules/players/PlayersRepository";
 import { AnalyticsProjectionRepository } from "../modules/analytics/AnalyticsProjectionRepository";
+import { ActivitiesRepository } from "../modules/activities/ActivitiesRepository";
 
 export interface InitializedApplication {
   mongoConnection: ReturnType<typeof getDefaultMongoConnection>;
@@ -34,6 +35,7 @@ export async function initApplication(): Promise<InitializedApplication> {
   const quizEventsRepository = new QuizEventsRepository(mongoDatabase);
   const playersRepository = new PlayersRepository(mongoDatabase);
   const analyticsProjectionRepository = new AnalyticsProjectionRepository(mongoDatabase);
+  const activitiesRepository = new ActivitiesRepository(mongoDatabase);
   await Promise.all([
     usersRepository.ensureIndexes(),
     sessionsRepository.ensureIndexes(),
@@ -42,6 +44,7 @@ export async function initApplication(): Promise<InitializedApplication> {
     quizEventsRepository.ensureIndexes(),
     playersRepository.ensureIndexes(),
     analyticsProjectionRepository.ensureIndexes(),
+    activitiesRepository.ensureIndexes(),
   ]);
   const passwordHasher = new PasswordHasher();
   await seedBootstrapAdminIfNeeded(

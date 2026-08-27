@@ -6,6 +6,7 @@ import {
   createQuizEventSchema,
   projectIdParamsSchema,
   quizEventParamsSchema,
+  quizEventConductedOnSchema,
   quizEventQuestionParamsSchema,
   quizEventRevisionSchema,
   quizMessageKindSchema,
@@ -58,6 +59,12 @@ export class QuizEventsController {
     this.action(req, res, (p, revision) => this.service.complete(req.authUser!, p.projectId, p.eventId, revision));
   reopen = async (req: Request, res: Response) =>
     this.action(req, res, (p, revision) => this.service.reopen(req.authUser!, p.projectId, p.eventId, revision));
+  updateConductedOn = async (req: Request, res: Response) =>
+    this.respond(res, () => {
+      const params = parseRequest(quizEventParamsSchema, req.params, "Некорректные параметры");
+      const body = parseRequest(quizEventConductedOnSchema, req.body, "Некорректная дата проведения");
+      return this.service.updateConductedOn(req.authUser!, params.projectId, params.eventId, body.conductedOn, body.revision);
+    });
   markAsNotConducted = async (req: Request, res: Response) =>
     this.questionAction(req, res, (p) => {
       const body = parseRequest(quizEventRevisionSchema, req.body, "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ð°Ñ revision");

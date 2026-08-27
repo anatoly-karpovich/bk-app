@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { BestEffortAnalyticsProjectionSubmitter } from "./AnalyticsProjectionSubmitter";
 
-function adapter(sourceType: string, kind: "game" | "quiz_event") {
+function adapter(sourceType: string, kind: "game" | "quiz_event" | "activity") {
   return {
-    sourceType,
+    sourceTypes: [sourceType],
     async findFinishedByProjectId() {
       return [];
     },
@@ -24,11 +24,12 @@ function adapter(sourceType: string, kind: "game" | "quiz_event") {
 test("submits each completed source through its source-specific adapter", async () => {
   const submitted: Array<{ sourceType: string; id: string }> = [];
   const projectionService = {
-    async submitSource(sourceAdapter: { sourceType: string }, source: { id: string }) {
-      submitted.push({ sourceType: sourceAdapter.sourceType, id: source.id });
+    async submitSource(sourceAdapter: { sourceTypes: readonly string[] }, source: { id: string }) {
+      submitted.push({ sourceType: sourceAdapter.sourceTypes[0]!, id: source.id });
     },
   };
   const submitter = new BestEffortAnalyticsProjectionSubmitter(projectionService as never, {
+    activityResult: adapter("journey", "activity") as never,
     journey: adapter("journey", "game") as never,
     battleships: adapter("battleships", "game") as never,
     lotto: adapter("lotto", "game") as never,
@@ -42,6 +43,7 @@ test("submits each completed source through its source-specific adapter", async 
   await submitter.submitLottoGame(source("lotto-a") as never);
   await submitter.submitLottoBingoGame(source("lotto-bingo-a") as never);
   await submitter.submitQuizEvent(source("quiz-a") as never);
+  await submitter.submitActivityResult(source("activity-a") as never);
 
   assert.deepEqual(submitted, [
     { sourceType: "journey", id: "journey-a" },
@@ -49,6 +51,7 @@ test("submits each completed source through its source-specific adapter", async 
     { sourceType: "lotto", id: "lotto-a" },
     { sourceType: "lotto_bingo", id: "lotto-bingo-a" },
     { sourceType: "quiz", id: "quiz-a" },
+    { sourceType: "journey", id: "activity-a" },
   ]);
 });
 
@@ -57,6 +60,7 @@ test("logs submission failure without rethrowing after canonical save", async ()
   const submitter = new BestEffortAnalyticsProjectionSubmitter(
     { async submitSource() { throw new Error("projection unavailable"); } } as never,
     {
+      activityResult: adapter("journey", "activity") as never,
       journey: adapter("journey", "game") as never,
       battleships: adapter("battleships", "game") as never,
       lotto: adapter("lotto", "game") as never,

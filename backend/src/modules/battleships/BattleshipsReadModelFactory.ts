@@ -64,6 +64,8 @@ export class BattleshipsReadModelFactory {
       createdAt: normalizedGame.createdAt,
       updatedAt: normalizedGame.updatedAt,
       status: normalizedGame.status,
+      finishedAt: normalizedGame.finishedAt ?? null,
+      conductedOn: normalizedGame.conductedOn ?? null,
       playerName: normalizedGame.playerName,
       djName: normalizedGame.djName,
       projectId: normalizedGame.projectId,

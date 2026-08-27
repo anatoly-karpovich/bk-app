@@ -250,6 +250,8 @@ export interface QuizEventDocument {
   questions: QuizEventQuestion[];
   summary: QuizEventSummary | null;
   completedAt: string | null;
+  /** Calendar date of the conducted event, independent from the technical completion timestamp. */
+  conductedOn?: string | null;
   createdAt: string;
   updatedAt: string;
   schemaVersion: 3;

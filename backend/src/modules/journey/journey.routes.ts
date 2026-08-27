@@ -14,6 +14,7 @@ export function createJourneyRouter(journeyController: JourneyController): Route
   router.get("/games/:gameId", asyncHandler(journeyController.getJourneyGameById));
   router.post("/games", asyncHandler(journeyController.createJourneyGameInProject));
   router.post("/games/:gameId/rounds", asyncHandler(journeyController.makeJourneyRoundMove));
+  router.patch("/games/:gameId/conducted-on", asyncHandler(journeyController.updateJourneyConductedOn));
   router.delete("/games/:gameId/players/:playerId", asyncHandler(journeyController.removeJourneyPlayerFromGame));
   router.delete("/games/:gameId", asyncHandler(journeyController.deleteJourneyGame));
 

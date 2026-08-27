@@ -12,7 +12,7 @@ import { QuizMessageCandidateFilter } from "../QuizMessageCandidateFilter/QuizMe
 import { QuizEventReadModelFactory } from "../QuizEventReadModelFactory";
 import { QuizSelectedAnswerPruner } from "../QuizSelectedAnswerPruner/QuizSelectedAnswerPruner";
 import type { QuizEventDocument, QuizSnapshot } from "../domain/types";
-import { QuizQuestionResultOrderError, QuizQuestionResultsLockedError } from "../errors";
+import { QuizEventConductedOnUnavailableError, QuizQuestionResultOrderError, QuizQuestionResultsLockedError } from "../errors";
 import { QuizEventsService } from "./QuizEventsService";
 
 const templates = { defaultTemplate: { template: "{questionText}", variables: {} }, questionOverrides: [] };
@@ -63,7 +63,11 @@ const actor: CurrentUser = {
   projectProfiles: [{ projectId: "project", nickname: "Dark" }],
 };
 
-function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
+function setup(
+  sourceSnapshot: QuizSnapshot = snapshot,
+  hostNickname = "Dark",
+  eventOverrides: Partial<QuizEventDocument> = {},
+) {
   const ranker = new QuizAnswerRanker();
   const engine = new QuizEventEngine(
     ranker,
@@ -71,7 +75,10 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     new QuizEventSummaryCalculator(),
     new QuizSelectedAnswerPruner(),
   );
-  let event = engine.create(sourceSnapshot, { userId: "host", displayName: "Host", nickname: hostNickname }, "Event");
+  let event = {
+    ...engine.create(sourceSnapshot, { userId: "host", displayName: "Host", nickname: hostNickname }, "Event"),
+    ...eventOverrides,
+  };
   event.projectId = "project";
   const documentId = new ObjectId();
   const repository = {
@@ -94,6 +101,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     withTransaction: async <T>(operation: (session: never) => Promise<T>) => operation(undefined as never),
   };
   const invalidatedSources: Array<{ projectId: string; kind: string; id: string }> = [];
+  const submittedEvents: QuizEventDocument[] = [];
   const analyticsInvalidator = {
     async deleteSourceFact(projectId: string, source: { kind: string; id: string }) {
       invalidatedSources.push({ projectId, ...source });
@@ -113,7 +121,10 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     new QuizEventReadModelFactory(ranker),
     mongoDatabase as never,
     analyticsInvalidator as never,
-    { async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {}, async submitQuizEvent() {} } as never,
+    {
+      async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {},
+      async submitQuizEvent(event: QuizEventDocument) { submittedEvents.push(event); },
+    } as never,
   );
   return {
     service,
@@ -122,6 +133,7 @@ function setup(sourceSnapshot: QuizSnapshot = snapshot, hostNickname = "Dark") {
     questionId: event.questions[0].id,
     questionIds: event.questions.map((question) => question.id),
     invalidatedSources,
+    submittedEvents,
   };
 }
 
@@ -158,6 +170,40 @@ test("invalidates the quiz analytics fact after a successfully deleted event", a
   await service.delete(actor, "project", "event", 0);
 
   assert.deepEqual(invalidatedSources, [{ projectId: "project", kind: "quiz_event", id: "event" }]);
+});
+
+test("updates a completed Quiz Event conducted date, preserves the legacy completion fallback, and re-submits Analytics", async () => {
+  const { service, persistedEvent, submittedEvents } = setup(snapshot, "Dark", {
+    status: "completed",
+    completedAt: null,
+    updatedAt: "2026-08-25T10:00:00.000Z",
+  });
+
+  const result = await service.updateConductedOn(actor, "project", "event", "2024-03-15", 0);
+
+  assert.equal(result.meta.conductedOn, "2024-03-15");
+  assert.equal(result.meta.completedAt, "2026-08-25T10:00:00.000Z");
+  assert.equal(result.meta.revision, 1);
+  assert.equal(persistedEvent().completedAt, "2026-08-25T10:00:00.000Z");
+  assert.deepEqual(submittedEvents, [persistedEvent()]);
+});
+
+test("rejects a Quiz Event conducted-date change before completion", async () => {
+  const { service } = setup();
+
+  await assert.rejects(
+    () => service.updateConductedOn(actor, "project", "event", null, 0),
+    QuizEventConductedOnUnavailableError,
+  );
+});
+
+test("rejects a stale Quiz Event conducted-date revision", async () => {
+  const { service } = setup(snapshot, "Dark", { status: "completed", completedAt: "2026-08-25T10:00:00.000Z" });
+
+  await assert.rejects(
+    () => service.updateConductedOn(actor, "project", "event", null, 1),
+    (error: unknown) => (error as { code?: string }).code === "quiz_event_revision_conflict",
+  );
 });
 
 test("does not resolve or create players for an invalid chat selection", async () => {

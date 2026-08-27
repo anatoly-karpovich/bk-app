@@ -4,9 +4,9 @@ import { getResourceColor } from "./analyticsColors";
 
 function calendarDays(from: string, to: string): string[] {
   const dates: string[] = [];
-  const cursor = new Date(from);
-  const end = new Date(to);
-  while (cursor < end) {
+  const cursor = new Date(`${from}T00:00:00.000Z`);
+  const end = new Date(`${to}T00:00:00.000Z`);
+  while (cursor <= end) {
     dates.push(cursor.toISOString().slice(0, 10));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }

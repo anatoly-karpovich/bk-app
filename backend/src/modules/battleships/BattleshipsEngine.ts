@@ -23,6 +23,8 @@ export class BattleshipsEngine {
 
     const normalizedGame: BattleshipsGame = {
       ...this.clone(game),
+      finishedAt: game.finishedAt ?? null,
+      conductedOn: game.conductedOn ?? null,
       playerName: game.playerName.trim(),
       playerRefId: game.playerRefId?.trim() || undefined,
       djName: game.djName.trim(),
@@ -67,6 +69,7 @@ export class BattleshipsEngine {
       createdAt: now,
       updatedAt: now,
       finishedAt: null,
+      conductedOn: null,
       status: "in_progress",
       playerName,
       playerRefId,

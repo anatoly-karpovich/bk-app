@@ -10,6 +10,7 @@ export function createLottoRouter(lottoController: LottoController): Router {
   router.get("/games/:gameId", asyncHandler(lottoController.getLottoGameById));
   router.post("/games", asyncHandler(lottoController.createLottoGameInProject));
   router.post("/games/:gameId/draw", asyncHandler(lottoController.drawNextNumber));
+  router.patch("/games/:gameId/conducted-on", asyncHandler(lottoController.updateLottoConductedOn));
   router.delete("/games/:gameId/players/:playerId", asyncHandler(lottoController.removePlayerFromGame));
   router.delete("/games/:gameId", asyncHandler(lottoController.deleteLottoGame));
 

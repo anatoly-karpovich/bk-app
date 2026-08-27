@@ -10,26 +10,36 @@ export interface AnalyticsPeriodPreset {
   range: AnalyticsDateRange;
 }
 
-/** Rolling range of the last `days` days, ending at the start of tomorrow (UTC, `to` exclusive). */
-export function dateRange(days: number): AnalyticsDateRange {
-  const today = new Date();
-  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - days);
-  return { from: start.toISOString(), to: end.toISOString() };
+function toCalendarDate(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-/** Calendar month relative to now (`offset` 0 = current, -1 = previous), `to` exclusive. */
+function addLocalDays(value: Date, days: number): Date {
+  const next = new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+/** Inclusive calendar range for the last `days` days, including today. */
+export function dateRange(days: number): AnalyticsDateRange {
+  const today = new Date();
+  return { from: toCalendarDate(addLocalDays(today, -(days - 1))), to: toCalendarDate(today) };
+}
+
+/** Inclusive calendar month relative to now (`offset` 0 = current, -1 = previous). */
 export function monthRange(offset: number): AnalyticsDateRange {
   const now = new Date();
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
-  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 1));
-  return { from: from.toISOString(), to: to.toISOString() };
+  const from = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const to = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+  return { from: toCalendarDate(from), to: toCalendarDate(to) };
 }
 
 export function formatPeriod(from: string, to: string): string {
-  const start = new Date(from);
-  const end = new Date(new Date(to).getTime() - 1);
+  const start = new Date(`${from}T00:00:00.000Z`);
+  const end = new Date(`${to}T00:00:00.000Z`);
   const format = (value: Date) => value.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
   return `${format(start)} — ${format(end)}`;
 }
@@ -47,14 +57,7 @@ export function periodPresets(): AnalyticsPeriodPreset[] {
   ];
 }
 
-/** The inclusive last day (`YYYY-MM-DD`) represented by an exclusive-`to` query bound. */
-export function queryToInclusiveTo(to: string): string {
-  return new Date(new Date(to).getTime() - 1).toISOString().slice(0, 10);
-}
-
-/** Convert inclusive custom date inputs (`YYYY-MM-DD`) into an exclusive-`to` query range. */
+/** Custom date inputs already use the inclusive Analytics query contract. */
 export function customRangeToQuery(from: string, to: string): AnalyticsDateRange {
-  const exclusiveTo = new Date(`${to}T00:00:00.000Z`);
-  exclusiveTo.setUTCDate(exclusiveTo.getUTCDate() + 1);
-  return { from: `${from}T00:00:00.000Z`, to: exclusiveTo.toISOString() };
+  return { from, to };
 }

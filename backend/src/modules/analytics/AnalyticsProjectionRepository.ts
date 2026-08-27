@@ -16,8 +16,8 @@ export class AnalyticsProjectionRepository {
         { unique: true, name: "analytics_project_source_unique" },
       ),
       collection.createIndex(
-        { projectId: 1, occurredAt: -1, "source.type": 1 },
-        { name: "analytics_project_occurred_at_source_type" },
+        { projectId: 1, occurredOn: -1, "source.type": 1 },
+        { name: "analytics_project_occurred_on_source_type" },
       ),
     ]);
   }

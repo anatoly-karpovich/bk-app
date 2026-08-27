@@ -5,6 +5,7 @@ import { GameConfigNotFoundError } from "../gameConfigs/errors";
 import { ProjectNotFoundError } from "../projects/errors";
 import {
   InvalidLottoGameIdError,
+  LottoConductedOnUnavailableError,
   LottoGameNotFoundError,
   LottoGamesNotFoundError,
   LottoValidationError,
@@ -14,6 +15,7 @@ import {
   createLottoGamePresetSchema,
   createLottoGameProjectParamsSchema,
   latestLottoGameQuerySchema,
+  lottoConductedOnSchema,
   lottoGameIdParamsSchema,
   lottoPlayerIdParamsSchema,
 } from "./lotto.schemas";
@@ -271,6 +273,37 @@ export class LottoController {
       return res.status(500).json({
         success: false,
         message: "Failed to remove lotto player",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
+  updateLottoConductedOn = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = parseRequest(lottoGameIdParamsSchema, req.params, "Route parameter 'gameId' is required");
+      const { conductedOn } = parseRequest(lottoConductedOnSchema, req.body, "Invalid conducted date");
+      const updatedGame = await this.lottoService.updateLottoConductedOn(
+        req.authUser!,
+        getProjectId(req),
+        gameId,
+        conductedOn,
+      );
+
+      return res.status(200).json({ success: true, data: updatedGame });
+    } catch (error) {
+      if (error instanceof RequestValidationError || error instanceof InvalidLottoGameIdError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      if (error instanceof LottoGameNotFoundError) {
+        return res.status(404).json({ success: false, message: "Lotto game not found" });
+      }
+      if (error instanceof LottoConductedOnUnavailableError) {
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update Lotto conducted date",
         error: getErrorMessage(error),
       });
     }

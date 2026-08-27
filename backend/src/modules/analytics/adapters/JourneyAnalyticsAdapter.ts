@@ -2,6 +2,7 @@ import type { WithId } from "mongodb";
 import { JourneyRepository, type JourneyGameDocument } from "../../journey/JourneyRepository";
 import type { ResourceAmount } from "../../rewards";
 import { aggregateAnalyticsResourceAmounts } from "../domain/rewardAggregation";
+import { resolveAnalyticsOccurrenceDate } from "../domain/occurrenceDate";
 import type { AnalyticsFactDocument, AnalyticsParticipantResult } from "../domain/types";
 import type { AnalyticsSourceAdapter, AnalyticsSourceDescriptor } from "./AnalyticsSourceAdapter";
 
@@ -18,7 +19,7 @@ interface JourneyParticipantAccumulator {
 
 /** Builds analytics facts from Journey's immutable final player reward snapshots. */
 export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAnalyticsSource> {
-  readonly sourceType = "journey" as const;
+  readonly sourceTypes = ["journey"] as const;
 
   constructor(
     private readonly journeyRepository: JourneyRepository,
@@ -32,10 +33,10 @@ export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAn
   describe(source: JourneyAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      occurredAt: source.finishedAt ?? source.updatedAt,
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
-        type: this.sourceType,
+        type: this.sourceTypes[0],
         id: source._id.toHexString(),
         titleSnapshot: "Карта Мародёров",
         revision: null,
@@ -58,7 +59,8 @@ export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAn
 
     return {
       projectId: descriptor.projectId,
-      occurredAt: descriptor.occurredAt,
+      occurredOn: descriptor.occurredOn,
+      occurrenceDateSource: descriptor.occurrenceDateSource,
       source: descriptor.source,
       participants,
       resourceSnapshot: source.resources.map((resource) => ({ ...resource })),
@@ -66,7 +68,7 @@ export class JourneyAnalyticsAdapter implements AnalyticsSourceAdapter<JourneyAn
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 2,
+        schemaVersion: 3,
       },
     };
   }

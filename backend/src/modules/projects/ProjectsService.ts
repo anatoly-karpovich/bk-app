@@ -12,7 +12,14 @@ import { JourneyRepository } from "../journey/JourneyRepository";
 import { LottoRepository } from "../lotto/LottoRepository";
 import { LottoBingoRepository } from "../lottoBingo/LottoBingoRepository";
 import { normalizeProjectResources } from "./domain/normalizeProjectCurrencies";
-import type { Project, ProjectCurrency, ProjectReadModel, ProjectResource } from "./domain/types";
+import { createDefaultProjectActivityTypes, normalizeProjectActivityTypes } from "./domain/activityTypes";
+import type {
+  Project,
+  ProjectActivityTypeSettings,
+  ProjectCurrency,
+  ProjectReadModel,
+  ProjectResource,
+} from "./domain/types";
 import { ProjectsRepository } from "./ProjectsRepository";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertProjectAccess } from "../auth/authorization";
@@ -23,6 +30,7 @@ import { QuizEventsRepository } from "../quizzes/QuizEventsRepository";
 import { collectResourceIds as collectQuizResourceIds } from "../quizzes/domain/validation";
 import { PlayersRepository } from "../players/PlayersRepository";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
+import { ActivitiesRepository } from "../activities/ActivitiesRepository";
 
 const DEFAULT_ADMIN_PROJECT_NICKNAME = "Геральт из Ривии";
 
@@ -39,6 +47,7 @@ export class ProjectsService {
     private readonly quizzesRepository: QuizzesRepository,
     private readonly quizEventsRepository: QuizEventsRepository,
     private readonly playersRepository: PlayersRepository,
+    private readonly activitiesRepository: ActivitiesRepository,
     private readonly analyticsInvalidator: AnalyticsProjectionInvalidator,
   ) {}
 
@@ -72,6 +81,7 @@ export class ProjectsService {
       name: string;
       description: string;
       resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
+      activityTypes: ProjectActivityTypeSettings[];
     },
   ): Promise<ProjectReadModel> {
     const code = input.code.trim();
@@ -87,6 +97,7 @@ export class ProjectsService {
       name: input.name.trim(),
       description: input.description.trim(),
       resources: normalizeProjectResources(input.resources, now),
+      activityTypes: createDefaultProjectActivityTypes(),
       createdByUserId: actor.id,
       updatedByUserId: actor.id,
       createdAt: now,
@@ -120,6 +131,7 @@ export class ProjectsService {
       name: string;
       description: string;
       resources: Array<Omit<ProjectResource, "createdAt" | "updatedAt">>;
+      activityTypes: ProjectActivityTypeSettings[];
     },
   ): Promise<ProjectReadModel> {
     const current = await this.repository.findById(projectId);
@@ -146,6 +158,7 @@ export class ProjectsService {
           createdAt: current.resources.find((currentResource) => currentResource.id === resource.id)?.createdAt,
         })),
       ),
+      activityTypes: structuredClone(input.activityTypes),
       createdAt: current.createdAt,
       createdByUserId: current.createdByUserId,
       updatedByUserId: actor.id,
@@ -174,6 +187,7 @@ export class ProjectsService {
       this.quizConfigsRepository.deleteByProjectId(projectId),
       this.quizzesRepository.deleteByProjectId(projectId),
       this.quizEventsRepository.deleteByProjectId(projectId),
+      this.activitiesRepository.deleteByProjectId(projectId),
       this.playersRepository.deleteByProjectId(projectId),
       this.usersRepository.removeProjectProfiles(projectId),
     ]);
@@ -268,6 +282,7 @@ export class ProjectsService {
         ...structuredClone(resource),
         canDelete: !usedResourceIds.has(resource.id),
       })),
+      activityTypes: normalizeProjectActivityTypes(project.activityTypes),
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       createdByUserId: project.createdByUserId,

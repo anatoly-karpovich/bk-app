@@ -131,7 +131,7 @@ export class AnalyticsReadModelFactory {
       })),
       history: {
         entries: model.history.entries.map((entry) => ({
-          occurredAt: entry.occurredAt,
+          occurredOn: entry.occurredOn,
           source: { ...entry.source },
           rewards: entry.rewards.map((reward) => ({ ...reward })),
         })),

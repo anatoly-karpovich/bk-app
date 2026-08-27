@@ -38,8 +38,8 @@ const historicalCoin = {
 
 const freshIntegrity: AnalyticsIntegrityReport = {
   freshness: "fresh",
-  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 },
-  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0 },
+  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
+  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
   missing: [],
   orphan: [],
   outdated: [],
@@ -115,8 +115,8 @@ test("builds an overview from filtered facts without mixing sources, resources, 
   ]);
 
   const overview = await service.getOverview("project-a", {
-    from: "2026-08-01T00:00:00.000Z",
-    to: "2026-09-01T00:00:00.000Z",
+    from: "2026-08-01",
+    to: "2026-08-31",
     sourceTypes: ["journey", "quiz"],
   });
 
@@ -127,9 +127,24 @@ test("builds an overview from filtered facts without mixing sources, resources, 
     { resourceId: "coins", rewards: { regular: 9, bonus: 0, total: 9 } },
     { resourceId: "key", rewards: { regular: 0, bonus: 1, total: 1 } },
   ]);
-  assert.deepEqual(overview.sourceBreakdown.journey, { conductedSources: 1, participations: 1, uniquePlayers: 1 });
-  assert.deepEqual(overview.sourceBreakdown.quiz, { conductedSources: 1, participations: 2, uniquePlayers: 1 });
-  assert.deepEqual(overview.sourceBreakdown.lotto, { conductedSources: 0, participations: 0, uniquePlayers: 0 });
+  assert.deepEqual(overview.sourceBreakdown.journey, {
+    conductedSources: 1,
+    fallbackDateSources: 0,
+    participations: 1,
+    uniquePlayers: 1,
+  });
+  assert.deepEqual(overview.sourceBreakdown.quiz, {
+    conductedSources: 1,
+    fallbackDateSources: 0,
+    participations: 2,
+    uniquePlayers: 1,
+  });
+  assert.deepEqual(overview.sourceBreakdown.lotto, {
+    conductedSources: 0,
+    fallbackDateSources: 0,
+    participations: 0,
+    uniquePlayers: 0,
+  });
   assert.deepEqual(overview.activityByDay, [
     { date: "2026-08-05", conductedSources: 1, participations: 1 },
     { date: "2026-08-06", conductedSources: 1, participations: 2 },
@@ -148,6 +163,64 @@ test("builds an overview from filtered facts without mixing sources, resources, 
     },
   ]);
   assert.equal(overview.integrity, freshIntegrity);
+});
+
+test("uses inclusive calendar-date filters and reads legacy timestamps only as a fallback", async () => {
+  const legacyFact = fact("journey-legacy", "journey", "2026-08-10T23:30:00.000Z", [participant("player-1", "Legacy")]);
+  const refreshedFact = fact("journey-refreshed", "journey", "2026-08-01T00:00:00.000Z", [participant("player-2", "Current")]);
+  refreshedFact.occurredOn = "2026-08-10";
+  refreshedFact.occurrenceDateSource = "conducted_on";
+  refreshedFact.occurredAt = undefined;
+
+  const overview = await createService([legacyFact, refreshedFact]).getOverview("project-a", {
+    from: "2026-08-10",
+    to: "2026-08-10",
+  });
+
+  assert.deepEqual(overview.period, { from: "2026-08-10", to: "2026-08-10", sourceTypes: ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"] });
+  assert.equal(overview.conductedSources, 2);
+  assert.deepEqual(overview.activityByDay, [{ date: "2026-08-10", conductedSources: 2, participations: 2 }]);
+});
+
+test("accepts an explicit empty source-type selection and returns an empty period", async () => {
+  const overview = await createService([
+    fact("journey-1", "journey", "2026-08-10T10:00:00.000Z", [participant("player-1", "Journey")]),
+  ]).getOverview("project-a", {
+    from: "2026-08-10",
+    to: "2026-08-10",
+    sourceTypes: [],
+  });
+
+  assert.deepEqual(overview.period.sourceTypes, []);
+  assert.equal(overview.conductedSources, 0);
+  assert.deepEqual(overview.activityByDay, []);
+});
+
+test("counts finalized-date fallbacks in the selected source-type breakdown only", async () => {
+  const finalizedJourney = fact("journey-finalized", "journey", "2026-08-10T10:00:00.000Z", [participant("player-1", "Journey")]);
+  finalizedJourney.occurredOn = "2026-08-10";
+  finalizedJourney.occurrenceDateSource = "finalized_at";
+  finalizedJourney.occurredAt = undefined;
+
+  const finalizedQuiz = fact("quiz-finalized", "quiz", "2026-08-10T10:00:00.000Z", [participant("player-2", "Quiz")]);
+  finalizedQuiz.occurredOn = "2026-08-10";
+  finalizedQuiz.occurrenceDateSource = "finalized_at";
+  finalizedQuiz.occurredAt = undefined;
+
+  const explicitLotto = fact("lotto-conducted", "lotto", "2026-08-10T10:00:00.000Z", [participant("player-3", "Lotto")]);
+  explicitLotto.occurredOn = "2026-08-10";
+  explicitLotto.occurrenceDateSource = "conducted_on";
+  explicitLotto.occurredAt = undefined;
+
+  const overview = await createService([finalizedJourney, finalizedQuiz, explicitLotto]).getOverview("project-a", {
+    from: "2026-08-10",
+    to: "2026-08-10",
+    sourceTypes: ["journey", "lotto"],
+  });
+
+  assert.equal(overview.sourceBreakdown.journey.fallbackDateSources, 1);
+  assert.equal(overview.sourceBreakdown.lotto.fallbackDateSources, 0);
+  assert.equal(overview.sourceBreakdown.quiz.fallbackDateSources, 0);
 });
 
 test("keeps current resources selectable and exposes historical source snapshots with separate totals", async () => {
@@ -244,8 +317,8 @@ test("builds a player detail view from saved facts with resource totals, ranks, 
   lotto.meta.schemaVersion = 2;
 
   const details = await createService([journey, quiz, lotto]).getPlayerDetails("project-a", "player-1", {
-    from: "2026-08-01T00:00:00.000Z",
-    to: "2026-09-01T00:00:00.000Z",
+    from: "2026-08-01",
+    to: "2026-08-31",
     resourceId: "coins",
     historyLimit: 2,
   });
@@ -267,5 +340,6 @@ test("builds a player detail view from saved facts with resource totals, ranks, 
     { sourceType: "quiz", participations: 1, rewards: { regular: 0, bonus: 3, total: 3 }, rank: 1, rankedPlayers: 2 },
   ]);
   assert.deepEqual(details.history.entries.map((entry) => entry.source.titleSnapshot), ["Лото", "Викторина «Киномания»"]);
+  assert.deepEqual(details.history.entries.map((entry) => entry.occurredOn), ["2026-08-07", "2026-08-06"]);
   assert.ok(details.history.nextCursor);
 });
