@@ -1,4 +1,11 @@
-import type { AnyGameConfig, Project, ProjectCurrency, ProjectItem, ProjectMutationInput } from "./types";
+import type {
+  AnyGameConfig,
+  Project,
+  ProjectActivityTypeSettings,
+  ProjectCurrency,
+  ProjectItem,
+  ProjectMutationInput,
+} from "./types";
 import { projectTexts } from "../../texts/projectTexts";
 
 export type ProjectCurrencyDraft = Omit<ProjectCurrency, "createdAt" | "updatedAt"> & { isNew: boolean };
@@ -9,6 +16,7 @@ export interface ProjectDraft {
   name: string;
   description: string;
   resources: ProjectResourceDraft[];
+  activityTypes: ProjectActivityTypeSettings[];
 }
 
 export interface ResourceConfigUsage {
@@ -26,6 +34,7 @@ export function toProjectDraft(project: Project): ProjectDraft {
     name: project.name,
     description: project.description,
     resources: project.resources.map((resource) => ({ ...resource, isNew: false })),
+    activityTypes: structuredClone(project.activityTypes),
   };
 }
 
@@ -68,6 +77,7 @@ export function toProjectMutationInput(project: Project, draft: ProjectDraft): P
       ...resource,
       name: resource.label.trim(),
     })),
+    activityTypes: structuredClone(draft.activityTypes),
   };
 }
 
