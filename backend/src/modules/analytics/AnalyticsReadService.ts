@@ -5,6 +5,7 @@ import type { ProjectResource } from "../projects/domain/types";
 import { AnalyticsIntegrityService, type AnalyticsIntegrityReport } from "./AnalyticsIntegrityService";
 import { AnalyticsProjectionRepository } from "./AnalyticsProjectionRepository";
 import { ANALYTICS_SOURCE_TYPES, type AnalyticsSourceType } from "./domain/sourceTypes";
+import { isAnalyticsCalendarDate, utcDateFromTimestamp } from "./domain/occurrenceDate";
 import type { AnalyticsFactDocument } from "./domain/types";
 import { AnalyticsInvalidQueryError } from "./errors/AnalyticsInvalidQueryError";
 
@@ -109,7 +110,7 @@ export interface AnalyticsPlayerDetailsReadModel {
   }>;
   history: {
     entries: Array<{
-      occurredAt: string;
+      occurredOn: string;
       source: { type: AnalyticsSourceType; titleSnapshot: string };
       rewards: AnalyticsRewardTotalsByResource[];
     }>;
@@ -128,7 +129,7 @@ interface NormalizedReadQuery extends AnalyticsReadPeriod {}
 interface PlayerAggregate {
   playerRefId: string;
   nicknameSnapshot: string;
-  newestOccurredAt: string;
+  newestOccurredOn: string;
   participations: number;
   regular: number;
   bonus: number;
@@ -141,7 +142,7 @@ interface DecodedCursor {
 }
 
 interface DecodedHistoryCursor {
-  occurredAt: string;
+  occurredOn: string;
   sourceId: string;
 }
 
@@ -181,7 +182,7 @@ export class AnalyticsReadService {
       breakdown.conductedSources += 1;
       breakdown.participations += fact.participants.length;
       participations += fact.participants.length;
-      const date = new Date(fact.occurredAt).toISOString().slice(0, 10);
+      const date = this.occurredOnForFact(fact);
       const activity = activityByDay.get(date) ?? { conductedSources: 0, participations: 0 };
       activity.conductedSources += 1;
       activity.participations += fact.participants.length;
@@ -300,7 +301,7 @@ export class AnalyticsReadService {
     const rewardsByResource = this.collectPlayerRewardsByResource(playerFacts);
     const nicknameSnapshot = playerFacts
       .slice()
-      .sort((left, right) => right.fact.occurredAt.localeCompare(left.fact.occurredAt))[0]
+      .sort((left, right) => this.occurredOnForFact(right.fact).localeCompare(this.occurredOnForFact(left.fact)))[0]
       ?.participant.nicknameSnapshot ?? null;
     const rewardsByDay = this.collectPlayerRewardsByDay(playerFacts, selectedResource.resource.id);
     const rewardsBySourceType = this.collectPlayerRewardsBySourceType(playerFacts, selectedResource.resource.id);
@@ -330,10 +331,12 @@ export class AnalyticsReadService {
   private normalizeQuery(query: AnalyticsReadQuery): NormalizedReadQuery {
     const now = this.now();
     const defaultFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const defaultTo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-    const from = this.parseDateTime(query.from ?? defaultFrom.toISOString(), "from");
-    const to = this.parseDateTime(query.to ?? defaultTo.toISOString(), "to");
-    if (from >= to) throw new AnalyticsInvalidQueryError("from_must_be_before_to");
+    const defaultTo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+    const from = query.from ?? defaultFrom.toISOString().slice(0, 10);
+    const to = query.to ?? defaultTo.toISOString().slice(0, 10);
+    if (!isAnalyticsCalendarDate(from)) throw new AnalyticsInvalidQueryError("invalid_from");
+    if (!isAnalyticsCalendarDate(to)) throw new AnalyticsInvalidQueryError("invalid_to");
+    if (from > to) throw new AnalyticsInvalidQueryError("from_must_be_before_to");
 
     const sourceTypes = query.sourceTypes ? [...query.sourceTypes] : [...ANALYTICS_SOURCE_TYPES];
     if (
@@ -344,14 +347,14 @@ export class AnalyticsReadService {
       throw new AnalyticsInvalidQueryError("invalid_source_types");
     }
 
-    return { from: from.toISOString(), to: to.toISOString(), sourceTypes };
+    return { from, to, sourceTypes };
   }
 
   private filterFacts<T extends AnalyticsFactDocument>(facts: ReadonlyArray<T>, query: NormalizedReadQuery): T[] {
     const sourceTypes = new Set(query.sourceTypes);
     return facts.filter((fact) => {
-      const occurredAt = fact.occurredAt;
-      return occurredAt >= query.from && occurredAt < query.to && sourceTypes.has(fact.source.type);
+      const occurredOn = this.occurredOnForFact(fact);
+      return occurredOn >= query.from && occurredOn <= query.to && sourceTypes.has(fact.source.type);
     });
   }
 
@@ -391,7 +394,7 @@ export class AnalyticsReadService {
   ): Array<{ resource: ResourceSnapshot; catalogStatus: AnalyticsResourceCatalogStatus }> {
     const currentById = new Map(currentResources.map((resource) => [resource.id, resource]));
     const historicalById = new Map<string, ResourceSnapshot>();
-    for (const fact of [...facts].sort((left, right) => right.occurredAt.localeCompare(left.occurredAt))) {
+    for (const fact of [...facts].sort((left, right) => this.occurredOnForFact(right).localeCompare(this.occurredOnForFact(left)))) {
       for (const resource of fact.resourceSnapshot) {
         if (!currentById.has(resource.id) && !historicalById.has(resource.id)) {
           historicalById.set(resource.id, { ...resource });
@@ -431,7 +434,7 @@ export class AnalyticsReadService {
         const current = players.get(participant.playerRefId) ?? {
           playerRefId: participant.playerRefId,
           nicknameSnapshot: participant.nicknameSnapshot,
-          newestOccurredAt: fact.occurredAt,
+          newestOccurredOn: this.occurredOnForFact(fact),
           participations: 0,
           regular: 0,
           bonus: 0,
@@ -439,9 +442,9 @@ export class AnalyticsReadService {
         current.participations += 1;
         current.regular += this.amountForResource(participant.rewards.regular, resourceId);
         current.bonus += this.amountForResource(participant.rewards.bonus, resourceId);
-        if (fact.occurredAt > current.newestOccurredAt) {
+        if (this.occurredOnForFact(fact) > current.newestOccurredOn) {
           current.nicknameSnapshot = participant.nicknameSnapshot;
-          current.newestOccurredAt = fact.occurredAt;
+          current.newestOccurredOn = this.occurredOnForFact(fact);
         }
         players.set(participant.playerRefId, current);
       }
@@ -471,7 +474,7 @@ export class AnalyticsReadService {
   ): Array<{ date: string; rewards: AnalyticsRewardTotals }> {
     const byDay = new Map<string, AnalyticsRewardTotals>();
     for (const { fact, participant } of playerFacts) {
-      const date = new Date(fact.occurredAt).toISOString().slice(0, 10);
+      const date = this.occurredOnForFact(fact);
       const current = byDay.get(date) ?? this.emptyRewardTotals();
       current.regular += this.amountForResource(participant.rewards.regular, resourceId);
       current.bonus += this.amountForResource(participant.rewards.bonus, resourceId);
@@ -532,12 +535,15 @@ export class AnalyticsReadService {
     const limit = this.normalizePageLimit(limitInput);
     const ordered = playerFacts
       .slice()
-      .sort((left, right) => right.fact.occurredAt.localeCompare(left.fact.occurredAt) || right.fact.source.id.localeCompare(left.fact.source.id));
+      .sort((left, right) => this.occurredOnForFact(right.fact).localeCompare(this.occurredOnForFact(left.fact)) || right.fact.source.id.localeCompare(left.fact.source.id));
     const afterCursor = cursor
-      ? ordered.filter(({ fact }) => fact.occurredAt < cursor.occurredAt || (fact.occurredAt === cursor.occurredAt && fact.source.id < cursor.sourceId))
+      ? ordered.filter(({ fact }) => {
+          const occurredOn = this.occurredOnForFact(fact);
+          return occurredOn < cursor.occurredOn || (occurredOn === cursor.occurredOn && fact.source.id < cursor.sourceId);
+        })
       : ordered;
     const entries = afterCursor.slice(0, limit).map(({ fact, participant }) => ({
-      occurredAt: fact.occurredAt,
+      occurredOn: this.occurredOnForFact(fact),
       source: { type: fact.source.type, titleSnapshot: fact.source.titleSnapshot ?? this.defaultSourceTitle(fact.source.type) },
       rewards: this.combineParticipantRewards(participant),
     }));
@@ -559,13 +565,13 @@ export class AnalyticsReadService {
   }
 
   private encodeHistoryCursor(fact: AnalyticsFactDocument): string {
-    return Buffer.from(JSON.stringify({ occurredAt: fact.occurredAt, sourceId: fact.source.id })).toString("base64url");
+    return Buffer.from(JSON.stringify({ occurredOn: this.occurredOnForFact(fact), sourceId: fact.source.id })).toString("base64url");
   }
 
   private decodeHistoryCursor(cursor: string): DecodedHistoryCursor {
     try {
       const value: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
-      if (!value || typeof value !== "object" || !this.isValidDateTime((value as DecodedHistoryCursor).occurredAt) || !this.isNonEmptyString((value as DecodedHistoryCursor).sourceId)) {
+      if (!value || typeof value !== "object" || !isAnalyticsCalendarDate((value as DecodedHistoryCursor).occurredOn) || !this.isNonEmptyString((value as DecodedHistoryCursor).sourceId)) {
         throw new Error("Invalid cursor shape");
       }
       return value as DecodedHistoryCursor;
@@ -668,14 +674,10 @@ export class AnalyticsReadService {
     ) as AnalyticsOverviewReadModel["sourceBreakdown"];
   }
 
-  private parseDateTime(value: string, field: "from" | "to"): Date {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) throw new AnalyticsInvalidQueryError(`invalid_${field}`);
-    return parsed;
-  }
-
-  private isValidDateTime(value: unknown): value is string {
-    return typeof value === "string" && value.trim().length > 0 && Number.isFinite(Date.parse(value));
+  private occurredOnForFact(fact: AnalyticsFactDocument): string {
+    if (isAnalyticsCalendarDate(fact.occurredOn)) return fact.occurredOn;
+    if (typeof fact.occurredAt === "string" && fact.occurredAt.trim()) return utcDateFromTimestamp(fact.occurredAt);
+    throw new Error("Analytics fact is missing an occurrence date");
   }
 
   private isNonEmptyString(value: unknown): value is string {

@@ -37,7 +37,8 @@ function stamp(source: TestSource): AnalyticsSourceStamp {
 function toFact(source: TestSource): AnalyticsFactDocument {
   return {
     projectId: "project-a",
-    occurredAt: "2026-08-25T09:00:00.000Z",
+    occurredOn: "2026-08-25",
+    occurrenceDateSource: "finalized_at",
     source: stamp(source),
     participants: source.invalid
       ? [
@@ -49,7 +50,7 @@ function toFact(source: TestSource): AnalyticsFactDocument {
         ]
       : [],
     resourceSnapshot: [],
-    meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 2 },
+    meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 3 },
   };
 }
 
@@ -65,7 +66,12 @@ function adapter(
       return sources;
     },
     describe(source) {
-      return { projectId: "project-a", occurredAt: "2026-08-25T09:00:00.000Z", source: stamp(source) };
+      return {
+        projectId: "project-a",
+        occurredOn: "2026-08-25",
+        occurrenceDateSource: "finalized_at",
+        source: stamp(source),
+      };
     },
     buildFact(source) {
       if (source.id === options.failBuildFor) throw new Error("Corrupt saved source");
@@ -209,16 +215,22 @@ test("accepts a descriptor type declared by a multi-category adapter", async () 
       return [];
     },
     describe() {
-      return { projectId: "project-a", occurredAt: "2026-08-25T09:00:00.000Z", source: descriptor };
+      return {
+        projectId: "project-a",
+        occurredOn: "2026-08-25",
+        occurrenceDateSource: "finalized_at",
+        source: descriptor,
+      };
     },
     buildFact() {
       return {
         projectId: "project-a",
-        occurredAt: "2026-08-25T09:00:00.000Z",
+        occurredOn: "2026-08-25",
+        occurrenceDateSource: "finalized_at",
         source: descriptor,
         participants: [],
         resourceSnapshot: [],
-        meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 2 },
+        meta: { status: "ready", issues: [], computedAt: "2026-08-25T10:30:00.000Z", schemaVersion: 3 },
       };
     },
   };

@@ -1,10 +1,12 @@
 import type { AnalyticsFactDocument, AnalyticsSourceStamp } from "../domain/types";
 import type { AnalyticsSourceType } from "../domain/sourceTypes";
+import type { AnalyticsOccurrenceDateSource } from "../domain/occurrenceDate";
 
 export interface AnalyticsSourceDescriptor {
   projectId: string;
   source: AnalyticsSourceStamp;
-  occurredAt: string;
+  occurredOn: string;
+  occurrenceDateSource: AnalyticsOccurrenceDateSource;
 }
 
 /**

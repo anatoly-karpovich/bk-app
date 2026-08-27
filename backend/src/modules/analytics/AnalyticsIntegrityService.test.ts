@@ -30,7 +30,12 @@ function adapter(sources: TestSource[]): AnalyticsSourceAdapter<TestSource> {
       return sources;
     },
     describe(value) {
-      return { projectId: "project-a", occurredAt: "2026-08-25T09:00:00.000Z", source: value.descriptor };
+      return {
+        projectId: "project-a",
+        occurredOn: "2026-08-25",
+        occurrenceDateSource: "finalized_at",
+        source: value.descriptor,
+      };
     },
     buildFact() {
       throw new Error("Not used by integrity inspection");

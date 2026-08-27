@@ -131,7 +131,8 @@ test("uses updatedAt only as the historical fallback when a finished Journey gam
 
   const descriptor = createAdapter().describe(game);
 
-  assert.equal(descriptor.occurredAt, "2026-08-25T10:05:00.000Z");
+  assert.equal(descriptor.occurredOn, "2026-08-25");
+  assert.equal(descriptor.occurrenceDateSource, "finalized_at");
   assert.deepEqual(descriptor.source, {
     kind: "game",
     type: "journey",
@@ -189,7 +190,7 @@ test("publishes unresolved Journey players as partial facts without matching the
       },
     ],
     computedAt,
-    schemaVersion: 2,
+    schemaVersion: 3,
   });
 });
 

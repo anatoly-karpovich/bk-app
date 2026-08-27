@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../common/validation/objectIdSchema";
 import { ANALYTICS_SOURCE_TYPES } from "./domain/sourceTypes";
+import { isAnalyticsCalendarDate } from "./domain/occurrenceDate";
 
 const analyticsSourceTypeSchema = z.enum(ANALYTICS_SOURCE_TYPES);
+const analyticsCalendarDateSchema = z.string().trim().refine(isAnalyticsCalendarDate, "Expected YYYY-MM-DD calendar date");
 
 function normalizeSourceTypes(value: unknown): unknown {
   if (value === undefined) return undefined;
@@ -28,8 +30,8 @@ export const analyticsPlayerDetailsParamsSchema = analyticsProjectParamsSchema.e
 });
 
 export const analyticsReadQuerySchema = z.object({
-  from: z.string().datetime({ offset: true }).optional(),
-  to: z.string().datetime({ offset: true }).optional(),
+  from: analyticsCalendarDateSchema.optional(),
+  to: analyticsCalendarDateSchema.optional(),
   sourceTypes: sourceTypesQuerySchema,
 });
 

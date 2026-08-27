@@ -3,6 +3,7 @@ import { QuizEventsRepository } from "../../quizzes/QuizEventsRepository";
 import type { QuizAward, QuizEventDocument } from "../../quizzes/domain/types";
 import type { ResourceAmount } from "../../rewards";
 import { aggregateAnalyticsResourceAmounts } from "../domain/rewardAggregation";
+import { resolveAnalyticsOccurrenceDate } from "../domain/occurrenceDate";
 import type { AnalyticsFactDocument, AnalyticsParticipantResult } from "../domain/types";
 import type { AnalyticsSourceAdapter, AnalyticsSourceDescriptor } from "./AnalyticsSourceAdapter";
 
@@ -32,7 +33,7 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
   describe(source: QuizEventAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      occurredAt: source.completedAt ?? source.updatedAt,
+      ...resolveAnalyticsOccurrenceDate(undefined, source.completedAt ?? source.updatedAt),
       source: {
         kind: "quiz_event",
         type: this.sourceTypes[0],
@@ -57,7 +58,8 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
 
     return {
       projectId: descriptor.projectId,
-      occurredAt: descriptor.occurredAt,
+      occurredOn: descriptor.occurredOn,
+      occurrenceDateSource: descriptor.occurrenceDateSource,
       source: descriptor.source,
       participants: participants.map((participant) => this.toParticipant(participant)),
       resourceSnapshot: source.quizSnapshot.resources.map((resource) => ({ ...resource })),
@@ -65,7 +67,7 @@ export class QuizEventAnalyticsAdapter implements AnalyticsSourceAdapter<QuizEve
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 2,
+        schemaVersion: 3,
       },
     };
   }

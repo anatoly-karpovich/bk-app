@@ -115,8 +115,8 @@ test("builds an overview from filtered facts without mixing sources, resources, 
   ]);
 
   const overview = await service.getOverview("project-a", {
-    from: "2026-08-01T00:00:00.000Z",
-    to: "2026-09-01T00:00:00.000Z",
+    from: "2026-08-01",
+    to: "2026-08-31",
     sourceTypes: ["journey", "quiz"],
   });
 
@@ -148,6 +148,23 @@ test("builds an overview from filtered facts without mixing sources, resources, 
     },
   ]);
   assert.equal(overview.integrity, freshIntegrity);
+});
+
+test("uses inclusive calendar-date filters and reads legacy timestamps only as a fallback", async () => {
+  const legacyFact = fact("journey-legacy", "journey", "2026-08-10T23:30:00.000Z", [participant("player-1", "Legacy")]);
+  const refreshedFact = fact("journey-refreshed", "journey", "2026-08-01T00:00:00.000Z", [participant("player-2", "Current")]);
+  refreshedFact.occurredOn = "2026-08-10";
+  refreshedFact.occurrenceDateSource = "conducted_on";
+  refreshedFact.occurredAt = undefined;
+
+  const overview = await createService([legacyFact, refreshedFact]).getOverview("project-a", {
+    from: "2026-08-10",
+    to: "2026-08-10",
+  });
+
+  assert.deepEqual(overview.period, { from: "2026-08-10", to: "2026-08-10", sourceTypes: ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"] });
+  assert.equal(overview.conductedSources, 2);
+  assert.deepEqual(overview.activityByDay, [{ date: "2026-08-10", conductedSources: 2, participations: 2 }]);
 });
 
 test("keeps current resources selectable and exposes historical source snapshots with separate totals", async () => {
@@ -244,8 +261,8 @@ test("builds a player detail view from saved facts with resource totals, ranks, 
   lotto.meta.schemaVersion = 2;
 
   const details = await createService([journey, quiz, lotto]).getPlayerDetails("project-a", "player-1", {
-    from: "2026-08-01T00:00:00.000Z",
-    to: "2026-09-01T00:00:00.000Z",
+    from: "2026-08-01",
+    to: "2026-08-31",
     resourceId: "coins",
     historyLimit: 2,
   });
@@ -267,5 +284,6 @@ test("builds a player detail view from saved facts with resource totals, ranks, 
     { sourceType: "quiz", participations: 1, rewards: { regular: 0, bonus: 3, total: 3 }, rank: 1, rankedPlayers: 2 },
   ]);
   assert.deepEqual(details.history.entries.map((entry) => entry.source.titleSnapshot), ["Лото", "Викторина «Киномания»"]);
+  assert.deepEqual(details.history.entries.map((entry) => entry.occurredOn), ["2026-08-07", "2026-08-06"]);
   assert.ok(details.history.nextCursor);
 });

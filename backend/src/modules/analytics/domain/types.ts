@@ -1,4 +1,5 @@
 import type { ResourceAmount, ResourceSnapshot } from "../../rewards";
+import type { AnalyticsOccurrenceDateSource } from "./occurrenceDate";
 import type { AnalyticsSourceKind, AnalyticsSourceType } from "./sourceTypes";
 
 export interface AnalyticsSourceStamp {
@@ -32,7 +33,11 @@ export interface AnalyticsParticipantResult {
 
 export interface AnalyticsFactDocument {
   projectId: string;
-  occurredAt: string;
+  /** Calendar date used by current Analytics projections and read models. */
+  occurredOn?: string;
+  occurrenceDateSource?: AnalyticsOccurrenceDateSource;
+  /** Legacy timestamp retained only for tolerant reads until every project is refreshed. */
+  occurredAt?: string;
   source: AnalyticsSourceStamp;
   participants: AnalyticsParticipantResult[];
   resourceSnapshot: ResourceSnapshot[];
@@ -40,6 +45,6 @@ export interface AnalyticsFactDocument {
     status: "ready" | "partial";
     issues: AnalyticsFactIssue[];
     computedAt: string;
-    schemaVersion: 1 | 2;
+    schemaVersion: 1 | 2 | 3;
   };
 }

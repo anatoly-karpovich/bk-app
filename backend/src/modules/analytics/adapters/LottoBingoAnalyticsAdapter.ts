@@ -3,6 +3,7 @@ import { LottoBingoRepository, type LottoBingoGameDocument } from "../../lottoBi
 import type { LottoBingoPayoutCategory } from "../../lottoBingo/domain/types";
 import type { ResourceAmount } from "../../rewards";
 import { aggregateAnalyticsResourceAmounts } from "../domain/rewardAggregation";
+import { resolveAnalyticsOccurrenceDate } from "../domain/occurrenceDate";
 import type { AnalyticsFactDocument, AnalyticsParticipantResult } from "../domain/types";
 import type { AnalyticsSourceAdapter, AnalyticsSourceDescriptor } from "./AnalyticsSourceAdapter";
 
@@ -38,7 +39,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
   describe(source: LottoBingoAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      occurredAt: source.finishedAt ?? source.updatedAt,
+      ...resolveAnalyticsOccurrenceDate(undefined, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
         type: this.sourceTypes[0],
@@ -65,7 +66,8 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
 
     return {
       projectId: descriptor.projectId,
-      occurredAt: descriptor.occurredAt,
+      occurredOn: descriptor.occurredOn,
+      occurrenceDateSource: descriptor.occurrenceDateSource,
       source: descriptor.source,
       participants: participantValues.map((participant) => this.toParticipant(participant)),
       resourceSnapshot: source.resources.map((resource) => ({ ...resource })),
@@ -73,7 +75,7 @@ export class LottoBingoAnalyticsAdapter implements AnalyticsSourceAdapter<LottoB
         status: issues.length > 0 ? "partial" : "ready",
         issues,
         computedAt: this.now(),
-        schemaVersion: 2,
+        schemaVersion: 3,
       },
     };
   }

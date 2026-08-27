@@ -140,7 +140,8 @@ test("uses updatedAt only as the historical fallback when a completed Quiz Event
 
   const descriptor = createAdapter().describe(event);
 
-  assert.equal(descriptor.occurredAt, "2026-08-25T10:05:00.000Z");
+  assert.equal(descriptor.occurredOn, "2026-08-25");
+  assert.equal(descriptor.occurrenceDateSource, "finalized_at");
   assert.deepEqual(descriptor.source, {
     kind: "quiz_event",
     type: "quiz",
@@ -183,7 +184,7 @@ test("publishes every legacy Quiz award without a player reference as a separate
       { code: "missing_player_reference", nicknameSnapshot: "Historical nickname" },
     ],
     computedAt,
-    schemaVersion: 2,
+    schemaVersion: 3,
   });
 });
 

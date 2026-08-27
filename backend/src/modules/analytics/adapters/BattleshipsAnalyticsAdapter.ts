@@ -1,6 +1,7 @@
 import type { WithId } from "mongodb";
 import { BattleshipsRepository, type BattleshipsGameDocument } from "../../battleships/BattleshipsRepository";
 import { aggregateAnalyticsResourceAmounts } from "../domain/rewardAggregation";
+import { resolveAnalyticsOccurrenceDate } from "../domain/occurrenceDate";
 import type { AnalyticsFactDocument } from "../domain/types";
 import type { AnalyticsSourceAdapter, AnalyticsSourceDescriptor } from "./AnalyticsSourceAdapter";
 
@@ -23,7 +24,7 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
   describe(source: BattleshipsAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      occurredAt: source.finishedAt ?? source.updatedAt,
+      ...resolveAnalyticsOccurrenceDate(undefined, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
         type: this.sourceTypes[0],
@@ -44,7 +45,8 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
 
     return {
       projectId: descriptor.projectId,
-      occurredAt: descriptor.occurredAt,
+      occurredOn: descriptor.occurredOn,
+      occurrenceDateSource: descriptor.occurrenceDateSource,
       source: descriptor.source,
       participants: [
         {
@@ -63,7 +65,7 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
           ? [{ code: "missing_player_reference", nicknameSnapshot: source.playerName }]
           : [],
         computedAt: this.now(),
-        schemaVersion: 2,
+        schemaVersion: 3,
       },
     };
   }

@@ -3,6 +3,7 @@ import { AnalyticsIntegrityService, type AnalyticsIntegrityReport } from "./Anal
 import { AnalyticsProjectRefreshMutex } from "./AnalyticsProjectRefreshMutex";
 import { AnalyticsProjectionRepository } from "./AnalyticsProjectionRepository";
 import type { AnalyticsSourceAdapter } from "./adapters/AnalyticsSourceAdapter";
+import { ANALYTICS_OCCURRENCE_DATE_SOURCES, isAnalyticsCalendarDate } from "./domain/occurrenceDate";
 import { createAnalyticsSourceKey, isAnalyticsSourcePair } from "./domain/sourceTypes";
 import type { AnalyticsFactDocument, AnalyticsSourceStamp } from "./domain/types";
 import { AnalyticsProjectionBuildError } from "./errors/AnalyticsProjectionBuildError";
@@ -111,13 +112,18 @@ export class AnalyticsProjectionService {
     if (fact.projectId !== projectId || !this.isNonEmptyString(fact.projectId)) {
       throw new Error("Analytics fact project does not match refresh project");
     }
-    if (!this.isValidDateTime(fact.occurredAt) || !this.isValidSourceStamp(fact.source)) {
-      throw new Error("Analytics fact has an invalid source timestamp or stamp");
+    if (
+      !isAnalyticsCalendarDate(fact.occurredOn) ||
+      !fact.occurrenceDateSource ||
+      !ANALYTICS_OCCURRENCE_DATE_SOURCES.includes(fact.occurrenceDateSource) ||
+      !this.isValidSourceStamp(fact.source)
+    ) {
+      throw new Error("Analytics fact has an invalid occurrence date or source stamp");
     }
     if (!adapterSourceTypes.includes(fact.source.type) || !this.sameSourceStamp(fact.source, expectedSource)) {
       throw new Error("Analytics fact source does not match its canonical source descriptor");
     }
-    if (fact.meta.schemaVersion !== 2 || (fact.meta.status !== "ready" && fact.meta.status !== "partial")) {
+    if (fact.meta.schemaVersion !== 3 || (fact.meta.status !== "ready" && fact.meta.status !== "partial")) {
       throw new Error("Analytics fact has unsupported metadata");
     }
     if ((fact.meta.status === "partial") !== (fact.meta.issues.length > 0)) {
