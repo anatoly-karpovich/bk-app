@@ -17,6 +17,7 @@ test("checks every saved-game source by playerRefId without nickname fallback", 
 
   assert.equal(await repository.hasSavedGameReference("project", "player-ref"), false);
   assert.deepEqual(queries.map((query) => query.collection).sort(), [
+    "activity_results",
     "battleships_games",
     "journey_games",
     "lotto_bingo_games",
@@ -38,6 +39,10 @@ test("checks every saved-game source by playerRefId without nickname fallback", 
   assert.deepEqual(queries.find((query) => query.collection === "lotto_bingo_games")?.filter, {
     projectId: "project",
     "players.playerRefId": "player-ref",
+  });
+  assert.deepEqual(queries.find((query) => query.collection === "activity_results")?.filter, {
+    projectId: "project",
+    "participants.playerRefId": "player-ref",
   });
   assert.deepEqual(queries.find((query) => query.collection === "quizEvents")?.filter, {
     projectId: "project",

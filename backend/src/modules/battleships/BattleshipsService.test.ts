@@ -43,7 +43,7 @@ test("invalidates an analytics fact only after a finished Battleships game is sa
       },
       async deleteProjectFacts() {},
     },
-    { async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {}, async submitQuizEvent() {} },
+    { async submitActivityResult() {}, async submitJourneyGame() {}, async submitBattleshipsGame() {}, async submitLottoGame() {}, async submitLottoBingoGame() {}, async submitQuizEvent() {} },
   );
 
   await service.undoBattleshipsShot(admin, "project-a", "game-a");
@@ -76,6 +76,7 @@ test("updates a finished Battleships conducted date, preserves a legacy finaliza
     {} as never,
     { async deleteSourceFact() {}, async deleteProjectFacts() {} } as never,
     {
+      async submitActivityResult() {},
       async submitJourneyGame() {},
       async submitBattleshipsGame(source: unknown) { submitted.push(source); },
       async submitLottoGame() {},

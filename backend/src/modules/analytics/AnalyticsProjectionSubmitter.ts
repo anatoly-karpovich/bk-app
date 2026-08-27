@@ -1,4 +1,5 @@
 import type { WithId } from "mongodb";
+import type { ActivityResultDocument } from "../activities/domain/types";
 import type { BattleshipsGameDocument } from "../battleships/BattleshipsRepository";
 import type { JourneyGameDocument } from "../journey/JourneyRepository";
 import type { LottoGameDocument } from "../lotto/LottoRepository";
@@ -9,10 +10,12 @@ import { JourneyAnalyticsAdapter } from "./adapters/JourneyAnalyticsAdapter";
 import { LottoAnalyticsAdapter } from "./adapters/LottoAnalyticsAdapter";
 import { LottoBingoAnalyticsAdapter } from "./adapters/LottoBingoAnalyticsAdapter";
 import { QuizEventAnalyticsAdapter } from "./adapters/QuizEventAnalyticsAdapter";
+import { ActivityResultAnalyticsAdapter } from "./adapters/ActivityResultAnalyticsAdapter";
 import type { AnalyticsSourceAdapter } from "./adapters/AnalyticsSourceAdapter";
 import { AnalyticsProjectionService } from "./AnalyticsProjectionService";
 
 export interface AnalyticsProjectionSubmitter {
+  submitActivityResult(source: WithId<ActivityResultDocument>): Promise<void>;
   submitJourneyGame(source: WithId<JourneyGameDocument>): Promise<void>;
   submitBattleshipsGame(source: WithId<BattleshipsGameDocument>): Promise<void>;
   submitLottoGame(source: WithId<LottoGameDocument>): Promise<void>;
@@ -38,6 +41,7 @@ export class BestEffortAnalyticsProjectionSubmitter implements AnalyticsProjecti
   constructor(
     private readonly projectionService: AnalyticsProjectionService,
     private readonly adapters: {
+      activityResult: ActivityResultAnalyticsAdapter;
       journey: JourneyAnalyticsAdapter;
       battleships: BattleshipsAnalyticsAdapter;
       lotto: LottoAnalyticsAdapter;
@@ -46,6 +50,10 @@ export class BestEffortAnalyticsProjectionSubmitter implements AnalyticsProjecti
     },
     private readonly logger: AnalyticsSubmissionLogger = defaultLogger,
   ) {}
+
+  async submitActivityResult(source: WithId<ActivityResultDocument>): Promise<void> {
+    await this.submit("submit_activity_result_fact", this.adapters.activityResult, source);
+  }
 
   async submitJourneyGame(source: WithId<JourneyGameDocument>): Promise<void> {
     await this.submit("submit_journey_fact", this.adapters.journey, source);

@@ -4,7 +4,7 @@ export class PlayerReferencesRepository {
   constructor(private readonly mongoDatabase: MongoDatabase) {}
 
   async hasSavedGameReference(projectId: string, playerRefId: string): Promise<boolean> {
-    const [journey, battleships, lotto, lottoBingo, quizEvents] = await Promise.all([
+    const [journey, battleships, lotto, lottoBingo, quizEvents, activities] = await Promise.all([
       this.mongoDatabase.getCollection("journey_games").then((collection) =>
         collection.findOne({ projectId, "stateV2.players.playerRefId": playerRefId }),
       ),
@@ -27,7 +27,10 @@ export class PlayerReferencesRepository {
           ],
         }),
       ),
+      this.mongoDatabase.getCollection("activity_results").then((collection) =>
+        collection.findOne({ projectId, "participants.playerRefId": playerRefId }),
+      ),
     ]);
-    return Boolean(journey || battleships || lotto || lottoBingo || quizEvents);
+    return Boolean(journey || battleships || lotto || lottoBingo || quizEvents || activities);
   }
 }
