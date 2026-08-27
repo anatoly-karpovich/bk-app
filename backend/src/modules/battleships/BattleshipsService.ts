@@ -14,7 +14,11 @@ import type {
 } from "./domain/types";
 import type { CurrentUser } from "../auth/domain/types";
 import { assertOwnedByUser, assertProjectAccess, getHostSnapshot } from "../auth/authorization";
-import { BattleshipsGameNotFoundError, BattleshipsGamesNotFoundError } from "./errors";
+import {
+  BattleshipsConductedOnUnavailableError,
+  BattleshipsGameNotFoundError,
+  BattleshipsGamesNotFoundError,
+} from "./errors";
 import type { AnalyticsProjectionInvalidator } from "../analytics/AnalyticsProjectionInvalidator";
 import type { AnalyticsProjectionSubmitter } from "../analytics/AnalyticsProjectionSubmitter";
 
@@ -160,6 +164,38 @@ export class BattleshipsService {
       await this.analyticsInvalidator.deleteSourceFact(projectId, { kind: "game", id: gameId });
     }
 
+    return this.serializeBattleshipsGame(updatedGame);
+  }
+
+  async updateBattleshipsConductedOn(
+    actor: CurrentUser,
+    projectId: string,
+    gameId: string,
+    conductedOn: string | null,
+  ): Promise<BattleshipsGameResponse> {
+    assertProjectAccess(actor, projectId);
+    const currentGame = await this.repository.findByIdAndProjectId(gameId, projectId);
+
+    if (!currentGame) {
+      throw new BattleshipsGameNotFoundError(gameId);
+    }
+    assertOwnedByUser(actor, currentGame.hostUserId);
+    if (currentGame.status !== "finished") {
+      throw new BattleshipsConductedOnUnavailableError();
+    }
+
+    const updatedGame = await this.saveBattleshipsGameDocument(projectId, gameId, {
+      ...currentGame,
+      finishedAt: currentGame.finishedAt ?? currentGame.updatedAt,
+      conductedOn,
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (!updatedGame) {
+      throw new BattleshipsGameNotFoundError(gameId);
+    }
+
+    await this.analyticsSubmitter.submitBattleshipsGame(updatedGame);
     return this.serializeBattleshipsGame(updatedGame);
   }
 

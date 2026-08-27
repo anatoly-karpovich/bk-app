@@ -11,6 +11,7 @@ export function createBattleshipsRouter(battleshipsController: BattleshipsContro
   router.post("/games", asyncHandler(battleshipsController.createBattleshipsGameInProject));
   router.post("/games/:gameId/shots", asyncHandler(battleshipsController.makeBattleshipsShot));
   router.post("/games/:gameId/shots/undo", asyncHandler(battleshipsController.undoBattleshipsShot));
+  router.patch("/games/:gameId/conducted-on", asyncHandler(battleshipsController.updateBattleshipsConductedOn));
   router.delete("/games/:gameId", asyncHandler(battleshipsController.deleteBattleshipsGame));
 
   return router;

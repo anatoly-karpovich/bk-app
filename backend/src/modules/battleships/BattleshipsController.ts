@@ -4,12 +4,14 @@ import { parseRequest } from "../../common/validation/parseRequest";
 import { GameConfigNotFoundError } from "../gameConfigs/errors";
 import { ProjectNotFoundError } from "../projects/errors";
 import {
+  BattleshipsConductedOnUnavailableError,
   BattleshipsGameNotFoundError,
   BattleshipsGamesNotFoundError,
   BattleshipsShotValidationError,
   InvalidBattleshipsGameIdError,
 } from "./errors";
 import {
+  battleshipsConductedOnSchema,
   battleshipsGameIdParamsSchema,
   battleshipsShotSchema,
   createBattleshipsGamePlayerNameSchema,
@@ -287,6 +289,41 @@ export class BattleshipsController {
       return res.status(500).json({
         success: false,
         message: "Failed to undo battleships shot",
+        error: getErrorMessage(error),
+      });
+    }
+  };
+
+  updateBattleshipsConductedOn = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = parseRequest(
+        battleshipsGameIdParamsSchema,
+        req.params,
+        "Route parameter 'gameId' is required",
+      );
+      const { conductedOn } = parseRequest(battleshipsConductedOnSchema, req.body, "Invalid conducted date");
+      const updatedGame = await this.battleshipsService.updateBattleshipsConductedOn(
+        req.authUser!,
+        getProjectId(req),
+        gameId,
+        conductedOn,
+      );
+
+      return res.status(200).json({ success: true, data: updatedGame });
+    } catch (error) {
+      if (error instanceof RequestValidationError || error instanceof InvalidBattleshipsGameIdError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      if (error instanceof BattleshipsGameNotFoundError) {
+        return res.status(404).json({ success: false, message: "Battleships game not found" });
+      }
+      if (error instanceof BattleshipsConductedOnUnavailableError) {
+        return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update Battleships conducted date",
         error: getErrorMessage(error),
       });
     }

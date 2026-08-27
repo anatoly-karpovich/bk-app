@@ -229,6 +229,7 @@ export class JourneyService {
 
     const updatedGame = await this.saveJourneyGameDocument(projectId, gameId, {
       ...currentGame,
+      finishedAt: currentGame.finishedAt ?? currentGame.updatedAt,
       conductedOn,
       updatedAt: new Date().toISOString(),
     });

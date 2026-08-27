@@ -46,6 +46,7 @@ test("updates the conducted date of a finished Journey game and re-submits its A
   const result = await service.updateJourneyConductedOn(admin, "project", "game", "2024-03-15");
 
   assert.equal(current.conductedOn, null);
+  assert.equal((result as unknown as { finishedAt: string }).finishedAt, "2026-08-25T10:00:00.000Z");
   assert.equal((result as unknown as { conductedOn: string }).conductedOn, "2024-03-15");
   assert.equal(submitted.length, 1);
   assert.equal((submitted[0] as { conductedOn: string }).conductedOn, "2024-03-15");

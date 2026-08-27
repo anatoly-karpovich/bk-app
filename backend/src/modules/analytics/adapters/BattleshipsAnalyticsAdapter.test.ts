@@ -102,6 +102,13 @@ test("uses updatedAt only as the historical fallback when a finished game has no
   assert.equal(descriptor.occurrenceDateSource, "finalized_at");
 });
 
+test("prefers an explicit Battleships conducted date over the technical finalization date", () => {
+  const descriptor = createAdapter().describe(createFinishedGame({ conductedOn: "2024-03-15" }));
+
+  assert.equal(descriptor.occurredOn, "2024-03-15");
+  assert.equal(descriptor.occurrenceDateSource, "conducted_on");
+});
+
 test("publishes a partial fact for a legacy player without a stable reference", () => {
   const game = createFinishedGame({ playerRefId: undefined, playerName: "Historical nickname" });
 

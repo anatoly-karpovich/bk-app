@@ -24,7 +24,7 @@ export class BattleshipsAnalyticsAdapter implements AnalyticsSourceAdapter<Battl
   describe(source: BattleshipsAnalyticsSource): AnalyticsSourceDescriptor {
     return {
       projectId: source.projectId,
-      ...resolveAnalyticsOccurrenceDate(undefined, source.finishedAt ?? source.updatedAt),
+      ...resolveAnalyticsOccurrenceDate(source.conductedOn, source.finishedAt ?? source.updatedAt),
       source: {
         kind: "game",
         type: this.sourceTypes[0],
