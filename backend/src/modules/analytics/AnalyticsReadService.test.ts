@@ -38,8 +38,8 @@ const historicalCoin = {
 
 const freshIntegrity: AnalyticsIntegrityReport = {
   freshness: "fresh",
-  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
-  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
+  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0, forecast_contest: 0, contest: 0 },
+  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0, forecast_contest: 0, contest: 0 },
   missing: [],
   orphan: [],
   outdated: [],
@@ -177,7 +177,7 @@ test("uses inclusive calendar-date filters and reads legacy timestamps only as a
     to: "2026-08-10",
   });
 
-  assert.deepEqual(overview.period, { from: "2026-08-10", to: "2026-08-10", sourceTypes: ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"] });
+  assert.deepEqual(overview.period, { from: "2026-08-10", to: "2026-08-10", sourceTypes: ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament", "forecast_contest", "contest"] });
   assert.equal(overview.conductedSources, 2);
   assert.deepEqual(overview.activityByDay, [{ date: "2026-08-10", conductedSources: 2, participations: 2 }]);
 });

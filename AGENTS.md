@@ -161,7 +161,7 @@ Project-level resources and preset rules must be read from project-scoped backen
 An Activity Result is a canonical, editable record of an already conducted manual activity; it is not a Game, Quiz Event, or reward pool. It stores direct resolved `regular` and `bonus` Resource amounts, a Player reference/nickname snapshot, a resource snapshot, a nullable calendar `conductedOn`, and a revision. Creation and every successful edit publish the Activity Analytics fact; deletion invalidates it.
 
 - Every saved Activity Result is final; do not restore the superseded draft/completed lifecycle or a `complete` endpoint.
-- The Activity type is one of the eight stable Analytics source types. Its project-defined title and availability govern new manual entries only, never native games or Quiz Events.
+- The Activity type is one of the ten stable Analytics source types. Its project-defined title and availability govern new manual entries only, never native games or Quiz Events.
 - `conductedOn` is a calendar `YYYY-MM-DD`, never a timezone timestamp. When null, Analytics uses the immutable creation/finalization fallback and marks that source accordingly.
 - Activity API responses follow the explicit `meta`, `content`, and `configuration` read-model vocabulary. Frontend deletion/update uses the backend-provided revision and access capabilities.
 

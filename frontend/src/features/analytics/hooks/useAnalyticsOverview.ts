@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { analyticsApiClient } from "../api/analytics.client";
 import { monthRange } from "../components/analyticsPeriods";
-import type { AnalyticsLeaderboard, AnalyticsOverview, AnalyticsQuery, AnalyticsResources, AnalyticsRewardCategory, AnalyticsSourceType } from "../types";
+import { analyticsSourceTypes, type AnalyticsLeaderboard, type AnalyticsOverview, type AnalyticsQuery, type AnalyticsResources, type AnalyticsRewardCategory, type AnalyticsSourceType } from "../types";
 
-const ALL_SOURCE_TYPES: AnalyticsSourceType[] = ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"];
+const ALL_SOURCE_TYPES: AnalyticsSourceType[] = [...analyticsSourceTypes];
 const LEADERBOARD_PAGE_SIZE = 5;
 
 function currentMonthQuery(): AnalyticsQuery {

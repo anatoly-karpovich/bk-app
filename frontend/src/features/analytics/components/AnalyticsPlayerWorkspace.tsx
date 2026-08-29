@@ -3,7 +3,7 @@ import AppPillButton from "../../../components/ui/AppPillButton";
 import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import type { AnalyticsPlayerDetails } from "../types";
 import { formatNumber, pluralizeRu } from "./analyticsFormat";
-import { sourceLabels } from "./AnalyticsFilters";
+import type { AnalyticsSourceLabels } from "./AnalyticsFilters";
 import AnalyticsRewardsChart from "./AnalyticsRewardsChart";
 
 function formatDate(value: string): string {
@@ -12,6 +12,7 @@ function formatDate(value: string): string {
 
 interface AnalyticsPlayerWorkspaceProps {
   details: AnalyticsPlayerDetails;
+  sourceLabels: AnalyticsSourceLabels;
   onResourceChange: (resourceId: string) => void;
   onShowMoreHistory: () => void;
   isLoadingHistory: boolean;
@@ -19,6 +20,7 @@ interface AnalyticsPlayerWorkspaceProps {
 
 export default function AnalyticsPlayerWorkspace({
   details,
+  sourceLabels,
   onResourceChange,
   onShowMoreHistory,
   isLoadingHistory,
@@ -37,7 +39,7 @@ export default function AnalyticsPlayerWorkspace({
         <Card>
           <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
             <PanelHeader title="Откуда получены награды" description="Распределение заработка по типам проведений." details={details} onResourceChange={onResourceChange} />
-            <SourceDistribution details={details} />
+            <SourceDistribution details={details} sourceLabels={sourceLabels} />
           </CardContent>
         </Card>
       </AppResponsiveGrid>
@@ -86,10 +88,10 @@ function PanelHeader({ title, description, details, onResourceChange }: { title:
   return <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1.5, alignItems: "start", mb: 2.25, flexDirection: { xs: "column", sm: "row" } }}><Box><Typography variant="h5">{title}</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{description}</Typography></Box><Select size="small" value={details.resource.resource.id} onChange={(event) => onResourceChange(event.target.value)} sx={{ minWidth: 180, borderRadius: (theme) => theme.customRadii.control }}>{details.rewardsByResource.map((entry) => <MenuItem key={entry.resource.id} value={entry.resource.id}>{entry.resource.name}</MenuItem>)}</Select></Box>;
 }
 
-function SourceDistribution({ details }: { details: AnalyticsPlayerDetails }) {
+function SourceDistribution({ details, sourceLabels }: { details: AnalyticsPlayerDetails; sourceLabels: AnalyticsSourceLabels }) {
   const entries = Object.entries(details.rewardsBySourceType).filter(([, entry]) => entry.rewards.total > 0) as Array<[keyof typeof details.rewardsBySourceType, (typeof details.rewardsBySourceType)[keyof typeof details.rewardsBySourceType]]>;
   const total = entries.reduce((sum, [, entry]) => sum + entry.rewards.total, 0);
-  const colors = ["#4f46e5", "#0891b2", "#8b5cf6", "#cbd5e1", "#f59e0b"];
+  const colors = ["#4f46e5", "#0891b2", "#8b5cf6", "#64748b", "#f59e0b", "#db2777", "#16a34a", "#ea580c", "#0f766e", "#9333ea"];
   const gradient = entries.length ? entries.reduce(({ parts, offset }, [, entry], index) => ({ parts: [...parts, `${colors[index]} ${offset}% ${offset + (entry.rewards.total / total) * 100}%`], offset: offset + (entry.rewards.total / total) * 100 }), { parts: [] as string[], offset: 0 }).parts.join(", ") : "#e2e8f0 0 100%";
   return <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "180px minmax(0, 1fr)" }, gap: 2, alignItems: "center", minHeight: 248 }}><Box sx={{ width: 170, height: 170, mx: "auto", borderRadius: "50%", background: `conic-gradient(${gradient})`, display: "grid", placeItems: "center" }}><Box sx={{ width: 102, height: 102, borderRadius: "50%", bgcolor: "background.paper", display: "grid", placeItems: "center", textAlign: "center" }}><Typography variant="h5">{formatNumber(total)}<Typography component="span" variant="caption" display="block" color="text.secondary">{details.resource.resource.label}</Typography></Typography></Box></Box><Stack spacing={1}>{entries.map(([sourceType, entry], index) => <Box key={sourceType} sx={{ display: "grid", gridTemplateColumns: "10px minmax(0, 1fr) auto", gap: 1, alignItems: "center" }}><Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: colors[index] }} /><Typography variant="body2">{sourceLabels[sourceType]} · {Math.round((entry.rewards.total / total) * 100)}%</Typography><Typography variant="subtitle2">{formatNumber(entry.rewards.total)}</Typography></Box>)}</Stack></Box>;
 }

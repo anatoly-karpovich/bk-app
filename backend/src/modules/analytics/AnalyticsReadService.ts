@@ -595,6 +595,8 @@ export class AnalyticsReadService {
       memes: "Игра «Карты, Мемы, Два ствола!»",
       forum_quiz: "Форумная викторина",
       tournament: "Турнир",
+      forecast_contest: "Конкурс Прогнозистов",
+      contest: "Конкурс",
     }[sourceType];
   }
 

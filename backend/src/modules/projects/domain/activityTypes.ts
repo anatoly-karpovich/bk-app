@@ -10,6 +10,8 @@ const DEFAULT_TITLES: Readonly<Record<AnalyticsSourceType, string>> = {
   memes: "Игра «Карты, Мемы, Два ствола!»",
   forum_quiz: "Форумная викторина",
   tournament: "Турнир",
+  forecast_contest: "Конкурс Прогнозистов",
+  contest: "Конкурс",
 };
 
 /** Returns a new complete settings list in the stable Analytics category order. */
@@ -22,11 +24,15 @@ export function createDefaultProjectActivityTypes(): ProjectActivityTypeSettings
 }
 
 /**
- * Legacy Project documents predate activity settings. Their reads must still expose
- * the complete default configuration until the first explicit Project update.
+ * Legacy or older Project documents may not yet include every known activity type.
+ * Reads expose the complete configuration without mutating persisted data.
  */
 export function normalizeProjectActivityTypes(
   activityTypes: ReadonlyArray<ProjectActivityTypeSettings> | undefined,
 ): ProjectActivityTypeSettings[] {
-  return activityTypes ? activityTypes.map((activityType) => structuredClone(activityType)) : createDefaultProjectActivityTypes();
+  const defaults = createDefaultProjectActivityTypes();
+  if (!activityTypes) return defaults;
+
+  const savedByType = new Map(activityTypes.map((activityType) => [activityType.type, activityType]));
+  return defaults.map((defaultSetting) => structuredClone(savedByType.get(defaultSetting.type) ?? defaultSetting));
 }

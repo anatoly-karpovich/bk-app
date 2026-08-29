@@ -1,6 +1,6 @@
 import type { ActivityResult, ActivityResultDraft, ActivityResultInput, ActivityTypeSettings } from "./types";
 
-function participantId(): string {
+export function createActivityParticipantId(): string {
   return `participant-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
@@ -12,7 +12,7 @@ export function createActivityResultDraft(activityTypes: readonly ActivityTypeSe
 
 export function emptyActivityParticipant(defaultResourceId = "") {
   return {
-    id: participantId(),
+    id: createActivityParticipantId(),
     nickname: "",
     playerRefId: null,
     rewards: {

@@ -1,4 +1,5 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import {
   Box,
@@ -13,14 +14,17 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useState } from "react";
 import AddPlayerButton from "../../../components/AddPlayerButton";
 import ProjectPlayerAutocomplete from "../../../components/players/ProjectPlayerAutocomplete";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppTextInput from "../../../components/ui/AppTextInput";
 import AppResponsiveGrid from "../../../components/ui/AppResponsiveGrid";
 import type { ProjectPlayer } from "../../players/types";
+import { mergeRecognizedActivityParticipants, type RecognizedActivityResult } from "../activityResultsRecognition.helpers";
 import { emptyActivityParticipant } from "../activityResult.helpers";
 import type { ActivityParticipantDraft, ActivityResourceAmountDraft } from "../types";
+import ActivityResultsRecognitionDialog from "./ActivityResultsRecognitionDialog";
 
 type RewardCategory = "regular" | "bonus";
 
@@ -171,6 +175,7 @@ export default function ActivityParticipantEditor({
   disabled,
   onChange,
 }: ActivityParticipantEditorProps) {
+  const [recognitionOpen, setRecognitionOpen] = useState(false);
   const updateParticipant = (index: number, patch: Partial<ActivityParticipantDraft>) => {
     onChange(
       participants.map((participant, participantIndex) =>
@@ -182,12 +187,28 @@ export default function ActivityParticipantEditor({
     const participant = participants[index]!;
     updateParticipant(index, { rewards: { ...participant.rewards, [category]: amounts } });
   };
+  const applyRecognition = (resourceId: string, results: readonly RecognizedActivityResult[]) => {
+    onChange(mergeRecognizedActivityParticipants(participants, projectPlayers, resourceId, results));
+  };
 
   return (
     <Card>
       <CardHeader
         title="Получатели и награды"
         subheader="Добавляйте только награждённых игроков. Regular и bonus сохраняются отдельно."
+        action={
+          !disabled ? (
+            <AppPillButton
+              size="small"
+              variant="outlined"
+              startIcon={<AutoFixHighRoundedIcon />}
+              disabled={!resources.length}
+              onClick={() => setRecognitionOpen(true)}
+            >
+              Распознать
+            </AppPillButton>
+          ) : null
+        }
       />
       <CardContent>
         <Stack spacing={2}>
@@ -263,6 +284,12 @@ export default function ActivityParticipantEditor({
           </Box>
         </Stack>
       </CardContent>
+      <ActivityResultsRecognitionDialog
+        open={recognitionOpen}
+        resources={resources}
+        onClose={() => setRecognitionOpen(false)}
+        onRecognize={applyRecognition}
+      />
     </Card>
   );
 }
