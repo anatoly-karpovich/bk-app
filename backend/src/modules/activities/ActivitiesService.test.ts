@@ -100,6 +100,23 @@ test("creates a final result from resolved participants, snapshots used resource
   assert.equal(submitted.length, 1);
 });
 
+test("allows the new manual competition types for a project with saved legacy settings", async () => {
+  const { service, activities } = createService();
+
+  await service.create(actor, "66cb0df7c727752c07e779ba", {
+    ...input,
+    type: "forecast_contest",
+    title: "Конкурс Прогнозистов",
+  });
+  await service.create(actor, "66cb0df7c727752c07e779ba", {
+    ...input,
+    type: "contest",
+    title: "Конкурс",
+  });
+
+  assert.deepEqual(activities.map((activity) => (activity as { type: string }).type), ["forecast_contest", "contest"]);
+});
+
 test("rejects creation with a disabled project Activity type", async () => {
   const { service } = createService({ disabledLotto: true });
 

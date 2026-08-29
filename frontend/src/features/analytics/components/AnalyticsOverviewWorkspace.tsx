@@ -7,7 +7,7 @@ import AnalyticsRewardsChart from "./AnalyticsRewardsChart";
 import AnalyticsSelectionPill from "./AnalyticsSelectionPill";
 import { getResourceColor } from "./analyticsColors";
 import { formatNumber, pluralizeRu } from "./analyticsFormat";
-import { sourceLabels } from "./AnalyticsFilters";
+import type { AnalyticsSourceLabels } from "./AnalyticsFilters";
 
 interface AnalyticsOverviewWorkspaceProps {
   overview: AnalyticsOverview;
@@ -16,6 +16,7 @@ interface AnalyticsOverviewWorkspaceProps {
   isLoadingPlayers: boolean;
   isShowingAllPlayers: boolean;
   rewardCategory: AnalyticsRewardCategory;
+  sourceLabels: AnalyticsSourceLabels;
   onRewardCategoryChange: (rewardCategory: AnalyticsRewardCategory) => void;
   onShowAllPlayers: () => void;
   onCollapsePlayers: () => void;
@@ -28,6 +29,7 @@ export default function AnalyticsOverviewWorkspace({
   isLoadingPlayers,
   isShowingAllPlayers,
   rewardCategory,
+  sourceLabels,
   onRewardCategoryChange,
   onShowAllPlayers,
   onCollapsePlayers,

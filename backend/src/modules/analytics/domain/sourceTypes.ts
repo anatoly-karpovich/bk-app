@@ -12,6 +12,8 @@ export const ANALYTICS_ACTIVITY_SOURCE_TYPES = [
   "memes",
   "forum_quiz",
   "tournament",
+  "forecast_contest",
+  "contest",
 ] as const;
 export const ANALYTICS_SOURCE_TYPES = [
   "journey",
@@ -22,6 +24,8 @@ export const ANALYTICS_SOURCE_TYPES = [
   "memes",
   "forum_quiz",
   "tournament",
+  "forecast_contest",
+  "contest",
 ] as const;
 export type AnalyticsSourceType = (typeof ANALYTICS_SOURCE_TYPES)[number];
 

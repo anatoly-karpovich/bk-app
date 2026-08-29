@@ -6,7 +6,7 @@ import {
   normalizeProjectActivityTypes,
 } from "./activityTypes";
 
-test("creates the eight enabled project activity type defaults in stable Analytics order", () => {
+test("creates the ten enabled project activity type defaults in stable Analytics order", () => {
   const activityTypes = createDefaultProjectActivityTypes();
 
   assert.deepEqual(
@@ -25,6 +25,8 @@ test("creates the eight enabled project activity type defaults in stable Analyti
       "Игра «Карты, Мемы, Два ствола!»",
       "Форумная викторина",
       "Турнир",
+      "Конкурс Прогнозистов",
+      "Конкурс",
     ],
   );
 });
@@ -38,12 +40,17 @@ test("normalizes legacy projects without activity types to defaults without shar
   assert.equal(secondRead[0].enabled, true);
 });
 
-test("keeps a saved activity type configuration while returning a clone for reads", () => {
+test("keeps saved settings and appends defaults for newly introduced activity types", () => {
   const saved = createDefaultProjectActivityTypes();
+  saved.splice(-2);
   saved[0].defaultTitle = "Сохранённая карта";
 
   const normalized = normalizeProjectActivityTypes(saved);
   normalized[0].defaultTitle = "Изменение read model";
 
   assert.equal(saved[0].defaultTitle, "Сохранённая карта");
+  assert.deepEqual(normalized.slice(-2), [
+    { type: "forecast_contest", defaultTitle: "Конкурс Прогнозистов", enabled: true },
+    { type: "contest", defaultTitle: "Конкурс", enabled: true },
+  ]);
 });

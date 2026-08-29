@@ -65,6 +65,8 @@ test("reports validated in-memory facts by source, participant, partial warning,
     memes: 0,
     forum_quiz: 0,
     tournament: 0,
+    forecast_contest: 0,
+    contest: 0,
   });
   assert.equal(report.participations, 2);
   assert.deepEqual(report.partialFacts.map((fact) => fact.source.id), ["event-1"]);

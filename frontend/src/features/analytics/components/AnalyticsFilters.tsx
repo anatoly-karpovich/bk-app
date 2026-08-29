@@ -3,11 +3,12 @@ import { Box, Button, Menu, Stack, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import AppPillButton from "../../../components/ui/AppPillButton";
 import AppMultiSelectFilter from "../../../components/ui/AppMultiSelectFilter";
-import type { AnalyticsQuery, AnalyticsSourceType } from "../types";
+import type { ProjectActivityTypeSettings } from "../../projects/types";
+import { analyticsSourceTypes, type AnalyticsQuery, type AnalyticsSourceType } from "../types";
 import AnalyticsSelectionPill from "./AnalyticsSelectionPill";
 import { customRangeToQuery, formatPeriod, isSamePeriod, periodPresets } from "./analyticsPeriods";
 
-const sourceLabels: Record<AnalyticsSourceType, string> = {
+const defaultSourceLabels: AnalyticsSourceLabels = {
   quiz: "Викторины",
   journey: "Карта Мародёров",
   lotto_bingo: "Лото Бинго",
@@ -16,16 +17,33 @@ const sourceLabels: Record<AnalyticsSourceType, string> = {
   memes: "Карты, Мемы, Два ствола!",
   forum_quiz: "Форумная викторина",
   tournament: "Турнир",
+  forecast_contest: "Конкурс Прогнозистов",
+  contest: "Конкурс",
 };
-const allSourceTypes: AnalyticsSourceType[] = ["quiz", "journey", "lotto_bingo", "lotto", "battleships", "memes", "forum_quiz", "tournament"];
+const allSourceTypes: AnalyticsSourceType[] = [...analyticsSourceTypes];
 
-interface AnalyticsFiltersProps {
+export type AnalyticsSourceLabels = Record<AnalyticsSourceType, string>;
+
+export function createAnalyticsSourceLabels(
+  activityTypes: readonly ProjectActivityTypeSettings[],
+): AnalyticsSourceLabels {
+  const labelsByType = new Map(activityTypes.map((setting) => [setting.type, setting.defaultTitle]));
+  return Object.fromEntries(
+    analyticsSourceTypes.map((type) => [type, labelsByType.get(type) ?? defaultSourceLabels[type]]),
+  ) as AnalyticsSourceLabels;
+}
+
+interface AnalyticsPeriodFiltersProps {
   query: AnalyticsQuery;
   onQueryChange: (query: AnalyticsQuery) => void;
 }
 
+interface AnalyticsFiltersProps extends AnalyticsPeriodFiltersProps {
+  sourceLabels: AnalyticsSourceLabels;
+}
+
 /** Right-hand filter controls: exact custom period and the conducted-source picker. */
-export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFiltersProps) {
+export default function AnalyticsFilters({ query, sourceLabels, onQueryChange }: AnalyticsFiltersProps) {
   const [periodAnchor, setPeriodAnchor] = useState<HTMLElement | null>(null);
   const [customFrom, setCustomFrom] = useState(query.from.slice(0, 10));
   const [customTo, setCustomTo] = useState(query.to);
@@ -94,7 +112,7 @@ export default function AnalyticsFilters({ query, onQueryChange }: AnalyticsFilt
 }
 
 /** Left-hand quick period presets. Custom ranges live in {@link AnalyticsFilters}. */
-export function AnalyticsQuickPeriodFilters({ query, onQueryChange }: AnalyticsFiltersProps) {
+export function AnalyticsQuickPeriodFilters({ query, onQueryChange }: AnalyticsPeriodFiltersProps) {
   return (
     <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
       {periodPresets().map(({ label, range }) => (
@@ -105,5 +123,3 @@ export function AnalyticsQuickPeriodFilters({ query, onQueryChange }: AnalyticsF
     </Stack>
   );
 }
-
-export { sourceLabels };

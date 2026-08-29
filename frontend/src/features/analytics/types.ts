@@ -1,4 +1,15 @@
-export const analyticsSourceTypes = ["journey", "battleships", "lotto", "lotto_bingo", "quiz", "memes", "forum_quiz", "tournament"] as const;
+export const analyticsSourceTypes = [
+  "journey",
+  "battleships",
+  "lotto",
+  "lotto_bingo",
+  "quiz",
+  "memes",
+  "forum_quiz",
+  "tournament",
+  "forecast_contest",
+  "contest",
+] as const;
 
 export type AnalyticsSourceType = (typeof analyticsSourceTypes)[number];
 export type AnalyticsRewardCategory = "total" | "regular" | "bonus";

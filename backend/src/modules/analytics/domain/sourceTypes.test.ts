@@ -14,7 +14,7 @@ test("creates project-scoped source keys without separator collisions", () => {
   );
 });
 
-test("defines all eight stable analytics categories", () => {
+test("defines all ten stable analytics categories", () => {
   assert.deepEqual(ANALYTICS_SOURCE_TYPES, [
     "journey",
     "battleships",
@@ -24,6 +24,8 @@ test("defines all eight stable analytics categories", () => {
     "memes",
     "forum_quiz",
     "tournament",
+    "forecast_contest",
+    "contest",
   ]);
   assert.deepEqual(ANALYTICS_ACTIVITY_SOURCE_TYPES, ANALYTICS_SOURCE_TYPES);
 });
@@ -39,4 +41,8 @@ test("validates source kind and category combinations from the shared matrix", (
   assert.equal(isAnalyticsSourcePair("game", "quiz"), false);
   assert.equal(isAnalyticsSourcePair("quiz_event", "lotto"), false);
   assert.equal(isAnalyticsSourcePair("activity", "memes"), true);
+  assert.equal(isAnalyticsSourcePair("activity", "forecast_contest"), true);
+  assert.equal(isAnalyticsSourcePair("activity", "contest"), true);
+  assert.equal(isAnalyticsSourcePair("game", "forecast_contest"), false);
+  assert.equal(isAnalyticsSourcePair("game", "contest"), false);
 });

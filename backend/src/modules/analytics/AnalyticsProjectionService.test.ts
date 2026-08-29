@@ -15,8 +15,8 @@ interface TestSource {
 
 const freshIntegrity: AnalyticsIntegrityReport = {
   freshness: "fresh",
-  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
-  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0 },
+  sourceCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0, forecast_contest: 0, contest: 0 },
+  factCountsByType: { journey: 0, battleships: 0, lotto: 0, lotto_bingo: 0, quiz: 0, memes: 0, forum_quiz: 0, tournament: 0, forecast_contest: 0, contest: 0 },
   missing: [],
   orphan: [],
   outdated: [],

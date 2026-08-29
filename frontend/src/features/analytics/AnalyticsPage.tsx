@@ -3,7 +3,7 @@ import CalculateRoundedIcon from "@mui/icons-material/CalculateRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { Alert, Box, Card, CardContent, Skeleton, Stack, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GamePageHeader, { type GamePageHeaderAction } from "../../components/GamePageHeader";
 import ProjectPlayerAutocomplete from "../../components/players/ProjectPlayerAutocomplete";
 import AppInfoAlert from "../../components/ui/AppInfoAlert";
@@ -11,7 +11,7 @@ import AppSelectableListItem from "../../components/ui/AppSelectableListItem";
 import type { Project } from "../projects/types";
 import { useAuth } from "../auth/useAuth";
 import { analyticsApiClient } from "./api/analytics.client";
-import AnalyticsFilters, { AnalyticsQuickPeriodFilters } from "./components/AnalyticsFilters";
+import AnalyticsFilters, { AnalyticsQuickPeriodFilters, createAnalyticsSourceLabels } from "./components/AnalyticsFilters";
 import AnalyticsOverviewWorkspace from "./components/AnalyticsOverviewWorkspace";
 import AnalyticsPlayerWorkspace from "./components/AnalyticsPlayerWorkspace";
 import AnalyticsSummaryChips from "./components/AnalyticsSummaryChips";
@@ -44,6 +44,10 @@ export default function AnalyticsPage({ selectedProject }: AnalyticsPageProps) {
   );
   const freshness = overview?.integrity.freshness === "fresh" ? "Данные актуальны" : "Требуется проверка данных";
   const selectedPlayer = selectedPlayerId ? players.find((player) => player.id === selectedPlayerId) : undefined;
+  const sourceLabels = useMemo(
+    () => createAnalyticsSourceLabels(selectedProject?.activityTypes ?? []),
+    [selectedProject?.activityTypes],
+  );
   const summaryItems =
     view === "overview"
       ? overview && resources
@@ -207,6 +211,7 @@ export default function AnalyticsPage({ selectedProject }: AnalyticsPageProps) {
                     ) : null}
                     <AnalyticsFilters
                       query={query}
+                      sourceLabels={sourceLabels}
                       onQueryChange={(nextQuery) => {
                         setIsShowingAllPlayers(false);
                         actions.setQuery(nextQuery);
@@ -251,6 +256,7 @@ export default function AnalyticsPage({ selectedProject }: AnalyticsPageProps) {
               isLoadingPlayers={isLoadingPlayers}
               isShowingAllPlayers={isShowingAllPlayers}
               rewardCategory={rewardCategory}
+              sourceLabels={sourceLabels}
               onRewardCategoryChange={(category) => {
                 setIsShowingAllPlayers(false);
                 void actions.selectRewardCategory(category);
@@ -267,6 +273,7 @@ export default function AnalyticsPage({ selectedProject }: AnalyticsPageProps) {
           {view === "player" && !playerDetails.isLoading && playerDetails.details ? (
             <AnalyticsPlayerWorkspace
               details={playerDetails.details}
+              sourceLabels={sourceLabels}
               onResourceChange={setSelectedResourceId}
               onShowMoreHistory={() => void playerDetails.actions.loadMoreHistory()}
               isLoadingHistory={playerDetails.isLoadingHistory}
